@@ -2,19 +2,21 @@
   "version": 2,
   "builds": [
     {
-      "src": "wsgi.py",
+      "src": "manage.py",
       "use": "@vercel/python"
     }
   ],
   "routes": [
     {
+      "src": "/static/(.*)",
+      "dest": "/static/$1"
+    },
+    {
       "src": "/(.*)",
-      "dest": "wsgi.py"
+      "dest": "/"
     }
   ],
   "env": {
-    "DJANGO_SETTINGS_MODULE": "sistema_rural.settings"
+    "DJANGO_SETTINGS_MODULE": "sistema_rural.settings_producao"
   }
 }
-
-

@@ -1,60 +1,73 @@
-# 🚀 Deploy do Sistema Rural com GitHub + Vercel
+# Sistema de Gestão Rural - Deploy
 
-## 📋 Configuração para Deploy Automático
+## 🚀 Deploy no Vercel (Recomendado)
 
-### 1. Configurar Repositório GitHub
-```bash
-# Inicializar repositório Git
-git init
-git add .
-git commit -m "Sistema Rural - Deploy inicial"
+### Passo 1: Conectar ao Vercel
+1. Acesse [vercel.com](https://vercel.com)
+2. Faça login com sua conta GitHub
+3. Clique em "New Project"
+4. Selecione o repositório `LMONCAO/Monpec_projetista`
 
-# Conectar ao GitHub
-git remote add origin https://github.com/SEU_USUARIO/sistema-rural.git
-git push -u origin main
+### Passo 2: Configurações do Deploy
+- **Framework Preset**: Django
+- **Root Directory**: `/`
+- **Build Command**: `pip install -r requirements_vercel.txt`
+- **Output Directory**: `/`
+- **Install Command**: `pip install -r requirements_vercel.txt`
+
+### Passo 3: Variáveis de Ambiente
+Adicione estas variáveis no painel do Vercel:
+```
+DJANGO_SETTINGS_MODULE=sistema_rural.settings_producao
+DEBUG=False
+SECRET_KEY=your-secret-key-here
+ALLOWED_HOSTS=your-domain.vercel.app
 ```
 
-### 2. Configurar Vercel
-1. Acesse: https://vercel.com
-2. Conecte sua conta GitHub
-3. Importe o repositório `sistema-rural`
-4. Configure o domínio: `monpec.com.br`
+### Passo 4: Deploy
+- Clique em "Deploy"
+- Aguarde o processo de build
+- Acesse o link fornecido pelo Vercel
 
-### 3. Configurar Domínio
+## 🌐 Deploy no Seu Domínio (monpec.com.br)
+
+### Opção 1: Vercel Custom Domain
 1. No painel do Vercel, vá em "Domains"
 2. Adicione `monpec.com.br`
-3. Configure os DNS records no seu provedor de domínio
+3. Configure os DNS no seu provedor de domínio
+4. Aponte para o Vercel
 
-### 4. Variáveis de Ambiente
-Configure no Vercel:
-```
-DJANGO_SETTINGS_MODULE=sistema_rural.settings
-SECRET_KEY=sua_chave_secreta_aqui
-DEBUG=False
-ALLOWED_HOSTS=monpec.com.br,*.vercel.app
-```
+### Opção 2: Deploy Manual no Servidor
+1. Clone o repositório no seu servidor
+2. Configure o ambiente virtual
+3. Execute os comandos de setup
+4. Configure o Nginx/Apache
 
-## 🌐 URLs de Acesso
-- **Produção**: https://monpec.com.br
-- **Vercel**: https://sistema-rural.vercel.app
+## 📱 Funcionalidades do Sistema
 
-## ✅ Vantagens
-- ✅ Deploy automático
-- ✅ HTTPS automático
-- ✅ CDN global
-- ✅ Backup automático
-- ✅ Sem problemas de conectividade
-- ✅ Domínio próprio
+### ✅ Implementadas
+- Dashboard principal
+- Gestão de propriedades
+- Inventário pecuário
+- Projeções e análises
+- Sistema de categorias
+- Relatórios consolidados
+- Interface responsiva
 
-## 🔧 Comandos Úteis
-```bash
-# Fazer deploy manual
-git add .
-git commit -m "Atualização do sistema"
-git push origin main
+### 🔧 Configurações
+- Django 4.2.7
+- SQLite (desenvolvimento)
+- PostgreSQL (produção)
+- Bootstrap 5
+- Charts.js para gráficos
 
-# Ver logs do Vercel
-vercel logs
-```
+## 🎯 Próximos Passos
 
+1. **Deploy no Vercel**: Mais fácil e rápido
+2. **Configurar domínio personalizado**: monpec.com.br
+3. **Configurar banco de dados**: PostgreSQL para produção
+4. **Configurar SSL**: HTTPS automático no Vercel
+5. **Monitoramento**: Logs e métricas
 
+## 📞 Suporte
+Para dúvidas ou problemas, consulte a documentação ou entre em contato.
