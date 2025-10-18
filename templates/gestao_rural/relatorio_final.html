@@ -1,0 +1,275 @@
+{% extends 'base.html' %}
+
+{% block title %}Relatório Final - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block page_title %}Relatório Final para Análise Bancária{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2><i class="bi bi-file-earmark-text"></i> Relatório Final</h2>
+                <p class="text-muted">Propriedade: {{ propriedade.nome_propriedade }}</p>
+            </div>
+            <a href="{% url 'pecuaria_dashboard' propriedade.id %}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Voltar
+            </a>
+        </div>
+        
+        <!-- Resumo Executivo -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Resumo Executivo</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Informações da Propriedade</h6>
+                        <p><strong>Nome:</strong> {{ propriedade.nome_propriedade }}</p>
+                        <p><strong>Localização:</strong> {{ propriedade.municipio }}/{{ propriedade.uf }}</p>
+                        <p><strong>Área Total:</strong> {{ propriedade.area_total_ha }} ha</p>
+                        <p><strong>Tipo de Operação:</strong> {{ propriedade.get_tipo_operacao_display }}</p>
+                        <p><strong>Tipo de Propriedade:</strong> {{ propriedade.get_tipo_propriedade_display }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Informações do Produtor</h6>
+                        <p><strong>Nome:</strong> {{ propriedade.produtor.nome }}</p>
+                        <p><strong>CPF/CNPJ:</strong> {{ propriedade.produtor.cpf_cnpj }}</p>
+                        {% if propriedade.produtor.anos_experiencia %}
+                            <p><strong>Experiência:</strong> {{ propriedade.produtor.anos_experiencia }} anos</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Inventário Atual -->
+        {% if inventario_pecuaria %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Inventário Atual do Rebanho</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for item in inventario_pecuaria %}
+                    <div class="col-md-3 mb-3">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <h6>{{ item.categoria.nome }}</h6>
+                                <h4 class="text-primary">{{ item.quantidade }}</h4>
+                                <small class="text-muted">cabeças</small>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="mt-3">
+                    <h6>Total do Rebanho: <span class="badge bg-primary fs-6">{{ total_rebanho_atual }} cabeças</span></h6>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Parâmetros de Projeção -->
+        {% if parametros_pecuaria %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Parâmetros de Projeção Pecuária</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <p><strong>Natalidade:</strong> {{ parametros_pecuaria.taxa_natalidade_anual }}%</p>
+                    </div>
+                    <div class="col-md-3">
+                        <p><strong>Mortalidade Bezerros:</strong> {{ parametros_pecuaria.taxa_mortalidade_bezerros_anual }}%</p>
+                    </div>
+                    <div class="col-md-3">
+                        <p><strong>Mortalidade Adultos:</strong> {{ parametros_pecuaria.taxa_mortalidade_adultos_anual }}%</p>
+                    </div>
+                    <div class="col-md-3">
+                        <p><strong>Periodicidade:</strong> {{ parametros_pecuaria.get_periodicidade_display }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Projeções Pecuárias -->
+        {% if movimentacoes_pecuaria %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Movimentações Projetadas do Rebanho</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Tipo</th>
+                                <th>Categoria</th>
+                                <th>Quantidade</th>
+                                <th>Observação</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for mov in movimentacoes_pecuaria %}
+                            <tr>
+                                <td>{{ mov.data_movimentacao|date:"d/m/Y" }}</td>
+                                <td>
+                                    <span class="badge 
+                                        {% if mov.tipo_movimentacao == 'NASCIMENTO' %}bg-success
+                                        {% elif mov.tipo_movimentacao == 'VENDA' %}bg-primary
+                                        {% elif mov.tipo_movimentacao == 'MORTE' %}bg-danger
+                                        {% elif mov.tipo_movimentacao == 'TRANSFERENCIA_ENTRADA' %}bg-info
+                                        {% elif mov.tipo_movimentacao == 'TRANSFERENCIA_SAIDA' %}bg-warning
+                                        {% else %}bg-secondary{% endif %}">
+                                        {{ mov.get_tipo_movimentacao_display }}
+                                    </span>
+                                </td>
+                                <td>{{ mov.categoria.nome }}</td>
+                                <td>{{ mov.quantidade }}</td>
+                                <td>{{ mov.observacao|default:"-" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Projeções Agrícolas -->
+        {% if ciclos_agricultura %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Projeções Agrícolas</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Cultura</th>
+                                <th>Safra</th>
+                                <th>Área (ha)</th>
+                                <th>Produção (sc)</th>
+                                <th>Receita (R$)</th>
+                                <th>Custo (R$)</th>
+                                <th>Lucro (R$)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ciclo in ciclos_agricultura %}
+                            <tr>
+                                <td>{{ ciclo.cultura.nome }}</td>
+                                <td>{{ ciclo.safra }}</td>
+                                <td>{{ ciclo.area_plantada_ha }}</td>
+                                <td>{{ ciclo.producao_total_esperada_sc|floatformat:2 }}</td>
+                                <td>R$ {{ ciclo.receita_esperada_total|floatformat:2 }}</td>
+                                <td>R$ {{ ciclo.custo_total_producao|floatformat:2 }}</td>
+                                <td class="{% if ciclo.lucro_esperado >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                    R$ {{ ciclo.lucro_esperado|floatformat:2 }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                {% if receita_agricola_total %}
+                <div class="row mt-3">
+                    <div class="col-md-4">
+                        <div class="card bg-success text-white">
+                            <div class="card-body text-center">
+                                <h6>Receita Total</h6>
+                                <h4>R$ {{ receita_agricola_total|floatformat:2 }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-warning text-white">
+                            <div class="card-body text-center">
+                                <h6>Custo Total</h6>
+                                <h4>R$ {{ custo_agricola_total|floatformat:2 }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card {% if lucro_agricola_total >= 0 %}bg-success{% else %}bg-danger{% endif %} text-white">
+                            <div class="card-body text-center">
+                                <h6>Lucro Total</h6>
+                                <h4>R$ {{ lucro_agricola_total|floatformat:2 }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Análise de Capacidade de Pagamento -->
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">Análise de Capacidade de Pagamento</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i>
+                    <strong>Relatório Gerado:</strong> {{ "now"|date:"d/m/Y H:i" }}
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Ativos da Propriedade</h6>
+                        <ul>
+                            <li><strong>Área Total:</strong> {{ propriedade.area_total_ha }} hectares</li>
+                            {% if propriedade.tipo_propriedade == 'PROPRIA' and propriedade.valor_total_propriedade %}
+                                <li><strong>Valor da Propriedade:</strong> R$ {{ propriedade.valor_total_propriedade|floatformat:2 }}</li>
+                            {% endif %}
+                            {% if total_rebanho_atual %}
+                                <li><strong>Rebanho Atual:</strong> {{ total_rebanho_atual }} cabeças</li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Capacidade Produtiva</h6>
+                        <ul>
+                            {% if parametros_pecuaria %}
+                                <li><strong>Taxa de Natalidade:</strong> {{ parametros_pecuaria.taxa_natalidade_anual }}%</li>
+                                <li><strong>Periodicidade:</strong> {{ parametros_pecuaria.get_periodicidade_display }}</li>
+                            {% endif %}
+                            {% if receita_agricola_total %}
+                                <li><strong>Receita Agrícola Projetada:</strong> R$ {{ receita_agricola_total|floatformat:2 }}</li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Botão de Impressão -->
+        <div class="text-center">
+            <button onclick="window.print()" class="btn btn-primary btn-lg">
+                <i class="bi bi-printer"></i> Imprimir Relatório
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+@media print {
+    .btn, .card-header {
+        display: none !important;
+    }
+    .card {
+        border: 1px solid #000 !important;
+        margin-bottom: 20px !important;
+    }
+}
+</style>
+{% endblock %}
+

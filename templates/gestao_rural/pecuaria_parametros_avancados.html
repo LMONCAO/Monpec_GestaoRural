@@ -1,0 +1,277 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Parâmetros Avançados - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="bi bi-gear"></i> Configurações Avançadas de Vendas - {{ propriedade.nome_propriedade }}
+                    </h4>
+                </div>
+                
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Configuração de Vendas:</strong> Defina as categorias de animais para venda, frequência, quantidade e método de reposição.
+                    </div>
+                    
+                    <form method="post" id="parametros-avancados-form">
+                        {% csrf_token %}
+                        
+                        <!-- Configurações de Vendas -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h5 class="text-primary mb-3">
+                                    <i class="bi bi-cart"></i> Configurações de Vendas
+                                </h5>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label for="categoria_venda" class="form-label">Categoria para Venda</label>
+                                <select class="form-select" id="categoria_venda" name="categoria_venda" required>
+                                    <option value="">Selecione a categoria</option>
+                                    {% for categoria in categorias %}
+                                    <option value="{{ categoria.id }}">{{ categoria.nome }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="frequencia_venda" class="form-label">Frequência da Venda</label>
+                                <select class="form-select" id="frequencia_venda" name="frequencia_venda" required>
+                                    <option value="">Selecione a frequência</option>
+                                    <option value="MENSAL">Mensal</option>
+                                    <option value="BIMESTRAL">Bimestral</option>
+                                    <option value="TRIMESTRAL">Trimestral</option>
+                                    <option value="SEMESTRAL">Semestral</option>
+                                    <option value="ANUAL">Anual</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="quantidade_venda" class="form-label">Quantidade para Venda</label>
+                                <input type="number" class="form-control" id="quantidade_venda" name="quantidade_venda" 
+                                       min="1" step="1" required>
+                            </div>
+                        </div>
+                        
+                        <!-- Método de Reposição -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h5 class="text-primary mb-3">
+                                    <i class="bi bi-arrow-repeat"></i> Método de Reposição
+                                </h5>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Tipo de Reposição</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="tipo_reposicao" id="transferencia" value="TRANSFERENCIA">
+                                    <label class="form-check-label" for="transferencia">
+                                        <i class="bi bi-arrow-left-right"></i> Transferência de Outra Fazenda
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="tipo_reposicao" id="compra" value="COMPRA">
+                                    <label class="form-check-label" for="compra">
+                                        <i class="bi bi-cart-plus"></i> Compra de Novos Animais
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Configurações de Transferência -->
+                        <div id="config-transferencia" class="row mb-3" style="display: none;">
+                            <div class="col-md-6">
+                                <label for="fazenda_origem" class="form-label">Fazenda de Origem</label>
+                                <select class="form-select" id="fazenda_origem" name="fazenda_origem">
+                                    <option value="">Selecione a fazenda</option>
+                                    {% for fazenda in outras_fazendas %}
+                                    <option value="{{ fazenda.id }}">{{ fazenda.nome_propriedade }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="quantidade_transferencia" class="form-label">Quantidade para Transferência</label>
+                                <input type="number" class="form-control" id="quantidade_transferencia" name="quantidade_transferencia" 
+                                       min="1" step="1">
+                            </div>
+                        </div>
+                        
+                        <!-- Configurações de Compra -->
+                        <div id="config-compra" class="row mb-3" style="display: none;">
+                            <div class="col-md-6">
+                                <label for="categoria_compra" class="form-label">Categoria para Compra</label>
+                                <select class="form-select" id="categoria_compra" name="categoria_compra">
+                                    <option value="">Selecione a categoria</option>
+                                    {% for categoria in categorias %}
+                                    <option value="{{ categoria.id }}">{{ categoria.nome }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="quantidade_compra" class="form-label">Quantidade para Compra</label>
+                                <input type="number" class="form-control" id="quantidade_compra" name="quantidade_compra" 
+                                       min="1" step="1">
+                            </div>
+                        </div>
+                        
+                        <!-- Análise de Compra -->
+                        <div id="analise-compra" class="row mb-3" style="display: none;">
+                            <div class="col-12">
+                                <h6 class="text-info mb-3">
+                                    <i class="bi bi-calculator"></i> Análise de Compra
+                                </h6>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="valor_animal_venda" class="form-label">Valor do Animal Vendido (R$)</label>
+                                <input type="number" class="form-control" id="valor_animal_venda" name="valor_animal_venda" 
+                                       min="0" step="0.01" placeholder="Ex: 5000.00">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="percentual_desconto" class="form-label">Percentual de Desconto (%)</label>
+                                <input type="number" class="form-control" id="percentual_desconto" name="percentual_desconto" 
+                                       min="0" max="100" step="0.01" placeholder="Ex: 40" value="40">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="valor_animal_compra" class="form-label">Valor Calculado da Compra (R$)</label>
+                                <input type="number" class="form-control" id="valor_animal_compra" name="valor_animal_compra" 
+                                       min="0" step="0.01" readonly>
+                            </div>
+                        </div>
+                        
+                        <!-- Botões de Ação -->
+                        <div class="row mt-4">
+                            <div class="col-12 text-center">
+                                <button type="submit" name="salvar_configuracoes" class="btn btn-primary me-2">
+                                    <i class="bi bi-check-circle"></i> Salvar Configurações
+                                </button>
+                                <button type="button" class="btn btn-success me-2" onclick="adicionarConfiguracao()">
+                                    <i class="bi bi-plus-circle"></i> Adicionar Configuração
+                                </button>
+                                <a href="{% url 'pecuaria_parametros' propriedade.id %}" class="btn btn-secondary">
+                                    <i class="bi bi-arrow-left"></i> Voltar aos Parâmetros
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                    
+                    <!-- Lista de Configurações Salvas -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <h5 class="text-primary mb-3">
+                                <i class="bi bi-list-check"></i> Configurações Salvas
+                            </h5>
+                            <div id="lista-configuracoes">
+                                <!-- Configurações serão carregadas aqui via JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Mostrar/ocultar configurações baseadas no tipo de reposição
+document.addEventListener('DOMContentLoaded', function() {
+    const transferencia = document.getElementById('transferencia');
+    const compra = document.getElementById('compra');
+    const configTransferencia = document.getElementById('config-transferencia');
+    const configCompra = document.getElementById('config-compra');
+    const analiseCompra = document.getElementById('analise-compra');
+    
+    transferencia.addEventListener('change', function() {
+        if (this.checked) {
+            configTransferencia.style.display = 'block';
+            configCompra.style.display = 'none';
+            analiseCompra.style.display = 'none';
+        }
+    });
+    
+    compra.addEventListener('change', function() {
+        if (this.checked) {
+            configTransferencia.style.display = 'none';
+            configCompra.style.display = 'block';
+            analiseCompra.style.display = 'block';
+        }
+    });
+});
+
+// Calcular valor da compra baseado no desconto
+function calcularValorCompra() {
+    const valorVenda = parseFloat(document.getElementById('valor_animal_venda').value) || 0;
+    const percentualDesconto = parseFloat(document.getElementById('percentual_desconto').value) || 0;
+    
+    if (valorVenda > 0 && percentualDesconto > 0) {
+        const valorCompra = valorVenda * (1 - percentualDesconto / 100);
+        document.getElementById('valor_animal_compra').value = valorCompra.toFixed(2);
+    }
+}
+
+// Event listeners para cálculo automático
+document.getElementById('valor_animal_venda').addEventListener('input', calcularValorCompra);
+document.getElementById('percentual_desconto').addEventListener('input', calcularValorCompra);
+
+// Adicionar configuração à lista
+function adicionarConfiguracao() {
+    const categoriaVenda = document.getElementById('categoria_venda').value;
+    const frequenciaVenda = document.getElementById('frequencia_venda').value;
+    const quantidadeVenda = document.getElementById('quantidade_venda').value;
+    const tipoReposicao = document.querySelector('input[name="tipo_reposicao"]:checked').value;
+    
+    if (!categoriaVenda || !frequenciaVenda || !quantidadeVenda || !tipoReposicao) {
+        alert('Por favor, preencha todos os campos obrigatórios.');
+        return;
+    }
+    
+    // Aqui você pode implementar a lógica para adicionar à lista
+    console.log('Configuração adicionada:', {
+        categoriaVenda,
+        frequenciaVenda,
+        quantidadeVenda,
+        tipoReposicao
+    });
+}
+
+// Carregar configurações salvas
+function carregarConfiguracoes() {
+    // Aqui você pode implementar a lógica para carregar configurações salvas
+    console.log('Carregando configurações salvas...');
+}
+</script>
+
+<style>
+.form-check-input:checked + .form-check-label {
+    color: #0d6efd;
+    font-weight: 600;
+}
+
+.card-header {
+    background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);
+}
+
+.alert-info {
+    background-color: #d1ecf1;
+    border-color: #bee5eb;
+    color: #0c5460;
+}
+
+.text-primary {
+    color: #0d6efd !important;
+}
+
+.text-info {
+    color: #0dcaf0 !important;
+}
+</style>
+{% endblock %}
+

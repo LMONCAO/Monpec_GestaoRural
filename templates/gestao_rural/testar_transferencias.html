@@ -1,0 +1,413 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Testar Transferências - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="mb-1">
+                        <i class="bi bi-arrow-left-right text-primary"></i>
+                        Testar Transferências
+                    </h2>
+                    <p class="text-muted mb-0">{{ propriedade.nome_propriedade }}</p>
+                </div>
+                <div>
+                    <a href="{% url 'pecuaria_dashboard' propriedade.id %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Voltar
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Configurações de Transferência -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-gear"></i>
+                        Configurações de Transferência
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if configuracoes %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Categoria</th>
+                                        <th>Frequência</th>
+                                        <th>Quantidade</th>
+                                        <th>Fazenda Origem</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for config in configuracoes %}
+                                    <tr>
+                                        <td>
+                                            <span class="badge bg-info">{{ config.categoria_venda.nome }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-secondary">{{ config.get_frequencia_venda_display }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-success">{{ config.quantidade_transferencia }}</span>
+                                        </td>
+                                        <td>
+                                            <i class="bi bi-building"></i>
+                                            {{ config.fazenda_origem.nome_propriedade }}
+                                        </td>
+                                        <td>
+                                            {% if config.ativo %}
+                                                <span class="badge bg-success">Ativo</span>
+                                            {% else %}
+                                                <span class="badge bg-danger">Inativo</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i>
+                            Nenhuma configuração de transferência encontrada.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Resultados do Teste -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-check-circle"></i>
+                        Resultados do Teste
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <strong>Data do Teste:</strong> {{ data_teste|date:"d/m/Y" }}
+                    </div>
+                    
+                    {% if transferencias_processadas %}
+                        <div class="alert alert-success">
+                            <i class="bi bi-check-circle"></i>
+                            <strong>{{ transferencias_processadas|length }} transferência(s) processada(s)!</strong>
+                        </div>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Origem</th>
+                                        <th>Destino</th>
+                                        <th>Categoria</th>
+                                        <th>Quantidade</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for transferencia in transferencias_processadas %}
+                                    <tr>
+                                        <td>
+                                            <i class="bi bi-building text-primary"></i>
+                                            {{ transferencia.origem.nome_propriedade }}
+                                        </td>
+                                        <td>
+                                            <i class="bi bi-building text-success"></i>
+                                            {{ transferencia.destino.nome_propriedade }}
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-info">{{ transferencia.categoria.nome }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-success">+{{ transferencia.quantidade }}</span>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            Nenhuma transferência foi processada nesta data.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Saldo das Fazendas de Origem -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="bi bi-calculator"></i>
+                        Saldo das Fazendas de Origem
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if configuracoes %}
+                        <div class="row">
+                            {% for config in configuracoes %}
+                            <div class="col-md-6 mb-4">
+                                <div class="card border-primary">
+                                    <div class="card-header bg-primary text-white">
+                                        <h6 class="mb-0">
+                                            <i class="bi bi-building"></i>
+                                            {{ config.fazenda_origem.nome_propriedade }}
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <div class="text-center">
+                                                    <h6 class="text-muted">Saldo Atual</h6>
+                                                    <h4 class="text-primary" id="saldo-atual-{{ config.id }}">
+                                                        <i class="bi bi-hourglass-split"></i>
+                                                        Carregando...
+                                                    </h4>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="text-center">
+                                                    <h6 class="text-muted">Após Transferência</h6>
+                                                    <h4 class="text-success" id="saldo-final-{{ config.id }}">
+                                                        <i class="bi bi-check-circle"></i>
+                                                        Carregando...
+                                                    </h4>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <hr>
+                                        <div class="row">
+                                            <div class="col-12">
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <span class="text-muted">Categoria:</span>
+                                                    <span class="badge bg-info">{{ config.categoria_venda.nome }}</span>
+                                                </div>
+                                                <div class="d-flex justify-content-between align-items-center mt-2">
+                                                    <span class="text-muted">Quantidade a Transferir:</span>
+                                                    <span class="badge bg-warning text-dark">{{ config.quantidade_transferencia }}</span>
+                                                </div>
+                                                <div class="d-flex justify-content-between align-items-center mt-2">
+                                                    <span class="text-muted">Frequência:</span>
+                                                    <span class="badge bg-secondary">{{ config.get_frequencia_venda_display }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i>
+                            Nenhuma configuração de transferência encontrada para exibir saldos.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Informações Técnicas -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-info-circle"></i>
+                        Como Funciona o Sistema de Transferências
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-primary">📋 Processo de Transferência:</h6>
+                            <ol>
+                                <li><strong>Verificação de Frequência:</strong> Sistema verifica se é o momento da transferência</li>
+                                <li><strong>Consulta Saldo:</strong> Busca saldo atual da propriedade de origem</li>
+                                <li><strong>Validação:</strong> Verifica se há saldo suficiente para transferir</li>
+                                <li><strong>Execução:</strong> Cria movimentações de saída e entrada</li>
+                            </ol>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-success">🔄 Integração com Projeção:</h6>
+                            <ul>
+                                <li><strong>Ordem:</strong> Transferências são processadas ANTES das vendas</li>
+                                <li><strong>Saldo:</strong> Animais transferidos são adicionados ao saldo</li>
+                                <li><strong>Projeção:</strong> Saldo atualizado é usado nas vendas e evolução</li>
+                                <li><strong>Rastreamento:</strong> Todas as transferências são registradas</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    border: none;
+    border-radius: 10px;
+}
+
+.card-header {
+    border-radius: 10px 10px 0 0 !important;
+}
+
+.badge {
+    font-size: 0.8em;
+    padding: 0.4em 0.6em;
+}
+
+.table th {
+    border-top: none;
+    font-weight: 600;
+    color: #495057;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+.alert {
+    border: none;
+    border-radius: 8px;
+}
+
+.btn {
+    border-radius: 6px;
+    font-weight: 500;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Carregar saldos das fazendas de origem
+    carregarSaldosFazendas();
+});
+
+function carregarSaldosFazendas() {
+    {% for config in configuracoes %}
+        carregarSaldoFazenda({{ config.id }}, {{ config.fazenda_origem.id }}, {{ config.categoria_venda.id }}, {{ config.quantidade_transferencia|default:0 }});
+    {% endfor %}
+}
+
+function carregarSaldoFazenda(configId, fazendaId, categoriaId, quantidadeTransferir) {
+    const saldoAtualElement = document.getElementById('saldo-atual-' + configId);
+    const saldoFinalElement = document.getElementById('saldo-final-' + configId);
+    
+    // Mostrar loading
+    saldoAtualElement.innerHTML = '<i class="bi bi-hourglass-split"></i> Carregando...';
+    saldoFinalElement.innerHTML = '<i class="bi bi-hourglass-split"></i> Carregando...';
+    
+    // Fazer chamada AJAX para obter saldo real
+    fetch(`/api/saldo-fazenda/${fazendaId}/${categoriaId}/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const saldoAtual = data.saldo_atual;
+                const saldoFinal = Math.max(0, saldoAtual - quantidadeTransferir);
+                
+                // Atualizar saldo atual
+                saldoAtualElement.innerHTML = `
+                    <i class="bi bi-building"></i>
+                    <span class="badge bg-primary fs-6">${saldoAtual}</span>
+                `;
+                
+                // Atualizar saldo final
+                if (saldoFinal > 0) {
+                    saldoFinalElement.innerHTML = `
+                        <i class="bi bi-check-circle text-success"></i>
+                        <span class="badge bg-success fs-6">${saldoFinal}</span>
+                    `;
+                } else {
+                    saldoFinalElement.innerHTML = `
+                        <i class="bi bi-exclamation-triangle text-warning"></i>
+                        <span class="badge bg-warning text-dark fs-6">${saldoFinal}</span>
+                    `;
+                }
+                
+                // Adicionar animação
+                saldoAtualElement.style.animation = 'fadeIn 0.5s ease-in';
+                saldoFinalElement.style.animation = 'fadeIn 0.5s ease-in';
+                
+            } else {
+                // Em caso de erro, mostrar dados simulados
+                const saldoAtual = Math.floor(Math.random() * 1000) + 100;
+                const saldoFinal = Math.max(0, saldoAtual - quantidadeTransferir);
+                
+                saldoAtualElement.innerHTML = `
+                    <i class="bi bi-building"></i>
+                    <span class="badge bg-primary fs-6">${saldoAtual}</span>
+                    <small class="text-muted d-block">(Simulado)</small>
+                `;
+                
+                saldoFinalElement.innerHTML = `
+                    <i class="bi bi-check-circle text-success"></i>
+                    <span class="badge bg-success fs-6">${saldoFinal}</span>
+                    <small class="text-muted d-block">(Simulado)</small>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao carregar saldo:', error);
+            // Em caso de erro, mostrar dados simulados
+            const saldoAtual = Math.floor(Math.random() * 1000) + 100;
+            const saldoFinal = Math.max(0, saldoAtual - quantidadeTransferir);
+            
+            saldoAtualElement.innerHTML = `
+                <i class="bi bi-building"></i>
+                <span class="badge bg-primary fs-6">${saldoAtual}</span>
+                <small class="text-muted d-block">(Simulado)</small>
+            `;
+            
+            saldoFinalElement.innerHTML = `
+                <i class="bi bi-check-circle text-success"></i>
+                <span class="badge bg-success fs-6">${saldoFinal}</span>
+                <small class="text-muted d-block">(Simulado)</small>
+            `;
+        });
+}
+
+// Adicionar CSS para animação
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .card.border-primary {
+        transition: all 0.3s ease;
+    }
+    
+    .card.border-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0,123,255,0.2);
+    }
+    
+    .badge.fs-6 {
+        font-size: 1.1rem !important;
+        padding: 0.5rem 0.8rem;
+    }
+`;
+document.head.appendChild(style);
+</script>
+{% endblock %}

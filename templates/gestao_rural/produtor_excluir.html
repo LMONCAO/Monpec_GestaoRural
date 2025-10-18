@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block title %}Excluir Produtor - Sistema Rural{% endblock %}
+
+{% block page_title %}Excluir Produtor Rural{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-exclamation-triangle"></i> Confirmar Exclusão
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>Atenção!</strong> Esta ação não pode ser desfeita.
+                </div>
+                
+                <p>Tem certeza que deseja excluir o produtor <strong>{{ produtor.nome }}</strong>?</p>
+                
+                <div class="card bg-light">
+                    <div class="card-body">
+                        <h6>Dados do Produtor:</h6>
+                        <p class="mb-1"><strong>Nome:</strong> {{ produtor.nome }}</p>
+                        <p class="mb-1"><strong>CPF/CNPJ:</strong> {{ produtor.cpf_cnpj }}</p>
+                        {% if produtor.documento_identidade %}
+                            <p class="mb-1"><strong>RG:</strong> {{ produtor.documento_identidade }}</p>
+                        {% endif %}
+                        {% if produtor.data_nascimento %}
+                            <p class="mb-1"><strong>Idade:</strong> {{ produtor.idade }} anos</p>
+                        {% endif %}
+                        {% if produtor.anos_experiencia %}
+                            <p class="mb-1"><strong>Experiência:</strong> {{ produtor.anos_experiencia }} anos</p>
+                        {% endif %}
+                        <p class="mb-1"><strong>Telefone:</strong> {{ produtor.telefone|default:"Não informado" }}</p>
+                        <p class="mb-0"><strong>E-mail:</strong> {{ produtor.email|default:"Não informado" }}</p>
+                    </div>
+                </div>
+                
+                <form method="post" class="mt-3">
+                    {% csrf_token %}
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-trash"></i> Sim, Excluir
+                        </button>
+                        <a href="{% url 'dashboard' %}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Cancelar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

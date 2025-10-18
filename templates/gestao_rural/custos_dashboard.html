@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Dashboard de Custos - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Cabeçalho -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-primary">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h4 class="mb-0">
+                                <i class="bi bi-calculator"></i> Dashboard de Custos
+                            </h4>
+                            <small>{{ propriedade.nome_propriedade }}</small>
+                        </div>
+                        <div>
+                            <a href="{% url 'pecuaria_dashboard' propriedade.id %}" class="btn btn-light btn-sm">
+                                <i class="bi bi-arrow-left"></i> Voltar ao Dashboard
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resumo geral -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-info">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-info">
+                        <i class="bi bi-house"></i> Custos Fixos
+                    </h5>
+                    <h3 class="text-info">{{ custos_fixos_count }}</h3>
+                    <small class="text-muted">Cadastrados</small>
+                    <br>
+                    <strong class="text-primary">R$ {{ custo_fixo_total|floatformat:2 }}/mês</strong>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-warning">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-warning">
+                        <i class="bi bi-graph-up"></i> Custos Variáveis
+                    </h5>
+                    <h3 class="text-warning">{{ custos_variaveis_count }}</h3>
+                    <small class="text-muted">Cadastrados</small>
+                    <br>
+                    <strong class="text-warning">R$ {{ custo_variavel_por_cabeca|floatformat:2 }}/cabeça</strong>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-success">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-success">
+                        <i class="bi bi-cash-stack"></i> Receita Total
+                    </h5>
+                    <h3 class="text-success">R$ {{ receita_total|floatformat:2 }}</h3>
+                    <small class="text-muted">Projeção anual</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-danger">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-danger">
+                        <i class="bi bi-graph-down"></i> Lucro Bruto
+                    </h5>
+                    <h3 class="text-danger">R$ {{ lucro_bruto|floatformat:2 }}</h3>
+                    <small class="text-muted">Anual</small>
+                    <br>
+                    <strong class="text-success">{{ margem_lucro|floatformat:1 }}%</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ações principais -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card border-info">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-house"></i> Custos Fixos
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-3">Gerencie os custos fixos da propriedade (maquinário, pessoal, infraestrutura, etc.)</p>
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'custos_fixos_lista' propriedade.id %}" class="btn btn-info">
+                            <i class="bi bi-list"></i> Ver Custos
+                        </a>
+                        <a href="{% url 'custos_fixos_novo' propriedade.id %}" class="btn btn-success">
+                            <i class="bi bi-plus"></i> Novo Custo
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="bi bi-graph-up"></i> Custos Variáveis
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-3">Gerencie os custos variáveis por cabeça (alimentação, sanidade, reprodução, etc.)</p>
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'custos_variaveis_lista' propriedade.id %}" class="btn btn-warning">
+                            <i class="bi bi-list"></i> Ver Custos
+                        </a>
+                        <a href="{% url 'custos_variaveis_novo' propriedade.id %}" class="btn btn-success">
+                            <i class="bi bi-plus"></i> Novo Custo
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Análise financeira -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-success">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-cash-stack"></i> Análise Financeira
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-success">Resumo de Custos</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>Custo Fixo Mensal:</strong> R$ {{ custo_fixo_total|floatformat:2 }}</li>
+                                <li><strong>Custo Fixo Anual:</strong> R$ {{ custo_fixo_anual|floatformat:2 }}</li>
+                                <li><strong>Custo Variável por Cabeça:</strong> R$ {{ custo_variavel_por_cabeca|floatformat:2 }}</li>
+                                <li><strong>Total de Animais:</strong> {{ total_animais }} cabeças</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-primary">Resultados</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>Receita Total:</strong> R$ {{ receita_total|floatformat:2 }}</li>
+                                <li><strong>Custo Total:</strong> R$ {{ custo_total|floatformat:2 }}</li>
+                                <li><strong>Lucro Bruto:</strong> R$ {{ lucro_bruto|floatformat:2 }}</li>
+                                <li><strong>Margem de Lucro:</strong> {{ margem_lucro|floatformat:1 }}%</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <a href="{% url 'calcular_fluxo_caixa' propriedade.id %}" class="btn btn-success">
+                            <i class="bi bi-arrow-clockwise"></i> Atualizar Cálculo
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

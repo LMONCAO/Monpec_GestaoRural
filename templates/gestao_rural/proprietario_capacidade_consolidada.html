@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Capacidade de Pagamento Consolidada - {{ produtor.nome }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="text-dark mb-1">
+                        <i class="bi bi-shield-check text-danger"></i> Capacidade de Pagamento Consolidada
+                    </h2>
+                    <p class="text-muted mb-0">{{ produtor.nome }} - Análise Consolidada</p>
+                </div>
+                <a href="{% url 'propriedades_lista' produtor.id %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Voltar às Propriedades
+                </a>
+            </div>
+
+            <!-- Classificação da Capacidade -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body p-4 text-center">
+                            <div class="bg-{{ indicadores.cor }} bg-opacity-10 rounded-circle p-4 mx-auto mb-3" style="width: 80px; height: 80px;">
+                                <i class="bi bi-{% if indicadores.classificacao == 'Excelente' %}star-fill{% elif indicadores.classificacao == 'Boa' %}check-circle{% elif indicadores.classificacao == 'Adequada' %}exclamation-triangle{% else %}x-circle{% endif %} text-{{ indicadores.cor }} fs-1"></i>
+                            </div>
+                            <h3 class="text-{{ indicadores.cor }} mb-2">{{ indicadores.classificacao }}</h3>
+                            <p class="text-muted mb-0">Capacidade de Pagamento Consolidada: {{ indicadores.indice_capacidade|floatformat:1 }}%</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Indicadores Consolidados -->
+            <div class="row mb-4">
+                <div class="col-md-3 mb-3">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body text-center p-3">
+                            <div class="bg-success bg-opacity-10 rounded-circle p-3 mx-auto mb-2" style="width: 60px; height: 60px;">
+                                <i class="bi bi-arrow-up-circle text-success fs-4"></i>
+                            </div>
+                            <h6 class="text-dark mb-1">Receita Anual</h6>
+                            <h4 class="text-success mb-0">R$ {{ indicadores.receita_anual|floatformat:2 }}</h4>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3 mb-3">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body text-center p-3">
+                            <div class="bg-warning bg-opacity-10 rounded-circle p-3 mx-auto mb-2" style="width: 60px; height: 60px;">
+                                <i class="bi bi-arrow-down-circle text-warning fs-4"></i>
+                            </div>
+                            <h6 class="text-dark mb-1">Custos Totais</h6>
+                            <h4 class="text-warning mb-0">R$ {{ indicadores.custos_totais|floatformat:2 }}</h4>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3 mb-3">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body text-center p-3">
+                            <div class="bg-info bg-opacity-10 rounded-circle p-3 mx-auto mb-2" style="width: 60px; height: 60px;">
+                                <i class="bi bi-calculator text-info fs-4"></i>
+                            </div>
+                            <h6 class="text-dark mb-1">Margem de Segurança</h6>
+                            <h4 class="text-{% if indicadores.margem_seguranca >= 0 %}success{% else %}danger{% endif %} mb-0">
+                                R$ {{ indicadores.margem_seguranca|floatformat:2 }}
+                            </h4>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3 mb-3">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body text-center p-3">
+                            <div class="bg-primary bg-opacity-10 rounded-circle p-3 mx-auto mb-2" style="width: 60px; height: 60px;">
+                                <i class="bi bi-percent text-primary fs-4"></i>
+                            </div>
+                            <h6 class="text-dark mb-1">Índice Endividamento</h6>
+                            <h4 class="text-{% if indicadores.indice_endividamento <= 30 %}success{% elif indicadores.indice_endividamento <= 50 %}warning{% else %}danger{% endif %} mb-0">
+                                {{ indicadores.indice_endividamento|floatformat:1 }}%
+                            </h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Análise Detalhada -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <h5 class="text-dark mb-3">
+                        <i class="bi bi-graph-up me-2 text-info"></i>
+                        Análise Consolidada
+                    </h5>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-dark mb-3">Receitas e Custos</h6>
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-muted">Receita Anual Estimada:</span>
+                                    <span class="text-success fw-bold">R$ {{ indicadores.receita_anual|floatformat:2 }}</span>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-muted">Custos Totais:</span>
+                                    <span class="text-warning fw-bold">R$ {{ indicadores.custos_totais|floatformat:2 }}</span>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-muted">Parcelas Anuais:</span>
+                                    <span class="text-danger fw-bold">R$ {{ indicadores.parcelas_anuais|floatformat:2 }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <h6 class="text-dark mb-3">Indicadores</h6>
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-muted">Margem de Segurança:</span>
+                                    <span class="{% if indicadores.margem_seguranca >= 0 %}text-success{% else %}text-danger{% endif %} fw-bold">
+                                        R$ {{ indicadores.margem_seguranca|floatformat:2 }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-muted">Índice de Capacidade:</span>
+                                    <span class="text-{{ indicadores.cor }} fw-bold">{{ indicadores.indice_capacidade|floatformat:1 }}%</span>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-muted">Índice de Endividamento:</span>
+                                    <span class="{% if indicadores.indice_endividamento <= 30 %}text-success{% elif indicadores.indice_endividamento <= 50 %}text-warning{% else %}text-danger{% endif %} fw-bold">
+                                        {{ indicadores.indice_endividamento|floatformat:1 }}%
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

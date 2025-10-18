@@ -1,0 +1,835 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Cadastrar Inventário - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="bi bi-clipboard-data"></i> Cadastrar Inventário - {{ propriedade.nome_propriedade }}
+                    </h4>
+                </div>
+                
+                <div class="card-body">
+                    {% if inventario_ja_existe %}
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Inventário Cadastrado!</strong> Os dados abaixo são somente leitura. 
+                        Clique em "Editar Planilha" para modificar os valores.
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Controles de Edição -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label for="data_inventario" class="form-label">Data do Inventário</label>
+                                <input type="date" class="form-control" id="data_inventario" name="data_inventario" 
+                                       value="{% now 'Y-m-d' %}" required>
+                            </div>
+                        <div class="col-md-6 d-flex align-items-end">
+                            {% if inventario_ja_existe %}
+                            <button type="button" class="btn btn-warning me-2 btn-control" id="btn-editar-planilha">
+                                <i class="bi bi-pencil-square"></i> Editar Planilha
+                            </button>
+                            <button type="button" class="btn btn-success me-2 btn-control" id="btn-salvar-planilha" style="display: none;">
+                                <i class="bi bi-check-circle"></i> Salvar Alterações
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-control" id="btn-cancelar-edicao" style="display: none;">
+                                <i class="bi bi-x-circle"></i> Cancelar
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <form method="post" id="inventario-form">
+                        {% csrf_token %}
+                        
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead class="table-primary">
+                                    <tr>
+                                        <th>Categoria</th>
+                                        <th>Raça</th>
+                                        <th>Sexo</th>
+                                        <th>Idade (meses)</th>
+                                        <th class="text-center">Peso Médio (kg)</th>
+                                        <th class="text-center">Quantidade</th>
+                                        <th class="text-center">Valor por Cabeça (R$)</th>
+                                        <th class="text-center">Valor por kg (R$)</th>
+                                        <th class="text-center">Valor Total (R$)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in categorias_com_inventario %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ item.categoria.nome }}</strong>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-info">{{ item.categoria.get_raca_display }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-pink">{{ item.categoria.get_sexo_display }}</span>
+                                        </td>
+                                        <td>{{ item.categoria.idade_minima_meses }}-{{ item.categoria.idade_maxima_meses }}m</td>
+                                        <td class="text-center">
+                                            <span class="badge bg-warning text-dark" style="font-size: 0.9rem;">
+                                                {{ item.categoria.peso_medio_kg|default:0|floatformat:1 }} kg
+                                            </span>
+                                        </td>
+                                        <td class="text-center">
+                                            {% if inventario_ja_existe %}
+                                            <!-- Modo somente leitura -->
+                                            <span class="fw-bold text-primary readonly-field" 
+                                                  id="quantidade_display_{{ item.categoria.id }}"
+                                                  style="font-size: 1.1rem; display: inline-block; min-width: 80px;">
+                                                {{ item.quantidade|default:0 }}
+                                            </span>
+                                            <input type="number" 
+                                                   class="form-control text-center edit-field" 
+                                                   name="quantidade_{{ item.categoria.id }}" 
+                                                   id="quantidade_{{ item.categoria.id }}"
+                                                   value="{{ item.quantidade }}"
+                                                   min="0" 
+                                                   step="1"
+                                                   data-peso-medio="{{ item.categoria.peso_medio_kg|default:0 }}"
+                                                   data-categoria-id="{{ item.categoria.id }}"
+                                                   style="width: 100px; margin: 0 auto; display: none;">
+                                            {% else %}
+                                            <!-- Modo de criação -->
+                                            <input type="number" 
+                                                   class="form-control text-center" 
+                                                   name="quantidade_{{ item.categoria.id }}" 
+                                                   id="quantidade_{{ item.categoria.id }}"
+                                                   value="{{ item.quantidade }}"
+                                                   min="0" 
+                                                   step="1"
+                                                   data-peso-medio="{{ item.categoria.peso_medio_kg|default:0 }}"
+                                                   data-categoria-id="{{ item.categoria.id }}"
+                                                   style="width: 100px; margin: 0 auto;">
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-center">
+                                            {% if inventario_ja_existe %}
+                                            <!-- Modo somente leitura -->
+                                            <span class="fw-bold text-success readonly-field" 
+                                                  id="valor_por_cabeca_display_{{ item.categoria.id }}"
+                                                  style="font-size: 1.1rem; display: inline-block; min-width: 100px;">
+                                                R$ {{ item.valor_por_cabeca|floatformat:2 }}
+                                            </span>
+                                            <input type="number" 
+                                                   class="form-control text-center edit-field" 
+                                                   name="valor_por_cabeca_{{ item.categoria.id }}" 
+                                                   id="valor_por_cabeca_{{ item.categoria.id }}"
+                                                   value="{{ item.valor_por_cabeca|floatformat:2 }}"
+                                                   min="0" 
+                                                   step="0.01"
+                                                   data-categoria-id="{{ item.categoria.id }}"
+                                                   style="width: 120px; margin: 0 auto; display: none;">
+                                            {% else %}
+                                            <!-- Modo de criação -->
+                                            <input type="number" 
+                                                   class="form-control text-center" 
+                                                   name="valor_por_cabeca_{{ item.categoria.id }}" 
+                                                   id="valor_por_cabeca_{{ item.categoria.id }}"
+                                                   value="{{ item.valor_por_cabeca|floatformat:2 }}"
+                                                   min="0" 
+                                                   step="0.01"
+                                                   data-categoria-id="{{ item.categoria.id }}"
+                                                   style="width: 120px; margin: 0 auto;">
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="fw-bold text-info" id="valor_por_kg_{{ item.categoria.id }}" style="min-width: 100px; display: inline-block;">R$ 0,00</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="fw-bold text-success" id="valor_total_{{ item.categoria.id }}" style="min-width: 120px; display: inline-block;">R$ 0,00</span>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                                <tfoot class="table-secondary">
+                                    <tr>
+                                        <td colspan="5"><strong>TOTAIS</strong></td>
+                                        <td class="text-center">
+                                            <span class="fw-bold" id="total_quantidade">0</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="fw-bold" id="valor_medio_por_cabeca">R$ 0,00</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="fw-bold" id="valor_medio_por_kg">R$ 0,00</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="fw-bold text-success" id="valor_total_geral">R$ 0,00</span>
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                        
+                        <div class="row mt-4">
+                            <div class="col-12 text-center">
+                                {% if inventario_ja_existe %}
+                                <button type="submit" name="salvar_inventario" class="btn btn-warning me-2" id="btn-atualizar-inventario" style="display: none;">
+                                    <i class="bi bi-check-circle"></i> Atualizar Inventário
+                                </button>
+                                <button type="button" class="btn btn-danger me-2" data-bs-toggle="modal" data-bs-target="#modalExcluir">
+                                    <i class="bi bi-trash"></i> Excluir Inventário
+                                </button>
+                                {% else %}
+                                <button type="submit" name="salvar_inventario" class="btn btn-primary me-2">
+                                    <i class="bi bi-check-circle"></i> Salvar Inventário
+                                </button>
+                                {% endif %}
+                                <a href="{% url 'pecuaria_dashboard' propriedade.id %}" class="btn btn-secondary">
+                                    <i class="bi bi-arrow-left"></i> Cancelar
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+<!-- Modal de Confirmação para Exclusão -->
+<div class="modal fade" id="modalExcluir" tabindex="-1" aria-labelledby="modalExcluirLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalExcluirLabel">Confirmar Exclusão</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Tem certeza que deseja excluir o inventário atual?</p>
+                <p class="text-danger"><strong>Esta ação não pode ser desfeita!</strong></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" name="excluir_inventario" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> Excluir
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ===== CONTROLE DE MODO DE EDIÇÃO =====
+let modoEdicao = false;
+let valoresOriginais = {};
+
+
+// Função para forçar atualização de todos os campos
+function forcarAtualizacaoCampos() {
+    console.log('Forçando atualização de todos os campos...');
+    console.log('Modo atual:', modoEdicao);
+    
+    // Buscar todos os campos novamente
+    const readonlyFields = document.querySelectorAll('.readonly-field');
+    const editFields = document.querySelectorAll('.edit-field');
+    
+    console.log('Campos encontrados na atualização:', {
+        readonlyFields: readonlyFields.length,
+        editFields: editFields.length
+    });
+    
+    // Listar todos os campos encontrados
+    readonlyFields.forEach((field, index) => {
+        console.log(`Readonly field ${index}:`, field.id, field.className);
+    });
+    editFields.forEach((field, index) => {
+        console.log(`Edit field ${index}:`, field.id, field.className);
+    });
+    
+    if (modoEdicao) {
+        console.log('Aplicando modo de edição...');
+        // Modo de edição: ocultar readonly, mostrar edit
+        readonlyFields.forEach(field => {
+            console.log('Ocultando readonly:', field.id);
+            field.style.display = 'none !important';
+            field.style.visibility = 'hidden';
+        });
+        editFields.forEach(field => {
+            console.log('Mostrando edit:', field.id);
+            field.style.display = 'inline-block !important';
+            field.style.visibility = 'visible';
+            field.disabled = false;
+            field.readOnly = false;
+        });
+    } else {
+        console.log('Aplicando modo somente leitura...');
+        // Modo somente leitura: mostrar readonly, ocultar edit
+        readonlyFields.forEach(field => {
+            console.log('Mostrando readonly:', field.id);
+            field.style.display = 'inline-block !important';
+            field.style.visibility = 'visible';
+        });
+        editFields.forEach(field => {
+            console.log('Ocultando edit:', field.id);
+            field.style.display = 'none !important';
+            field.style.visibility = 'hidden';
+        });
+    }
+}
+
+// Função para alternar modo de edição
+function alternarModoEdicao() {
+    try {
+        console.log('Função alternarModoEdicao chamada. Modo atual:', modoEdicao);
+        modoEdicao = !modoEdicao;
+        console.log('Novo modo:', modoEdicao);
+        
+        if (modoEdicao) {
+            console.log('Entrando no modo de edição...');
+            // Entrar no modo de edição
+            const btnEditar = document.getElementById('btn-editar-planilha');
+            const btnSalvar = document.getElementById('btn-salvar-planilha');
+            const btnCancelar = document.getElementById('btn-cancelar-edicao');
+            const btnAtualizar = document.getElementById('btn-atualizar-inventario');
+            
+            console.log('Botões encontrados:', {
+                btnEditar: !!btnEditar,
+                btnSalvar: !!btnSalvar,
+                btnCancelar: !!btnCancelar,
+                btnAtualizar: !!btnAtualizar
+            });
+            
+            if (btnEditar) btnEditar.style.display = 'none';
+            if (btnSalvar) btnSalvar.style.display = 'inline-block';
+            if (btnCancelar) btnCancelar.style.display = 'inline-block';
+            if (btnAtualizar) btnAtualizar.style.display = 'inline-block';
+            
+            // Sincronizar valores dos campos de exibição para os campos de edição
+            sincronizarValoresParaEdicao();
+            
+            // Forçar atualização de todos os campos
+            forcarAtualizacaoCampos();
+            
+            // Recalcular todos os valores após entrar no modo de edição
+            setTimeout(function() {
+                recalcularTodosValores();
+                // Forçar atualização adicional dos campos
+                forcarAtualizacaoCampos();
+            }, 100);
+            
+            // Salvar valores originais para cancelamento
+            salvarValoresOriginais();
+            
+            // Atualizar alerta
+            const alerta = document.querySelector('.alert-info');
+            if (alerta) {
+                alerta.innerHTML = '<i class="bi bi-pencil-square"></i> <strong>Modo de Edição Ativo!</strong> Você pode modificar os valores abaixo.';
+                alerta.className = 'alert alert-warning';
+            }
+            
+        } else {
+            console.log('Saindo do modo de edição...');
+            // Sair do modo de edição
+            const btnEditar = document.getElementById('btn-editar-planilha');
+            const btnSalvar = document.getElementById('btn-salvar-planilha');
+            const btnCancelar = document.getElementById('btn-cancelar-edicao');
+            const btnAtualizar = document.getElementById('btn-atualizar-inventario');
+            
+            if (btnEditar) btnEditar.style.display = 'inline-block';
+            if (btnSalvar) btnSalvar.style.display = 'none';
+            if (btnCancelar) btnCancelar.style.display = 'none';
+            if (btnAtualizar) btnAtualizar.style.display = 'none';
+            
+            // Sincronizar valores dos campos de edição para os campos de exibição
+            sincronizarValoresParaExibicao();
+            
+            // Forçar atualização de todos os campos
+            forcarAtualizacaoCampos();
+            
+            // Recalcular todos os valores após sair do modo de edição
+            setTimeout(function() {
+                recalcularTodosValores();
+                // Forçar atualização adicional dos campos
+                forcarAtualizacaoCampos();
+            }, 100);
+            
+            // Atualizar alerta
+            const alerta = document.querySelector('.alert-warning');
+            if (alerta) {
+                alerta.innerHTML = '<i class="bi bi-info-circle"></i> <strong>Inventário Cadastrado!</strong> Os dados abaixo são somente leitura. Clique em "Editar Planilha" para modificar os valores.';
+                alerta.className = 'alert alert-info';
+            }
+        }
+    } catch (error) {
+        console.error('Erro na função alternarModoEdicao:', error);
+    }
+}
+
+// Função para sincronizar valores para modo de edição
+function sincronizarValoresParaEdicao() {
+    document.querySelectorAll('.readonly-field').forEach(displayField => {
+        const fieldId = displayField.id;
+        const editFieldId = fieldId.replace('_display_', '_').replace('quantidade_display', 'quantidade').replace('valor_por_cabeca_display', 'valor_por_cabeca');
+        const editField = document.getElementById(editFieldId);
+        
+        if (editField) {
+            let value = displayField.textContent.trim();
+            
+            // Remover formatação de moeda para valor por cabeça
+            if (fieldId.includes('valor_por_cabeca_display')) {
+                value = value.replace('R$ ', '').replace(',', '.');
+            }
+            
+            editField.value = value;
+            console.log(`Sincronizando ${fieldId} -> ${editFieldId}: ${value}`);
+        }
+    });
+    
+    // Recalcular todos os valores após sincronização
+    document.querySelectorAll('.edit-field').forEach(editField => {
+        if (editField.id.includes('quantidade_') || editField.id.includes('valor_por_cabeca_')) {
+            const categoriaId = editField.id.split('_').pop();
+            calcularTotal(categoriaId);
+        }
+    });
+}
+
+// Função para sincronizar valores para modo de exibição
+function sincronizarValoresParaExibicao() {
+    document.querySelectorAll('.edit-field').forEach(editField => {
+        const fieldId = editField.id;
+        const displayFieldId = fieldId.replace('quantidade_', 'quantidade_display_').replace('valor_por_cabeca_', 'valor_por_cabeca_display_');
+        const displayField = document.getElementById(displayFieldId);
+        
+        if (displayField) {
+            let value = editField.value;
+            
+            // Formatar valor para exibição
+            if (fieldId.includes('valor_por_cabeca_')) {
+                value = 'R$ ' + parseFloat(value || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            }
+            
+            displayField.textContent = value;
+        }
+    });
+    
+    // Recalcular todos os valores após sincronização
+    document.querySelectorAll('.edit-field').forEach(editField => {
+        if (editField.id.includes('quantidade_') || editField.id.includes('valor_por_cabeca_')) {
+            const categoriaId = editField.id.split('_').pop();
+            calcularTotal(categoriaId);
+        }
+    });
+}
+
+// Função para salvar valores originais
+function salvarValoresOriginais() {
+    valoresOriginais = {};
+    document.querySelectorAll('.edit-field').forEach(field => {
+        valoresOriginais[field.id] = field.value;
+    });
+}
+
+// Função para restaurar valores originais
+function restaurarValoresOriginais() {
+    Object.keys(valoresOriginais).forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.value = valoresOriginais[fieldId];
+        }
+    });
+}
+
+// Função para salvar alterações
+function salvarAlteracoes() {
+    // Recalcular todos os valores antes de salvar
+    recalcularTodosValores();
+    
+    // Submeter o formulário
+    document.getElementById('inventario-form').submit();
+}
+
+// Função para cancelar edição
+function cancelarEdicao() {
+    // Restaurar valores originais nos campos de edição
+    restaurarValoresOriginais();
+    
+    // Sincronizar valores restaurados para os campos de exibição
+    sincronizarValoresParaExibicao();
+    
+    // Sair do modo de edição
+    alternarModoEdicao();
+}
+
+// Event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Configurando event listeners...');
+    
+    // Botão editar planilha
+    const btnEditar = document.getElementById('btn-editar-planilha');
+    console.log('Botão editar encontrado:', !!btnEditar);
+    if (btnEditar) {
+        btnEditar.addEventListener('click', function(e) {
+            console.log('Clique no botão editar detectado');
+            e.preventDefault();
+            alternarModoEdicao();
+        });
+    }
+    
+    // Botão salvar planilha
+    const btnSalvar = document.getElementById('btn-salvar-planilha');
+    console.log('Botão salvar encontrado:', !!btnSalvar);
+    if (btnSalvar) {
+        btnSalvar.addEventListener('click', function(e) {
+            console.log('Clique no botão salvar detectado');
+            e.preventDefault();
+            salvarAlteracoes();
+        });
+    }
+    
+    // Botão cancelar edição
+    const btnCancelar = document.getElementById('btn-cancelar-edicao');
+    console.log('Botão cancelar encontrado:', !!btnCancelar);
+    if (btnCancelar) {
+        btnCancelar.addEventListener('click', function(e) {
+            console.log('Clique no botão cancelar detectado');
+            e.preventDefault();
+            cancelarEdicao();
+        });
+    }
+    
+    // Event listeners para campos de entrada
+    document.querySelectorAll('input[data-categoria-id]').forEach(function(input) {
+        input.addEventListener('change', function() {
+            const categoriaId = this.getAttribute('data-categoria-id');
+            console.log('Campo alterado para categoria:', categoriaId);
+            calcularTotal(categoriaId);
+        });
+        
+        input.addEventListener('input', function() {
+            const categoriaId = this.getAttribute('data-categoria-id');
+            calcularTotal(categoriaId);
+        });
+        
+        input.addEventListener('keyup', function() {
+            const categoriaId = this.getAttribute('data-categoria-id');
+            calcularTotal(categoriaId);
+        });
+        
+        input.addEventListener('blur', function() {
+            const categoriaId = this.getAttribute('data-categoria-id');
+            calcularTotal(categoriaId);
+        });
+    });
+    
+    console.log('Event listeners configurados');
+});
+
+// ===== FUNÇÕES DE CÁLCULO =====
+
+// Função principal de cálculo
+function calcularTotal(categoriaId) {
+    console.log('Calculando para categoria:', categoriaId);
+    
+    // Obter elementos
+    var quantidadeElement = document.getElementById('quantidade_' + categoriaId);
+    var valorPorCabecaElement = document.getElementById('valor_por_cabeca_' + categoriaId);
+    var valorTotalElement = document.getElementById('valor_total_' + categoriaId);
+    var valorPorKgElement = document.getElementById('valor_por_kg_' + categoriaId);
+    
+    console.log('Elementos encontrados:', {
+        quantidade: !!quantidadeElement,
+        valorPorCabeca: !!valorPorCabecaElement,
+        valorTotal: !!valorTotalElement,
+        valorPorKg: !!valorPorKgElement
+    });
+    
+    if (!quantidadeElement || !valorPorCabecaElement || !valorTotalElement || !valorPorKgElement) {
+        console.error('Elementos não encontrados para categoria:', categoriaId);
+        return;
+    }
+    
+    // Obter valores
+    var quantidade = parseFloat(quantidadeElement.value) || 0;
+    var valorPorCabeca = parseFloat(valorPorCabecaElement.value) || 0;
+    
+    console.log('Valores obtidos:', {
+        quantidade: quantidade,
+        valorPorCabeca: valorPorCabeca,
+        quantidadeValue: quantidadeElement.value,
+        valorPorCabecaValue: valorPorCabecaElement.value
+    });
+    
+    // Calcular total
+    var total = quantidade * valorPorCabeca;
+    
+    // Calcular valor por kg (precisamos obter o peso médio da categoria)
+    var pesoMedio = parseFloat(quantidadeElement.getAttribute('data-peso-medio')) || 0;
+    var valorPorKg = pesoMedio > 0 ? valorPorCabeca / pesoMedio : 0;
+    
+    console.log('Cálculos realizados:', {
+        total: total,
+        pesoMedio: pesoMedio,
+        valorPorKg: valorPorKg
+    });
+    
+    // Atualizar valor total
+    if (total > 0) {
+        valorTotalElement.innerHTML = 'R$ ' + total.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        valorTotalElement.style.color = '#28a745';
+        valorTotalElement.style.fontWeight = 'bold';
+        valorTotalElement.style.backgroundColor = '#d4edda';
+        valorTotalElement.style.padding = '5px 10px';
+        valorTotalElement.style.borderRadius = '4px';
+        valorTotalElement.style.border = '1px solid #c3e6cb';
+    } else {
+        valorTotalElement.innerHTML = 'R$ 0,00';
+        valorTotalElement.style.color = '#6c757d';
+        valorTotalElement.style.fontWeight = 'normal';
+        valorTotalElement.style.backgroundColor = '#f8f9fa';
+        valorTotalElement.style.padding = '5px 10px';
+        valorTotalElement.style.borderRadius = '4px';
+        valorTotalElement.style.border = '1px solid #dee2e6';
+    }
+    
+    // Atualizar valor por kg
+    if (valorPorKg > 0) {
+        valorPorKgElement.innerHTML = 'R$ ' + valorPorKg.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        valorPorKgElement.style.color = '#17a2b8';
+        valorPorKgElement.style.fontWeight = 'bold';
+        valorPorKgElement.style.backgroundColor = '#d1ecf1';
+        valorPorKgElement.style.padding = '5px 10px';
+        valorPorKgElement.style.borderRadius = '4px';
+        valorPorKgElement.style.border = '1px solid #bee5eb';
+    } else {
+        valorPorKgElement.innerHTML = 'R$ 0,00';
+        valorPorKgElement.style.color = '#6c757d';
+        valorPorKgElement.style.fontWeight = 'normal';
+        valorPorKgElement.style.backgroundColor = '#f8f9fa';
+        valorPorKgElement.style.padding = '5px 10px';
+        valorPorKgElement.style.borderRadius = '4px';
+        valorPorKgElement.style.border = '1px solid #dee2e6';
+    }
+    
+    // Se estiver no modo de edição, sincronizar com campos de exibição
+    if (modoEdicao) {
+        sincronizarValoresParaExibicao();
+    }
+    
+    // Recalcular totais gerais
+    calcularTotaisGerais();
+}
+
+// Função para calcular totais gerais
+function calcularTotaisGerais() {
+    var totalQuantidade = 0;
+    var valorTotalGeral = 0;
+    var categoriasComValor = 0;
+    var somaValoresPorCabeca = 0;
+    var somaValoresPorKg = 0;
+    var categoriasComPeso = 0;
+    
+    // Iterar sobre todas as categorias usando querySelectorAll
+    document.querySelectorAll('input[id^="quantidade_"]').forEach(function(quantidadeElement) {
+        var categoriaId = quantidadeElement.id.replace('quantidade_', '');
+        var valorPorCabecaElement = document.getElementById('valor_por_cabeca_' + categoriaId);
+        
+        if (valorPorCabecaElement) {
+            var quantidade = parseFloat(quantidadeElement.value) || 0;
+            var valorPorCabeca = parseFloat(valorPorCabecaElement.value) || 0;
+            var pesoMedio = parseFloat(quantidadeElement.getAttribute('data-peso-medio')) || 0;
+            
+            totalQuantidade += quantidade;
+            valorTotalGeral += quantidade * valorPorCabeca;
+            
+            if (quantidade > 0) {
+                categoriasComValor++;
+                somaValoresPorCabeca += valorPorCabeca;
+                
+                if (pesoMedio > 0) {
+                    categoriasComPeso++;
+                    somaValoresPorKg += valorPorCabeca / pesoMedio;
+                }
+            }
+        }
+    });
+    
+    // Atualizar totais
+    var totalQuantidadeElement = document.getElementById('total_quantidade');
+    var valorTotalGeralElement = document.getElementById('valor_total_geral');
+    var valorMedioPorCabecaElement = document.getElementById('valor_medio_por_cabeca');
+    var valorMedioPorKgElement = document.getElementById('valor_medio_por_kg');
+    
+    if (totalQuantidadeElement) {
+        totalQuantidadeElement.textContent = totalQuantidade;
+    }
+    if (valorTotalGeralElement) {
+        valorTotalGeralElement.textContent = 'R$ ' + valorTotalGeral.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    }
+    
+    var valorMedioPorCabeca = categoriasComValor > 0 ? somaValoresPorCabeca / categoriasComValor : 0;
+    if (valorMedioPorCabecaElement) {
+        valorMedioPorCabecaElement.textContent = 'R$ ' + valorMedioPorCabeca.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    }
+    
+    var valorMedioPorKg = categoriasComPeso > 0 ? somaValoresPorKg / categoriasComPeso : 0;
+    if (valorMedioPorKgElement) {
+        valorMedioPorKgElement.textContent = 'R$ ' + valorMedioPorKg.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    }
+}
+
+
+// Função para recalcular todos os valores da página
+function recalcularTodosValores() {
+    console.log('Recalculando todos os valores...');
+    
+    // Calcular para todas as categorias usando querySelectorAll
+    document.querySelectorAll('input[id^="quantidade_"]').forEach(function(quantidadeElement) {
+        var categoriaId = quantidadeElement.id.replace('quantidade_', '');
+        console.log('Calculando categoria', categoriaId);
+        calcularTotal(categoriaId);
+    });
+    
+    // Calcular totais gerais
+    calcularTotaisGerais();
+    
+    console.log('Recálculo concluído');
+}
+
+// Inicializar cálculos ao carregar a página
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM carregado, iniciando cálculos...');
+    
+    // Verificar se os campos estão sendo renderizados
+    const readonlyFields = document.querySelectorAll('.readonly-field');
+    const editFields = document.querySelectorAll('.edit-field');
+    const inventarioJaExiste = {{ inventario_ja_existe|yesno:"true,false" }};
+    
+    console.log('Estado inicial:', {
+        inventarioJaExiste: inventarioJaExiste,
+        readonlyFields: readonlyFields.length,
+        editFields: editFields.length
+    });
+    
+    // Aguardar um pouco para garantir que todos os elementos estejam carregados
+    setTimeout(function() {
+        console.log('Iniciando cálculos após timeout...');
+        recalcularTodosValores();
+        console.log('Cálculos iniciais concluídos');
+    }, 500);
+});
+
+// Recalcular valores quando a página for exibida (após redirecionamento)
+window.addEventListener('pageshow', function(event) {
+    console.log('Página exibida, recalculando valores...');
+    setTimeout(function() {
+        recalcularTodosValores();
+    }, 200);
+});
+</script>
+
+<style>
+.bg-pink {
+    background-color: #1e3a8a !important;
+    color: white !important;
+    font-weight: 700;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    border: 1px solid #1e40af !important;
+}
+
+.bg-info {
+    background-color: #004d40 !important;
+    color: white !important;
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    border: 1px solid #00251a !important;
+}
+
+.table th {
+    background-color: #0d6efd;
+    color: white;
+    font-weight: 600;
+}
+
+.table tfoot td {
+    background-color: #e9ecef;
+    font-weight: 600;
+}
+
+input[type="number"] {
+    text-align: center;
+}
+
+input[type="number"]:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+/* Estilos para campos somente leitura */
+.readonly-field {
+    background-color: #f8f9fa;
+    border: 2px solid #e9ecef;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-weight: 600;
+    color: #495057;
+    transition: all 0.3s ease;
+}
+
+.readonly-field:hover {
+    background-color: #e9ecef;
+    border-color: #dee2e6;
+}
+
+/* Estilos para modo de edição */
+.edit-field {
+    transition: all 0.3s ease;
+}
+
+.edit-field:focus {
+    border-color: #28a745;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+/* Estilos para botões de controle */
+.btn-control {
+    transition: all 0.3s ease;
+}
+
+.btn-control:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+/* Estilos para alertas */
+.alert {
+    border-radius: 10px;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.alert-info {
+    background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+    color: #0c5460;
+}
+
+.alert-warning {
+    background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+    color: #856404;
+}
+
+/* Estilos para campos de data */
+input[type="date"]:read-only {
+    background-color: #f8f9fa;
+    border-color: #e9ecef;
+    color: #6c757d;
+    cursor: not-allowed;
+}
+</style>
+{% endblock %}

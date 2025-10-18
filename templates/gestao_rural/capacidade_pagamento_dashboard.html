@@ -1,0 +1,243 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Capacidade de Pagamento - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="text-dark mb-1">
+                        <i class="bi bi-shield-check text-primary"></i> Capacidade de Pagamento
+                    </h2>
+                    <p class="text-muted mb-0">{{ propriedade.nome_propriedade }} - {{ propriedade.municipio }}/{{ propriedade.uf }}</p>
+                </div>
+                <a href="{% url 'propriedades_lista' propriedade.produtor.id %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Voltar às Propriedades
+                </a>
+            </div>
+
+            <!-- Classificação da Capacidade -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body p-4 text-center">
+                            <div class="bg-{{ indicadores.cor_classificacao }} bg-opacity-10 rounded-circle p-4 mx-auto mb-3" style="width: 80px; height: 80px;">
+                                <i class="bi bi-{% if indicadores.classificacao == 'Excelente' %}star-fill{% elif indicadores.classificacao == 'Boa' %}check-circle{% elif indicadores.classificacao == 'Adequada' %}exclamation-triangle{% else %}x-circle{% endif %} text-{{ indicadores.cor_classificacao }} fs-1"></i>
+                            </div>
+                            <h3 class="text-{{ indicadores.cor_classificacao }} mb-2">{{ indicadores.classificacao }}</h3>
+                            <p class="text-muted mb-0">Capacidade de Pagamento: {{ indicadores.indice_capacidade_pagamento|floatformat:1 }}%</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Indicadores Principais -->
+            <div class="row mb-4">
+                <div class="col-md-3 mb-3">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body text-center p-3">
+                            <div class="bg-success bg-opacity-10 rounded-circle p-3 mx-auto mb-2" style="width: 60px; height: 60px;">
+                                <i class="bi bi-arrow-up-circle text-success fs-4"></i>
+                            </div>
+                            <h6 class="text-dark mb-1">Receita Mensal</h6>
+                            <h4 class="text-success mb-0">R$ {{ indicadores.receita_mensal|floatformat:2 }}</h4>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3 mb-3">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body text-center p-3">
+                            <div class="bg-warning bg-opacity-10 rounded-circle p-3 mx-auto mb-2" style="width: 60px; height: 60px;">
+                                <i class="bi bi-arrow-down-circle text-warning fs-4"></i>
+                            </div>
+                            <h6 class="text-dark mb-1">Custos Mensais</h6>
+                            <h4 class="text-warning mb-0">R$ {{ indicadores.custos_mensais|floatformat:2 }}</h4>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3 mb-3">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body text-center p-3">
+                            <div class="bg-info bg-opacity-10 rounded-circle p-3 mx-auto mb-2" style="width: 60px; height: 60px;">
+                                <i class="bi bi-calculator text-info fs-4"></i>
+                            </div>
+                            <h6 class="text-dark mb-1">Margem de Segurança</h6>
+                            <h4 class="text-{% if indicadores.margem_seguranca_mensal >= 0 %}success{% else %}danger{% endif %} mb-0">
+                                R$ {{ indicadores.margem_seguranca_mensal|floatformat:2 }}
+                            </h4>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3 mb-3">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body text-center p-3">
+                            <div class="bg-primary bg-opacity-10 rounded-circle p-3 mx-auto mb-2" style="width: 60px; height: 60px;">
+                                <i class="bi bi-percent text-primary fs-4"></i>
+                            </div>
+                            <h6 class="text-dark mb-1">Índice Endividamento</h6>
+                            <h4 class="text-{% if indicadores.indice_endividamento <= 30 %}success{% elif indicadores.indice_endividamento <= 50 %}warning{% else %}danger{% endif %} mb-0">
+                                {{ indicadores.indice_endividamento|floatformat:1 }}%
+                            </h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Análise de Fluxo de Caixa -->
+            {% if fluxo_caixa %}
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <h5 class="text-dark mb-3">
+                        <i class="bi bi-graph-up me-2 text-info"></i>
+                        Análise de Fluxo de Caixa (12 Meses)
+                    </h5>
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Mês</th>
+                                    <th>Receita</th>
+                                    <th>Custos</th>
+                                    <th>Fluxo Mensal</th>
+                                    <th>Saldo Acumulado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for mes in fluxo_caixa.projecao_mensal %}
+                                <tr>
+                                    <td><strong>{{ mes.mes }}</strong></td>
+                                    <td class="text-success">R$ {{ mes.receita|floatformat:2 }}</td>
+                                    <td class="text-warning">R$ {{ mes.custos|floatformat:2 }}</td>
+                                    <td class="{% if mes.fluxo_mensal >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                        R$ {{ mes.fluxo_mensal|floatformat:2 }}
+                                    </td>
+                                    <td class="{% if mes.saldo_acumulado >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                        R$ {{ mes.saldo_acumulado|floatformat:2 }}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Cenários de Stress -->
+            {% if cenarios %}
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <h5 class="text-dark mb-3">
+                        <i class="bi bi-exclamation-triangle me-2 text-warning"></i>
+                        Cenários de Stress
+                    </h5>
+                    <div class="row">
+                        {% for cenario in cenarios %}
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card border-{{ cenario.cor }} h-100">
+                                <div class="card-body p-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <h6 class="text-dark mb-0">{{ cenario.nome }}</h6>
+                                        <span class="badge bg-{{ cenario.cor }}">{{ cenario.status }}</span>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <p class="text-muted small mb-1">Receita</p>
+                                            <h6 class="text-success">R$ {{ cenario.receita|floatformat:2 }}</h6>
+                                        </div>
+                                        <div class="col-6">
+                                            <p class="text-muted small mb-1">Custos</p>
+                                            <h6 class="text-warning">R$ {{ cenario.custos|floatformat:2 }}</h6>
+                                        </div>
+                                        <div class="col-6">
+                                            <p class="text-muted small mb-1">Margem</p>
+                                            <h6 class="{% if cenario.margem >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                                R$ {{ cenario.margem|floatformat:2 }}
+                                            </h6>
+                                        </div>
+                                        <div class="col-6">
+                                            <p class="text-muted small mb-1">Índice</p>
+                                            <h6 class="text-{{ cenario.cor }}">{{ cenario.indice|floatformat:1 }}%</h6>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Recomendações -->
+            {% if recomendacoes %}
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <h5 class="text-dark mb-3">
+                        <i class="bi bi-lightbulb me-2 text-warning"></i>
+                        Recomendações
+                    </h5>
+                    <div class="row">
+                        {% for recomendacao in recomendacoes %}
+                        <div class="col-md-6 mb-3">
+                            <div class="card border-{{ recomendacao.cor }} h-100">
+                                <div class="card-body p-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <h6 class="text-dark mb-0">{{ recomendacao.titulo }}</h6>
+                                        <span class="badge bg-{{ recomendacao.cor }}">{{ recomendacao.prioridade }}</span>
+                                    </div>
+                                    <p class="text-muted small mb-0">{{ recomendacao.descricao }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1) !important;
+}
+
+.bg-opacity-10 {
+    background-color: rgba(var(--bs-primary-rgb), 0.1) !important;
+}
+
+.bg-primary.bg-opacity-10 {
+    background-color: rgba(13, 110, 253, 0.1) !important;
+}
+
+.bg-success.bg-opacity-10 {
+    background-color: rgba(25, 135, 84, 0.1) !important;
+}
+
+.bg-warning.bg-opacity-10 {
+    background-color: rgba(255, 193, 7, 0.1) !important;
+}
+
+.bg-info.bg-opacity-10 {
+    background-color: rgba(13, 202, 240, 0.1) !important;
+}
+
+.bg-danger.bg-opacity-10 {
+    background-color: rgba(220, 53, 69, 0.1) !important;
+}
+</style>
+{% endblock %}
+

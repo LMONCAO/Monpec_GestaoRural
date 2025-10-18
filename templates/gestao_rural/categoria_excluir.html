@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+
+{% block title %}Excluir Categoria{% endblock %}
+
+{% block page_title %}Excluir Categoria{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2>Excluir Categoria</h2>
+                <p class="text-muted">Confirme a exclusão da categoria</p>
+            </div>
+            <a href="{% url 'categorias_lista' %}" class="btn btn-secondary">
+                ← Voltar
+            </a>
+        </div>
+        
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-exclamation-triangle"></i> Confirmação de Exclusão
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <h6 class="alert-heading">Atenção!</h6>
+                    <p class="mb-0">Esta ação não pode ser desfeita. A categoria será permanentemente removida do sistema.</p>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Informações da Categoria:</h6>
+                        <table class="table table-sm">
+                            <tr>
+                                <td><strong>Nome:</strong></td>
+                                <td>{{ categoria.nome }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Sexo:</strong></td>
+                                <td>
+                                    {% if categoria.sexo == 'F' %}Fêmea
+                                    {% elif categoria.sexo == 'M' %}Macho
+                                    {% else %}Indefinido
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>Idade:</strong></td>
+                                <td>
+                                    {% if categoria.idade_minima_meses is not None and categoria.idade_maxima_meses is not None %}
+                                        {{ categoria.idade_minima_meses }}-{{ categoria.idade_maxima_meses }} meses
+                                    {% elif categoria.idade_minima_meses is not None %}
+                                        {{ categoria.idade_minima_meses }}+ meses
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% if categoria.descricao %}
+                            <tr>
+                                <td><strong>Descrição:</strong></td>
+                                <td>{{ categoria.descricao }}</td>
+                            </tr>
+                            {% endif %}
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Verificação de Uso:</h6>
+                        <p class="text-muted">
+                            O sistema verificará se esta categoria está sendo usada em algum inventário antes de permitir a exclusão.
+                        </p>
+                    </div>
+                </div>
+                
+                <form method="post" class="mt-4">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{% url 'categorias_lista' %}" class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i> Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-trash"></i> Confirmar Exclusão
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

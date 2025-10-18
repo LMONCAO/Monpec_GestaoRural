@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+
+{% block title %}Categorias de Animais{% endblock %}
+
+{% block page_title %}Categorias de Animais{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2>Categorias de Animais</h2>
+                <p class="text-muted">Gerencie as categorias de animais do sistema</p>
+            </div>
+            <div>
+                <a href="{% url 'categoria_nova' %}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle"></i> Nova Categoria
+                </a>
+            </div>
+        </div>
+        
+        {% if categorias %}
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Lista de Categorias</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-striped mb-0">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Idade (meses)</th>
+                                <th>Sexo</th>
+                                <th>Descrição</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for categoria in categorias %}
+                            <tr>
+                                <td class="fw-bold">{{ categoria.nome }}</td>
+                                <td>
+                                    {% if categoria.idade_minima_meses is not None and categoria.idade_maxima_meses is not None %}
+                                        {{ categoria.idade_minima_meses }}-{{ categoria.idade_maxima_meses }}m
+                                    {% elif categoria.idade_minima_meses is not None %}
+                                        {{ categoria.idade_minima_meses }}+m
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge {% if categoria.sexo == 'F' %}bg-pink{% elif categoria.sexo == 'M' %}bg-blue{% else %}bg-secondary{% endif %}">
+                                        {% if categoria.sexo == 'F' %}Fêmea
+                                        {% elif categoria.sexo == 'M' %}Macho
+                                        {% else %}Indefinido
+                                        {% endif %}
+                                    </span>
+                                </td>
+                                <td>{{ categoria.descricao|default:"-" }}</td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <a href="{% url 'categoria_editar' categoria.id %}" class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-pencil"></i> Editar
+                                        </a>
+                                        <a href="{% url 'categoria_excluir' categoria.id %}" class="btn btn-sm btn-outline-danger">
+                                            <i class="bi bi-trash"></i> Excluir
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-tags fs-1 text-muted"></i>
+            <h3 class="text-muted mt-3">Nenhuma categoria cadastrada</h3>
+            <p class="text-muted">Comece criando uma nova categoria de animal.</p>
+            <a href="{% url 'categoria_nova' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Criar Primeira Categoria
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

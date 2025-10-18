@@ -1,0 +1,203 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Análise Financeira - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2><i class="bi bi-graph-up"></i> Análise Financeira</h2>
+                    <p class="text-muted mb-0">Propriedade: {{ propriedade.nome_propriedade }}</p>
+                </div>
+                <div>
+                    <a href="{% url 'pecuaria_dashboard' propriedade.id %}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Voltar
+                    </a>
+                </div>
+            </div>
+
+            <!-- Indicadores Principais -->
+            {% if indicadores_calculados %}
+            <div class="row mb-4">
+                {% for nome, dados in indicadores_calculados.items %}
+                <div class="col-md-3 mb-3">
+                    <div class="card border-{% if dados.tipo == 'LIQUIDEZ' %}primary{% elif dados.tipo == 'RENTABILIDADE' %}success{% elif dados.tipo == 'ENDIVIDAMENTO' %}warning{% else %}info{% endif %}">
+                        <div class="card-body text-center py-3">
+                            <i class="bi bi-{% if dados.tipo == 'LIQUIDEZ' %}cash-stack{% elif dados.tipo == 'RENTABILIDADE' %}trending-up{% elif dados.tipo == 'ENDIVIDAMENTO' %}credit-card{% else %}calculator{% endif %} fs-3 text-{% if dados.tipo == 'LIQUIDEZ' %}primary{% elif dados.tipo == 'RENTABILIDADE' %}success{% elif dados.tipo == 'ENDIVIDAMENTO' %}warning{% else %}info{% endif %}"></i>
+                            <h6 class="mt-2 mb-1 small">{{ nome }}</h6>
+                            <h4 class="{% if dados.tipo == 'LIQUIDEZ' %}text-primary{% elif dados.tipo == 'RENTABILIDADE' %}text-success{% elif dados.tipo == 'ENDIVIDAMENTO' %}text-warning{% else %}text-info{% endif %} mb-0">
+                                {% if dados.unidade == 'R$' %}
+                                    R$ {{ dados.valor|floatformat:2 }}
+                                {% else %}
+                                    {{ dados.valor|floatformat:2 }} {{ dados.unidade }}
+                                {% endif %}
+                            </h4>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Ações Principais -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card border-success">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0">
+                                <i class="bi bi-tools"></i> Ações Principais
+                            </h5>
+                        </div>
+                        <div class="card-body py-3">
+                            <div class="row">
+                                <div class="col-md-3 mb-2">
+                                    <a href="{% url 'indicador_novo' propriedade.id %}" class="btn btn-primary btn-sm w-100">
+                                        <i class="bi bi-plus"></i> Novo Indicador
+                                    </a>
+                                </div>
+                                <div class="col-md-3 mb-2">
+                                    <a href="{% url 'indicadores_lista' propriedade.id %}" class="btn btn-info btn-sm w-100">
+                                        <i class="bi bi-list"></i> Ver Todos
+                                    </a>
+                                </div>
+                                <div class="col-md-3 mb-2">
+                                    <a href="{% url 'calcular_indicadores_automaticos' propriedade.id %}" class="btn btn-warning btn-sm w-100">
+                                        <i class="bi bi-calculator"></i> Calcular Automático
+                                    </a>
+                                </div>
+                                <div class="col-md-3 mb-2">
+                                    <a href="{% url 'relatorio_analise' propriedade.id %}" class="btn btn-success btn-sm w-100">
+                                        <i class="bi bi-file-earmark-text"></i> Relatório
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Indicadores Recentes -->
+            {% if indicadores %}
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-clock-history"></i> Indicadores Recentes
+                    </h5>
+                </div>
+                <div class="card-body py-3">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Tipo</th>
+                                    <th>Valor</th>
+                                    <th>Data</th>
+                                    <th>Descrição</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for indicador in indicadores %}
+                                <tr>
+                                    <td>
+                                        <i class="bi bi-graph-up"></i> {{ indicador.nome }}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{% if indicador.tipo == 'LIQUIDEZ' %}primary{% elif indicador.tipo == 'RENTABILIDADE' %}success{% elif indicador.tipo == 'ENDIVIDAMENTO' %}warning{% else %}info{% endif %}">
+                                            {{ indicador.get_tipo_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <strong>
+                                            {% if indicador.unidade == 'R$' %}
+                                                R$ {{ indicador.valor|floatformat:2 }}
+                                            {% else %}
+                                                {{ indicador.valor|floatformat:2 }} {{ indicador.unidade }}
+                                            {% endif %}
+                                        </strong>
+                                    </td>
+                                    <td>
+                                        {{ indicador.data_referencia|date:"d/m/Y" }}
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">{{ indicador.descricao|truncatechars:50 }}</small>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle"></i>
+                <strong>Nenhum indicador cadastrado!</strong>
+                Comece calculando os indicadores automaticamente ou adicione indicadores manuais.
+            </div>
+            {% endif %}
+
+            <!-- Tipos de Indicadores -->
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <div class="card border-primary">
+                        <div class="card-header bg-primary text-white">
+                            <h6 class="mb-0">
+                                <i class="bi bi-cash-stack"></i> Liquidez
+                            </h6>
+                        </div>
+                        <div class="card-body py-3">
+                            <ul class="small mb-0">
+                                <li>Capacidade de pagamento</li>
+                                <li>Valor do rebanho</li>
+                                <li>Fluxo de caixa</li>
+                                <li>Disponibilidade financeira</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4 mb-3">
+                    <div class="card border-success">
+                        <div class="card-header bg-success text-white">
+                            <h6 class="mb-0">
+                                <i class="bi bi-trending-up"></i> Rentabilidade
+                            </h6>
+                        </div>
+                        <div class="card-body py-3">
+                            <ul class="small mb-0">
+                                <li>Margem de lucro</li>
+                                <li>ROI (Retorno sobre Investimento)</li>
+                                <li>Lucratividade por animal</li>
+                                <li>Receita por hectare</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4 mb-3">
+                    <div class="card border-warning">
+                        <div class="card-header bg-warning text-dark">
+                            <h6 class="mb-0">
+                                <i class="bi bi-credit-card"></i> Endividamento
+                            </h6>
+                        </div>
+                        <div class="card-body py-3">
+                            <ul class="small mb-0">
+                                <li>Índice de endividamento</li>
+                                <li>Parcelas mensais</li>
+                                <li>Capacidade de pagamento</li>
+                                <li>Relação dívida/patrimônio</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

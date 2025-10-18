@@ -1,0 +1,205 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Relatórios - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2><i class="bi bi-file-earmark-text"></i> Relatórios Gerenciais</h2>
+                    <p class="text-muted mb-0">Propriedade: {{ propriedade.nome_propriedade }}</p>
+                </div>
+                <div>
+                    <a href="{% url 'pecuaria_dashboard' propriedade.id %}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Voltar
+                    </a>
+                </div>
+            </div>
+
+            <!-- Resumo da Propriedade -->
+            {% if resumo_dados %}
+            <div class="row mb-4">
+                <div class="col-md-3 mb-3">
+                    <div class="card border-primary">
+                        <div class="card-body text-center py-3">
+                            <i class="bi bi-clipboard-data fs-3 text-primary"></i>
+                            <h6 class="mt-2 mb-1 small">Total de Animais</h6>
+                            <h4 class="text-primary mb-0">{{ resumo_dados.total_animais|default:0 }}</h4>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3 mb-3">
+                    <div class="card border-success">
+                        <div class="card-body text-center py-3">
+                            <i class="bi bi-cash-stack fs-3 text-success"></i>
+                            <h6 class="mt-2 mb-1 small">Valor do Rebanho</h6>
+                            <h4 class="text-success mb-0">R$ {{ resumo_dados.valor_rebanho|default:0|floatformat:2 }}</h4>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3 mb-3">
+                    <div class="card border-warning">
+                        <div class="card-body text-center py-3">
+                            <i class="bi bi-house fs-3 text-warning"></i>
+                            <h6 class="mt-2 mb-1 small">Custos Fixos/Mês</h6>
+                            <h4 class="text-warning mb-0">R$ {{ resumo_dados.custos_fixos_mes|default:0|floatformat:2 }}</h4>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3 mb-3">
+                    <div class="card border-info">
+                        <div class="card-body text-center py-3">
+                            <i class="bi bi-credit-card fs-3 text-info"></i>
+                            <h6 class="mt-2 mb-1 small">Parcelas/Mês</h6>
+                            <h4 class="text-info mb-0">R$ {{ resumo_dados.parcelas_mes|default:0|floatformat:2 }}</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Relatórios Disponíveis -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card border-success">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0">
+                                <i class="bi bi-file-earmark-text"></i> Relatórios Disponíveis
+                            </h5>
+                        </div>
+                        <div class="card-body py-3">
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <div class="card h-100 border-info">
+                                        <div class="card-body text-center py-3">
+                                            <i class="bi bi-clipboard-data fs-3 text-info"></i>
+                                            <h6 class="mt-2 mb-2">Inventário do Rebanho</h6>
+                                            <p class="text-muted small mb-3">Relatório detalhado do inventário atual com valores por categoria</p>
+                                            <a href="{% url 'relatorio_inventario' propriedade.id %}" class="btn btn-info btn-sm w-100">
+                                                <i class="bi bi-eye"></i> Visualizar
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-4 mb-3">
+                                    <div class="card h-100 border-primary">
+                                        <div class="card-body text-center py-3">
+                                            <i class="bi bi-graph-up fs-3 text-primary"></i>
+                                            <h6 class="mt-2 mb-2">Relatório Financeiro</h6>
+                                            <p class="text-muted small mb-3">Análise financeira completa com receitas, custos e indicadores</p>
+                                            <a href="{% url 'relatorio_financeiro' propriedade.id %}" class="btn btn-primary btn-sm w-100">
+                                                <i class="bi bi-eye"></i> Visualizar
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-4 mb-3">
+                                    <div class="card h-100 border-warning">
+                                        <div class="card-body text-center py-3">
+                                            <i class="bi bi-calculator fs-3 text-warning"></i>
+                                            <h6 class="mt-2 mb-2">Relatório de Custos</h6>
+                                            <p class="text-muted small mb-3">Detalhamento de custos fixos e variáveis da produção</p>
+                                            <a href="{% url 'relatorio_custos' propriedade.id %}" class="btn btn-warning btn-sm w-100">
+                                                <i class="bi bi-eye"></i> Visualizar
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-4 mb-3">
+                                    <div class="card h-100 border-danger">
+                                        <div class="card-body text-center py-3">
+                                            <i class="bi bi-credit-card fs-3 text-danger"></i>
+                                            <h6 class="mt-2 mb-2">Relatório de Endividamento</h6>
+                                            <p class="text-muted small mb-3">Análise de financiamentos e situação de endividamento</p>
+                                            <a href="{% url 'relatorio_endividamento' propriedade.id %}" class="btn btn-danger btn-sm w-100">
+                                                <i class="bi bi-eye"></i> Visualizar
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-4 mb-3">
+                                    <div class="card h-100 border-success">
+                                        <div class="card-body text-center py-3">
+                                            <i class="bi bi-file-earmark-check fs-3 text-success"></i>
+                                            <h6 class="mt-2 mb-2">Relatório Consolidado</h6>
+                                            <p class="text-muted small mb-3">Visão geral completa de todos os aspectos da propriedade</p>
+                                            <a href="{% url 'relatorio_consolidado' propriedade.id %}" class="btn btn-success btn-sm w-100">
+                                                <i class="bi bi-eye"></i> Visualizar
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-4 mb-3">
+                                    <div class="card h-100 border-secondary">
+                                        <div class="card-body text-center py-3">
+                                            <i class="bi bi-printer fs-3 text-secondary"></i>
+                                            <h6 class="mt-2 mb-2">Imprimir Todos</h6>
+                                            <p class="text-muted small mb-3">Gerar versão para impressão de todos os relatórios</p>
+                                            <button class="btn btn-secondary btn-sm w-100" onclick="window.print()">
+                                                <i class="bi bi-printer"></i> Imprimir
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Informações dos Relatórios -->
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <div class="card border-info">
+                        <div class="card-header bg-info text-white">
+                            <h6 class="mb-0">
+                                <i class="bi bi-info-circle"></i> Sobre os Relatórios
+                            </h6>
+                        </div>
+                        <div class="card-body py-3">
+                            <ul class="small mb-0">
+                                <li><strong>Inventário:</strong> Lista completa de animais por categoria com valores</li>
+                                <li><strong>Financeiro:</strong> Análise de receitas, custos e indicadores financeiros</li>
+                                <li><strong>Custos:</strong> Detalhamento de custos fixos e variáveis</li>
+                                <li><strong>Endividamento:</strong> Situação de financiamentos e parcelas</li>
+                                <li><strong>Consolidado:</strong> Visão geral de todos os aspectos</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <div class="card border-warning">
+                        <div class="card-header bg-warning text-dark">
+                            <h6 class="mb-0">
+                                <i class="bi bi-lightbulb"></i> Dicas
+                            </h6>
+                        </div>
+                        <div class="card-body py-3">
+                            <ul class="small mb-0">
+                                <li>Use Ctrl+P para imprimir qualquer relatório</li>
+                                <li>Os dados são atualizados em tempo real</li>
+                                <li>Relatórios podem ser exportados como PDF</li>
+                                <li>Mantenha os dados sempre atualizados</li>
+                                <li>Compare períodos para análise de tendências</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

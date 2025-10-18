@@ -1,0 +1,330 @@
+{% extends 'base.html' %}
+
+{% block title %}Inventário - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block page_title %}Inventário Inicial do Rebanho{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2><i class="bi bi-clipboard-data"></i> Inventário Inicial</h2>
+                <p class="text-muted">Propriedade: {{ propriedade.nome_propriedade }}</p>
+            </div>
+            <div>
+                <a href="{% url 'categorias_lista' %}" class="btn btn-outline-primary me-2">
+                    <i class="bi bi-tags"></i> Gerenciar Categorias
+                </a>
+                <a href="{% url 'pecuaria_dashboard' propriedade.id %}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Voltar
+                </a>
+            </div>
+        </div>
+        
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i>
+            <strong>Instruções:</strong> Preencha a quantidade de animais por categoria na data especificada. 
+            Este será o ponto de partida para todas as projeções futuras.
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Cadastrar Inventário</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label for="data_inventario" class="form-label">Data do Inventário</label>
+                            <input type="date" class="form-control" id="data_inventario" name="data_inventario" 
+                                   value="{% now 'Y-m-d' %}" required>
+                        </div>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead style="background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%); color: white;">
+                                <tr>
+                                    <th class="text-center fw-bold" style="border-right: 2px solid rgba(255,255,255,0.3); padding: 15px 10px;">
+                                        <i class="bi bi-tag"></i><br>
+                                        <small>Categoria</small>
+                                    </th>
+                                    <th class="text-center fw-bold" style="border-right: 2px solid rgba(255,255,255,0.3); padding: 15px 10px;">
+                                        <i class="bi bi-award"></i><br>
+                                        <small>Raça</small>
+                                    </th>
+                                    <th class="text-center fw-bold" style="border-right: 2px solid rgba(255,255,255,0.3); padding: 15px 10px;">
+                                        <i class="bi bi-gender-ambiguous"></i><br>
+                                        <small>Sexo</small>
+                                    </th>
+                                    <th class="text-center fw-bold" style="border-right: 2px solid rgba(255,255,255,0.3); padding: 15px 10px;">
+                                        <i class="bi bi-calendar"></i><br>
+                                        <small>Idade (meses)</small>
+                                    </th>
+                                    <th class="text-center fw-bold" style="border-right: 2px solid rgba(255,255,255,0.3); padding: 15px 10px;">
+                                        <i class="bi bi-speedometer2"></i><br>
+                                        <small>Peso Médio (kg)</small>
+                                    </th>
+                                    <th class="text-center fw-bold" style="border-right: 2px solid rgba(255,255,255,0.3); padding: 15px 10px;">
+                                        <i class="bi bi-hash"></i><br>
+                                        <small>Quantidade</small>
+                                    </th>
+                                    <th class="text-center fw-bold" style="border-right: 2px solid rgba(255,255,255,0.3); padding: 15px 10px;">
+                                        <i class="bi bi-currency-dollar"></i><br>
+                                        <small>Valor por Cabeça (R$)</small>
+                                    </th>
+                                    <th class="text-center fw-bold" style="padding: 15px 10px;">
+                                        <i class="bi bi-calculator"></i><br>
+                                        <small>Valor Total (R$)</small>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for categoria in categorias %}
+                                <tr>
+                                    <td class="text-center fw-bold" style="border-right: 2px solid rgba(0,0,0,0.1); padding: 12px 8px;">
+                                        {{ categoria.nome }}
+                                    </td>
+                                    <td class="text-center" style="border-right: 2px solid rgba(0,0,0,0.1); padding: 12px 8px;">
+                                        <span class="badge bg-success" style="font-size: 0.9rem;">
+                                            {{ categoria.raca|default:"Nelore" }}
+                                        </span>
+                                    </td>
+                                    <td class="text-center" style="border-right: 2px solid rgba(0,0,0,0.1); padding: 12px 8px;">
+                                        <span class="badge bg-primary" style="font-size: 0.9rem;">
+                                            {{ categoria.get_sexo_display }}
+                                        </span>
+                                    </td>
+                                    <td class="text-center" style="border-right: 2px solid rgba(0,0,0,0.1); padding: 12px 8px;">
+                                        <span class="badge bg-info" style="font-size: 0.9rem;">
+                                            {{ categoria.idade_minima_meses }}-{{ categoria.idade_maxima_meses }}m
+                                        </span>
+                                    </td>
+                                    <td class="text-center" style="border-right: 2px solid rgba(0,0,0,0.1); padding: 12px 8px;">
+                                        <span class="badge bg-warning text-dark" style="font-size: 0.9rem;">
+                                            {{ categoria.peso_medio_kg|default:0|floatformat:1 }} kg
+                                        </span>
+                                    </td>
+                                    <td class="text-center" style="border-right: 2px solid rgba(0,0,0,0.1); padding: 12px 8px;">
+                                        <input type="number" 
+                                               class="form-control form-control-sm text-center quantidade" 
+                                               name="quantidade_{{ categoria.id }}" 
+                                               id="quantidade_{{ categoria.id }}"
+                                               value="{% if categoria.id in inventario_existente %}{{ inventario_existente|default_if_none:0|default:0 }}{% else %}0{% endif %}"
+                                               min="0" 
+                                               step="1"
+                                               data-categoria="{{ categoria.id }}"
+                                               onchange="calcularValorTotalInventario(this)"
+                                               style="width: 80px; display: inline-block;">
+                                    </td>
+                                    <td class="text-center" style="border-right: 2px solid rgba(0,0,0,0.1); padding: 12px 8px;">
+                                        <input type="number" 
+                                               class="form-control form-control-sm text-center valor-cabeca" 
+                                               name="valor_cabeca_{{ categoria.id }}" 
+                                               id="valor_cabeca_{{ categoria.id }}"
+                                               value="{% if categoria.id in inventario_existente %}{{ inventario_existente|default_if_none:0|default:0 }}{% else %}0{% endif %}"
+                                               min="0" 
+                                               step="0.01"
+                                               data-categoria="{{ categoria.id }}"
+                                               data-peso-medio="{{ categoria.peso_medio_kg|default:0 }}"
+                                               onchange="calcularValorTotalInventario(this)"
+                                               oninput="calcularValorPorKg(this)"
+                                               style="width: 100px; display: inline-block;">
+                                    </td>
+                                    <td class="text-center fw-bold" style="padding: 12px 8px;">
+                                        <span class="valor-total-inventario" data-categoria="{{ categoria.id }}">
+                                            R$ 0,00
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-top: 3px solid #1e3a8a;">
+                                <tr>
+                                    <td class="text-center fw-bold" colspan="5" style="padding: 15px 10px;">
+                                        <strong>TOTAIS</strong>
+                                    </td>
+                                    <td class="text-center fw-bold" style="padding: 15px 10px;">
+                                        <span id="total-quantidade">0</span>
+                                    </td>
+                                    <td class="text-center fw-bold" style="padding: 15px 10px;">
+                                        <span id="total-valor-cabeca">R$ 0,00</span>
+                                    </td>
+                                    <td class="text-center fw-bold" style="padding: 15px 10px;">
+                                        <span id="total-valor-total">R$ 0,00</span>
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check"></i> Salvar Inventário
+                        </button>
+                        <a href="{% url 'pecuaria_dashboard' propriedade.id %}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Cancelar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Inventário Atual -->
+        {% if inventario_existente %}
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">Inventário Atual</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Categoria</th>
+                                <th>Quantidade</th>
+                                <th>Data do Inventário</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for categoria in categorias %}
+                            {% if inventario_existente|default_if_none:0|default:0 > 0 %}
+                            <tr>
+                                <td>{{ categoria.nome }}</td>
+                                <td>{{ inventario_existente|default_if_none:0|default:0 }}</td>
+                                <td>{% now 'd/m/Y' %}</td>
+                            </tr>
+                            {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+// Função para calcular valor total do inventário
+function calcularValorTotalInventario(input) {
+    const categoria = input.getAttribute('data-categoria');
+    const quantidade = parseFloat(input.value) || 0;
+    
+    // Encontrar o valor por cabeça para esta categoria
+    const valorCabecaInput = document.getElementById(`valor_cabeca_${categoria}`);
+    const valorCabeca = parseFloat(valorCabecaInput.value) || 0;
+    
+    // Calcular valor total
+    const valorTotal = quantidade * valorCabeca;
+    
+    // Atualizar o valor total na mesma linha
+    const valorTotalSpan = document.querySelector(`.valor-total-inventario[data-categoria="${categoria}"]`);
+    if (valorTotalSpan) {
+        valorTotalSpan.textContent = `R$ ${valorTotal.toFixed(2).replace('.', ',')}`;
+    }
+    
+    // Recalcular totais
+    calcularTotaisInventario();
+}
+
+// Função para calcular valor por kg
+function calcularValorPorKg(input) {
+    const pesoMedio = parseFloat(input.getAttribute('data-peso-medio')) || 0;
+    const valorCabeca = parseFloat(input.value) || 0;
+    
+    if (pesoMedio > 0 && valorCabeca > 0) {
+        const valorPorKg = valorCabeca / pesoMedio;
+        console.log(`Valor por kg: R$ ${valorPorKg.toFixed(2)}`);
+        // Aqui você pode adicionar um campo para mostrar o valor por kg se desejar
+    }
+    
+    // Recalcular valor total
+    const categoria = input.getAttribute('data-categoria');
+    const quantidadeInput = document.getElementById(`quantidade_${categoria}`);
+    calcularValorTotalInventario(quantidadeInput);
+}
+
+// Função para calcular totais
+function calcularTotaisInventario() {
+    let totalQuantidade = 0;
+    let totalValorCabeca = 0;
+    let totalValorTotal = 0;
+    
+    // Somar todas as quantidades
+    document.querySelectorAll('.quantidade').forEach(input => {
+        totalQuantidade += parseFloat(input.value) || 0;
+    });
+    
+    // Somar todos os valores por cabeça
+    document.querySelectorAll('.valor-cabeca').forEach(input => {
+        totalValorCabeca += parseFloat(input.value) || 0;
+    });
+    
+    // Somar todos os valores totais
+    document.querySelectorAll('.valor-total-inventario').forEach(span => {
+        const valor = parseFloat(span.textContent.replace('R$ ', '').replace(',', '.')) || 0;
+        totalValorTotal += valor;
+    });
+    
+    // Atualizar totais
+    document.getElementById('total-quantidade').textContent = totalQuantidade;
+    document.getElementById('total-valor-cabeca').textContent = `R$ ${totalValorCabeca.toFixed(2).replace('.', ',')}`;
+    document.getElementById('total-valor-total').textContent = `R$ ${totalValorTotal.toFixed(2).replace('.', ',')}`;
+}
+
+// Inicializar cálculos quando a página carregar
+document.addEventListener('DOMContentLoaded', function() {
+    // Recalcular todos os valores iniciais
+    document.querySelectorAll('.quantidade').forEach(input => {
+        calcularValorTotalInventario(input);
+    });
+});
+</script>
+
+<style>
+/* Estilos para campos de valor */
+.valor-cabeca {
+    border: 2px solid #e9ecef;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+}
+
+.valor-cabeca:focus {
+    border-color: #1e3a8a;
+    box-shadow: 0 0 0 0.2rem rgba(30, 58, 138, 0.25);
+    outline: none;
+}
+
+.quantidade {
+    border: 2px solid #e9ecef;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+}
+
+.quantidade:focus {
+    border-color: #1e3a8a;
+    box-shadow: 0 0 0 0.2rem rgba(30, 58, 138, 0.25);
+    outline: none;
+}
+
+.valor-total-inventario {
+    font-weight: bold;
+    color: #1e3a8a;
+    background: rgba(30, 58, 138, 0.1);
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: inline-block;
+    min-width: 80px;
+}
+
+/* Estilos para badges */
+.badge {
+    font-size: 0.85rem;
+    padding: 6px 10px;
+}
+</style>
+{% endblock %}

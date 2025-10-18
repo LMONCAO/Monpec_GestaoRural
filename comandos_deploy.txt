@@ -1,0 +1,40 @@
+🔧 COMANDOS PARA DEPLOY - SISTEMA RURAL COM IA
+=============================================
+
+EXECUTE ESTES COMANDOS NO POWERSHELL, UM POR VEZ:
+
+1. NAVEGAR PARA O DIRETÓRIO:
+   cd C:\Software_Projetos_Rural
+
+2. CRIAR PACOTE DE DEPLOY (sem arquivos do sistema):
+   tar -czf sistema-rural-deploy.tar.gz manage.py requirements.txt gestao_rural sistema_rural templates static *.py *.md *.sh *.ps1 .env* deploy_* *.txt
+
+3. VERIFICAR SE O ARQUIVO FOI CRIADO:
+   ls sistema-rural-deploy.tar.gz
+
+4. FAZER UPLOAD PARA O SERVIDOR:
+   scp sistema-rural-deploy.tar.gz root@45.32.219.76:/tmp/
+
+5. EXECUTAR DEPLOY NO SERVIDOR:
+   ssh root@45.32.219.76 "cd /tmp && tar -xzf sistema-rural-deploy.tar.gz -C /home/django/sistema-rural/ && chown -R django:django /home/django/sistema-rural && cd /home/django/sistema-rural && chmod +x deploy_automatico.sh && ./deploy_automatico.sh"
+
+6. VERIFICAR SISTEMA:
+   Invoke-WebRequest -Uri "http://45.32.219.76" -TimeoutSec 30
+
+ALTERNATIVA SE O COMANDO TAR FALHAR:
+
+Use este comando alternativo:
+tar -czf sistema-rural-deploy.tar.gz --exclude=venv --exclude=__pycache__ --exclude=db.sqlite3 --exclude=*.log --exclude=NTUSER.DAT --exclude=*.tmp --exclude=*.temp .
+
+RESULTADO ESPERADO:
+🌐 Sistema: http://45.32.219.76
+👤 Admin: http://45.32.219.76/admin
+🔑 Login: admin / admin123
+
+COMANDOS ÚTEIS APÓS DEPLOY:
+• Ver logs: ssh root@45.32.219.76 "journalctl -u sistema-rural -f"
+• Reiniciar: ssh root@45.32.219.76 "systemctl restart sistema-rural"
+• Status: ssh root@45.32.219.76 "systemctl status sistema-rural"
+
+
+
