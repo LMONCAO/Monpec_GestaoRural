@@ -2,8 +2,11 @@
   "version": 2,
   "builds": [
     {
-      "src": "manage.py",
-      "use": "@vercel/python"
+      "src": "api/index.py",
+      "use": "@vercel/python",
+      "config": {
+        "maxLambdaSize": "15mb"
+      }
     }
   ],
   "routes": [
@@ -12,11 +15,20 @@
       "dest": "/static/$1"
     },
     {
+      "src": "/media/(.*)",
+      "dest": "/media/$1"
+    },
+    {
       "src": "/(.*)",
       "dest": "/"
     }
   ],
   "env": {
     "DJANGO_SETTINGS_MODULE": "sistema_rural.settings_producao"
+  },
+  "functions": {
+    "manage.py": {
+      "maxDuration": 30
+    }
   }
 }
