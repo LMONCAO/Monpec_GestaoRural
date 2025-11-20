@@ -1,0 +1,198 @@
+{% extends 'base_modulos_unificado.html' %}
+
+{% block title %}Importar SCR - {{ propriedade.nome_propriedade }} - Monpec Rural{% endblock %}
+
+{% block breadcrumb_extra %}
+<li class="breadcrumb-item"><a href="{% url 'propriedades_lista' propriedade.produtor_id %}">Propriedades</a></li>
+<li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">{{ propriedade.nome_propriedade }}</a></li>
+<li class="breadcrumb-item"><a href="{% url 'dividas_dashboard' propriedade.id %}">Dívidas Financeiras</a></li>
+<li class="breadcrumb-item active">Importar SCR</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Cabeçalho -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card card-modulo card-financeiro">
+                <div class="card-header-colorido card-header">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h3 class="mb-0">
+                                <i class="bi bi-file-earmark-pdf-fill"></i> Importar SCR do Banco Central
+                            </h3>
+                            <p class="mb-0 mt-2">
+                                <i class="bi bi-geo-alt"></i> <strong>{{ propriedade.nome_propriedade }}</strong> • 
+                                Sistema de Informações de Crédito Rural
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <a href="{% url 'dividas_dashboard' propriedade.id %}" class="btn btn-modulo-financeiro">
+                                <i class="bi bi-arrow-left"></i> Voltar
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulário de Importação -->
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card card-modulo">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-upload"></i> Upload do Arquivo SCR
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <div class="mb-4">
+                            <label for="arquivo_pdf" class="form-label">
+                                <i class="bi bi-file-earmark-pdf"></i> Arquivo PDF do SCR
+                            </label>
+                            <input type="file" class="form-control" id="arquivo_pdf" name="arquivo_pdf" 
+                                   accept=".pdf" required>
+                            <div class="form-text">
+                                Selecione o arquivo PDF do SCR baixado do site do Banco Central
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="data_referencia" class="form-label">
+                                <i class="bi bi-calendar"></i> Data de Referência do SCR
+                            </label>
+                            <input type="date" class="form-control" id="data_referencia" name="data_referencia" 
+                                   required>
+                            <div class="form-text">
+                                Data de referência dos dados no SCR
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'dividas_dashboard' propriedade.id %}" class="btn btn-outline-secondary me-md-2">
+                                <i class="bi bi-x-circle"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-modulo-financeiro">
+                                <i class="bi bi-upload"></i> Importar e Processar SCR
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <!-- Informações sobre o SCR -->
+            <div class="card card-modulo">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="bi bi-info-circle"></i> Sobre o SCR
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <p class="small text-muted">
+                        O Sistema de Informações de Crédito Rural (SCR) é uma base de dados 
+                        do Banco Central que registra todas as operações de crédito rural.
+                    </p>
+                    
+                    <h6 class="mt-3">O que será extraído:</h6>
+                    <ul class="small">
+                        <li>Dívidas por banco (Sicredi, Banco do Brasil, etc.)</li>
+                        <li>Valores a vencer e vencidos</li>
+                        <li>Quantidade de contratos</li>
+                        <li>Data de referência</li>
+                        <li>CNPJ do produtor</li>
+                    </ul>
+                    
+                    <h6 class="mt-3">Como obter o SCR:</h6>
+                    <ol class="small">
+                        <li>Acesse o site do Banco Central</li>
+                        <li>Vá em "SCR - Sistema de Informações de Crédito Rural"</li>
+                        <li>Faça login com seu CPF/CNPJ</li>
+                        <li>Baixe o relatório em PDF</li>
+                    </ol>
+                </div>
+            </div>
+            
+            <!-- Processamento Automático -->
+            <div class="card card-modulo">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="bi bi-gear"></i> Processamento Automático
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="bi bi-lightbulb"></i>
+                        <strong>IA Inteligente:</strong> O sistema irá automaticamente:
+                    </div>
+                    
+                    <ul class="small">
+                        <li><i class="bi bi-check text-success"></i> Ler o PDF do SCR</li>
+                        <li><i class="bi bi-check text-success"></i> Extrair dados de dívidas</li>
+                        <li><i class="bi bi-check text-success"></i> Organizar por banco</li>
+                        <li><i class="bi bi-check text-success"></i> Separar a vencer/vencido</li>
+                        <li><i class="bi bi-check text-success"></i> Salvar no sistema</li>
+                    </ul>
+                    
+                    <div class="alert alert-warning mt-3">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <strong>Importante:</strong> Após a importação, você poderá distribuir 
+                        as dívidas para fazendas específicas.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card-modulo {
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.card-header-colorido {
+    background: linear-gradient(135deg, #dc3545, #c82333);
+    color: white;
+}
+
+.btn-modulo-financeiro {
+    background: linear-gradient(135deg, #dc3545, #c82333);
+    border: none;
+    color: white;
+    padding: 0.5rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-modulo-financeiro:hover {
+    background: linear-gradient(135deg, #c82333, #a71e2a);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
+}
+
+.form-control:focus {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+.alert-info {
+    background-color: #e3f2fd;
+    border-color: #bbdefb;
+    color: #1565c0;
+}
+
+.alert-warning {
+    background-color: #fff3e0;
+    border-color: #ffcc02;
+    color: #e65100;
+}
+</style>
+{% endblock %}

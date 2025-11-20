@@ -1,0 +1,142 @@
+{% extends "base_modulos_unificado.html" %}
+{% load formatacao_br %}
+
+{% block title %}Resultado do Relatório - {{ relatorio.nome }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'relatorios_customizados_lista' propriedade.id %}">Relatórios Customizados</a></li>
+            <li class="breadcrumb-item active">{{ relatorio.nome }}</li>
+        </ol>
+    </nav>
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1"><i class="bi bi-file-earmark-text text-primary me-2"></i>{{ relatorio.nome }}</h2>
+            <p class="text-muted mb-0">{{ propriedade.nome_propriedade }}</p>
+        </div>
+        <div>
+            <a href="{% url 'relatorio_customizado_executar' propriedade.id relatorio.id %}?formato=pdf" 
+               class="btn btn-danger">
+                <i class="bi bi-file-earmark-pdf me-1"></i>Exportar PDF
+            </a>
+            <a href="{% url 'relatorio_customizado_executar' propriedade.id relatorio.id %}?formato=excel" 
+               class="btn btn-success">
+                <i class="bi bi-file-earmark-excel me-1"></i>Exportar Excel
+            </a>
+            <a href="{% url 'relatorio_customizado_editar' propriedade.id relatorio.id %}" 
+               class="btn btn-outline-secondary">
+                <i class="bi bi-pencil me-1"></i>Editar
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtros Adicionais -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-funnel me-2"></i>Filtros Adicionais</h5>
+        </div>
+        <div class="card-body">
+            <form method="get" action="{% url 'relatorio_customizado_executar' propriedade.id relatorio.id %}">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label for="data_inicio" class="form-label">Data Início</label>
+                        {{ form.data_inicio }}
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="data_fim" class="form-label">Data Fim</label>
+                        {{ form.data_fim }}
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="formato" class="form-label">Formato</label>
+                        {{ form.formato }}
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-search me-1"></i>Aplicar Filtros
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Resultados -->
+    <div class="card">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0">
+                <i class="bi bi-table me-2"></i>Resultados
+                <span class="badge bg-light text-dark ms-2">{{ dados.total_registros|numero_br }} registros</span>
+            </h5>
+        </div>
+        <div class="card-body">
+            {% if dados.dados %}
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            {% if relatorio.campos_selecionados %}
+                                {% for campo in relatorio.campos_selecionados %}
+                                <th>{{ campo.label|default:campo.nome }}</th>
+                                {% endfor %}
+                            {% else %}
+                                {% if dados.dados %}
+                                    {% for key in dados.dados.0.keys %}
+                                    <th>{{ key }}</th>
+                                    {% endfor %}
+                                {% endif %}
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for registro in dados.dados %}
+                        <tr>
+                            {% if relatorio.campos_selecionados %}
+                                {% for campo in relatorio.campos_selecionados %}
+                                <td>
+                                    {% with campo_nome=campo.nome %}
+                                        {% if campo.tipo == 'moeda' %}
+                                            {{ registro|get_item:campo_nome|moeda_br|default:"-" }}
+                                        {% elif campo.tipo == 'percentual' %}
+                                            {{ registro|get_item:campo_nome|percentual_br|default:"-" }}
+                                        {% elif campo.tipo == 'numero' %}
+                                            {{ registro|get_item:campo_nome|numero_br|default:"-" }}
+                                        {% elif campo.tipo == 'data' %}
+                                            {% with valor_data=registro|get_item:campo_nome %}
+                                                {% if valor_data %}
+                                                    {{ valor_data|date:"d/m/Y" }}
+                                                {% else %}
+                                                    -
+                                                {% endif %}
+                                            {% endwith %}
+                                        {% else %}
+                                            {{ registro|get_item:campo_nome|default:"-" }}
+                                        {% endif %}
+                                    {% endwith %}
+                                </td>
+                                {% endfor %}
+                            {% else %}
+                                {% for key, valor in registro.items %}
+                                <td>{{ valor|default:"-" }}</td>
+                                {% endfor %}
+                            {% endif %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle me-2"></i>
+                Nenhum dado encontrado com os filtros aplicados.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+

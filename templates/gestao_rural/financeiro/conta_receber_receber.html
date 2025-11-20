@@ -1,0 +1,90 @@
+{% extends 'base_modulos_unificado.html' %}
+{% load formatacao_br %}
+
+{% block title %}Marcar como Recebida - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block breadcrumb_extra %}
+    <li class="breadcrumb-item">
+        <a href="{% url 'financeiro_dashboard' propriedade.id %}">
+            <i class="bi bi-cash-coin me-1"></i>Financeiro
+        </a>
+    </li>
+    <li class="breadcrumb-item">
+        <a href="{% url 'financeiro_contas_receber' propriedade.id %}">Contas a Receber</a>
+    </li>
+    <li class="breadcrumb-item active">Marcar como Recebida</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="submenu-page-header">
+        <div class="d-flex align-items-start gap-4">
+            <div class="submenu-page-icon bg-success bg-opacity-10 text-success">
+                <i class="bi bi-check-circle"></i>
+            </div>
+            <div class="flex-grow-1">
+                <h1 class="submenu-page-title mb-1">Marcar Conta como Recebida</h1>
+                <p class="submenu-page-description mb-0">
+                    Confirme o recebimento da conta a receber.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="card-moderno">
+        <div class="card-body-moderno">
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <h5>Detalhes da Conta</h5>
+                    <table class="table table-borderless">
+                        <tr>
+                            <td class="text-muted">Descrição:</td>
+                            <td><strong>{{ conta.descricao }}</strong></td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Valor:</td>
+                            <td><strong class="text-success">{{ conta.valor|moeda_br }}</strong></td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Vencimento:</td>
+                            <td>{{ conta.data_vencimento|data_br }}</td>
+                        </tr>
+                        {% if conta.cliente %}
+                        <tr>
+                            <td class="text-muted">Cliente:</td>
+                            <td>{{ conta.cliente }}</td>
+                        </tr>
+                        {% endif %}
+                    </table>
+                </div>
+            </div>
+
+            <form method="post">
+                {% csrf_token %}
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Data de Recebimento</label>
+                        <input type="date" name="data_recebimento" class="form-control" 
+                               value="{% now 'Y-m-d' %}" required>
+                    </div>
+                </div>
+                
+                <div class="mt-4 d-flex gap-2">
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-circle me-1"></i> Confirmar Recebimento
+                    </button>
+                    <a href="{% url 'financeiro_contas_receber' propriedade.id %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle me-1"></i> Cancelar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+
+
+

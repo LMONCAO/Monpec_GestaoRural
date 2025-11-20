@@ -1,70 +1,82 @@
-{% extends 'base.html' %}
+{% extends 'base_modulos_unificado.html' %}
 {% load static %}
+{% load formatacao_br %}
 
 {% block title %}Projetos Bancários - {{ propriedade.nome_propriedade }}{% endblock %}
 
+{% block breadcrumb_extra %}
+    <li class="breadcrumb-item active">
+        <i class="bi bi-clipboard-data"></i>
+        Projetos Bancários
+    </li>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid">
+    <!-- Header da Página -->
+    <div class="submenu-page-header">
+        <div class="d-flex align-items-start gap-4">
+            <div class="submenu-page-icon">
+                <i class="bi bi-clipboard-data"></i>
+            </div>
+            <div class="flex-grow-1">
+                <h1 class="submenu-page-title">Projetos Bancários</h1>
+                <p class="submenu-page-description">
+                    Gerencie projetos bancários e análises consolidadas da propriedade {{ propriedade.nome_propriedade }}.
+                </p>
+            </div>
+        </div>
+    </div>
+    
     <div class="row">
         <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h2 class="text-dark mb-1">
-                        <i class="bi bi-bank text-primary"></i> Projetos Bancários
-                    </h2>
-                    <p class="text-muted mb-0">{{ propriedade.nome_propriedade }} - {{ propriedade.municipio }}/{{ propriedade.uf }}</p>
-                </div>
-                <a href="{% url 'propriedades_lista' propriedade.produtor.id %}" class="btn btn-outline-secondary">
-                    <i class="bi bi-arrow-left"></i> Voltar às Propriedades
-                </a>
-            </div>
 
             <!-- Resumo Executivo -->
             <div class="row mb-4">
                 <div class="col-md-3 mb-3">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body text-center p-3">
-                            <div class="bg-primary bg-opacity-10 rounded-circle p-3 mx-auto mb-2" style="width: 60px; height: 60px;">
-                                <i class="bi bi-cash-stack text-primary fs-4"></i>
+                    <div class="card-moderno text-center">
+                        <div class="card-body-moderno">
+                            <div class="bg-primary bg-opacity-10 rounded-circle p-3 mx-auto mb-3" style="width: 70px; height: 70px;">
+                                <i class="bi bi-cash-stack text-primary fs-3"></i>
                             </div>
                             <h6 class="text-dark mb-1">Valor do Rebanho</h6>
-                            <h4 class="text-primary mb-0">R$ {{ dados_consolidados.rebanho.valor_total|floatformat:2 }}</h4>
+                            <h4 class="text-primary mb-0">{{ dados_consolidados.rebanho.valor_total|moeda_br }}</h4>
                         </div>
                     </div>
                 </div>
                 
                 <div class="col-md-3 mb-3">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body text-center p-3">
-                            <div class="bg-success bg-opacity-10 rounded-circle p-3 mx-auto mb-2" style="width: 60px; height: 60px;">
-                                <i class="bi bi-graph-up text-success fs-4"></i>
+                    <div class="card-moderno text-center">
+                        <div class="card-body-moderno">
+                            <div class="bg-success bg-opacity-10 rounded-circle p-3 mx-auto mb-3" style="width: 70px; height: 70px;">
+                                <i class="bi bi-graph-up text-success fs-3"></i>
                             </div>
                             <h6 class="text-dark mb-1">Receita Estimada</h6>
-                            <h4 class="text-success mb-0">R$ {{ dados_consolidados.analise.receita_potencial|floatformat:2 }}</h4>
+                            <h4 class="text-success mb-0">{{ dados_consolidados.analise.receita_potencial|moeda_br }}</h4>
                         </div>
                     </div>
                 </div>
                 
                 <div class="col-md-3 mb-3">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body text-center p-3">
-                            <div class="bg-warning bg-opacity-10 rounded-circle p-3 mx-auto mb-2" style="width: 60px; height: 60px;">
-                                <i class="bi bi-calculator text-warning fs-4"></i>
+                    <div class="card-moderno text-center">
+                        <div class="card-body-moderno">
+                            <div class="bg-warning bg-opacity-10 rounded-circle p-3 mx-auto mb-3" style="width: 70px; height: 70px;">
+                                <i class="bi bi-calculator text-warning fs-3"></i>
                             </div>
                             <h6 class="text-dark mb-1">Custos Anuais</h6>
-                            <h4 class="text-warning mb-0">R$ {{ dados_consolidados.analise.custos_totais|floatformat:2 }}</h4>
+                            <h4 class="text-warning mb-0">{{ dados_consolidados.analise.custos_totais|moeda_br }}</h4>
                         </div>
                     </div>
                 </div>
                 
                 <div class="col-md-3 mb-3">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body text-center p-3">
-                            <div class="bg-info bg-opacity-10 rounded-circle p-3 mx-auto mb-2" style="width: 60px; height: 60px;">
-                                <i class="bi bi-percent text-info fs-4"></i>
+                    <div class="card-moderno text-center">
+                        <div class="card-body-moderno">
+                            <div class="bg-info bg-opacity-10 rounded-circle p-3 mx-auto mb-3" style="width: 70px; height: 70px;">
+                                <i class="bi bi-percent text-info fs-3"></i>
                             </div>
                             <h6 class="text-dark mb-1">Margem de Lucro</h6>
-                            <h4 class="text-info mb-0">{{ dados_consolidados.analise.margem_lucro|floatformat:1 }}%</h4>
+                            <h4 class="text-info mb-0">{{ dados_consolidados.analise.margem_lucro|percentual_br:1 }}</h4>
                         </div>
                     </div>
                 </div>
@@ -73,8 +85,8 @@
             <!-- Módulos Integrados -->
             <div class="row mb-4">
                 <div class="col-md-6 mb-3">
-                    <div class="card border-0 shadow-sm h-100">
-                        <div class="card-body p-4">
+                    <div class="card-moderno h-100">
+                        <div class="card-body-moderno">
                             <div class="d-flex align-items-center mb-3">
                                 <div class="bg-primary bg-opacity-10 rounded-circle p-2 me-3">
                                     <i class="bi bi-cow text-primary"></i>
@@ -84,23 +96,23 @@
                             <div class="row">
                                 <div class="col-6">
                                     <p class="text-muted small mb-1">Total de Animais</p>
-                                    <h6 class="text-dark">{{ dados_consolidados.rebanho.total_animais }}</h6>
+                                    <h6 class="text-dark">{{ dados_consolidados.rebanho.total_animais|numero_br:0 }}</h6>
                                 </div>
                                 <div class="col-6">
                                     <p class="text-muted small mb-1">Categorias</p>
                                     <h6 class="text-dark">{{ dados_consolidados.rebanho.categorias }}</h6>
                                 </div>
                             </div>
-                            <a href="{% url 'pecuaria_dashboard' propriedade.id %}" class="btn btn-primary btn-sm mt-2">
-                                <i class="bi bi-arrow-right"></i> Acessar Módulo
+                            <a href="{% url 'pecuaria_dashboard' propriedade.id %}" class="btn-moderno btn-primary btn-sm mt-2">
+                                <i class="bi bi-arrow-right me-1"></i> Acessar Módulo
                             </a>
                         </div>
                     </div>
                 </div>
                 
                 <div class="col-md-6 mb-3">
-                    <div class="card border-0 shadow-sm h-100">
-                        <div class="card-body p-4">
+                    <div class="card-moderno h-100">
+                        <div class="card-body-moderno">
                             <div class="d-flex align-items-center mb-3">
                                 <div class="bg-warning bg-opacity-10 rounded-circle p-2 me-3">
                                     <i class="bi bi-calculator text-warning"></i>
@@ -117,8 +129,8 @@
                                     <h6 class="text-dark">R$ {{ dados_consolidados.custos.total_anual|floatformat:2 }}</h6>
                                 </div>
                             </div>
-                            <a href="{% url 'custos_fixos_lista' propriedade.id %}" class="btn btn-warning btn-sm mt-2">
-                                <i class="bi bi-arrow-right"></i> Acessar Módulo
+                            <a href="{% url 'custos_fixos_lista' propriedade.id %}" class="btn-moderno btn-warning btn-sm mt-2">
+                                <i class="bi bi-arrow-right me-1"></i> Acessar Módulo
                             </a>
                         </div>
                     </div>
@@ -128,8 +140,8 @@
             <!-- Endividamento e Análise -->
             <div class="row mb-4">
                 <div class="col-md-6 mb-3">
-                    <div class="card border-0 shadow-sm h-100">
-                        <div class="card-body p-4">
+                    <div class="card-moderno h-100">
+                        <div class="card-body-moderno">
                             <div class="d-flex align-items-center mb-3">
                                 <div class="bg-danger bg-opacity-10 rounded-circle p-2 me-3">
                                     <i class="bi bi-credit-card text-danger"></i>
@@ -146,16 +158,16 @@
                                     <h6 class="text-dark">R$ {{ dados_consolidados.endividamento.parcelas_mensais|floatformat:2 }}</h6>
                                 </div>
                             </div>
-                            <a href="{% url 'endividamento_dashboard' propriedade.id %}" class="btn btn-danger btn-sm mt-2">
-                                <i class="bi bi-arrow-right"></i> Acessar Módulo
+                            <a href="{% url 'endividamento_dashboard' propriedade.id %}" class="btn-moderno btn-danger btn-sm mt-2">
+                                <i class="bi bi-arrow-right me-1"></i> Acessar Módulo
                             </a>
                         </div>
                     </div>
                 </div>
                 
                 <div class="col-md-6 mb-3">
-                    <div class="card border-0 shadow-sm h-100">
-                        <div class="card-body p-4">
+                    <div class="card-moderno h-100">
+                        <div class="card-body-moderno">
                             <div class="d-flex align-items-center mb-3">
                                 <div class="bg-info bg-opacity-10 rounded-circle p-2 me-3">
                                     <i class="bi bi-graph-up text-info"></i>
@@ -172,8 +184,8 @@
                                     <h6 class="text-dark">{{ indicadores.indice_endividamento|floatformat:1 }}%</h6>
                                 </div>
                             </div>
-                            <a href="{% url 'analise_dashboard' propriedade.id %}" class="btn btn-info btn-sm mt-2">
-                                <i class="bi bi-arrow-right"></i> Acessar Módulo
+                            <a href="{% url 'analise_dashboard' propriedade.id %}" class="btn-moderno btn-info btn-sm mt-2">
+                                <i class="bi bi-arrow-right me-1"></i> Acessar Módulo
                             </a>
                         </div>
                     </div>
@@ -182,14 +194,15 @@
 
             <!-- Projeções Financeiras -->
             {% if projecoes %}
-            <div class="card border-0 shadow-sm mb-4">
-                <div class="card-body p-4">
-                    <h5 class="text-dark mb-3">
-                        <i class="bi bi-calendar-range me-2 text-success"></i>
-                        Projeções Financeiras (5 Anos)
+            <div class="card-moderno mb-4">
+                <div class="card-header-moderno">
+                    <h5 class="mb-0 text-white">
+                        <i class="bi bi-calendar-range me-2"></i> Projeções Financeiras (5 Anos)
                     </h5>
+                </div>
+                <div class="card-body-moderno">
                     <div class="table-responsive">
-                        <table class="table table-striped">
+                        <table class="table-moderno">
                             <thead>
                                 <tr>
                                     <th>Ano</th>
@@ -223,12 +236,13 @@
             {% endif %}
 
             <!-- Status dos Módulos -->
-            <div class="card border-0 shadow-sm">
-                <div class="card-body p-4">
-                    <h5 class="text-dark mb-3">
-                        <i class="bi bi-check-circle me-2 text-success"></i>
-                        Status dos Módulos
+            <div class="card-moderno">
+                <div class="card-header-moderno">
+                    <h5 class="mb-0 text-white">
+                        <i class="bi bi-check-circle me-2"></i> Status dos Módulos
                     </h5>
+                </div>
+                <div class="card-body-moderno">
                     <div class="row">
                         <div class="col-md-2">
                             <div class="text-center">
@@ -236,7 +250,7 @@
                                     <i class="bi bi-{% if dados_consolidados.relatorios.modulos_ativos.pecuaria %}check-lg{% else %}x{% endif %} text-{% if dados_consolidados.relatorios.modulos_ativos.pecuaria %}success{% else %}secondary{% endif %}"></i>
                                 </div>
                                 <h6 class="text-dark mb-1 small">Pecuária</h6>
-                                <span class="badge bg-{% if dados_consolidados.relatorios.modulos_ativos.pecuaria %}success{% else %}secondary{% endif %} small">
+                                <span class="badge-moderno bg-{% if dados_consolidados.relatorios.modulos_ativos.pecuaria %}success{% else %}secondary{% endif %} small">
                                     {% if dados_consolidados.relatorios.modulos_ativos.pecuaria %}Ativo{% else %}Inativo{% endif %}
                                 </span>
                             </div>
@@ -247,7 +261,7 @@
                                     <i class="bi bi-{% if dados_consolidados.relatorios.modulos_ativos.custos %}check-lg{% else %}x{% endif %} text-{% if dados_consolidados.relatorios.modulos_ativos.custos %}success{% else %}secondary{% endif %}"></i>
                                 </div>
                                 <h6 class="text-dark mb-1 small">Custos</h6>
-                                <span class="badge bg-{% if dados_consolidados.relatorios.modulos_ativos.custos %}success{% else %}secondary{% endif %} small">
+                                <span class="badge-moderno bg-{% if dados_consolidados.relatorios.modulos_ativos.custos %}success{% else %}secondary{% endif %} small">
                                     {% if dados_consolidados.relatorios.modulos_ativos.custos %}Ativo{% else %}Inativo{% endif %}
                                 </span>
                             </div>
@@ -258,7 +272,7 @@
                                     <i class="bi bi-{% if dados_consolidados.relatorios.modulos_ativos.endividamento %}check-lg{% else %}x{% endif %} text-{% if dados_consolidados.relatorios.modulos_ativos.endividamento %}success{% else %}secondary{% endif %}"></i>
                                 </div>
                                 <h6 class="text-dark mb-1 small">Endividamento</h6>
-                                <span class="badge bg-{% if dados_consolidados.relatorios.modulos_ativos.endividamento %}success{% else %}secondary{% endif %} small">
+                                <span class="badge-moderno bg-{% if dados_consolidados.relatorios.modulos_ativos.endividamento %}success{% else %}secondary{% endif %} small">
                                     {% if dados_consolidados.relatorios.modulos_ativos.endividamento %}Ativo{% else %}Inativo{% endif %}
                                 </span>
                             </div>
@@ -269,7 +283,7 @@
                                     <i class="bi bi-check-lg text-success"></i>
                                 </div>
                                 <h6 class="text-dark mb-1 small">Análise</h6>
-                                <span class="badge bg-success small">Ativo</span>
+                                <span class="badge-moderno bg-success small">Ativo</span>
                             </div>
                         </div>
                         <div class="col-md-2">
@@ -278,7 +292,7 @@
                                     <i class="bi bi-check-lg text-success"></i>
                                 </div>
                                 <h6 class="text-dark mb-1 small">Relatórios</h6>
-                                <span class="badge bg-success small">Ativo</span>
+                                <span class="badge-moderno bg-success small">Ativo</span>
                             </div>
                         </div>
                         <div class="col-md-2">
@@ -287,7 +301,7 @@
                                     <i class="bi bi-bank text-primary"></i>
                                 </div>
                                 <h6 class="text-dark mb-1 small">Projetos</h6>
-                                <span class="badge bg-primary small">Ativo</span>
+                                <span class="badge-moderno bg-primary small">Ativo</span>
                             </div>
                         </div>
                     </div>
@@ -296,48 +310,5 @@
         </div>
     </div>
 </div>
-
-<style>
-.card {
-    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-}
-
-.card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.1) !important;
-}
-
-.btn {
-    transition: all 0.2s ease-in-out;
-}
-
-.btn:hover {
-    transform: translateY(-1px);
-}
-
-.bg-opacity-10 {
-    background-color: rgba(var(--bs-primary-rgb), 0.1) !important;
-}
-
-.bg-primary.bg-opacity-10 {
-    background-color: rgba(13, 110, 253, 0.1) !important;
-}
-
-.bg-success.bg-opacity-10 {
-    background-color: rgba(25, 135, 84, 0.1) !important;
-}
-
-.bg-warning.bg-opacity-10 {
-    background-color: rgba(255, 193, 7, 0.1) !important;
-}
-
-.bg-info.bg-opacity-10 {
-    background-color: rgba(13, 202, 240, 0.1) !important;
-}
-
-.bg-danger.bg-opacity-10 {
-    background-color: rgba(220, 53, 69, 0.1) !important;
-}
-</style>
 {% endblock %}
 

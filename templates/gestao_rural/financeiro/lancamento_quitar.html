@@ -1,0 +1,57 @@
+{% extends 'base_modulos_unificado.html' %}
+{% load formatacao_br %}
+
+{% block title %}Quitar Lançamento - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block breadcrumb_extra %}
+    <li class="breadcrumb-item">
+        <a href="{% url 'financeiro_dashboard' propriedade.id %}">
+            <i class="bi bi-cash-coin me-1"></i>Financeiro
+        </a>
+    </li>
+    <li class="breadcrumb-item">
+        <a href="{% url 'financeiro_lancamentos' propriedade.id %}">
+            Lançamentos
+        </a>
+    </li>
+    <li class="breadcrumb-item active">Quitar</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="card-moderno">
+        <div class="card-body-moderno">
+            <h3 class="mb-3">Confirmar quitação</h3>
+            <p class="text-muted">
+                Confirme a data de quitação para o lançamento
+                <strong>{{ lancamento.descricao }}</strong> no valor de
+                <strong>{{ lancamento.valor|moeda_br }}</strong>.
+            </p>
+
+            <form method="post">
+                {% csrf_token %}
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Data de Quitação</label>
+                        <input type="date" name="data_quitacao" class="form-control" value="{{ lancamento.data_vencimento|date:'Y-m-d' }}">
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mt-4">
+                    <a href="{% url 'financeiro_lancamentos' propriedade.id %}" class="btn btn-outline-secondary">
+                        Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check2-circle me-1"></i> Confirmar Quitação
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+
+

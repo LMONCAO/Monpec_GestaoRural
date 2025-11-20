@@ -1,0 +1,184 @@
+{% extends "base_modulos_unificado.html" %}
+{% load humanize %}
+
+{% block title %}Relatório Reprodutivo - Curral{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+        <div>
+            <h2 class="mb-1"><i class="bi bi-heart-pulse me-2 text-danger"></i>Relatório Reprodutivo - Curral</h2>
+            <div class="text-muted small">
+                Propriedade: {{ propriedade.nome_propriedade }}
+            </div>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{% url 'curral_painel' propriedade.id %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Voltar para painel</a>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-4 col-sm-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <small class="text-muted text-uppercase">Total de eventos</small>
+                    <h3 class="fw-bold mt-2">{{ total_eventos }}</h3>
+                    <div class="text-muted small">eventos reprodutivos registrados</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4 col-sm-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <small class="text-muted text-uppercase">Animais únicos</small>
+                    <h3 class="fw-bold mt-2">{{ animais_unicos }}</h3>
+                    <div class="text-muted small">animais com eventos reprodutivos</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4 col-sm-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <small class="text-muted text-uppercase">Tipos de eventos</small>
+                    <h3 class="fw-bold mt-2">{{ eventos_por_tipo|length }}</h3>
+                    <div class="text-muted small">categorias diferentes</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-xl-6">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-bar-chart-line me-2 text-primary"></i>Distribuição por tipo</h5>
+                </div>
+                <div class="card-body">
+                    {% if eventos_por_tipo %}
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Tipo de Evento</th>
+                                    <th class="text-end">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in eventos_por_tipo %}
+                                <tr>
+                                    <td>
+                                        {% if item.tipo_evento == 'REPRODUCAO' %}
+                                            Protocolo Reprodutivo / IATF
+                                        {% elif item.tipo_evento == 'DIAGNOSTICO' %}
+                                            Diagnóstico de Prenhez
+                                        {% else %}
+                                            {{ item.tipo_evento }}
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end fw-bold">{{ item.total }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-muted">Nenhum evento reprodutivo registrado.</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-6">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-clock-history me-2 text-info"></i>Eventos recentes</h5>
+                </div>
+                <div class="card-body">
+                    {% if eventos %}
+                    <div class="list-group list-group-flush">
+                        {% for evento in eventos|slice:":10" %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6 class="mb-1">{{ evento.get_tipo_evento_display }}</h6>
+                                    {% if evento.animal %}
+                                    <p class="mb-1 small">Animal: <strong>{{ evento.animal.numero_brinco }}</strong></p>
+                                    {% endif %}
+                                    {% if evento.prenhez_status and evento.prenhez_status != 'DESCONHECIDO' %}
+                                    <p class="mb-1 small">Status: {{ evento.get_prenhez_status_display }}</p>
+                                    {% endif %}
+                                    {% if evento.observacoes %}
+                                    <p class="mb-0 small text-muted">{{ evento.observacoes|truncatewords:15 }}</p>
+                                    {% endif %}
+                                </div>
+                                <small class="text-muted">{{ evento.data_evento|date:"d/m/Y H:i" }}</small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-muted">Nenhum evento reprodutivo registrado.</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if eventos %}
+    <div class="card shadow-sm mt-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-list-ul me-2 text-success"></i>Histórico completo (últimos 100 eventos)</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Data/Hora</th>
+                            <th>Tipo</th>
+                            <th>Animal</th>
+                            <th>Status Reprodutivo</th>
+                            <th>Sessão</th>
+                            <th>Observações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for evento in eventos %}
+                        <tr>
+                            <td>{{ evento.data_evento|date:"d/m/Y H:i" }}</td>
+                            <td>{{ evento.get_tipo_evento_display }}</td>
+                            <td>
+                                {% if evento.animal %}
+                                    <strong>{{ evento.animal.numero_brinco }}</strong>
+                                    <div class="small text-muted">{{ evento.animal.categoria.nome|default:"-" }}</div>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if evento.prenhez_status and evento.prenhez_status != 'DESCONHECIDO' %}
+                                    <span class="badge bg-info text-dark">{{ evento.get_prenhez_status_display }}</span>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if evento.sessao %}
+                                    <a href="{% url 'curral_sessao' propriedade.id evento.sessao.id %}" class="text-decoration-none">
+                                        {{ evento.sessao.nome }}
+                                    </a>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ evento.observacoes|default:"-"|truncatewords:10 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

@@ -1,0 +1,87 @@
+{% extends "base_modulos_unificado.html" %}
+{% load formatacao_br %}
+
+{% block title %}Lotes de Sêmen - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'iatf_dashboard' propriedade.id %}">IATF</a></li>
+            <li class="breadcrumb-item active">Lotes de Sêmen</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-droplet text-info me-2"></i>Lotes de Sêmen</h2>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label for="status" class="form-label">Status</label>
+                    <select class="form-select" id="status" name="status">
+                        <option value="">Todos</option>
+                        <option value="ESTOQUE" {% if status_filter == 'ESTOQUE' %}selected{% endif %}>Em Estoque</option>
+                        <option value="RESERVADO" {% if status_filter == 'RESERVADO' %}selected{% endif %}>Reservado</option>
+                        <option value="USADO" {% if status_filter == 'USADO' %}selected{% endif %}>Usado</option>
+                        <option value="VENCIDO" {% if status_filter == 'VENCIDO' %}selected{% endif %}>Vencido</option>
+                    </select>
+                </div>
+                <div class="col-md-8 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-search me-1"></i>Filtrar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabela -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Lote</th>
+                            <th>Touro</th>
+                            <th>Total Doses</th>
+                            <th>Utilizadas</th>
+                            <th>Disponíveis</th>
+                            <th>Validade</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for lote in lotes %}
+                        <tr class="{% if lote.status == 'VENCIDO' %}table-danger{% elif lote.status == 'ESTOQUE' and lote.doses_disponiveis <= 10 %}table-warning{% endif %}">
+                            <td><strong>{{ lote.numero_lote }}</strong></td>
+                            <td>{{ lote.touro.nome_touro }}</td>
+                            <td>{{ lote.numero_doses }}</td>
+                            <td>{{ lote.doses_utilizadas }}</td>
+                            <td><strong>{{ lote.doses_disponiveis }}</strong></td>
+                            <td>{{ lote.data_validade|date:"d/m/Y"|default:"-" }}</td>
+                            <td>
+                                <span class="badge bg-{% if lote.status == 'ESTOQUE' %}success{% elif lote.status == 'VENCIDO' %}danger{% elif lote.status == 'USADO' %}secondary{% else %}warning{% endif %}">
+                                    {{ lote.get_status_display }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted">Nenhum lote encontrado</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+

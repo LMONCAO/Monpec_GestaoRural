@@ -1,0 +1,327 @@
+{% extends "base_modulos_unificado.html" %}
+{% load formatacao_br %}
+
+{% block title %}Novo Animal SISBOV - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'rastreabilidade_dashboard' propriedade.id %}">Rastreabilidade</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'animais_individuais_lista' propriedade.id %}">Animais Individuais</a></li>
+            <li class="breadcrumb-item active">Novo Cadastro</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-plus-circle me-2"></i>Novo Animal Individual (SISBOV)</h5>
+                    <small class="text-white-50">Preencha todos os campos obrigatórios</small>
+                </div>
+                <div class="card-body">
+                    <form method="post" class="row g-3" enctype="multipart/form-data">
+                        {% csrf_token %}
+
+                        <div class="col-md-4">
+                            <label class="form-label">Número do Brinco *</label>
+                            <div class="input-group">
+                                <input type="text" name="numero_brinco" class="form-control" required placeholder="Ex: BR00000123">
+                                <button type="button" class="btn btn-outline-secondary" id="btn-sugerir-brinco">
+                                    <i class="bi bi-lightning-charge"></i>
+                                </button>
+                            </div>
+                            <small class="text-muted">Sugestão próxima sequência: <span id="hint-proximo">{{ proximo_numero|default:1 }}</span></small>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">Apelido / Nome curto</label>
+                            <input type="text" name="apelido" class="form-control" placeholder="Apelido para identificação rápida">
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">Foto do animal</label>
+                            <input type="file" name="foto" class="form-control" accept="image/*">
+                            <small class="text-muted">Formatos suportados: JPG, PNG.</small>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Código SISBOV</label>
+                            <input type="text" name="codigo_sisbov" class="form-control" placeholder="Informe se diferente do número do brinco">
+                            <small class="text-muted">Se deixar em branco, o sistema usa o mesmo número do brinco.</small>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Código Eletrônico (RFID)</label>
+                            <input type="text" name="codigo_eletronico" class="form-control" placeholder="Identificador eletrônico opcional">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label a class="form-label">Tipo de Brinco *</label>
+                            <select name="tipo_brinco" class="form-select" required>
+                                <option value="VISUAL">Visual</option>
+                                <option value="ELETRONICO">Eletrônico (RFID)</option>
+                                <option value="BOTTON">Botton</option>
+                                <option value="BOLINHA">Bolinha</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Data de Identificação *</label>
+                            <input type="date" name="data_identificacao" class="form-control" value="{% now 'Y-m-d' %}" required>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Categoria SISBOV *</label>
+                            <select name="categoria" class="form-select" required>
+                                <option value="">Selecione...</option>
+                                {% for categoria in categorias %}
+                                <option value="{{ categoria.id }}">{{ categoria.nome }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Sexo *</label>
+                            <select name="sexo" class="form-select" required>
+                                <option value="F">Fêmea</option>
+                                <option value="M">Macho</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Data de Nascimento</label>
+                            <input type="date" name="data_nascimento" class="form-control">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Propriedade de Origem</label>
+                            <select name="propriedade_origem" class="form-select">
+                                <option value="">Selecione...</option>
+                                {% for prop in propriedades %}
+                                <option value="{{ prop.id }}">{{ prop.nome_propriedade }}</option>
+                                {% endfor %}
+                            </select>
+                            <small class="text-muted">Obrigatório se animal estiver sendo adquirido</small>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Raça</label>
+                            <input type="text" name="raca" class="form-control" placeholder="Ex: Nelore, Angus">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Classificação zootécnica</label>
+                            <input type="text" name="classificacao_zootecnica" class="form-control" placeholder="Matriz, Novilha, Garrote...">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Grupo / linha de produção</label>
+                            <input type="text" name="grupo_producao" class="form-control" placeholder="Ex: Lote 2025, Núcleo Genético">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Peso Atual (kg)</label>
+                            <input type="number" step="0.01" name="peso_atual_kg" class="form-control" placeholder="Ex: 250,00">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Produção diária de leite (L)</label>
+                            <input type="number" step="0.01" name="produtividade_leite_dia" class="form-control" placeholder="Preencha para animais leiteiros">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Sistema de criação</label>
+                            <select name="sistema_criacao" class="form-select">
+                                <option value="">Selecione...</option>
+                                {% for valor, rotulo in sistema_criacao_choices %}
+                                <option value="{{ valor }}">{{ rotulo }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Nível de confinamento</label>
+                            <select name="nivel_confinamento" class="form-select">
+                                <option value="">Selecione...</option>
+                                {% for valor, rotulo in nivel_confinamento_choices %}
+                                <option value="{{ valor }}">{{ rotulo }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Mãe (opcional)</label>
+                            <select name="mae" class="form-select">
+                                <option value="">Não informar / matriz externa</option>
+                                {% for matriz in animais_maes %}
+                                    <option value="{{ matriz.id }}">{{ matriz.numero_brinco }} - {{ matriz.apelido|default:"Sem apelido" }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Pai (opcional)</label>
+                            <select name="pai" class="form-select">
+                                <option value="">Não informar / sêmen externo</option>
+                                {% for reprodutor in animais_pais %}
+                                    <option value="{{ reprodutor.id }}">{{ reprodutor.numero_brinco }} - {{ reprodutor.apelido|default:"Sem apelido" }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Origem genética / reprodutor</label>
+                            <input type="text" name="reprodutor_origem" class="form-control" placeholder="Ex: Touro XYZ, sêmen importado">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Status Sanitário *</label>
+                            <select name="status_sanitario" class="form-select" required>
+                                {% for valor, rotulo in status_sanitario_choices %}
+                                <option value="{{ valor }}">{{ rotulo }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Status Reprodutivo</label>
+                            <select name="status_reprodutivo" class="form-select">
+                                {% for valor, rotulo in status_reprodutivo_choices %}
+                                <option value="{{ valor }}">{{ rotulo }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Data da última cobertura / IATF</label>
+                            <input type="date" name="data_ultima_cobertura" class="form-control">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Data prevista de parto</label>
+                            <input type="date" name="data_prevista_parto" class="form-control">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Lote Atual (opcional)</label>
+                            <select name="lote_atual" class="form-select">
+                                <option value="">Sem lote definido</option>
+                                {% for lote in lotes %}
+                                <option value="{{ lote.id }}">{{ lote.nome }} - Sessão {{ lote.sessao.nome }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Tipo de origem</label>
+                            <select name="tipo_origem" class="form-select">
+                                {% for valor, rotulo in tipo_origem_choices %}
+                                <option value="{{ valor }}" {% if valor == 'NASCIMENTO' %}selected{% endif %}>{{ rotulo }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Custo de aquisição (R$)</label>
+                            <input type="number" step="0.01" name="custo_aquisicao" class="form-control" placeholder="Informe para compras">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Data de aquisição</label>
+                            <input type="date" name="data_aquisicao" class="form-control">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Valor estimado atual (R$)</label>
+                            <input type="number" step="0.01" name="valor_atual_estimado" class="form-control" placeholder="Para inventário de patrimônio">
+                        </div>
+
+                        <div class="col-md-6 d-flex align-items-end">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="on" id="registro_vacinal_em_dia" name="registro_vacinal_em_dia" checked>
+                                <label class="form-check-label" for="registro_vacinal_em_dia">
+                                    Registro vacinal em dia
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Próxima vacinação obrigatória</label>
+                            <input type="date" name="proxima_vacinacao_obrigatoria" class="form-control">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Carência de produtos até</label>
+                            <input type="date" name="carencia_produtos_ate" class="form-control">
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label">Observações Internas</label>
+                            <textarea name="observacoes" rows="3" class="form-control" placeholder="Informações adicionais relevantes ao SISBOV"></textarea>
+                        </div>
+
+                        <div class="col-12 d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save me-1"></i>Salvar Cadastro
+                            </button>
+                            <a href="{% url 'animais_individuais_lista' propriedade.id %}" class="btn btn-outline-secondary">
+                                Cancelar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Requisitos SISBOV</h6>
+                </div>
+                <div class="card-body">
+                    <ul class="small text-muted mb-0">
+                        <li>Todo animal deve possuir brinco único e rastreável;</li>
+                        <li>Registro imediato de nascimento, compras ou transferências;</li>
+                        <li>Guardar documentos comprobatórios (Nota Fiscal, GTA, etc.);</li>
+                        <li>Atualizar status em caso de venda, morte ou desaparecimento;</li>
+                        <li>Manter peso e categoria em conformidade com relatórios oficiais.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-tags me-2"></i>Brincos disponíveis</h6>
+                </div>
+                <div class="card-body">
+                    <p class="small text-muted mb-2">Utilize a função de cadastro em lote para manter estoque de brincos conforme exigido pelo PNIB.</p>
+                    <a href="{% url 'brincos_lista' propriedade.id %}" class="btn btn-outline-primary btn-sm w-100">
+                        Gerenciar estoque de brincos
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const button = document.getElementById('btn-sugerir-brinco');
+    if (!button) return;
+    button.addEventListener('click', function () {
+        fetch('{% url "api_gerar_numero_brinco" propriedade.id %}?prefixo=BR')
+            .then(response => response.json())
+            .then(data => {
+                document.querySelector('input[name="numero_brinco"]').value = data.numero_brinco;
+                document.getElementById('hint-proximo').textContent = data.proximo_numero;
+            })
+            .catch(() => alert('Não foi possível sugerir o número do brinco automaticamente.'));
+    });
+})();
+</script>
+{% endblock %}
+

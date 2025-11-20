@@ -1,23 +1,35 @@
-{% extends 'base.html' %}
+{% extends 'base_modulos_unificado.html' %}
 {% load static %}
+{% load formatacao_br %}
 
 {% block title %}Análise Financeira - {{ propriedade.nome_propriedade }}{% endblock %}
 
+{% block breadcrumb_extra %}
+    <li class="breadcrumb-item active">
+        <i class="bi bi-graph-up-arrow"></i>
+        Análise
+    </li>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid">
+    <!-- Header da Página -->
+    <div class="submenu-page-header">
+        <div class="d-flex align-items-start gap-4">
+            <div class="submenu-page-icon">
+                <i class="bi bi-graph-up-arrow"></i>
+            </div>
+            <div class="flex-grow-1">
+                <h1 class="submenu-page-title">Análise Financeira</h1>
+                <p class="submenu-page-description">
+                    Visualize indicadores financeiros e analise a performance da propriedade {{ propriedade.nome_propriedade }}.
+                </p>
+            </div>
+        </div>
+    </div>
+    
     <div class="row">
         <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h2><i class="bi bi-graph-up"></i> Análise Financeira</h2>
-                    <p class="text-muted mb-0">Propriedade: {{ propriedade.nome_propriedade }}</p>
-                </div>
-                <div>
-                    <a href="{% url 'pecuaria_dashboard' propriedade.id %}" class="btn btn-secondary">
-                        <i class="bi bi-arrow-left"></i> Voltar
-                    </a>
-                </div>
-            </div>
 
             <!-- Indicadores Principais -->
             {% if indicadores_calculados %}
@@ -30,9 +42,11 @@
                             <h6 class="mt-2 mb-1 small">{{ nome }}</h6>
                             <h4 class="{% if dados.tipo == 'LIQUIDEZ' %}text-primary{% elif dados.tipo == 'RENTABILIDADE' %}text-success{% elif dados.tipo == 'ENDIVIDAMENTO' %}text-warning{% else %}text-info{% endif %} mb-0">
                                 {% if dados.unidade == 'R$' %}
-                                    R$ {{ dados.valor|floatformat:2 }}
+                                    {{ dados.valor|moeda_br }}
+                                {% elif dados.unidade == '%' %}
+                                    {{ dados.valor|numero_br:2 }}%
                                 {% else %}
-                                    {{ dados.valor|floatformat:2 }} {{ dados.unidade }}
+                                    {{ dados.valor|numero_br:2 }} {{ dados.unidade }}
                                 {% endif %}
                             </h4>
                         </div>
@@ -113,9 +127,11 @@
                                     <td>
                                         <strong>
                                             {% if indicador.unidade == 'R$' %}
-                                                R$ {{ indicador.valor|floatformat:2 }}
+                                                {{ indicador.valor|moeda_br }}
+                                            {% elif indicador.unidade == '%' %}
+                                                {{ indicador.valor|numero_br:2 }}%
                                             {% else %}
-                                                {{ indicador.valor|floatformat:2 }} {{ indicador.unidade }}
+                                                {{ indicador.valor|numero_br:2 }} {{ indicador.unidade }}
                                             {% endif %}
                                         </strong>
                                     </td>

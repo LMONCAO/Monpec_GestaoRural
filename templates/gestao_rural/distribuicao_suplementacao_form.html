@@ -1,0 +1,101 @@
+{% extends "base_modulos_unificado.html" %}
+
+{% block title %}Distribuição de Suplementação - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'nutricao_dashboard' propriedade.id %}">Nutrição</a></li>
+            <li class="breadcrumb-item active">Distribuição em Pasto</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-send-check me-2"></i>Registrar Distribuição</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" class="row g-3" novalidate>
+                        {% csrf_token %}
+
+                        {% if form.errors %}
+                        <div class="col-12">
+                            <div class="alert alert-danger" role="alert">
+                                <strong>Não foi possível salvar. Revise os campos destacados:</strong>
+                                <ul class="mb-0 mt-2">
+                                    {% for field in form %}
+                                        {% for error in field.errors %}
+                                        <li>{{ error }}</li>
+                                        {% endfor %}
+                                    {% endfor %}
+                                    {% for error in form.non_field_errors %}
+                                    <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <div class="col-md-6">
+                            <label class="form-label" for="{{ form.estoque.id_for_label }}">Estoque *</label>
+                            {{ form.estoque }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="{{ form.data.id_for_label }}">Data *</label>
+                            {{ form.data }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="{{ form.pastagem.id_for_label }}">Pastagem / Piquete</label>
+                            {{ form.pastagem }}
+                            <datalist id="pastagens-disponiveis">
+                                {% for pastagem in pastagens %}
+                                <option value="{{ pastagem.nome }}"></option>
+                                {% endfor %}
+                            </datalist>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="{{ form.quantidade.id_for_label }}">Quantidade distribuída *</label>
+                            <div class="input-group">
+                                {{ form.quantidade }}
+                                <span class="input-group-text">un.</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="{{ form.numero_animais.id_for_label }}">Número de animais</label>
+                            {{ form.numero_animais }}
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="{{ form.observacoes.id_for_label }}">Observações</label>
+                            {{ form.observacoes|default_if_none:'' }}
+                        </div>
+                        <div class="col-12 d-flex gap-2">
+                            <button type="submit" class="btn btn-success"><i class="bi bi-check-circle me-1"></i>Salvar</button>
+                            <a href="{% url 'nutricao_dashboard' propriedade.id %}" class="btn btn-outline-secondary">Cancelar</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Boas práticas</h6>
+                </div>
+                <div class="card-body small text-muted">
+                    <ul class="mb-0">
+                        <li>Confirme a disponibilidade do estoque antes da distribuição.</li>
+                        <li>Registre sempre o piquete/lote atendido para rastreabilidade.</li>
+                        <li>Atualize os cochos no módulo Operações quando necessário.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

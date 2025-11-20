@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand
-from gestao_rural.models import CategoriaAnimal, RegraPromocaoCategoria, Cultura
+from gestao_rural.models import CategoriaAnimal, RegraPromocaoCategoria
 
 
 class Command(BaseCommand):
@@ -90,28 +90,4 @@ class Command(BaseCommand):
             except CategoriaAnimal.DoesNotExist:
                 self.stdout.write(f'✗ Erro: Categoria não encontrada para regra {origem} → {destino}')
         
-        # Criar culturas agrícolas
-        self.stdout.write('\nCriando culturas agrícolas...')
-        
-        culturas = [
-            ('Soja', 'Cultura de verão, principal commodity agrícola'),
-            ('Milho', 'Cultura de verão e safrinha'),
-            ('Algodão', 'Cultura de verão, fibra e óleo'),
-            ('Café', 'Cultura perene, café arábica'),
-            ('Cana-de-açúcar', 'Cultura perene para açúcar e etanol'),
-            ('Trigo', 'Cultura de inverno'),
-            ('Arroz', 'Cultura de verão, irrigado'),
-            ('Feijão', 'Cultura de verão e inverno'),
-        ]
-        
-        for nome, descricao in culturas:
-            cultura, created = Cultura.objects.get_or_create(
-                nome=nome,
-                defaults={'descricao': descricao, 'ativo': True}
-            )
-            if created:
-                self.stdout.write(f'✓ Criada cultura: {nome}')
-            else:
-                self.stdout.write(f'- Cultura já existe: {nome}')
-        
-        self.stdout.write('\n✓ Categorias, regras de promoção e culturas criadas com sucesso!')
+        self.stdout.write('\n✓ Categorias e regras de promoção criadas com sucesso!')

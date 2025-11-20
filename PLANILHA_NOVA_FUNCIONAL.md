@@ -115,7 +115,7 @@ function calcularTotaisGerais() {
 }
 
 .table th {
-    background-color: #0d6efd;
+    background-color: #6495ed;
     color: white;
     font-weight: 600;
 }
@@ -130,7 +130,7 @@ input[type="number"] {
 }
 
 input[type="number"]:focus {
-    border-color: #0d6efd;
+    border-color: #6495ed;
     box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
 }
 ```

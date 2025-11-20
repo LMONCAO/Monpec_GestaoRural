@@ -1,0 +1,416 @@
+{% extends 'base_modulos_unificado.html' %}
+{% load static %}
+{% load formato_numeros %}
+
+{% block title %}Relatório de Custos - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- Cabeçalho do Relatório -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2><i class="bi bi-calculator"></i> Relatório de Custos</h2>
+                    <p class="text-muted mb-0">Propriedade: {{ propriedade.nome_propriedade }}</p>
+                    <p class="text-muted mb-0">Data do Relatório: {{ data_relatorio|date:"d/m/Y" }}</p>
+                </div>
+                <div>
+                    <a href="{% url 'relatorios_dashboard' propriedade.id %}" class="btn btn-secondary me-2">
+                        <i class="bi bi-arrow-left"></i> Voltar
+                    </a>
+                    <a href="{% url 'exportar_relatorio_custos_pdf' propriedade.id %}" class="btn btn-danger me-2">
+                        <i class="bi bi-file-pdf"></i> PDF
+                    </a>
+                    <a href="{% url 'exportar_relatorio_custos_excel' propriedade.id %}" class="btn btn-success me-2">
+                        <i class="bi bi-file-excel"></i> Excel
+                    </a>
+                    <button class="btn btn-primary" onclick="window.print()">
+                        <i class="bi bi-printer"></i> Imprimir
+                    </button>
+                </div>
+            </div>
+
+            <!-- Resumo de Custos -->
+            <div class="row mb-4">
+                <div class="col-md-4 mb-3">
+                    <div class="card border-warning">
+                        <div class="card-body text-center py-3">
+                            <i class="bi bi-house fs-3 text-warning"></i>
+                            <h6 class="mt-2 mb-1 small">Custos Fixos/Mês</h6>
+                            <h4 class="text-warning mb-0">R$ {{ total_custos_fixos_mes|default:0|floatformat:2 }}</h4>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4 mb-3">
+                    <div class="card border-danger">
+                        <div class="card-body text-center py-3">
+                            <i class="bi bi-calendar fs-3 text-danger"></i>
+                            <h6 class="mt-2 mb-1 small">Custos Fixos/Ano</h6>
+                            <h4 class="text-danger mb-0">R$ {{ total_custos_fixos_ano|default:0|floatformat:2 }}</h4>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4 mb-3">
+                    <div class="card border-info">
+                        <div class="card-body text-center py-3">
+                            <i class="bi bi-graph-up fs-3 text-info"></i>
+                            <h6 class="mt-2 mb-1 small">Custos Variáveis/Ano</h6>
+                            <h4 class="text-info mb-0">R$ {{ total_custos_variaveis_ano|default:0|floatformat:2 }}</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Custos Fixos por Tipo -->
+            {% if custos_fixos_por_tipo %}
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card border-warning">
+                        <div class="card-header bg-warning text-dark">
+                            <h5 class="mb-0">
+                                <i class="bi bi-house"></i> Custos Fixos por Tipo
+                            </h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover mb-0">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>Tipo de Custo</th>
+                                            <th class="text-center">Total Mensal</th>
+                                            <th class="text-center">Total Anual</th>
+                                            <th class="text-center">% do Total</th>
+                                            <th class="text-center">Itens</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for tipo, dados in custos_fixos_por_tipo.items %}
+                                        <tr>
+                                            <td>
+                                                <strong>{{ tipo }}</strong>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge bg-warning">R$ {{ dados.total_mensal|floatformat:2 }}</span>
+                                            </td>
+                                            <td class="text-center">
+                                                <strong>R$ {{ dados.total_anual|floatformat:2 }}</strong>
+                                            </td>
+                                            <td class="text-center">
+                                                {% if total_custos_fixos_ano > 0 %}
+                                                    {{ dados.total_anual|div:total_custos_fixos_ano|mul:100|floatformat:1 }}%
+                                                {% else %}
+                                                    0,0%
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge bg-secondary">{{ dados.custos|length }}</span>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                    <tfoot class="table-dark">
+                                        <tr>
+                                            <th>TOTAL GERAL</th>
+                                            <th class="text-center">R$ {{ total_custos_fixos_mes|default:0|floatformat:2 }}</th>
+                                            <th class="text-center">R$ {{ total_custos_fixos_ano|default:0|floatformat:2 }}</th>
+                                            <th class="text-center">100,0%</th>
+                                            <th class="text-center">{{ custos_fixos|length }}</th>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Detalhamento de Custos Fixos -->
+            {% if custos_fixos %}
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card border-secondary">
+                        <div class="card-header bg-secondary text-white">
+                            <h5 class="mb-0">
+                                <i class="bi bi-list-check"></i> Detalhamento de Custos Fixos
+                            </h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover mb-0">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>Descrição</th>
+                                            <th class="text-center">Tipo</th>
+                                            <th class="text-center">Valor Mensal</th>
+                                            <th class="text-center">Custo Anual</th>
+                                            <th class="text-center">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for custo in custos_fixos %}
+                                        <tr>
+                                            <td>{{ custo.descricao }}</td>
+                                            <td class="text-center">
+                                                <span class="badge bg-info">{{ custo.tipo_custo }}</span>
+                                            </td>
+                                            <td class="text-center">
+                                                {% if custo.valor_mensal %}
+                                                    R$ {{ custo.valor_mensal|floatformat:2 }}
+                                                {% else %}
+                                                    R$ 0,00
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-center">
+                                                <strong>R$ {{ custo.custo_anual|floatformat:2 }}</strong>
+                                            </td>
+                                            <td class="text-center">
+                                                {% if custo.ativo %}
+                                                    <span class="badge bg-success">Ativo</span>
+                                                {% else %}
+                                                    <span class="badge bg-danger">Inativo</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Custos Variáveis -->
+            {% if custos_variaveis %}
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card border-info">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0">
+                                <i class="bi bi-graph-up"></i> Custos Variáveis
+                            </h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover mb-0">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>Descrição</th>
+                                            <th class="text-center">Custo por Cabeça/Ano</th>
+                                            <th class="text-center">Total Anual</th>
+                                            <th class="text-center">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for custo in custos_variaveis %}
+                                        <tr>
+                                            <td>{{ custo.descricao }}</td>
+                                            <td class="text-center">
+                                                <span class="badge bg-info">R$ {{ custo.custo_anual_por_cabeca|floatformat:2 }}</span>
+                                            </td>
+                                            <td class="text-center">
+                                                <strong>R$ {{ custo.custo_anual|floatformat:2 }}</strong>
+                                            </td>
+                                            <td class="text-center">
+                                                {% if custo.ativo %}
+                                                    <span class="badge bg-success">Ativo</span>
+                                                {% else %}
+                                                    <span class="badge bg-danger">Inativo</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Gráfico de Distribuição de Custos -->
+            {% if custos_fixos_por_tipo %}
+            <div class="row mb-4">
+                <div class="col-md-6 mb-3">
+                    <div class="card border-warning">
+                        <div class="card-header bg-warning text-dark">
+                            <h6 class="mb-0">
+                                <i class="bi bi-pie-chart"></i> Distribuição de Custos Fixos
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="chartCustosFixos" width="400" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <div class="card border-info">
+                        <div class="card-header bg-info text-white">
+                            <h6 class="mb-0">
+                                <i class="bi bi-bar-chart"></i> Comparativo Mensal vs Anual
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="chartComparativo" width="400" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Análise de Eficiência -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card border-success">
+                        <div class="card-header bg-success text-white">
+                            <h6 class="mb-0">
+                                <i class="bi bi-lightbulb"></i> Análise de Eficiência
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6>Indicadores de Custo:</h6>
+                                    <ul class="list-unstyled">
+                                        <li><i class="bi bi-check-circle text-success"></i> Custo por animal/mês: R$ {{ total_custos_fixos_mes|div:total_animais|floatformat:2 }}</li>
+                                        <li><i class="bi bi-check-circle text-success"></i> Custo por animal/ano: R$ {{ total_custos_fixos_ano|div:total_animais|floatformat:2 }}</li>
+                                        <li><i class="bi bi-check-circle text-success"></i> Custo variável por animal: R$ {{ total_custos_variaveis_ano|div:total_animais|floatformat:2 }}</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Recomendações:</h6>
+                                    <ul class="small mb-0">
+                                        <li>Otimizar custos fixos através de negociações</li>
+                                        <li>Implementar controle de custos variáveis</li>
+                                        <li>Buscar eficiência operacional</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Informações do Relatório -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card border-info">
+                        <div class="card-header bg-info text-white">
+                            <h6 class="mb-0">
+                                <i class="bi bi-info-circle"></i> Informações do Relatório
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6>Metodologia:</h6>
+                                    <ul class="small mb-0">
+                                        <li>Custos fixos: valores mensais multiplicados por 12</li>
+                                        <li>Custos variáveis: calculados por cabeça de animal</li>
+                                        <li>Análise baseada em dados cadastrados</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Observações:</h6>
+                                    <ul class="small mb-0">
+                                        <li>Valores podem variar conforme sazonalidade</li>
+                                        <li>Considere inflação nos cálculos</li>
+                                        <li>Atualize regularmente os custos</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts para Gráficos -->
+{% if custos_fixos_por_tipo %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Gráfico de Custos Fixos (Pizza)
+    const ctxCustosFixos = document.getElementById('chartCustosFixos').getContext('2d');
+    new Chart(ctxCustosFixos, {
+        type: 'pie',
+        data: {
+            labels: Object.keys({{ custos_fixos_por_tipo|safe }}),
+            datasets: [{
+                data: Object.values({{ custos_fixos_por_tipo|safe }}).map(item => item.total_anual),
+                backgroundColor: [
+                    '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+    
+    // Gráfico Comparativo (Barras)
+    const ctxComparativo = document.getElementById('chartComparativo').getContext('2d');
+    new Chart(ctxComparativo, {
+        type: 'bar',
+        data: {
+            labels: Object.keys({{ custos_fixos_por_tipo|safe }}),
+            datasets: [
+                {
+                    label: 'Mensal',
+                    data: Object.values({{ custos_fixos_por_tipo|safe }}).map(item => item.total_mensal),
+                    backgroundColor: '#ffc107'
+                },
+                {
+                    label: 'Anual',
+                    data: Object.values({{ custos_fixos_por_tipo|safe }}).map(item => item.total_anual),
+                    backgroundColor: '#17a2b8'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return 'R$ ' + value.toLocaleString('pt-BR');
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endif %}
+
+<style>
+@media print {
+    .btn, .card-header {
+        display: none !important;
+    }
+    .card {
+        border: 1px solid #000 !important;
+        page-break-inside: avoid;
+    }
+    .table {
+        font-size: 12px;
+    }
+}
+</style>
+{% endblock %}

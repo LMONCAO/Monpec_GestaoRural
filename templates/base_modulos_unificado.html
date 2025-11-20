@@ -13,42 +13,197 @@
     <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
     
+    <!-- Font Awesome (para ícone do WhatsApp) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
     
     <style>
         :root {
-            --azul-marinho: #1a365d;
-            --cinza-claro: #f8f9fa;
-            --marrom-terra: #8b4513;
+            --azul-marinho: #6495ed;
+            --cinza-claro: #f5f7fb;
+            --marrom-terra: #8b6f47;
             --verde-sage: #8a9a88;
             --verde-escuro: #4a5d4a;
-            --navy: #1e3a5f;
-            --navy-light: #2d5082;
+            --navy: #6495ed;
+            --navy-light: #8cb5ff;
             --brown: #8b6f47;
             --brown-light: #a68a5c;
             --sage-green: #8a9a88;
             --sage-green-light: #a5b5a3;
-            --gray-bg: #f5f7fa;
-            --gray-border: #e1e8ed;
-            --text-dark: #2c3e50;
-            --text-light: #5a6c7d;
+            --gray-bg: #f2f4f8;
+            --gray-border: #e1e6f0;
+            --text-dark: #1a1a1a;
+            --text-light: #1a1a1a;
             --white: #ffffff;
-            --sidebar-width: 260px;
+            --sidebar-width: 240px;
+            --sidebar-bg: rgba(255,255,255,0.98);
+            --sidebar-border: rgba(31,42,68,0.12);
+            --sidebar-text: #1a1a1a;
+            --sidebar-muted: #1a1a1a;
+            --sidebar-highlight: #6495ed;
+            --sidebar-accent: #7f2d4b;
+            --bs-primary: #6495ed;
+            --bs-primary-rgb: 100, 149, 237;
+        }
+
+        body {
+            --bs-primary: #6495ed;
+            --bs-primary-rgb: 100, 149, 237;
+        }
+
+        .btn-primary,
+        .btn-primary:focus,
+        .btn-primary:active,
+        .btn-primary.disabled,
+        .btn-primary:disabled {
+            background-color: #6495ed !important;
+            border-color: #6495ed !important;
+            box-shadow: none;
+        }
+
+        .btn-primary:hover {
+            background-color: #3d6fd8 !important;
+            border-color: #3d6fd8 !important;
+        }
+
+        .btn-outline-primary {
+            color: #6495ed !important;
+            border-color: #6495ed !important;
+        }
+
+        .btn-outline-primary:hover,
+        .btn-outline-primary:focus,
+        .btn-outline-primary:active {
+            color: #ffffff !important;
+            background-color: #6495ed !important;
+            border-color: #6495ed !important;
+        }
+
+        .text-primary {
+            color: #6495ed !important;
+        }
+
+        .bg-primary {
+            background-color: #6495ed !important;
+        }
+
+        .badge.bg-primary,
+        .badge.text-bg-primary {
+            background-color: #6495ed !important;
         }
 
         body {
             font-family: 'Inter', sans-serif;
-            background: var(--cinza-claro);
+            font-size: 0.9rem;
+            background: var(--gray-bg);
             margin: 0;
             padding: 0;
+            min-height: 100vh;
+            color: #1a1a1a;
+            overflow-x: hidden;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+        
+        /* Texto padrão mais escuro para todo o sistema */
+        body p:not(.text-primary):not(.text-info):not(.text-success):not(.text-warning):not(.text-danger),
+        body span:not(.text-primary):not(.text-info):not(.text-success):not(.text-warning):not(.text-danger):not(.badge):not(.btn),
+        body div:not(.text-primary):not(.text-info):not(.text-success):not(.text-warning):not(.text-danger),
+        body td:not(.text-primary):not(.text-info):not(.text-success):not(.text-warning):not(.text-danger),
+        body th:not(.text-primary):not(.text-info):not(.text-success):not(.text-warning):not(.text-danger),
+        body label:not(.text-primary):not(.text-info):not(.text-success):not(.text-warning):not(.text-danger),
+        body small:not(.text-primary):not(.text-info):not(.text-success):not(.text-warning):not(.text-danger),
+        .text-muted:not(.text-primary):not(.text-info):not(.text-success):not(.text-warning):not(.text-danger),
+        .text-secondary:not(.text-primary):not(.text-info):not(.text-success):not(.text-warning):not(.text-danger) {
+            color: #1a1a1a !important;
+        }
+
+        body.sidebar-open {
+            overflow: hidden;
+        }
+        
+        /* Esconder sidebar em modo demo */
+        {% if DEMO_MODE %}
+        .sidebar {
+            display: none !important;
+        }
+        .main-content {
+            margin-left: 0 !important;
+            width: 100% !important;
+        }
+        .btn-menu-mobile {
+            display: none !important;
+        }
+        {% endif %}
+        
+        /* Títulos reduzidos */
+        h1 { font-size: 1.75rem; }
+        h2 { font-size: 1.5rem; }
+        h3 { font-size: 1.35rem; }
+        h4 { font-size: 1.2rem; }
+        h5 { font-size: 1.05rem; }
+        h6 { font-size: 0.95rem; }
+        
+        /* Tabelas menores */
+        .table {
+            font-size: 0.9rem;
+        }
+        
+        .table th {
+            font-size: 0.85rem;
+            font-weight: 600;
+            padding: 0.65rem 0.75rem;
+        }
+        
+        .table td {
+            padding: 0.6rem 0.75rem;
+        }
+        
+        /* Cards menores */
+        .card {
+            border-radius: 10px;
+        }
+        
+        .card-body {
+            padding: 1rem;
+        }
+        
+        .card-header {
+            padding: 0.85rem 1rem;
+            font-size: 0.95rem;
+        }
+        
+        /* Badges menores */
+        .badge {
+            font-size: 0.75rem;
+            padding: 0.35rem 0.65rem;
+        }
+        
+        /* Inputs menores */
+        .form-control, .form-select {
+            font-size: 0.9rem;
+            padding: 0.5rem 0.75rem;
+        }
+
+        .form-control:focus,
+        .form-select:focus,
+        .form-check-input:focus {
+            border-color: rgba(100, 149, 237, 0.5);
+            box-shadow: 0 0 0 0.15rem rgba(100, 149, 237, 0.25);
+        }
+        
+        .form-label {
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-bottom: 0.4rem;
         }
 
         /* Header fixo */
         .header-fixo {
             background: linear-gradient(135deg, var(--azul-marinho) 0%, #2c5282 100%);
             color: white;
-            padding: 0.75rem 1rem;
+            padding: 0.6rem 0.9rem;
             position: fixed;
             top: 0;
             left: 0;
@@ -62,13 +217,93 @@
             justify-content: space-between;
             align-items: center;
             max-width: 100%;
+            gap: 1rem;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .btn-menu-mobile,
+        .btn-close-sidebar {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            background: rgba(255,255,255,0.15);
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        .btn-menu-mobile:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .btn-menu-mobile:hover:not(:disabled),
+        .btn-close-sidebar:hover {
+            background: rgba(255,255,255,0.25);
+            transform: scale(1.05);
+        }
+
+        .btn-menu-mobile:focus-visible,
+        .btn-close-sidebar:focus-visible,
+        .sidebar .nav-link:focus-visible,
+        .nav-link-submenu:focus-visible,
+        .accordion-button:focus-visible {
+            outline: 3px solid rgba(100, 149, 237, 0.5);
+            outline-offset: 2px;
+        }
+
+        .sidebar-mobile-actions {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.85rem 1rem 0.65rem;
+            border-bottom: 1px solid var(--sidebar-border);
+            color: var(--sidebar-muted);
+        }
+
+        .sidebar-mobile-title {
+            font-weight: 600;
+            letter-spacing: 0.05em;
+        }
+
+        .sidebar-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(2px);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease;
+            z-index: 998;
+        }
+
+        body.sidebar-open .sidebar-overlay {
+            opacity: 1;
+            visibility: visible;
         }
 
         .logo-sistema {
-            font-size: 1.5rem;
+            font-size: 1.25rem;
             font-weight: bold;
             color: white;
             text-decoration: none;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+
+        .logo-sistema:hover {
+            opacity: 0.85;
+            transform: translateY(-1px);
         }
 
         .usuario-info {
@@ -79,9 +314,9 @@
         
         .status-propriedade-header {
             background: rgba(255,255,255,0.15);
-            padding: 0.4rem 1rem;
-            border-radius: 20px;
-            font-size: 0.85rem;
+            padding: 0.35rem 0.85rem;
+            border-radius: 16px;
+            font-size: 0.8rem;
             color: white;
             font-weight: 500;
             display: flex;
@@ -91,19 +326,25 @@
         /* Sidebar Moderno */
         .sidebar {
             position: fixed;
-            top: 60px;
+            top: 54px;
             left: 0;
             width: var(--sidebar-width);
-            height: calc(100vh - 60px);
-            background: rgba(30, 41, 59, 0.85);
-            backdrop-filter: blur(10px);
-            color: white;
+            height: calc(100vh - 54px);
+            background: var(--sidebar-bg);
+            backdrop-filter: blur(8px);
+            color: #1a1a1a;
             overflow-y: auto;
             overflow-x: hidden;
             z-index: 999;
-            transition: transform 0.3s ease;
-            box-shadow: 2px 0 20px rgba(0,0,0,0.15);
-            border-right: 1px solid rgba(255,255,255,0.1);
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 12px 0 32px rgba(31, 42, 68, 0.12);
+            border-right: 2px solid var(--sidebar-border);
+            transform: translateX(0);
+        }
+
+        .sidebar.disabled {
+            pointer-events: none;
+            opacity: 0.55;
         }
         
         /* Custom scrollbar for sidebar */
@@ -125,14 +366,14 @@
         }
 
         .sidebar-header {
-            padding: 1.25rem 1rem;
-            border-bottom: 1px solid rgba(255,255,255,0.06);
-            font-weight: 600;
+            padding: 1rem 0.9rem;
+            border-bottom: 2px solid var(--sidebar-border);
+            font-weight: 700;
             font-size: 0.85rem;
-            color: rgba(255,255,255,0.7);
+            color: #1a1a1a;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            background: rgba(255,255,255,0.03);
+            background: linear-gradient(135deg, rgba(100, 149, 237, 0.05) 0%, rgba(100, 149, 237, 0.1) 100%);
         }
 
         .sidebar-nav {
@@ -144,14 +385,14 @@
         }
 
         .nav-section-title {
-            padding: 0.5rem 1rem;
+            padding: 0.4rem 0.9rem;
             font-size: 0.65rem;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.1em;
-            color: #95a5a6;
-            background: transparent;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
+            color: #1a1a1a;
+            background: rgba(100, 149, 237, 0.03);
+            border-bottom: 1px solid rgba(31, 42, 68, 0.12);
             margin-bottom: 0.15rem;
         }
 
@@ -165,35 +406,212 @@
         }
         
         .nav-item i {
-            font-size: 1.1rem;
-            width: 20px;
+            font-size: 1rem;
+            width: 18px;
             text-align: center;
             flex-shrink: 0;
+            color: var(--sidebar-muted);
+        }
+        
+        /* Ícones coloridos e modernos para cada módulo */
+        .modulo-pecuaria .accordion-button i:first-child {
+            color: #10b981 !important; /* Verde esmeralda - crescimento */
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05));
+            padding: 4px 6px;
+            border-radius: 6px;
+        }
+        
+        .modulo-agricultura .accordion-button i:first-child {
+            color: #8b6f47 !important; /* Marrom terra */
+            background: linear-gradient(135deg, rgba(139, 111, 71, 0.1), rgba(139, 111, 71, 0.05));
+            padding: 4px 6px;
+            border-radius: 6px;
+        }
+        
+        .modulo-patrimonio .accordion-button i:first-child {
+            color: #6366f1 !important; /* Índigo - patrimônio */
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(99, 102, 241, 0.05));
+            padding: 4px 6px;
+            border-radius: 6px;
+        }
+        
+        .modulo-financeiro .accordion-button i:first-child {
+            color: #f59e0b !important; /* Âmbar - dinheiro */
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(245, 158, 11, 0.05));
+            padding: 4px 6px;
+            border-radius: 6px;
+        }
+        
+        .modulo-operacoes .accordion-button i:first-child {
+            color: #3b82f6 !important; /* Azul - operações */
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.05));
+            padding: 4px 6px;
+            border-radius: 6px;
+        }
+        
+        .modulo-compras .accordion-button i:first-child {
+            color: #ec4899 !important; /* Rosa - compras */
+            background: linear-gradient(135deg, rgba(236, 72, 153, 0.1), rgba(236, 72, 153, 0.05));
+            padding: 4px 6px;
+            border-radius: 6px;
+        }
+        
+        .modulo-nutricao .accordion-button i:first-child {
+            color: #f97316 !important; /* Laranja - nutrição */
+            background: linear-gradient(135deg, rgba(249, 115, 22, 0.1), rgba(249, 115, 22, 0.05));
+            padding: 4px 6px;
+            border-radius: 6px;
+        }
+        
+        .modulo-projetos .accordion-button i:first-child {
+            color: #14b8a6 !important; /* Ciano - projetos */
+            background: linear-gradient(135deg, rgba(20, 184, 166, 0.1), rgba(20, 184, 166, 0.05));
+            padding: 4px 6px;
+            border-radius: 6px;
+        }
+        
+        .modulo-relatorios .accordion-button i:first-child {
+            color: #8b5cf6 !important; /* Roxo - relatórios */
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(139, 92, 246, 0.05));
+            padding: 4px 6px;
+            border-radius: 6px;
+        }
+        
+        .modulo-categorias .nav-link i {
+            color: #06b6d4 !important; /* Ciano claro - categorias */
+            background: linear-gradient(135deg, rgba(6, 182, 212, 0.1), rgba(6, 182, 212, 0.05));
+            padding: 4px 6px;
+            border-radius: 6px;
+        }
+        
+        .modulo-configuracoes .nav-link i {
+            color: #64748b !important; /* Cinza - configurações */
+            background: linear-gradient(135deg, rgba(100, 116, 139, 0.1), rgba(100, 116, 139, 0.05));
+            padding: 4px 6px;
+            border-radius: 6px;
+        }
+        
+        /* Hover effects nos ícones */
+        .accordion-button:hover i:first-child,
+        .nav-link:hover i {
+            transform: scale(1.15);
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .nav-item.active .accordion-button i:first-child,
+        .nav-item.active .nav-link i {
+            filter: brightness(1.15);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
         }
         
         /* Classe nav-link no contexto do sidebar */
         .sidebar .nav-link {
             display: flex !important;
             align-items: center;
-            gap: 0.75rem;
-            padding: 0.75rem 1rem !important;
-            color: rgba(255,255,255,0.85) !important;
+            gap: 0.65rem;
+            padding: 0.65rem 0.9rem !important;
+            color: #1a1a1a !important;
             text-decoration: none !important;
-            transition: all 0.2s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             border-radius: 8px;
-            font-weight: 500;
+            font-weight: 600;
+            font-size: 0.9rem;
             width: 100%;
+            position: relative;
+        }
+        
+        .sidebar .nav-link::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: var(--sidebar-accent);
+            transform: scaleY(0);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 0 3px 3px 0;
+        }
+        
+        .sidebar .nav-link:hover::before {
+            transform: scaleY(1);
         }
         
         .sidebar .nav-link:hover {
-            background: rgba(255,255,255,0.08) !important;
-            color: white !important;
+            background: rgba(127, 45, 75, 0.08) !important;
+            color: var(--sidebar-highlight) !important;
+            transform: translateX(4px);
+        }
+
+        .sidebar .nav-link:hover i {
+            color: var(--sidebar-accent);
         }
         
         .nav-item.active .nav-link {
-            background: rgba(59, 130, 246, 0.2) !important;
-            color: white !important;
-            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
+            background: rgba(31, 42, 68, 0.08) !important;
+            color: var(--sidebar-highlight) !important;
+            box-shadow: none;
+        }
+
+        .nav-item.active .nav-link::before {
+            transform: scaleY(1);
+        }
+
+        .nav-item.active .nav-link i {
+            color: var(--sidebar-accent);
+        }
+        
+        /* Link "Voltar aos Módulos" destacado */
+        .nav-item-destaque {
+            margin: 0.5rem 0.75rem 1rem !important;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .nav-link-destaque {
+            background: linear-gradient(135deg, #6495ed 0%, #3d6fd8 100%) !important;
+            color: #ffffff !important;
+            font-weight: 700 !important;
+            padding: 0.85rem 1rem !important;
+            border-radius: 10px !important;
+            box-shadow: 0 4px 12px rgba(100, 149, 237, 0.3) !important;
+            text-align: center !important;
+            justify-content: center !important;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 0.5rem !important;
+        }
+        
+        .nav-link-destaque i {
+            color: #ffffff !important;
+            font-size: 1.2rem !important;
+            background: rgba(255, 255, 255, 0.2) !important;
+            padding: 6px 8px !important;
+            border-radius: 8px !important;
+            flex-shrink: 0 !important;
+        }
+        
+        .nav-link-destaque span {
+            text-align: center !important;
+            flex: 1 !important;
+        }
+        
+        .nav-link-destaque:hover {
+            background: linear-gradient(135deg, #3d6fd8 0%, #2c5282 100%) !important;
+            transform: translateY(-2px) !important;
+            box-shadow: 0 6px 16px rgba(100, 149, 237, 0.4) !important;
+        }
+        
+        .nav-link-destaque:hover i {
+            background: rgba(255, 255, 255, 0.3) !important;
+            transform: scale(1.1) !important;
+        }
+        
+        .nav-link-destaque.active {
+            background: linear-gradient(135deg, #3d6fd8 0%, #2c5282 100%) !important;
+            box-shadow: 0 4px 16px rgba(100, 149, 237, 0.5) !important;
         }
 
         /* Accordion Profissional - Layout Vertical */
@@ -213,17 +631,17 @@
         .accordion-button {
             background: transparent !important;
             border: none !important;
-            color: rgba(255,255,255,0.85) !important;
-            padding: 0.75rem 1rem !important;
+            color: #1a1a1a !important;
+            padding: 0.65rem 0.9rem !important;
             text-align: left !important;
             width: 100% !important;
             display: flex !important;
             align-items: center;
-            gap: 0.75rem;
-            font-weight: 500;
-            font-size: 0.95rem;
+            gap: 0.65rem;
+            font-weight: 600;
+            font-size: 0.9rem;
             border-radius: 8px;
-            transition: all 0.2s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             box-shadow: none !important;
             position: relative !important;
         }
@@ -234,8 +652,8 @@
         }
 
         .accordion-button i:first-child {
-            font-size: 1.1rem;
-            width: 20px;
+            font-size: 1rem;
+            width: 18px;
             text-align: center;
             flex-shrink: 0;
         }
@@ -248,30 +666,34 @@
         .accordion-button .chevron-icon {
             margin-left: auto;
             font-size: 0.65rem;
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
             flex-shrink: 0;
             opacity: 0.6;
+            color: var(--sidebar-muted);
         }
 
         .accordion-button:hover {
-            background: rgba(255,255,255,0.08) !important;
-            color: white !important;
+            background: rgba(127, 45, 75, 0.08) !important;
+            color: var(--sidebar-highlight) !important;
+            transform: translateX(2px);
         }
 
         .accordion-button:hover .chevron-icon {
-            opacity: 1;
+            opacity: 0.9;
+            color: var(--sidebar-highlight);
         }
 
         .accordion-button:not(.collapsed) {
-            background: rgba(59, 130, 246, 0.2) !important;
-            color: white !important;
-            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
-            border-left: 3px solid rgba(59, 130, 246, 0.6);
+            background: rgba(31, 42, 68, 0.1) !important;
+            color: var(--sidebar-highlight) !important;
+            box-shadow: none;
+            border-left: 3px solid var(--sidebar-accent);
         }
 
         .accordion-button:not(.collapsed) .chevron-icon {
-            transform: rotate(90deg);
+            transform: rotate(90deg) scale(1.1);
             opacity: 1;
+            color: var(--sidebar-highlight);
         }
 
         .accordion-button:focus {
@@ -284,16 +706,70 @@
             position: relative !important;
             left: 0 !important;
             top: 0 !important;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .nav-submenu {
-            background: rgba(0, 0, 0, 0.15) !important;
+            background: rgba(31, 42, 68, 0.03) !important;
             padding: 0.5rem 0 !important;
             display: block !important;
             width: 100% !important;
             margin: 0 !important;
-            border-left: 2px solid rgba(59, 130, 246, 0.2);
+            border-left: 2px solid rgba(127, 45, 75, 0.15);
             margin-left: 0.5rem !important;
+        }
+
+        .nav-submenu-divider {
+            border-top: 1px solid rgba(31, 42, 68, 0.08);
+            margin: 0.35rem 1rem;
+        }
+
+        .nav-subsection-toggle {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: transparent;
+            border: none;
+            color: #1a1a1a;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            padding: 0.35rem 0.9rem;
+            margin-top: 0.4rem;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .nav-subsection-toggle:hover {
+            background: rgba(127, 45, 75, 0.08);
+            color: var(--sidebar-highlight);
+        }
+
+        .nav-subsection-toggle .chevron {
+            transition: transform 0.2s ease;
+            font-size: 0.8rem;
+            color: var(--sidebar-muted);
+        }
+
+        .nav-subsection-toggle[aria-expanded="true"] {
+            color: var(--sidebar-highlight);
+        }
+
+        .nav-subsection-toggle[aria-expanded="true"] .chevron {
+            transform: rotate(90deg);
+            color: var(--sidebar-accent);
+        }
+
+        .nav-subsection-links {
+            display: none;
+            padding-top: 0.25rem;
+        }
+
+        .nav-subsection-links.show {
+            display: block;
         }
 
         .accordion-collapse:not(.show) {
@@ -307,12 +783,13 @@
         .nav-link-submenu {
             display: flex !important;
             align-items: center !important;
-            gap: 0.75rem !important;
-            padding: 0.65rem 1rem 0.65rem 2.5rem !important;
-            color: rgba(255,255,255,0.75) !important;
+            gap: 0.65rem !important;
+            padding: 0.55rem 0.9rem 0.55rem 2rem !important;
+            color: #1a1a1a !important;
             text-decoration: none !important;
-            font-size: 0.9rem !important;
-            transition: all 0.2s ease;
+            font-size: 0.85rem !important;
+            font-weight: 500;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             border-radius: 6px;
             margin: 0.1rem 0.5rem !important;
             background: transparent;
@@ -321,69 +798,163 @@
         }
 
         .nav-link-submenu i {
-            font-size: 0.9rem;
-            width: 18px;
+            font-size: 0.85rem;
+            width: 16px;
             text-align: center;
             flex-shrink: 0;
-            opacity: 0.7;
+            opacity: 0.65;
+            color: var(--sidebar-muted);
         }
 
         .nav-link-submenu:hover {
-            background: rgba(255,255,255,0.08) !important;
-            color: white !important;
+            background: rgba(127, 45, 75, 0.1) !important;
+            color: var(--sidebar-highlight) !important;
+            transform: translateX(6px);
+            padding-left: 2.3rem !important;
+        }
+        
+        .nav-link-submenu::before {
+            content: '';
+            position: absolute;
+            left: 1.35rem;
+            top: 50%;
+            transform: translateY(-50%) scale(0);
+            width: 4px;
+            height: 4px;
+            background: var(--sidebar-accent);
+            border-radius: 50%;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .nav-link-submenu:hover::before {
+            transform: translateY(-50%) scale(1);
         }
 
         .nav-link-submenu:hover i {
-            opacity: 1;
+            opacity: 0.9;
+            color: var(--sidebar-accent);
         }
 
         .nav-link-submenu.active {
-            background: rgba(59, 130, 246, 0.25) !important;
-            color: white !important;
+            background: rgba(100, 149, 237, 0.12) !important;
+            color: var(--sidebar-highlight) !important;
             font-weight: 600 !important;
-            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+            box-shadow: none;
         }
 
         .nav-link-submenu.active i {
-            opacity: 1;
+            opacity: 0.9;
+            color: var(--sidebar-accent);
+        }
+
+        .nav-link-curral {
+            background: linear-gradient(135deg, #6495ed, #8cb5ff) !important;
+            color: #ffffff !important;
+            font-weight: 600 !important;
+            margin: 0.35rem 0.75rem 0.5rem !important;
+            padding: 0.65rem 1rem !important;
+            border-radius: 10px;
+            box-shadow: 0 6px 18px rgba(100, 149, 237, 0.25);
+        }
+
+        .nav-link-curral i {
+            color: rgba(255,255,255,0.9) !important;
+            opacity: 1 !important;
+        }
+
+        .nav-link-curral:hover {
+            transform: translateX(4px);
+            box-shadow: 0 8px 22px rgba(100, 149, 237, 0.35);
+        }
+
+        .nav-link-curral.active {
+            background: linear-gradient(135deg, #6495ed, #3d4f80) !important;
         }
 
         /* Conteúdo principal */
         .main-content {
             margin-left: var(--sidebar-width);
-            margin-top: 60px;
-            min-height: calc(100vh - 60px);
-            background: var(--cinza-claro);
+            margin-top: 54px;
+            min-height: calc(100vh - 54px);
+            background: var(--gray-bg);
+            padding-bottom: 2rem;
+            transition: margin-left 0.3s ease;
+        }
+
+        /* Quando sidebar está escondido (página fullscreen) */
+        body.no-sidebar .sidebar {
+            display: none !important;
+        }
+
+        body.no-sidebar .main-content {
+            margin-left: 0 !important;
+            width: 100% !important;
+        }
+
+        body.no-sidebar .header-fixo {
+            left: 0 !important;
+            width: 100% !important;
         }
 
         .container-fluid {
-            padding: 1.5rem;
+            padding: 1.35rem 1.5rem 2rem;
         }
 
-        /* Breadcrumbs */
+        /* Breadcrumbs Melhorados */
         .breadcrumb-inteligente {
-            background: transparent;
-            padding: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(248,249,250,0.95) 100%);
+            padding: 0.85rem 1.2rem;
             margin-bottom: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            border: 1px solid rgba(0,0,0,0.05);
+            backdrop-filter: blur(10px);
         }
 
         .breadcrumb {
             background: transparent;
             padding: 0;
             margin: 0;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
         }
 
         .breadcrumb-item {
-            font-size: 0.9rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+        }
+        
+        .breadcrumb-item + .breadcrumb-item::before {
+            content: "›";
+            color: rgba(0,0,0,0.3);
+            padding: 0 0.75rem;
+            font-size: 1.2rem;
+            font-weight: 300;
         }
 
         .breadcrumb-item a {
-            color: var(--sage-green);
+            color: var(--navy);
             text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s ease;
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+        }
+        
+        .breadcrumb-item a i {
+            font-size: 0.85rem;
+            opacity: 0.7;
         }
 
         .breadcrumb-item a:hover {
-            color: var(--navy);
+            color: var(--navy-light);
+            background: rgba(59, 130, 246, 0.1);
+            transform: translateX(2px);
         }
 
         .breadcrumb-separator {
@@ -392,9 +963,83 @@
         }
 
         .breadcrumb-item.active {
-            color: var(--text-dark);
+            color: #1a1a1a;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .breadcrumb-item.active i {
+            font-size: 0.9rem;
+            color: var(--navy);
         }
 
+        /* Page Header Padronizado */
+        .submenu-page-header {
+            background: linear-gradient(135deg, rgba(30, 58, 95, 0.05) 0%, rgba(45, 80, 130, 0.08) 100%);
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(0,0,0,0.05);
+            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+        }
+        
+        .submenu-page-icon {
+            width: 65px;
+            height: 65px;
+            background: linear-gradient(135deg, rgba(100, 149, 237, 0.15) 0%, rgba(100, 149, 237, 0.25) 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(100, 149, 237, 0.15);
+        }
+        
+        .submenu-page-icon i {
+            font-size: 2rem;
+            color: var(--navy);
+        }
+        
+        .submenu-page-title {
+            font-size: 1.65rem;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 0.4rem;
+        }
+        
+        .submenu-page-description {
+            color: #1a1a1a;
+            font-size: 0.9rem;
+            margin-bottom: 0;
+        }
+        
+        /* Content Cards Padronizados */
+        .content-card {
+            background: white;
+            border: 1px solid var(--gray-border);
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            transition: all 0.3s ease;
+            margin-bottom: 1.5rem;
+        }
+        
+        .content-card:hover {
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+        
+        .content-card-header {
+            padding: 1rem 1.2rem;
+            border-bottom: 1px solid var(--gray-border);
+            background: linear-gradient(135deg, rgba(248,249,250,1) 0%, rgba(255,255,255,1) 100%);
+            border-radius: 12px 12px 0 0;
+        }
+        
+        .content-card-body {
+            padding: 1.2rem;
+        }
+        
         /* Cards */
         .card-moderno {
             background: white;
@@ -410,7 +1055,7 @@
         }
 
         .card-body-moderno {
-            padding: 1.5rem;
+            padding: 1.2rem;
         }
 
         /* Botões */
@@ -418,13 +1063,14 @@
             background: var(--navy);
             color: white;
             border: none;
-            padding: 0.75rem 1.5rem;
+            padding: 0.65rem 1.2rem;
             border-radius: 8px;
             font-weight: 500;
+            font-size: 0.9rem;
             text-decoration: none;
             display: inline-flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.45rem;
             transition: all 0.2s ease;
         }
 
@@ -438,8 +1084,9 @@
             background: transparent;
             color: white;
             border: 1px solid rgba(255,255,255,0.3);
-            padding: 0.5rem 1rem;
+            padding: 0.45rem 0.9rem;
             border-radius: 6px;
+            font-size: 0.85rem;
             text-decoration: none;
             transition: all 0.2s ease;
         }
@@ -451,17 +1098,75 @@
         }
 
         /* Responsivo */
-        @media (max-width: 768px) {
+        @media (max-width: 992px) {
             .sidebar {
                 transform: translateX(-100%);
             }
-            
+
+            body.sidebar-open .sidebar {
+                transform: translateX(0);
+            }
+
             .main-content {
                 margin-left: 0;
             }
-            
-            .sidebar.show {
-                transform: translateX(0);
+
+            .container-fluid {
+                padding: 1rem 1.1rem 1.5rem;
+            }
+
+            .usuario-info {
+                gap: 0.75rem;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .header-content {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.6rem;
+            }
+
+            .usuario-info {
+                width: 100%;
+                justify-content: space-between;
+                flex-wrap: wrap;
+            }
+
+            .usuario-info span {
+                font-size: 0.85rem;
+            }
+
+            .container-fluid {
+                padding: 0.85rem;
+            }
+
+            .table-responsive {
+                border-radius: 10px;
+            }
+
+            .table {
+                font-size: 0.85rem;
+                white-space: nowrap;
+            }
+
+            .table-responsive::-webkit-scrollbar {
+                height: 6px;
+            }
+
+            .table-responsive::-webkit-scrollbar-thumb {
+                background: rgba(30, 41, 59, 0.25);
+                border-radius: 3px;
+            }
+
+            .card-body,
+            .content-card-body {
+                padding: 0.95rem;
+            }
+
+            .card-header,
+            .content-card-header {
+                padding: 0.85rem 0.95rem;
             }
         }
 
@@ -476,6 +1181,17 @@
         }
 
         /* Status da propriedade - removido (agora está no header) */
+        .nav-link-atalho:hover,
+        .nav-link-atalho.active {
+            background: linear-gradient(135deg, #6495ed, #3d4f80) !important;
+            color: #ffffff !important;
+            border-color: transparent !important;
+            box-shadow: 0 10px 25px rgba(22, 32, 54, 0.25);
+        }
+
+        .header-resumo .resumo-card {
+            background: rgba(100, 149, 237, 0.12);
+        }
     </style>
     
     {% block extra_css %}{% endblock %}
@@ -484,9 +1200,16 @@
     <!-- Header Fixo -->
     <header class="header-fixo">
         <div class="header-content">
-            <a href="{% url 'dashboard' %}" class="logo-sistema">
-                MONPEC
-            </a>
+            <div class="header-left">
+                {% if not DEMO_MODE %}
+                <button type="button" class="btn-menu-mobile d-lg-none" data-toggle-sidebar aria-label="Abrir menu lateral" {% if not propriedade %}disabled{% endif %}>
+                    <i class="bi bi-list"></i>
+                </button>
+                {% endif %}
+                <a href="{% url 'dashboard' %}" class="logo-sistema">
+                    MONPEC
+                </a>
+            </div>
             <div class="usuario-info">
                 {% if propriedade %}
                 <div class="status-propriedade-header">
@@ -501,7 +1224,15 @@
     </header>
 
     <!-- Sidebar -->
-    <nav class="sidebar {% if not propriedade %}disabled{% endif %}">
+    {% load static %}
+    {% if not DEMO_MODE %}
+    <nav class="sidebar {% if not propriedade %}disabled{% endif %}" role="navigation" aria-label="Menu principal">
+        <div class="sidebar-mobile-actions d-lg-none">
+            <button type="button" class="btn-close-sidebar" data-toggle-sidebar aria-label="Fechar menu">
+                <i class="bi bi-x-lg"></i>
+            </button>
+            <span class="sidebar-mobile-title">Menu</span>
+        </div>
         <div class="sidebar-header">
             {% if propriedade %}
                 Módulos - {{ propriedade.nome_propriedade }}
@@ -511,97 +1242,251 @@
         </div>
 
         {% if propriedade %}
-            <!-- Link para Voltar aos Módulos -->
-            <div class="nav-item">
-                <a href="{% url 'propriedade_modulos' propriedade.id %}" class="nav-link {% if 'modulos' in request.path and 'pecuaria' not in request.path and 'agricultura' not in request.path %}active{% endif %}">
-                    <i class="bi bi-grid-3x3"></i> Voltar aos Módulos
+            <!-- Link para Voltar aos Módulos - Destacado -->
+            <div class="nav-item nav-item-destaque">
+                <a href="{% url 'propriedade_modulos' propriedade.id %}" class="nav-link nav-link-destaque {% if 'modulos' in request.path and 'pecuaria' not in request.path and 'agricultura' not in request.path %}active{% endif %}">
+                    <i class="bi bi-arrow-left-circle"></i> 
+                    <span style="flex: 1; text-align: center;">Voltar aos Módulos</span>
                 </a>
             </div>
             
+            <!-- Dashboard Pecuária e Curral Inteligente (fora do card de Pecuária) -->
+            {% if propriedade.tipo_operacao == 'PECUARIA' %}
+            <div class="nav-item modulo-pecuaria {% if request.resolver_match.url_name == 'pecuaria_dashboard' %}active{% endif %}">
+                <a href="{% url 'pecuaria_dashboard' propriedade.id %}" 
+                   class="nav-link {% if request.resolver_match.url_name == 'pecuaria_dashboard' %}active{% endif %}">
+                    <i class="bi bi-graph-up-arrow"></i> Dashboard Pecuária
+                </a>
+            </div>
+            <div class="nav-item modulo-pecuaria {% if request.resolver_match.url_name == 'curral_painel' or request.resolver_match.url_name == 'curral_dashboard' or 'curral' in request.path %}active{% endif %}">
+                <a href="{% url 'curral_dashboard' propriedade.id %}" 
+                   class="nav-link nav-link-curral {% if request.resolver_match.url_name == 'curral_painel' or request.resolver_match.url_name == 'curral_dashboard' or 'curral' in request.path %}active{% endif %}">
+                    <i class="bi bi-cpu"></i> Curral Inteligente
+                </a>
+            </div>
+            {% endif %}
+            
             <!-- Módulos habilitados quando dentro da propriedade -->
             <div class="accordion accordion-flush" id="sidebarAccordion">
+                {% with current_url=request.resolver_match.url_name %}
                 <!-- Pecuária com Submenu -->
+                {% if propriedade.tipo_operacao == 'PECUARIA' %}
                 <div class="accordion-item">
-                    <div class="nav-item modulo-pecuaria {% if 'pecuaria' in request.path %}active{% endif %}">
-                        <button class="accordion-button {% if 'pecuaria' not in request.path %}collapsed{% endif %}" type="button" 
+                    <div class="nav-item modulo-pecuaria {% if 'pecuaria' in request.path or 'nutricao' in request.path %}active{% endif %}">
+                        <button class="accordion-button {% if 'pecuaria' not in request.path and 'nutricao' not in request.path %}collapsed{% endif %}" type="button" 
                                 data-bs-toggle="collapse" data-bs-target="#submenu-pecuaria" 
-                                aria-expanded="{% if 'pecuaria' in request.path %}true{% else %}false{% endif %}" 
+                                aria-expanded="{% if 'pecuaria' in request.path or 'nutricao' in request.path %}true{% else %}false{% endif %}" 
                                 aria-controls="submenu-pecuaria">
-                            <i class="bi bi-cow"></i>
+                            <i class="bi bi-graph-up-arrow"></i>
                             <span style="flex: 1; margin-left: 0.5rem;">Pecuária</span>
                             <i class="bi bi-chevron-right chevron-icon"></i>
                         </button>
-                        <div id="submenu-pecuaria" class="accordion-collapse collapse {% if 'pecuaria' in request.path %}show{% endif %}" 
+                        <div id="submenu-pecuaria" class="accordion-collapse collapse {% if 'pecuaria' in request.path or 'nutricao' in request.path %}show{% endif %}" 
                              data-bs-parent="#sidebarAccordion">
                             <div class="nav-submenu">
-                                <a href="{% url 'pecuaria_dashboard' propriedade.id %}" 
-                                   class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'pecuaria_dashboard' %}active{% endif %}">
-                                    <i class="bi bi-speedometer2"></i> Dashboard
-                                </a>
-                                <a href="{% url 'pecuaria_inventario' propriedade.id %}" 
-                                   class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'pecuaria_inventario' %}active{% endif %}">
-                                    <i class="bi bi-clipboard-data"></i> Inventário
-                                </a>
-                                <a href="{% url 'pecuaria_parametros' propriedade.id %}" 
-                                   class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'pecuaria_parametros' %}active{% endif %}">
-                                    <i class="bi bi-sliders"></i> Parâmetros
-                                </a>
-                                <a href="{% url 'pecuaria_projecao' propriedade.id %}" 
-                                   class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'pecuaria_projecao' %}active{% endif %}">
-                                    <i class="bi bi-graph-up"></i> Projeção
-                                </a>
-                                <a href="{% url 'analise_cenarios' propriedade.id %}" 
-                                   class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'analise_cenarios' %}active{% endif %}">
-                                    <i class="bi bi-diagram-3"></i> Cenários
-                                </a>
+                                <button type="button" class="nav-subsection-toggle" data-submenu-target="planejamento-submenu" aria-expanded="{% if current_url == 'pecuaria_dashboard' or current_url == 'pecuaria_parametros' or current_url == 'pecuaria_projecao' or current_url == 'analise_cenarios' or current_url == 'pecuaria_inventario' or current_url == 'pecuaria_planejamento_dashboard' %}true{% else %}false{% endif %}">
+                                    <span>Planejamento</span>
+                                    <i class="bi bi-chevron-right chevron"></i>
+                                </button>
+                                <div id="planejamento-submenu" class="nav-subsection-links {% if current_url == 'pecuaria_dashboard' or current_url == 'pecuaria_parametros' or current_url == 'pecuaria_projecao' or current_url == 'analise_cenarios' or current_url == 'pecuaria_inventario' or current_url == 'pecuaria_planejamento_dashboard' %}show{% endif %}">
+                                    <a href="{% url 'pecuaria_planejamento_dashboard' propriedade.id %}"
+                                       class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'pecuaria_planejamento_dashboard' %}active{% endif %}">
+                                        <i class="bi bi-calendar3-range"></i> Dashboard Planejamento
+                                    </a>
+                                    <a href="{% url 'pecuaria_dashboard' propriedade.id %}" target="_blank"
+                                       class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'pecuaria_dashboard' %}active{% endif %}">
+                                        <i class="bi bi-speedometer2"></i> Dashboard
+                                    </a>
+                                    <a href="{% url 'pecuaria_parametros' propriedade.id %}" target="_blank"
+                                       class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'pecuaria_parametros' %}active{% endif %}">
+                                        <i class="bi bi-sliders"></i> Parâmetros
+                                    </a>
+                                    <a href="{% url 'pecuaria_inventario' propriedade.id %}" target="_blank"
+                                       class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'pecuaria_inventario' %}active{% endif %}">
+                                        <i class="bi bi-clipboard-data"></i> Inventário
+                                    </a>
+                                    <a href="{% url 'pecuaria_projecao' propriedade.id %}" target="_blank"
+                                       class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'pecuaria_projecao' %}active{% endif %}">
+                                        <i class="bi bi-graph-up"></i> Projeção
+                                    </a>
+                                    <a href="{% url 'analise_cenarios' propriedade.id %}" target="_blank"
+                                       class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'analise_cenarios' %}active{% endif %}">
+                                        <i class="bi bi-diagram-3"></i> Cenários
+                                    </a>
+                                </div>
+
+                                <button type="button" class="nav-subsection-toggle" data-submenu-target="rastreabilidade-submenu" aria-expanded="{% if current_url == 'rastreabilidade_dashboard' or current_url == 'animais_individuais_lista' or current_url == 'animal_individual_novo' or current_url == 'importar_bnd_sisbov' or current_url == 'relatorio_rastreabilidade' or 'brincos' in request.path %}true{% else %}false{% endif %}">
+                                    <span>Rastreabilidade</span>
+                                    <i class="bi bi-chevron-right chevron"></i>
+                                </button>
+                                <div id="rastreabilidade-submenu" class="nav-subsection-links {% if current_url == 'rastreabilidade_dashboard' or current_url == 'animais_individuais_lista' or current_url == 'animal_individual_novo' or current_url == 'importar_bnd_sisbov' or current_url == 'relatorio_rastreabilidade' or 'brincos' in request.path %}show{% endif %}">
+                                    <a href="{% url 'rastreabilidade_dashboard' propriedade.id %}" target="_blank"
+                                       class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'rastreabilidade_dashboard' %}active{% endif %}">
+                                        <i class="bi bi-tags"></i> Painel PNIB
+                                    </a>
+                                    <a href="{% url 'importar_bnd_sisbov' propriedade.id %}" target="_blank"
+                                       class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'importar_bnd_sisbov' %}active{% endif %}">
+                                        <i class="bi bi-cloud-arrow-down"></i> Importar BND/SISBOV
+                                    </a>
+                                    <a href="{% url 'animais_individuais_lista' propriedade.id %}" target="_blank"
+                                       class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'animais_individuais_lista' or request.resolver_match.url_name == 'animal_individual_novo' or request.resolver_match.url_name == 'animal_individual_detalhes' or request.resolver_match.url_name == 'animal_individual_editar' %}active{% endif %}">
+                                        <i class="bi bi-list-check"></i> Cadastro Animais
+                                    </a>
+                                    <a href="{% url 'brincos_lista' propriedade.id %}" target="_blank"
+                                       class="nav-link nav-link-submenu {% if 'brincos' in request.path %}active{% endif %}">
+                                        <i class="bi bi-tag"></i> Estoque de Brincos
+                                    </a>
+                                    <a href="{% url 'relatorio_rastreabilidade' propriedade.id %}" target="_blank"
+                                       class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'relatorio_rastreabilidade' %}active{% endif %}">
+                                        <i class="bi bi-file-earmark-text"></i> Documentação SISBOV
+                                    </a>
+                                </div>
+
+                                <button type="button" class="nav-subsection-toggle" data-submenu-target="reproducao-submenu" aria-expanded="{% if 'reproducao' in request.path or current_url == 'touros_lista' or current_url == 'touro_novo' or current_url == 'estacao_monta_nova' or current_url == 'iatf_nova' or 'iatf' in request.path or 'whatsapp' in request.path %}true{% else %}false{% endif %}">
+                                    <span>Reprodução</span>
+                                    <i class="bi bi-chevron-right chevron"></i>
+                                </button>
+                                <div id="reproducao-submenu" class="nav-subsection-links {% if 'reproducao' in request.path or current_url == 'touros_lista' or current_url == 'touro_novo' or current_url == 'estacao_monta_nova' or current_url == 'iatf_nova' or 'iatf' in request.path or 'whatsapp' in request.path %}show{% endif %}">
+                                    <a href="{% url 'iatf_dashboard' propriedade.id %}" target="_blank"
+                                       class="nav-link nav-link-submenu {% if 'reproducao' in request.path or 'iatf' in request.path %}active{% endif %}">
+                                        <i class="bi bi-heart-pulse"></i> Reprodução
+                                    </a>
+                                    <a href="{% url 'iatf_dashboard' propriedade.id %}" target="_blank"
+                                       class="nav-link nav-link-submenu {% if 'iatf' in request.path %}active{% endif %}">
+                                        <i class="bi bi-bullseye"></i> Touros
+                                    </a>
+                                    <a href="{% url 'iatf_dashboard' propriedade.id %}" target="_blank"
+                                       class="nav-link nav-link-submenu {% if 'iatf' in request.path %}active{% endif %}">
+                                        <i class="bi bi-calendar2-heart"></i> Estação de Monta
+                                    </a>
+                                    <a href="{% url 'lotes_iatf_lista' propriedade.id %}" target="_blank"
+                                       class="nav-link nav-link-submenu {% if 'iatf' in request.path %}active{% endif %}">
+                                        <i class="bi bi-droplet-half"></i> Registrar IATF
+                                    </a>
+                                    <a href="{% url 'iatf_dashboard' propriedade.id %}"
+                                       class="nav-link nav-link-submenu {% if 'iatf' in request.path %}active{% endif %}">
+                                        <i class="bi bi-activity"></i> IATF Completo
+                                    </a>
+                                    <a href="{% url 'whatsapp_mensagens_lista' propriedade.id %}"
+                                       class="nav-link nav-link-submenu {% if 'whatsapp' in request.path %}active{% endif %}">
+                                        <i class="fab fa-whatsapp text-success"></i> Mensagens WhatsApp
+                                    </a>
+                                </div>
+
+                                <button type="button" class="nav-subsection-toggle" data-submenu-target="pesagem-submenu" aria-expanded="{% if current_url == 'pesagem_dashboard' or current_url == 'pesagem_nova' %}true{% else %}false{% endif %}">
+                                    <span>Pesagem</span>
+                                    <i class="bi bi-chevron-right chevron"></i>
+                                </button>
+                                <div id="pesagem-submenu" class="nav-subsection-links {% if current_url == 'pesagem_dashboard' or current_url == 'pesagem_nova' %}show{% endif %}">
+                                    <a href="{% url 'pesagem_dashboard' propriedade.id %}" target="_blank"
+                                       class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'pesagem_dashboard' %}active{% endif %}">
+                                        <i class="bi bi-speedometer2"></i> Painel de Pesagem
+                                    </a>
+                                    <a href="{% url 'pesagem_nova' propriedade.id %}" target="_blank"
+                                       class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'pesagem_nova' %}active{% endif %}">
+                                        <i class="bi bi-plus-circle"></i> Registrar Pesagem
+                                    </a>
+                                </div>
+
+                                <button type="button" class="nav-subsection-toggle" data-submenu-target="movimentacoes-submenu" aria-expanded="{% if 'transferencias' in request.path %}true{% else %}false{% endif %}">
+                                    <span>Movimentações</span>
+                                    <i class="bi bi-chevron-right chevron"></i>
+                                </button>
+                                <div id="movimentacoes-submenu" class="nav-subsection-links {% if 'transferencias' in request.path %}show{% endif %}">
+                                    <a href="{% url 'transferencias_lista' %}" target="_blank"
+                                       class="nav-link nav-link-submenu {% if 'transferencias' in request.path %}active{% endif %}">
+                                        <i class="bi bi-arrow-left-right"></i> Transferências
+                                    </a>
+                                </div>
+
+                                <button type="button" class="nav-subsection-toggle" data-submenu-target="relatorios-rastreabilidade" aria-expanded="{% if current_url == 'relatorio_rastreabilidade' or current_url == 'relatorio_identificacao_individual' or current_url == 'relatorio_movimentacao_animais' or current_url == 'relatorio_sanitario' %}true{% else %}false{% endif %}">
+                                    <span>Relatórios PNIB</span>
+                                    <i class="bi bi-chevron-right chevron"></i>
+                                </button>
+                                <div id="relatorios-rastreabilidade" class="nav-subsection-links {% if current_url == 'relatorio_rastreabilidade' or current_url == 'relatorio_identificacao_individual' or current_url == 'relatorio_movimentacao_animais' or current_url == 'relatorio_sanitario' %}show{% endif %}">
+                                    <a href="{% url 'relatorio_rastreabilidade' propriedade.id %}"
+                                       class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'relatorio_rastreabilidade' %}active{% endif %}">
+                                        <i class="bi bi-file-earmark-text"></i> Rastreabilidade PNIB
+                                    </a>
+                                    <a href="{% url 'relatorio_identificacao_individual' propriedade.id %}"
+                                       class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'relatorio_identificacao_individual' %}active{% endif %}">
+                                        <i class="bi bi-person-lines-fill"></i> Identificação Individual
+                                    </a>
+                                    <a href="{% url 'relatorio_movimentacao_animais' propriedade.id %}"
+                                       class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'relatorio_movimentacao_animais' %}active{% endif %}">
+                                        <i class="bi bi-truck"></i> Movimentação de Animais
+                                    </a>
+                                    <a href="{% url 'relatorio_sanitario' propriedade.id %}"
+                                       class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'relatorio_sanitario' %}active{% endif %}">
+                                        <i class="bi bi-heart-pulse"></i> Relatório Sanitário
+                                    </a>
+                                </div>
+
+                                <button type="button" class="nav-subsection-toggle" data-submenu-target="relatorios-rastreabilidade" aria-expanded="{% if current_url == 'relatorio_final' or current_url == 'relatorio_inventario' or current_url == 'relatorio_financeiro' or current_url == 'relatorio_custos' or current_url == 'relatorio_endividamento' or current_url == 'relatorio_consolidado' or 'relatorios-customizados' in request.path %}true{% else %}false{% endif %}">
+                                    <span>Relatórios</span>
+                                    <i class="bi bi-chevron-right chevron"></i>
+                                </button>
+                                <div id="relatorios-rastreabilidade" class="nav-subsection-links {% if current_url == 'relatorio_final' or current_url == 'relatorio_inventario' or current_url == 'relatorio_financeiro' or current_url == 'relatorio_custos' or current_url == 'relatorio_endividamento' or current_url == 'relatorio_consolidado' or 'relatorios-customizados' in request.path %}show{% endif %}">
+                                    <a href="{% url 'relatorios_customizados_lista' propriedade.id %}"
+                                       class="nav-link nav-link-submenu {% if 'relatorios-customizados' in request.path %}active{% endif %}">
+                                        <i class="bi bi-magic"></i> Criador de Relatórios
+                                        <span class="badge bg-primary-subtle text-primary ms-auto">novo</span>
+                                    </a>
+                                    <a href="{% url 'relatorio_rastreabilidade' propriedade.id %}"
+                                       class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'relatorio_rastreabilidade' %}active{% endif %}">
+                                        <i class="bi bi-file-earmark-text"></i> Rastreabilidade PNIB
+                                    </a>
+                                    <a href="{% url 'relatorio_identificacao_individual' propriedade.id %}"
+                                       class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'relatorio_identificacao_individual' %}active{% endif %}">
+                                        <i class="bi bi-person-lines-fill"></i> Identificação Individual
+                                    </a>
+                                    <a href="{% url 'relatorio_movimentacao_animais' propriedade.id %}"
+                                       class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'relatorio_movimentacao_animais' %}active{% endif %}">
+                                        <i class="bi bi-truck"></i> Movimentação de Animais
+                                    </a>
+                                    <a href="{% url 'relatorio_sanitario' propriedade.id %}"
+                                       class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'relatorio_sanitario' %}active{% endif %}">
+                                        <i class="bi bi-heart-pulse"></i> Relatório Sanitário
+                                    </a>
+                                    <a href="{% url 'relatorio_final' propriedade.id %}"
+                                       class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'relatorio_final' %}active{% endif %}">
+                                        <i class="bi bi-file-earmark-text"></i> Relatório Final
+                                    </a>
+                                    <a href="{% url 'relatorio_inventario' propriedade.id %}"
+                                       class="nav-link nav-link-submenu {% if 'inventario' in request.path and 'relatorio' in request.path %}active{% endif %}">
+                                        <i class="bi bi-clipboard-data"></i> Inventário
+                                    </a>
+                                    <a href="{% url 'relatorio_financeiro' propriedade.id %}"
+                                       class="nav-link nav-link-submenu {% if 'financeiro' in request.path and 'relatorio' in request.path %}active{% endif %}">
+                                        <i class="bi bi-cash-stack"></i> Financeiro
+                                    </a>
+                                    <a href="{% url 'relatorio_custos' propriedade.id %}"
+                                       class="nav-link nav-link-submenu {% if 'custos' in request.path and 'relatorio' in request.path %}active{% endif %}">
+                                        <i class="bi bi-calculator"></i> Custos
+                                    </a>
+                                    <a href="{% url 'relatorio_endividamento' propriedade.id %}"
+                                       class="nav-link nav-link-submenu {% if 'endividamento' in request.path and 'relatorio' in request.path %}active{% endif %}">
+                                        <i class="bi bi-credit-card"></i> Endividamento
+                                    </a>
+                                    <a href="{% url 'relatorio_consolidado' propriedade.id %}"
+                                       class="nav-link nav-link-submenu {% if 'consolidado' in request.path %}active{% endif %}">
+                                        <i class="bi bi-file-earmark-pdf"></i> Consolidado
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
+                {% endif %}
 
-                <!-- Agricultura com Submenu -->
-                <div class="accordion-item">
-                    <div class="nav-item modulo-agricultura {% if 'agricultura' in request.path %}active{% endif %}">
-                        <button class="accordion-button {% if 'agricultura' not in request.path %}collapsed{% endif %}" type="button" 
-                                data-bs-toggle="collapse" data-bs-target="#submenu-agricultura" 
-                                aria-expanded="{% if 'agricultura' in request.path %}true{% else %}false{% endif %}" 
-                                aria-controls="submenu-agricultura">
-                            <i class="bi bi-tree"></i>
-                            <span style="flex: 1; margin-left: 0.5rem;">Agricultura</span>
-                            <i class="bi bi-chevron-right chevron-icon"></i>
-                        </button>
-                        <div id="submenu-agricultura" class="accordion-collapse collapse {% if 'agricultura' in request.path %}show{% endif %}" 
-                             data-bs-parent="#sidebarAccordion">
-                            <div class="nav-submenu">
-                                <a href="{% url 'agricultura_dashboard' propriedade.id %}" 
-                                   class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'agricultura_dashboard' %}active{% endif %}">
-                                    <i class="bi bi-speedometer2"></i> Dashboard
-                                </a>
-                                <a href="{% url 'agricultura_ciclo_lista' propriedade.id %}" 
-                                   class="nav-link nav-link-submenu {% if 'ciclo' in request.path and 'lista' in request.path %}active{% endif %}">
-                                    <i class="bi bi-calendar3"></i> Ciclos
-                                </a>
-                                <a href="{% url 'agricultura_ciclo_novo' propriedade.id %}" 
-                                   class="nav-link nav-link-submenu {% if 'ciclo' in request.path and 'novo' in request.path %}active{% endif %}">
-                                    <i class="bi bi-plus-circle"></i> Novo Ciclo
-                                </a>
-                                <a href="{% url 'agricultura_analise' propriedade.id %}" 
-                                   class="nav-link nav-link-submenu {% if 'analise' in request.path %}active{% endif %}">
-                                    <i class="bi bi-graph-up"></i> Análise
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
-                <!-- Bens e Patrimônio com Submenu -->
                 <div class="accordion-item">
                     <div class="nav-item modulo-patrimonio {% if 'patrimonio' in request.path or 'imobilizado' in request.path %}active{% endif %}">
                         <button class="accordion-button {% if 'patrimonio' not in request.path and 'imobilizado' not in request.path %}collapsed{% endif %}" type="button" 
                                 data-bs-toggle="collapse" data-bs-target="#submenu-patrimonio" 
                                 aria-expanded="{% if 'patrimonio' in request.path or 'imobilizado' in request.path %}true{% else %}false{% endif %}" 
                                 aria-controls="submenu-patrimonio">
-                            <i class="bi bi-building"></i>
+                            <i class="bi bi-box-seam"></i>
                             <span style="flex: 1; margin-left: 0.5rem;">Bens e Patrimônio</span>
                             <i class="bi bi-chevron-right chevron-icon"></i>
                         </button>
@@ -633,35 +1518,233 @@
                     </div>
                 </div>
 
-                <!-- Financeiro com Submenu -->
                 <div class="accordion-item">
-                    <div class="nav-item modulo-financeiro {% if 'custos' in request.path or 'financeiro' in request.path %}active{% endif %}">
-                        <button class="accordion-button {% if 'custos' not in request.path and 'financeiro' not in request.path %}collapsed{% endif %}" type="button" 
+                    <div class="nav-item modulo-financeiro {% if 'financeiro' in request.path or 'custos' in request.path or 'analise' in request.path or 'capacidade-pagamento' in request.path or 'dividas' in request.path or 'endividamento' in request.path %}active{% endif %}">
+                        <button class="accordion-button {% if 'financeiro' not in request.path and 'custos' not in request.path and 'analise' not in request.path and 'capacidade-pagamento' not in request.path and 'dividas' not in request.path and 'endividamento' not in request.path %}collapsed{% endif %}" type="button" 
                                 data-bs-toggle="collapse" data-bs-target="#submenu-financeiro" 
-                                aria-expanded="{% if 'custos' in request.path or 'financeiro' in request.path %}true{% else %}false{% endif %}" 
+                                aria-expanded="{% if 'financeiro' in request.path or 'custos' in request.path or 'analise' in request.path or 'capacidade-pagamento' in request.path or 'dividas' in request.path or 'endividamento' in request.path %}true{% else %}false{% endif %}" 
                                 aria-controls="submenu-financeiro">
-                            <i class="bi bi-cash-coin"></i>
+                            <i class="bi bi-wallet2"></i>
                             <span style="flex: 1; margin-left: 0.5rem;">Financeiro</span>
                             <i class="bi bi-chevron-right chevron-icon"></i>
                         </button>
-                        <div id="submenu-financeiro" class="accordion-collapse collapse {% if 'custos' in request.path or 'financeiro' in request.path %}show{% endif %}" 
+                        <div id="submenu-financeiro" class="accordion-collapse collapse {% if 'financeiro' in request.path or 'custos' in request.path or 'analise' in request.path or 'capacidade-pagamento' in request.path or 'dividas' in request.path or 'endividamento' in request.path %}show{% endif %}" 
                              data-bs-parent="#sidebarAccordion">
                             <div class="nav-submenu">
-                                <a href="{% url 'custos_dashboard' propriedade.id %}" 
-                                   class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'custos_dashboard' %}active{% endif %}">
+                                <button type="button" class="nav-subsection-toggle" data-submenu-target="financeiro-centro-submenu" aria-expanded="false">
+                                    <span>Centro Financeiro</span>
+                                    <i class="bi bi-chevron-right chevron"></i>
+                                </button>
+                                <div id="financeiro-centro-submenu" class="nav-subsection-links">
+                                    <a href="{% url 'financeiro_dashboard' propriedade.id %}"
+                                       class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'financeiro_dashboard' %}active{% endif %}">
+                                        <i class="bi bi-cash-coin"></i> Financeiro Completo
+                                    </a>
+                                    <a href="{% url 'calcular_fluxo_caixa' propriedade.id %}" 
+                                       class="nav-link nav-link-submenu {% if 'fluxo' in request.path %}active{% endif %}">
+                                        <i class="bi bi-cash-stack"></i> Fluxo de Caixa
+                                    </a>
+                                    <a href="{% url 'financeiro_lancamentos' propriedade.id %}?tipo=SAIDA" 
+                                       class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'financeiro_lancamentos' and request.GET.tipo == 'SAIDA' %}active{% endif %}">
+                                        <i class="bi bi-arrow-down-circle"></i> Contas a Pagar
+                                    </a>
+                                    <a href="{% url 'financeiro_lancamentos' propriedade.id %}?tipo=ENTRADA" 
+                                       class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'financeiro_lancamentos' and request.GET.tipo == 'ENTRADA' %}active{% endif %}">
+                                        <i class="bi bi-arrow-up-circle"></i> Contas a Receber
+                                    </a>
+                                </div>
+
+                                <button type="button" class="nav-subsection-toggle" data-submenu-target="financeiro-analises-submenu" aria-expanded="false">
+                                    <span>Análises e Indicadores</span>
+                                    <i class="bi bi-chevron-right chevron"></i>
+                                </button>
+                                <div id="financeiro-analises-submenu" class="nav-subsection-links">
+                                    <a href="{% url 'analise_dashboard' propriedade.id %}" 
+                                       class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'analise_dashboard' %}active{% endif %}">
+                                        <i class="bi bi-graph-up-arrow"></i> Análise Financeira
+                                    </a>
+                                    <a href="{% url 'indicadores_lista' propriedade.id %}" 
+                                       class="nav-link nav-link-submenu {% if 'indicadores' in request.path and 'novo' not in request.path %}active{% endif %}">
+                                        <i class="bi bi-list-ul"></i> Indicadores
+                                    </a>
+                                    <a href="{% url 'relatorio_analise' propriedade.id %}" 
+                                       class="nav-link nav-link-submenu {% if 'relatorio' in request.path and 'analise' in request.path %}active{% endif %}">
+                                        <i class="bi bi-file-earmark-text"></i> Relatório de Análise
+                                    </a>
+                                    <a href="{% url 'capacidade_pagamento_dashboard' propriedade.id %}" 
+                                       class="nav-link nav-link-submenu {% if 'capacidade-pagamento' in request.path %}active{% endif %}">
+                                        <i class="bi bi-shield-check"></i> Capacidade de Pagamento
+                                    </a>
+                                </div>
+
+                                <button type="button" class="nav-subsection-toggle" data-submenu-target="financeiro-credito-submenu" aria-expanded="false">
+                                    <span>Crédito e Dívidas</span>
+                                    <i class="bi bi-chevron-right chevron"></i>
+                                </button>
+                                <div id="financeiro-credito-submenu" class="nav-subsection-links">
+                                    <a href="{% url 'dividas_dashboard' propriedade.id %}" 
+                                       class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'dividas_dashboard' %}active{% endif %}">
+                                        <i class="bi bi-speedometer2"></i> Panorama de Dívidas
+                                    </a>
+                                    <a href="{% url 'importar_scr' propriedade.id %}" 
+                                       class="nav-link nav-link-submenu {% if 'importar-scr' in request.path %}active{% endif %}">
+                                        <i class="bi bi-download"></i> Importar SCR
+                                    </a>
+                                    <a href="{% url 'dividas_contratos' propriedade.id %}" 
+                                       class="nav-link nav-link-submenu {% if 'contratos' in request.path %}active{% endif %}">
+                                        <i class="bi bi-file-earmark-text"></i> Contratos
+                                    </a>
+                                    <a href="{% url 'dividas_amortizacao' propriedade.id %}" 
+                                       class="nav-link nav-link-submenu {% if 'amortizacao' in request.path %}active{% endif %}">
+                                        <i class="bi bi-calculator"></i> Amortização
+                                    </a>
+                                    <a href="{% url 'endividamento_dashboard' propriedade.id %}" 
+                                       class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'endividamento_dashboard' %}active{% endif %}">
+                                        <i class="bi bi-exclamation-triangle"></i> Indicadores de Endividamento
+                                    </a>
+                                </div>
+
+                                <button type="button" class="nav-subsection-toggle" data-submenu-target="financeiro-custos-submenu" aria-expanded="false">
+                                    <span>Custos</span>
+                                    <i class="bi bi-chevron-right chevron"></i>
+                                </button>
+                                <div id="financeiro-custos-submenu" class="nav-subsection-links">
+                                    <a href="{% url 'custos_fixos_lista' propriedade.id %}" 
+                                       class="nav-link nav-link-submenu {% if 'fixos' in request.path %}active{% endif %}">
+                                        <i class="bi bi-currency-dollar"></i> Custos Fixos
+                                    </a>
+                                    <a href="{% url 'custos_variaveis_lista' propriedade.id %}" 
+                                       class="nav-link nav-link-submenu {% if 'variaveis' in request.path %}active{% endif %}">
+                                        <i class="bi bi-diagram-3"></i> Custos Variáveis
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <div class="nav-item modulo-operacoes {% if 'operacoes' in request.path %}active{% endif %}">
+                        <button class="accordion-button {% if 'operacoes' not in request.path %}collapsed{% endif %}" type="button" 
+                                data-bs-toggle="collapse" data-bs-target="#submenu-operacoes" 
+                                aria-expanded="{% if 'operacoes' in request.path %}true{% else %}false{% endif %}" 
+                                aria-controls="submenu-operacoes">
+                            <i class="bi bi-tools"></i>
+                            <span style="flex: 1; margin-left: 0.5rem;">Operações</span>
+                            <i class="bi bi-chevron-right chevron-icon"></i>
+                        </button>
+                        <div id="submenu-operacoes" class="accordion-collapse collapse {% if 'operacoes' in request.path %}show{% endif %}" 
+                             data-bs-parent="#sidebarAccordion">
+                            <div class="nav-submenu">
+                                <a href="{% url 'operacoes_dashboard' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'operacoes_dashboard' %}active{% endif %}">
                                     <i class="bi bi-speedometer2"></i> Dashboard
                                 </a>
-                                <a href="{% url 'custos_fixos_lista' propriedade.id %}" 
-                                   class="nav-link nav-link-submenu {% if 'fixos' in request.path %}active{% endif %}">
-                                    <i class="bi bi-currency-dollar"></i> Custos Fixos
+                                <a href="{% url 'combustivel_lista' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'combustivel' in request.path %}active{% endif %}">
+                                    <i class="bi bi-fuel-pump"></i> Combustível
                                 </a>
-                                <a href="{% url 'custos_variaveis_lista' propriedade.id %}" 
-                                   class="nav-link nav-link-submenu {% if 'variaveis' in request.path %}active{% endif %}">
-                                    <i class="bi bi-graph-up-arrow"></i> Custos Variáveis
+                                <a href="{% url 'equipamentos_lista' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'equipamentos' in request.path %}active{% endif %}">
+                                    <i class="bi bi-tools"></i> Equipamentos
                                 </a>
-                                <a href="{% url 'calcular_fluxo_caixa' propriedade.id %}" 
-                                   class="nav-link nav-link-submenu {% if 'fluxo' in request.path %}active{% endif %}">
-                                    <i class="bi bi-cash-stack"></i> Fluxo de Caixa
+                                <a href="{% url 'manutencao_nova' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'manutencao' in request.path and 'nova' in request.path %}active{% endif %}">
+                                    <i class="bi bi-wrench"></i> Manutenção
+                                </a>
+                                <a href="{% url 'funcionarios_dashboard' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'funcionarios_dashboard' %}active{% endif %}">
+                                    <i class="bi bi-people"></i> Funcionários
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <div class="nav-item modulo-compras {% if 'compras' in request.path %}active{% endif %}">
+                        <button class="accordion-button {% if 'compras' not in request.path %}collapsed{% endif %}" type="button" 
+                                data-bs-toggle="collapse" data-bs-target="#submenu-compras" 
+                                aria-expanded="{% if 'compras' in request.path %}true{% else %}false{% endif %}" 
+                                aria-controls="submenu-compras">
+                            <i class="bi bi-bag-check"></i>
+                            <span style="flex: 1; margin-left: 0.5rem;">Compras</span>
+                            <i class="bi bi-chevron-right chevron-icon"></i>
+                        </button>
+                        <div id="submenu-compras" class="accordion-collapse collapse {% if 'compras' in request.path %}show{% endif %}" 
+                             data-bs-parent="#sidebarAccordion">
+                            <div class="nav-submenu">
+                                <a href="{% url 'compras_dashboard' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'compras_dashboard' %}active{% endif %}">
+                                    <i class="bi bi-speedometer2"></i> Dashboard
+                                </a>
+                                <a href="{% url 'requisicoes_compra_lista' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'requisicao' in request.resolver_match.url_name and 'detalhes' not in request.resolver_match.url_name %}active{% endif %}">
+                                    <i class="bi bi-journal-text"></i> Requisições
+                                </a>
+                                <a href="{% url 'requisicao_compra_nova' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'requisicao_compra_nova' %}active{% endif %}">
+                                    <i class="bi bi-journal-plus"></i> Nova Requisição
+                                    <span class="badge bg-primary-subtle text-primary ms-auto">novo</span>
+                                </a>
+                                <a href="{% url 'setores_compra_lista' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'setores' in request.path and 'compras' in request.path %}active{% endif %}">
+                                    <i class="bi bi-diagram-3"></i> Setores
+                                </a>
+                                <a href="{% url 'fornecedores_lista' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'fornecedores' in request.path %}active{% endif %}">
+                                    <i class="bi bi-people"></i> Fornecedores
+                                </a>
+                                <a href="{% url 'fornecedor_novo' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'fornecedor' in request.path and 'novo' in request.path %}active{% endif %}">
+                                    <i class="bi bi-person-plus"></i> Novo Fornecedor
+                                </a>
+                                <a href="{% url 'financeiro_lancamentos' propriedade.id %}?tipo=SAIDA" 
+                                   class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'financeiro_lancamentos' and request.GET.tipo == 'SAIDA' %}active{% endif %}">
+                                    <i class="bi bi-file-earmark-text"></i> Ordens / Contas a Pagar
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Nutrição com Submenu -->
+                <div class="accordion-item">
+                    <div class="nav-item modulo-nutricao {% if 'nutricao' in request.path %}active{% endif %}">
+                        <button class="accordion-button {% if 'nutricao' not in request.path %}collapsed{% endif %}" type="button" 
+                                data-bs-toggle="collapse" data-bs-target="#submenu-nutricao" 
+                                aria-expanded="{% if 'nutricao' in request.path %}true{% else %}false{% endif %}" 
+                                aria-controls="submenu-nutricao">
+                            <i class="bi bi-cup-straw"></i>
+                            <span style="flex: 1; margin-left: 0.5rem;">Nutrição</span>
+                            <i class="bi bi-chevron-right chevron-icon"></i>
+                        </button>
+                        <div id="submenu-nutricao" class="accordion-collapse collapse {% if 'nutricao' in request.path %}show{% endif %}" 
+                             data-bs-parent="#sidebarAccordion">
+                            <div class="nav-submenu">
+                                <a href="{% url 'nutricao_dashboard' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'nutricao_dashboard' %}active{% endif %}">
+                                    <i class="bi bi-speedometer2"></i> Dashboard
+                                </a>
+                                <a href="{% url 'estoque_suplementacao_lista' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'suplementacao' in request.path and 'estoques' in request.path %}active{% endif %}">
+                                    <i class="bi bi-box-seam"></i> Estoque de Suplementação
+                                </a>
+                                <a href="{% url 'compra_suplementacao_nova' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'compra' in request.path and 'suplementacao' in request.path %}active{% endif %}">
+                                    <i class="bi bi-cart-plus"></i> Nova Compra
+                                </a>
+                                <a href="{% url 'distribuicao_suplementacao_nova' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'distribuicao' in request.path and 'suplementacao' in request.path %}active{% endif %}">
+                                    <i class="bi bi-arrow-right-circle"></i> Nova Distribuição
+                                </a>
+                                <a href="{% url 'cochos_lista' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'cochos' in request.path and 'controle' not in request.path %}active{% endif %}">
+                                    <i class="bi bi-list-ul"></i> Cochos
+                                </a>
+                                <a href="{% url 'controle_cocho_novo' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'controle' in request.path and 'cocho' in request.path %}active{% endif %}">
+                                    <i class="bi bi-clipboard-check"></i> Controle de Cocho
                                 </a>
                             </div>
                         </div>
@@ -675,7 +1758,7 @@
                                 data-bs-toggle="collapse" data-bs-target="#submenu-projetos" 
                                 aria-expanded="{% if 'projetos_bancarios' in request.path or 'projeto_bancario' in request.path or 'projetos-bancarios' in request.path %}true{% else %}false{% endif %}" 
                                 aria-controls="submenu-projetos">
-                            <i class="bi bi-clipboard-data"></i>
+                            <i class="bi bi-briefcase"></i>
                             <span style="flex: 1; margin-left: 0.5rem;">Projetos Bancários</span>
                             <i class="bi bi-chevron-right chevron-icon"></i>
                         </button>
@@ -695,91 +1778,6 @@
                     </div>
                 </div>
 
-                <!-- Dívidas Financeiras com Submenu -->
-                <div class="accordion-item">
-                    <div class="nav-item modulo-financeiro {% if 'dividas' in request.path or 'endividamento' in request.path %}active{% endif %}">
-                        <button class="accordion-button {% if 'dividas' not in request.path and 'endividamento' not in request.path %}collapsed{% endif %}" type="button" 
-                                data-bs-toggle="collapse" data-bs-target="#submenu-dividas" 
-                                aria-expanded="{% if 'dividas' in request.path or 'endividamento' in request.path %}true{% else %}false{% endif %}" 
-                                aria-controls="submenu-dividas">
-                            <i class="bi bi-credit-card"></i>
-                            <span style="flex: 1; margin-left: 0.5rem;">Dívidas Financeiras</span>
-                            <i class="bi bi-chevron-right chevron-icon"></i>
-                        </button>
-                        <div id="submenu-dividas" class="accordion-collapse collapse {% if 'dividas' in request.path or 'endividamento' in request.path %}show{% endif %}" 
-                             data-bs-parent="#sidebarAccordion">
-                            <div class="nav-submenu">
-                                <a href="{% url 'dividas_dashboard' propriedade.id %}" 
-                                   class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'dividas_dashboard' %}active{% endif %}">
-                                    <i class="bi bi-speedometer2"></i> Dashboard
-                                </a>
-                                <a href="{% url 'importar_scr' propriedade.id %}" 
-                                   class="nav-link nav-link-submenu {% if 'importar-scr' in request.path %}active{% endif %}">
-                                    <i class="bi bi-download"></i> Importar SCR
-                                </a>
-                                <a href="{% url 'dividas_contratos' propriedade.id %}" 
-                                   class="nav-link nav-link-submenu {% if 'contratos' in request.path %}active{% endif %}">
-                                    <i class="bi bi-file-earmark-text"></i> Contratos
-                                </a>
-                                <a href="{% url 'dividas_amortizacao' propriedade.id %}" 
-                                   class="nav-link nav-link-submenu {% if 'amortizacao' in request.path %}active{% endif %}">
-                                    <i class="bi bi-calculator"></i> Amortização
-                                </a>
-                                <a href="{% url 'endividamento_dashboard' propriedade.id %}" 
-                                   class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'endividamento_dashboard' %}active{% endif %}">
-                                    <i class="bi bi-exclamation-triangle"></i> Endividamento
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Análise com Submenu -->
-                <div class="accordion-item">
-                    <div class="nav-item modulo-analise {% if 'analise' in request.path %}active{% endif %}">
-                        <button class="accordion-button {% if 'analise' not in request.path %}collapsed{% endif %}" type="button" 
-                                data-bs-toggle="collapse" data-bs-target="#submenu-analise" 
-                                aria-expanded="{% if 'analise' in request.path %}true{% else %}false{% endif %}" 
-                                aria-controls="submenu-analise">
-                            <i class="bi bi-graph-up-arrow"></i>
-                            <span style="flex: 1; margin-left: 0.5rem;">Análise</span>
-                            <i class="bi bi-chevron-right chevron-icon"></i>
-                        </button>
-                        <div id="submenu-analise" class="accordion-collapse collapse {% if 'analise' in request.path %}show{% endif %}" 
-                             data-bs-parent="#sidebarAccordion">
-                            <div class="nav-submenu">
-                                <a href="{% url 'analise_dashboard' propriedade.id %}" 
-                                   class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'analise_dashboard' %}active{% endif %}">
-                                    <i class="bi bi-speedometer2"></i> Dashboard
-                                </a>
-                                <a href="{% url 'indicadores_lista' propriedade.id %}" 
-                                   class="nav-link nav-link-submenu {% if 'indicadores' in request.path %}active{% endif %}">
-                                    <i class="bi bi-list-ul"></i> Indicadores
-                                </a>
-                                <a href="{% url 'indicador_novo' propriedade.id %}" 
-                                   class="nav-link nav-link-submenu {% if 'indicador' in request.path and 'novo' in request.path %}active{% endif %}">
-                                    <i class="bi bi-plus-circle"></i> Novo Indicador
-                                </a>
-                                <a href="{% url 'calcular_indicadores_automaticos' propriedade.id %}" 
-                                   class="nav-link nav-link-submenu {% if 'calcular' in request.path %}active{% endif %}">
-                                    <i class="bi bi-calculator"></i> Calcular Automáticos
-                                </a>
-                                <a href="{% url 'relatorio_analise' propriedade.id %}" 
-                                   class="nav-link nav-link-submenu {% if 'relatorio' in request.path and 'analise' in request.path %}active{% endif %}">
-                                    <i class="bi bi-file-earmark-pdf"></i> Relatório
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Capacidade de Pagamento -->
-                <div class="nav-item modulo-financeiro {% if 'capacidade-pagamento' in request.path %}active{% endif %}">
-                    <a href="{% url 'capacidade_pagamento_dashboard' propriedade.id %}" class="nav-link">
-                        <i class="bi bi-wallet2"></i> Capacidade Pagamento
-                    </a>
-                </div>
-
                 <!-- Relatórios com Submenu -->
                 <div class="accordion-item">
                     <div class="nav-item modulo-relatorios {% if 'relatorios' in request.path or 'relatorio' in request.path %}active{% endif %}">
@@ -787,7 +1785,7 @@
                                 data-bs-toggle="collapse" data-bs-target="#submenu-relatorios" 
                                 aria-expanded="{% if 'relatorios' in request.path or 'relatorio' in request.path %}true{% else %}false{% endif %}" 
                                 aria-controls="submenu-relatorios">
-                            <i class="bi bi-file-earmark-text"></i>
+                            <i class="bi bi-file-text"></i>
                             <span style="flex: 1; margin-left: 0.5rem;">Relatórios</span>
                             <i class="bi bi-chevron-right chevron-icon"></i>
                         </button>
@@ -797,6 +1795,11 @@
                                 <a href="{% url 'relatorios_dashboard' propriedade.id %}" 
                                    class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'relatorios_dashboard' %}active{% endif %}">
                                     <i class="bi bi-speedometer2"></i> Dashboard
+                                </a>
+                                <a href="{% url 'relatorios_customizados_lista' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'relatorios-customizados' in request.path %}active{% endif %}">
+                                    <i class="bi bi-magic"></i> Criador de Relatórios
+                                    <span class="badge bg-primary-subtle text-primary ms-auto">novo</span>
                                 </a>
                                 <a href="{% url 'relatorio_final' propriedade.id %}" 
                                    class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'relatorio_final' %}active{% endif %}">
@@ -828,18 +1831,21 @@
                 </div>
 
                 <!-- Categorias -->
+                {% if propriedade.tipo_operacao == 'PECUARIA' %}
                 <div class="nav-item modulo-categorias {% if 'categorias' in request.path %}active{% endif %}">
                     <a href="{% url 'categorias_lista' %}" class="nav-link">
-                        <i class="bi bi-tags"></i> Categorias
+                        <i class="bi bi-bookmark-star"></i> Categorias
                     </a>
                 </div>
+                {% endif %}
 
                 <!-- Configurações -->
                 <div class="nav-item modulo-configuracoes {% if 'editar' in request.path and 'propriedade' in request.path %}active{% endif %}">
                     <a href="{% url 'propriedade_editar' propriedade.id %}" class="nav-link">
-                        <i class="bi bi-gear"></i> Configurações
+                        <i class="bi bi-sliders"></i> Configurações
                     </a>
                 </div>
+                {% endwith %}
             </div>
         {% else %}
             <!-- Módulos desabilitados quando fora da propriedade -->
@@ -850,6 +1856,8 @@
             </div>
         {% endif %}
     </nav>
+    {% endif %}
+    <div class="sidebar-overlay" aria-hidden="true"></div>
 
     <!-- Conteúdo Principal -->
     <main class="main-content fade-in">
@@ -857,16 +1865,25 @@
         <nav aria-label="breadcrumb" class="breadcrumb-inteligente">
             <ol class="breadcrumb mb-0">
                 <li class="breadcrumb-item">
-                    <a href="{% url 'dashboard' %}">Dashboard</a>
+                    <a href="{% url 'dashboard' %}">
+                        <i class="bi bi-house-door"></i>
+                        Dashboard
+                    </a>
                 </li>
                 {% if produtor %}
                     <li class="breadcrumb-item">
-                        <a href="{% url 'propriedades_lista' produtor.id %}">{{ produtor.nome }}</a>
+                        <a href="{% url 'propriedades_lista' produtor.id %}">
+                            <i class="bi bi-person-badge"></i>
+                            {{ produtor.nome }}
+                        </a>
                     </li>
                 {% endif %}
                 {% if propriedade %}
                     <li class="breadcrumb-item">
-                        <a href="{% url 'propriedade_modulos' propriedade.id %}">{{ propriedade.nome_propriedade }}</a>
+                        <a href="{% url 'propriedade_modulos' propriedade.id %}">
+                            <i class="bi bi-grid-3x3"></i>
+                            {{ propriedade.nome_propriedade }}
+                        </a>
                     </li>
                 {% endif %}
                 {% block breadcrumb_extra %}{% endblock %}
@@ -874,7 +1891,7 @@
         </nav>
 
         <!-- Área de Conteúdo -->
-        <div class="container-fluid">
+        <div class="content-area">
             {% block content %}{% endblock %}
         </div>
     </main>
@@ -883,13 +1900,106 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
-        // Script simples para o menu lateral
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('✅ Menu lateral carregado com sucesso!');
+        document.addEventListener('DOMContentLoaded', function () {
+            const body = document.body;
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.querySelector('.sidebar-overlay');
+            const toggleButtons = document.querySelectorAll('[data-toggle-sidebar]');
+            const closeLinks = sidebar ? sidebar.querySelectorAll('.nav-link, .nav-link-submenu') : [];
+            const sidebarFocusable = sidebar ? sidebar.querySelectorAll('a, button, [tabindex]') : [];
+
+            const closeSidebar = () => {
+                body.classList.remove('sidebar-open');
+                if (overlay) {
+                    overlay.setAttribute('aria-hidden', 'true');
+                }
+                if (sidebar) {
+                    sidebar.setAttribute('aria-hidden', window.innerWidth < 992 ? 'true' : 'false');
+                }
+            };
+
+            const openSidebar = () => {
+                if (!sidebar || window.innerWidth >= 992) {
+                    return;
+                }
+                body.classList.add('sidebar-open');
+                if (overlay) {
+                    overlay.setAttribute('aria-hidden', 'false');
+                }
+                sidebar.setAttribute('aria-hidden', 'false');
+                const firstFocusable = sidebarFocusable.length ? sidebarFocusable[0] : null;
+                if (firstFocusable) {
+                    firstFocusable.focus({ preventScroll: true });
+                }
+            };
+
+            toggleButtons.forEach(function (button) {
+                button.addEventListener('click', function () {
+                    if (body.classList.contains('sidebar-open')) {
+                        closeSidebar();
+                    } else {
+                        openSidebar();
+                    }
+                });
+            });
+
+            if (overlay) {
+                overlay.addEventListener('click', closeSidebar);
+            }
+
+            closeLinks.forEach(function (link) {
+                link.addEventListener('click', function () {
+                    if (window.innerWidth < 992) {
+                        closeSidebar();
+                    }
+                });
+            });
+
+            document.addEventListener('keydown', function (event) {
+                if (event.key === 'Escape' && body.classList.contains('sidebar-open')) {
+                    closeSidebar();
+                }
+            });
+
+            window.addEventListener('resize', function () {
+                if (window.innerWidth >= 992) {
+                    closeSidebar();
+                } else if (sidebar) {
+                    sidebar.setAttribute('aria-hidden', body.classList.contains('sidebar-open') ? 'false' : 'true');
+                }
+            });
+
+            if (sidebar) {
+                sidebar.setAttribute('aria-hidden', window.innerWidth < 992 ? 'true' : 'false');
+            }
+
+            const subsectionToggles = document.querySelectorAll('.nav-subsection-toggle');
+            subsectionToggles.forEach(function (toggle) {
+                const targetId = toggle.getAttribute('data-submenu-target');
+                const target = targetId ? document.getElementById(targetId) : null;
+                if (!target) {
+                    return;
+                }
+
+                const isExpanded = toggle.getAttribute('aria-expanded') === 'true';
+                target.classList.toggle('show', isExpanded);
+
+                toggle.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    const expanded = toggle.getAttribute('aria-expanded') === 'true';
+                    toggle.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+                    target.classList.toggle('show', !expanded);
+                });
+            });
         });
     </script>
     
     {% block extra_js %}{% endblock %}
 </body>
 </html>
+
+
+
+
+
 

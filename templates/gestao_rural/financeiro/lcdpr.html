@@ -1,0 +1,260 @@
+{% extends 'base_modulos_unificado.html' %}
+{% load formatacao_br %}
+
+{% block title %}LCDPR - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block breadcrumb_extra %}
+    <li class="breadcrumb-item">
+        <a href="{% url 'financeiro_dashboard' propriedade.id %}">
+            <i class="bi bi-cash-coin me-1"></i>Financeiro
+        </a>
+    </li>
+    <li class="breadcrumb-item active">LCDPR</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="submenu-page-header">
+            <div class="d-flex align-items-start gap-4">
+            <div class="submenu-page-icon bg-primary bg-opacity-10 text-primary">
+                <i class="bi bi-journal-text"></i>
+            </div>
+            <div class="flex-grow-1">
+                <h1 class="submenu-page-title mb-1">Livro Caixa e Demonstração de Pagamentos e Recebimentos</h1>
+                <p class="submenu-page-description mb-0">
+                    Registro completo de todas as movimentações financeiras da propriedade {{ propriedade.nome_propriedade }}.
+                </p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{% url 'financeiro_lcdpr_exportar_pdf' propriedade.id %}?data_inicio={{ data_inicio|date:'Y-m-d' }}&data_fim={{ data_fim|date:'Y-m-d' }}" 
+                   class="btn btn-outline-danger">
+                    <i class="bi bi-file-earmark-pdf me-1"></i> Exportar PDF
+                </a>
+                <a href="{% url 'financeiro_lcdpr_exportar_excel' propriedade.id %}?data_inicio={{ data_inicio|date:'Y-m-d' }}&data_fim={{ data_fim|date:'Y-m-d' }}" 
+                   class="btn btn-outline-success">
+                    <i class="bi bi-file-earmark-excel me-1"></i> Exportar Excel
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card-moderno">
+        <div class="card-body-moderno">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Data Início</label>
+                    <input type="date" name="data_inicio" class="form-control" 
+                           value="{{ data_inicio|date:'Y-m-d' }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Data Fim</label>
+                    <input type="date" name="data_fim" class="form-control" 
+                           value="{{ data_fim|date:'Y-m-d' }}">
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-funnel me-1"></i> Filtrar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Resumo -->
+    <div class="row g-3 mt-3">
+        <div class="col-md-3">
+            <div class="card-moderno border-info">
+                <div class="card-body-moderno">
+                    <div class="text-muted small mb-1">Saldo Inicial</div>
+                    <div class="h5 mb-0">{{ saldo_inicial|moeda_br }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card-moderno border-success">
+                <div class="card-body-moderno">
+                    <div class="text-muted small mb-1">Total Receitas</div>
+                    <div class="h5 mb-0 text-success">{{ total_receitas|moeda_br }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card-moderno border-danger">
+                <div class="card-body-moderno">
+                    <div class="text-muted small mb-1">Total Despesas</div>
+                    <div class="h5 mb-0 text-danger">{{ total_despesas|moeda_br }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card-moderno {% if saldo_final >= 0 %}border-success{% else %}border-danger{% endif %}">
+                <div class="card-body-moderno">
+                    <div class="text-muted small mb-1">Saldo Final</div>
+                    <div class="h5 mb-0 {% if saldo_final >= 0 %}text-success{% else %}text-danger{% endif %}">
+                        {{ saldo_final|moeda_br }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Livro Caixa -->
+    <div class="card-moderno mt-3">
+        <div class="card-header-moderno">
+            <h5 class="mb-0">
+                <i class="bi bi-journal-text me-2"></i>
+                Livro Caixa - Período: {{ data_inicio|data_br }} a {{ data_fim|data_br }}
+            </h5>
+        </div>
+        <div class="card-body-moderno">
+            <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+                <table class="table table-sm table-hover">
+                    <thead class="sticky-top bg-light">
+                        <tr>
+                            <th>Data</th>
+                            <th>Tipo</th>
+                            <th>Descrição</th>
+                            <th>Categoria</th>
+                            <th>Conta</th>
+                            <th class="text-end">Valor</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for lancamento in lancamentos %}
+                            <tr>
+                                <td>{{ lancamento.data_competencia|data_br }}</td>
+                                <td>
+                                    <span class="badge
+                                        {% if lancamento.tipo == 'RECEITA' %}bg-success
+                                        {% elif lancamento.tipo == 'DESPESA' %}bg-danger
+                                        {% else %}bg-secondary{% endif %}">
+                                        {{ lancamento.get_tipo_display }}
+                                    </span>
+                                </td>
+                                <td>{{ lancamento.descricao }}</td>
+                                <td>{{ lancamento.categoria.nome }}</td>
+                                <td>
+                                    {% if lancamento.tipo == 'RECEITA' %}
+                                        {{ lancamento.conta_destino.nome|default:"-" }}
+                                    {% elif lancamento.tipo == 'DESPESA' %}
+                                        {{ lancamento.conta_origem.nome|default:"-" }}
+                                    {% else %}
+                                        {{ lancamento.conta_origem.nome }} → {{ lancamento.conta_destino.nome }}
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <span class="{% if lancamento.tipo == 'RECEITA' %}text-success{% else %}text-danger{% endif %}">
+                                        {{ lancamento.valor|moeda_br }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge
+                                        {% if lancamento.status == 'QUITADO' %}bg-success
+                                        {% elif lancamento.status == 'PENDENTE' %}bg-warning text-dark
+                                        {% else %}bg-secondary{% endif %}">
+                                        {{ lancamento.get_status_display }}
+                                    </span>
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-4">
+                                    Nenhum lançamento encontrado para o período selecionado
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Demonstração de Pagamentos e Recebimentos -->
+    <div class="row g-3 mt-3">
+        <div class="col-md-6">
+            <div class="card-moderno">
+                <div class="card-header-moderno">
+                    <h5 class="mb-0">
+                        <i class="bi bi-arrow-down-circle me-2"></i>
+                        Recebimentos
+                    </h5>
+                </div>
+                <div class="card-body-moderno">
+                    <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                        <table class="table table-sm">
+                            <thead class="sticky-top bg-light">
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Descrição</th>
+                                    <th class="text-end">Valor</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for receita in receitas %}
+                                    {% if receita.status == 'QUITADO' %}
+                                        <tr>
+                                            <td>{{ receita.data_quitacao|data_br|default:receita.data_competencia|data_br }}</td>
+                                            <td>{{ receita.descricao|truncatewords:5 }}</td>
+                                            <td class="text-end text-success">{{ receita.valor|moeda_br }}</td>
+                                        </tr>
+                                    {% endif %}
+                                {% empty %}
+                                    <tr>
+                                        <td colspan="3" class="text-center text-muted py-2">
+                                            Nenhum recebimento no período
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card-moderno">
+                <div class="card-header-moderno">
+                    <h5 class="mb-0">
+                        <i class="bi bi-arrow-up-circle me-2"></i>
+                        Pagamentos
+                    </h5>
+                </div>
+                <div class="card-body-moderno">
+                    <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                        <table class="table table-sm">
+                            <thead class="sticky-top bg-light">
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Descrição</th>
+                                    <th class="text-end">Valor</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for despesa in despesas %}
+                                    {% if despesa.status == 'QUITADO' %}
+                                        <tr>
+                                            <td>{{ despesa.data_quitacao|data_br|default:despesa.data_competencia|data_br }}</td>
+                                            <td>{{ despesa.descricao|truncatewords:5 }}</td>
+                                            <td class="text-end text-danger">{{ despesa.valor|moeda_br }}</td>
+                                        </tr>
+                                    {% endif %}
+                                {% empty %}
+                                    <tr>
+                                        <td colspan="3" class="text-center text-muted py-2">
+                                            Nenhum pagamento no período
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

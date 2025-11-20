@@ -1,0 +1,581 @@
+{% extends "base_modulos_unificado.html" %}
+{% load formatacao_br %}
+
+{% block title %}{% if relatorio %}Editar{% else %}Criar{% endif %} Relatório - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'relatorios_customizados_lista' propriedade.id %}">Relatórios Customizados</a></li>
+            <li class="breadcrumb-item active">{% if relatorio %}Editar{% else %}Criar{% endif %}</li>
+        </ol>
+    </nav>
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">
+                <i class="bi bi-{% if relatorio %}pencil{% else %}plus-circle{% endif %} text-primary me-2"></i>
+                {% if relatorio %}Editar Relatório{% else %}Criar Novo Relatório{% endif %}
+            </h2>
+            <p class="text-muted mb-0">{{ propriedade.nome_propriedade }}</p>
+        </div>
+        <div>
+            <a href="{% url 'relatorios_customizados_lista' propriedade.id %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Voltar
+            </a>
+        </div>
+    </div>
+
+    <form method="post" id="formRelatorio">
+        {% csrf_token %}
+        
+        <div class="row">
+            <!-- Coluna Esquerda: Configurações Básicas -->
+            <div class="col-md-4">
+                <div class="card mb-3">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="bi bi-gear me-2"></i>Configurações Básicas</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="{{ form.nome.id_for_label }}" class="form-label">Nome do Relatório *</label>
+                            {{ form.nome }}
+                        </div>
+                        <div class="mb-3">
+                            <label for="{{ form.descricao.id_for_label }}" class="form-label">Descrição</label>
+                            {{ form.descricao }}
+                        </div>
+                        <div class="mb-3">
+                            <label for="{{ form.modulo.id_for_label }}" class="form-label">Módulo *</label>
+                            {{ form.modulo }}
+                        </div>
+                        <div class="mb-3">
+                            <label for="{{ form.tipo_exportacao.id_for_label }}" class="form-label">Tipo de Exportação</label>
+                            {{ form.tipo_exportacao }}
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                {{ form.compartilhado }}
+                                <label class="form-check-label" for="{{ form.compartilhado.id_for_label }}">
+                                    Compartilhar com outros usuários
+                                </label>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                {{ form.ativo }}
+                                <label class="form-check-label" for="{{ form.ativo.id_for_label }}">
+                                    Ativo
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botões de Ação -->
+                <div class="card">
+                    <div class="card-body">
+                        <button type="submit" class="btn btn-primary w-100 mb-2">
+                            <i class="bi bi-save me-1"></i>Salvar Relatório
+                        </button>
+                        {% if relatorio %}
+                        <a href="{% url 'relatorio_customizado_executar' propriedade.id relatorio.id %}" 
+                           class="btn btn-success w-100">
+                            <i class="bi bi-play-fill me-1"></i>Executar Relatório
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Coluna Direita: Configurações Avançadas -->
+            <div class="col-md-8">
+                <!-- Campos Selecionados -->
+                <div class="card mb-3">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0"><i class="bi bi-list-check me-2"></i>Campos do Relatório</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted small">Selecione os campos que deseja incluir no relatório:</p>
+                        <div id="camposContainer" class="row">
+                            <!-- Campos serão carregados via JavaScript -->
+                        </div>
+                        <input type="hidden" name="campos_selecionados" id="id_campos_selecionados" value='{% if relatorio %}{{ campos_selecionados_json|safe }}{% elif campos_selecionados_json %}{{ campos_selecionados_json|safe }}{% else %}[]{% endif %}'>
+                    </div>
+                </div>
+
+                <!-- Filtros -->
+                <div class="card mb-3">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0"><i class="bi bi-funnel me-2"></i>Filtros</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted small">Configure filtros para limitar os dados do relatório:</p>
+                        <div id="filtrosContainer">
+                            <!-- Filtros serão adicionados dinamicamente -->
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="adicionarFiltro()">
+                            <i class="bi bi-plus-circle me-1"></i>Adicionar Filtro
+                        </button>
+                        <input type="hidden" name="filtros" id="id_filtros" value='{% if relatorio %}{{ filtros_json|safe }}{% elif filtros_json %}{{ filtros_json|safe }}{% else %}{}{% endif %}'>
+                    </div>
+                </div>
+
+                <!-- Agrupamentos -->
+                <div class="card mb-3">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="bi bi-diagram-3 me-2"></i>Agrupamentos</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted small">Agrupe os dados por campos específicos:</p>
+                        <div id="agrupamentosContainer">
+                            <!-- Agrupamentos serão adicionados dinamicamente -->
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-success mt-2" onclick="adicionarAgrupamento()">
+                            <i class="bi bi-plus-circle me-1"></i>Adicionar Agrupamento
+                        </button>
+                        <input type="hidden" name="agrupamentos" id="id_agrupamentos" value='{% if relatorio %}{{ agrupamentos_json|safe }}{% elif agrupamentos_json %}{{ agrupamentos_json|safe }}{% else %}[]{% endif %}'>
+                    </div>
+                </div>
+
+                <!-- Ordenação -->
+                <div class="card mb-3">
+                    <div class="card-header bg-secondary text-white">
+                        <h5 class="mb-0"><i class="bi bi-sort-alpha-down me-2"></i>Ordenação</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted small">Defina como os dados serão ordenados:</p>
+                        <div id="ordenacaoContainer">
+                            <!-- Ordenação será adicionada dinamicamente -->
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-secondary mt-2" onclick="adicionarOrdenacao()">
+                            <i class="bi bi-plus-circle me-1"></i>Adicionar Campo de Ordenação
+                        </button>
+                        <input type="hidden" name="ordenacao" id="id_ordenacao" value='{% if relatorio %}{{ ordenacao_json|safe }}{% elif ordenacao_json %}{{ ordenacao_json|safe }}{% else %}[]{% endif %}'>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+// Dados dos campos disponíveis
+const camposDisponiveis = {{ campos_disponiveis|safe }};
+let camposSelecionados = [];
+let filtros = [];
+let agrupamentos = [];
+let ordenacao = [];
+
+// Inicializar dados do formulário
+document.addEventListener('DOMContentLoaded', function() {
+    try {
+        const camposValue = document.getElementById('id_campos_selecionados').value;
+        if (camposValue) {
+            camposSelecionados = JSON.parse(camposValue);
+        }
+    } catch(e) {
+        camposSelecionados = [];
+    }
+    
+    try {
+        const filtrosValue = document.getElementById('id_filtros').value;
+        if (filtrosValue) {
+            const filtrosParsed = JSON.parse(filtrosValue);
+            // Converter objeto para array se necessário
+            if (Array.isArray(filtrosParsed)) {
+                filtros = filtrosParsed;
+            } else if (typeof filtrosParsed === 'object' && filtrosParsed !== null) {
+                filtros = Object.keys(filtrosParsed).map(key => {
+                    const f = filtrosParsed[key];
+                    if (typeof f === 'object' && f !== null) {
+                        return {...f};
+                    } else {
+                        return {campo: key, operador: 'igual', valor: f};
+                    }
+                });
+            } else {
+                filtros = [];
+            }
+        } else {
+            filtros = [];
+        }
+    } catch(e) {
+        filtros = [];
+    }
+    
+    try {
+        const agrupamentosValue = document.getElementById('id_agrupamentos').value;
+        if (agrupamentosValue) {
+            agrupamentos = JSON.parse(agrupamentosValue);
+        }
+    } catch(e) {
+        agrupamentos = [];
+    }
+    
+    try {
+        const ordenacaoValue = document.getElementById('id_ordenacao').value;
+        if (ordenacaoValue) {
+            ordenacao = JSON.parse(ordenacaoValue);
+        }
+    } catch(e) {
+        ordenacao = [];
+    }
+    
+    // Carregar campos iniciais se houver módulo selecionado
+    const moduloSelect = document.getElementById('id_modulo');
+    if (moduloSelect && moduloSelect.value) {
+        carregarCampos(moduloSelect.value);
+        renderizarFiltros();
+        renderizarAgrupamentos();
+        renderizarOrdenacao();
+    }
+});
+
+// Carregar campos quando o módulo mudar
+document.getElementById('id_modulo').addEventListener('change', function() {
+    carregarCampos(this.value);
+    renderizarFiltros();
+    renderizarAgrupamentos();
+    renderizarOrdenacao();
+});
+
+// Carregar campos iniciais
+if (document.getElementById('id_modulo').value) {
+    carregarCampos(document.getElementById('id_modulo').value);
+    renderizarFiltros();
+    renderizarAgrupamentos();
+    renderizarOrdenacao();
+}
+
+function carregarCampos(modulo) {
+    const container = document.getElementById('camposContainer');
+    container.innerHTML = '';
+    
+    const campos = camposDisponiveis[modulo] || [];
+    
+    campos.forEach(campo => {
+        const checked = camposSelecionados.some(c => c.nome === campo.nome);
+        const div = document.createElement('div');
+        div.className = 'col-md-6 mb-2';
+        div.innerHTML = `
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" 
+                       id="campo_${campo.nome}" 
+                       value="${campo.nome}"
+                       ${checked ? 'checked' : ''}
+                       onchange="atualizarCamposSelecionados()">
+                <label class="form-check-label" for="campo_${campo.nome}">
+                    ${campo.label} <small class="text-muted">(${campo.tipo})</small>
+                </label>
+            </div>
+        `;
+        container.appendChild(div);
+    });
+    
+    atualizarCamposSelecionados();
+}
+
+function atualizarCamposSelecionados() {
+    const modulo = document.getElementById('id_modulo').value;
+    const campos = camposDisponiveis[modulo] || [];
+    const checkboxes = document.querySelectorAll('#camposContainer input[type="checkbox"]:checked');
+    
+    camposSelecionados = Array.from(checkboxes).map(cb => {
+        const campo = campos.find(c => c.nome === cb.value);
+        return campo || {nome: cb.value, label: cb.value, tipo: 'texto'};
+    });
+    
+    document.getElementById('id_campos_selecionados').value = JSON.stringify(camposSelecionados);
+}
+
+// Renderizar filtros existentes
+function renderizarFiltros() {
+    const container = document.getElementById('filtrosContainer');
+    container.innerHTML = '';
+    
+    // Converter filtros para array se necessário
+    let filtrosArray = [];
+    if (Array.isArray(filtros)) {
+        filtrosArray = filtros;
+    } else if (typeof filtros === 'object' && filtros !== null) {
+        Object.keys(filtros).forEach((key, idx) => {
+            const filtro = filtros[key];
+            if (typeof filtro === 'object' && filtro !== null) {
+                filtrosArray.push({...filtro, _key: key});
+            } else {
+                // Se o valor não é um objeto, criar estrutura padrão
+                filtrosArray.push({campo: key, operador: 'igual', valor: filtro, _key: key});
+            }
+        });
+    }
+    
+    filtrosArray.forEach((filtro, index) => {
+        const div = document.createElement('div');
+        div.className = 'mb-2 p-2 border rounded';
+        div.id = `filtro_${index}`;
+        const operador = filtro.operador || 'igual';
+        const valor = filtro.valor || '';
+        const campo = filtro.campo || '';
+        div.innerHTML = `
+            <div class="row g-2 align-items-center">
+                <div class="col-md-4">
+                    <select class="form-select form-select-sm" onchange="atualizarFiltro(${index}, 'campo', this.value)">
+                        <option value="">Selecione o campo</option>
+                        ${obterOpcoesCampos()}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select form-select-sm" onchange="atualizarFiltro(${index}, 'operador', this.value)">
+                        <option value="igual" ${operador === 'igual' ? 'selected' : ''}>Igual a</option>
+                        <option value="diferente" ${operador === 'diferente' ? 'selected' : ''}>Diferente de</option>
+                        <option value="maior" ${operador === 'maior' ? 'selected' : ''}>Maior que</option>
+                        <option value="menor" ${operador === 'menor' ? 'selected' : ''}>Menor que</option>
+                        <option value="maior_igual" ${operador === 'maior_igual' ? 'selected' : ''}>Maior ou igual</option>
+                        <option value="menor_igual" ${operador === 'menor_igual' ? 'selected' : ''}>Menor ou igual</option>
+                        <option value="contem" ${operador === 'contem' ? 'selected' : ''}>Contém</option>
+                        <option value="inicia_com" ${operador === 'inicia_com' ? 'selected' : ''}>Inicia com</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <input type="text" class="form-control form-control-sm" 
+                           value="${valor.replace(/"/g, '&quot;')}" 
+                           placeholder="Valor do filtro"
+                           onchange="atualizarFiltro(${index}, 'valor', this.value)">
+                </div>
+                <div class="col-md-1">
+                    <button type="button" class="btn btn-sm btn-danger" onclick="removerFiltro(${index})">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+        container.appendChild(div);
+        
+        // Definir o campo selecionado
+        const selectCampo = div.querySelector('select');
+        if (campo) {
+            selectCampo.value = campo;
+        }
+    });
+    
+    // Atualizar estrutura de filtros para array
+    filtros = filtrosArray.map(f => ({
+        campo: f.campo || '',
+        operador: f.operador || 'igual',
+        valor: f.valor || ''
+    }));
+    
+    atualizarFiltrosHidden();
+}
+
+function obterOpcoesCampos() {
+    const modulo = document.getElementById('id_modulo').value;
+    const campos = camposDisponiveis[modulo] || [];
+    return campos.map(c => `<option value="${c.nome}">${c.label}</option>`).join('');
+}
+
+function adicionarFiltro() {
+    const modulo = document.getElementById('id_modulo').value;
+    if (!modulo) {
+        alert('Selecione um módulo primeiro');
+        return;
+    }
+    
+    // Garantir que filtros é um array
+    if (!Array.isArray(filtros)) {
+        filtros = [];
+    }
+    
+    filtros.push({
+        campo: '',
+        operador: 'igual',
+        valor: ''
+    });
+    
+    renderizarFiltros();
+}
+
+function atualizarFiltro(index, tipo, valor) {
+    if (Array.isArray(filtros) && index < filtros.length) {
+        filtros[index][tipo] = valor;
+        atualizarFiltrosHidden();
+    }
+}
+
+function removerFiltro(index) {
+    if (Array.isArray(filtros) && index < filtros.length) {
+        filtros.splice(index, 1);
+        renderizarFiltros();
+    }
+}
+
+function atualizarFiltrosHidden() {
+    // Limpar filtros vazios e converter para objeto (dicionário) para salvar
+    const filtrosLimpos = {};
+    if (Array.isArray(filtros)) {
+        filtros.forEach((f, idx) => {
+            if (f.campo && f.valor) {
+                // Usar o nome do campo como chave, ou um índice se já existir
+                const chave = f.campo in filtrosLimpos ? `${f.campo}_${idx}` : f.campo;
+                filtrosLimpos[chave] = {
+                    campo: f.campo,
+                    operador: f.operador || 'igual',
+                    valor: f.valor
+                };
+            }
+        });
+    }
+    document.getElementById('id_filtros').value = JSON.stringify(filtrosLimpos);
+}
+
+// Renderizar agrupamentos existentes
+function renderizarAgrupamentos() {
+    const container = document.getElementById('agrupamentosContainer');
+    container.innerHTML = '';
+    
+    agrupamentos.forEach((campo, index) => {
+        const div = document.createElement('div');
+        div.className = 'mb-2 p-2 border rounded';
+        div.id = `agrupamento_${index}`;
+        div.innerHTML = `
+            <div class="row g-2 align-items-center">
+                <div class="col-md-11">
+                    <select class="form-select form-select-sm" onchange="atualizarAgrupamento(${index}, this.value)">
+                        <option value="">Selecione o campo</option>
+                        ${obterOpcoesCampos()}
+                    </select>
+                </div>
+                <div class="col-md-1">
+                    <button type="button" class="btn btn-sm btn-danger" onclick="removerAgrupamento(${index})">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+        container.appendChild(div);
+        
+        // Definir o campo selecionado
+        const select = div.querySelector('select');
+        if (campo) {
+            select.value = campo;
+        }
+    });
+    
+    atualizarAgrupamentosHidden();
+}
+
+function adicionarAgrupamento() {
+    const modulo = document.getElementById('id_modulo').value;
+    if (!modulo) {
+        alert('Selecione um módulo primeiro');
+        return;
+    }
+    
+    agrupamentos.push('');
+    renderizarAgrupamentos();
+}
+
+function atualizarAgrupamento(index, valor) {
+    if (index < agrupamentos.length) {
+        agrupamentos[index] = valor;
+        atualizarAgrupamentosHidden();
+    }
+}
+
+function removerAgrupamento(index) {
+    if (index < agrupamentos.length) {
+        agrupamentos.splice(index, 1);
+        renderizarAgrupamentos();
+    }
+}
+
+function atualizarAgrupamentosHidden() {
+    // Remover campos vazios
+    agrupamentos = agrupamentos.filter(c => c);
+    document.getElementById('id_agrupamentos').value = JSON.stringify(agrupamentos);
+}
+
+// Renderizar ordenação existente
+function renderizarOrdenacao() {
+    const container = document.getElementById('ordenacaoContainer');
+    container.innerHTML = '';
+    
+    ordenacao.forEach((item, index) => {
+        const div = document.createElement('div');
+        div.className = 'mb-2 p-2 border rounded';
+        div.id = `ordenacao_${index}`;
+        div.innerHTML = `
+            <div class="row g-2 align-items-center">
+                <div class="col-md-5">
+                    <select class="form-select form-select-sm" onchange="atualizarOrdenacao(${index}, 'campo', this.value)">
+                        <option value="">Selecione o campo</option>
+                        ${obterOpcoesCampos()}
+                    </select>
+                </div>
+                <div class="col-md-5">
+                    <select class="form-select form-select-sm" onchange="atualizarOrdenacao(${index}, 'direcao', this.value)">
+                        <option value="asc" ${item.direcao === 'asc' ? 'selected' : ''}>Crescente (A-Z)</option>
+                        <option value="desc" ${item.direcao === 'desc' ? 'selected' : ''}>Decrescente (Z-A)</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="button" class="btn btn-sm btn-danger" onclick="removerOrdenacao(${index})">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+        container.appendChild(div);
+        
+        // Definir o campo selecionado
+        const selectCampo = div.querySelector('select');
+        if (item.campo) {
+            selectCampo.value = item.campo;
+        }
+    });
+    
+    atualizarOrdenacaoHidden();
+}
+
+function adicionarOrdenacao() {
+    const modulo = document.getElementById('id_modulo').value;
+    if (!modulo) {
+        alert('Selecione um módulo primeiro');
+        return;
+    }
+    
+    ordenacao.push({
+        campo: '',
+        direcao: 'asc'
+    });
+    renderizarOrdenacao();
+}
+
+function atualizarOrdenacao(index, tipo, valor) {
+    if (index < ordenacao.length) {
+        ordenacao[index][tipo] = valor;
+        atualizarOrdenacaoHidden();
+    }
+}
+
+function removerOrdenacao(index) {
+    if (index < ordenacao.length) {
+        ordenacao.splice(index, 1);
+        renderizarOrdenacao();
+    }
+}
+
+function atualizarOrdenacaoHidden() {
+    // Remover itens sem campo
+    ordenacao = ordenacao.filter(item => item.campo);
+    document.getElementById('id_ordenacao').value = JSON.stringify(ordenacao);
+}
+</script>
+{% endblock %}
+

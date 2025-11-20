@@ -1,23 +1,41 @@
-{% extends 'base.html' %}
+{% extends 'base_modulos_unificado.html' %}
 {% load static %}
+{% load formatacao_br %}
 
 {% block title %}Endividamento - {{ propriedade.nome_propriedade }}{% endblock %}
 
+{% block breadcrumb_extra %}
+    <li class="breadcrumb-item">
+        <a href="{% url 'dividas_dashboard' propriedade.id %}">
+            <i class="bi bi-credit-card"></i>
+            Dívidas Financeiras
+        </a>
+    </li>
+    <li class="breadcrumb-item active">
+        <i class="bi bi-exclamation-triangle"></i>
+        Endividamento
+    </li>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid">
+    <!-- Header da Página -->
+    <div class="submenu-page-header">
+        <div class="d-flex align-items-start gap-4">
+            <div class="submenu-page-icon">
+                <i class="bi bi-exclamation-triangle"></i>
+            </div>
+            <div class="flex-grow-1">
+                <h1 class="submenu-page-title">Análise de Endividamento</h1>
+                <p class="submenu-page-description">
+                    Visualize a situação de endividamento e capacidade de pagamento da propriedade {{ propriedade.nome_propriedade }}.
+                </p>
+            </div>
+        </div>
+    </div>
+    
     <div class="row">
         <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h2><i class="bi bi-credit-card"></i> Módulo de Endividamento</h2>
-                    <p class="text-muted mb-0">Propriedade: {{ propriedade.nome_propriedade }}</p>
-                </div>
-                <div>
-                    <a href="{% url 'pecuaria_dashboard' propriedade.id %}" class="btn btn-secondary">
-                        <i class="bi bi-arrow-left"></i> Voltar
-                    </a>
-                </div>
-            </div>
 
             <!-- Resumo Geral -->
             <div class="row mb-4">
@@ -26,7 +44,7 @@
                         <div class="card-body text-center py-3">
                             <i class="bi bi-cash-stack fs-3 text-primary"></i>
                             <h6 class="mt-2 mb-1 small">Total Financiado</h6>
-                            <h4 class="text-primary mb-0">R$ {{ total_principal|floatformat:2 }}</h4>
+                            <h4 class="text-primary mb-0">{{ total_principal|moeda_br }}</h4>
                         </div>
                     </div>
                 </div>
@@ -36,7 +54,7 @@
                         <div class="card-body text-center py-3">
                             <i class="bi bi-calendar-month fs-3 text-warning"></i>
                             <h6 class="mt-2 mb-1 small">Parcelas Mensais</h6>
-                            <h4 class="text-warning mb-0">R$ {{ total_parcelas_mes|floatformat:2 }}</h4>
+                            <h4 class="text-warning mb-0">{{ total_parcelas_mes|moeda_br }}</h4>
                         </div>
                     </div>
                 </div>
@@ -46,7 +64,7 @@
                         <div class="card-body text-center py-3">
                             <i class="bi bi-clock fs-3 text-info"></i>
                             <h6 class="mt-2 mb-1 small">Vencendo em Breve</h6>
-                            <h4 class="text-info mb-0">{{ vencendo_em_breve }}</h4>
+                            <h4 class="text-info mb-0">{{ vencendo_em_breve|numero_br:0 }}</h4>
                         </div>
                     </div>
                 </div>
@@ -56,7 +74,7 @@
                         <div class="card-body text-center py-3">
                             <i class="bi bi-graph-up fs-3 text-success"></i>
                             <h6 class="mt-2 mb-1 small">Financiamentos Ativos</h6>
-                            <h4 class="text-success mb-0">{{ financiamentos.count }}</h4>
+                            <h4 class="text-success mb-0">{{ financiamentos.count|numero_br:0 }}</h4>
                         </div>
                     </div>
                 </div>
@@ -131,16 +149,16 @@
                                         <span class="badge bg-secondary">{{ financiamento.tipo.nome }}</span>
                                     </td>
                                     <td>
-                                        <strong>R$ {{ financiamento.valor_principal|floatformat:2 }}</strong>
+                                        <strong>{{ financiamento.valor_principal|moeda_br }}</strong>
                                     </td>
                                     <td>
-                                        {{ financiamento.taxa_juros_anual }}% {{ financiamento.get_tipo_taxa_display }}
+                                        {{ financiamento.taxa_juros_anual|percentual_br:2 }} {{ financiamento.get_tipo_taxa_display }}
                                     </td>
                                     <td>
-                                        <strong>R$ {{ financiamento.valor_parcela|floatformat:2 }}</strong>
+                                        <strong>{{ financiamento.valor_parcela|moeda_br }}</strong>
                                     </td>
                                     <td>
-                                        <span class="badge bg-info">{{ financiamento.numero_parcelas }} parcelas</span>
+                                        <span class="badge bg-info">{{ financiamento.numero_parcelas|numero_br:0 }} parcelas</span>
                                     </td>
                                     <td>
                                         <div class="btn-group btn-group-sm">

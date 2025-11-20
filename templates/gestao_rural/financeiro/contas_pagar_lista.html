@@ -1,0 +1,208 @@
+{% extends 'base_modulos_unificado.html' %}
+{% load formatacao_br %}
+
+{% block title %}Contas a Pagar - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block breadcrumb_extra %}
+    <li class="breadcrumb-item">
+        <a href="{% url 'financeiro_dashboard' propriedade.id %}">
+            <i class="bi bi-cash-coin me-1"></i>Financeiro
+        </a>
+    </li>
+    <li class="breadcrumb-item active">
+        Contas a Pagar
+    </li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="submenu-page-header">
+        <div class="d-flex align-items-start gap-4">
+            <div class="submenu-page-icon bg-danger bg-opacity-10 text-danger">
+                <i class="bi bi-arrow-up-circle"></i>
+            </div>
+            <div class="flex-grow-1">
+                <h1 class="submenu-page-title mb-1">Contas a Pagar</h1>
+                <p class="submenu-page-description mb-0">
+                    Gerencie todas as contas a pagar da propriedade {{ propriedade.nome_propriedade }}.
+                </p>
+            </div>
+            <div>
+                <a href="{{ url_novo }}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-1"></i> Nova Conta
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cards de Resumo -->
+    <div class="row g-3 mb-3">
+        <div class="col-md-4">
+            <div class="card-moderno border-warning">
+                <div class="card-body-moderno">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="text-muted small mb-1">Pendentes</div>
+                            <div class="h4 mb-0 text-warning">{{ total_pendente|moeda_br }}</div>
+                        </div>
+                        <div class="bg-warning bg-opacity-10 rounded-circle p-3">
+                            <i class="bi bi-clock-history text-warning fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card-moderno border-danger">
+                <div class="card-body-moderno">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="text-muted small mb-1">Vencidas</div>
+                            <div class="h4 mb-0 text-danger">{{ total_vencido|moeda_br }}</div>
+                        </div>
+                        <div class="bg-danger bg-opacity-10 rounded-circle p-3">
+                            <i class="bi bi-exclamation-triangle text-danger fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card-moderno border-success">
+                <div class="card-body-moderno">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="text-muted small mb-1">Pagas</div>
+                            <div class="h4 mb-0 text-success">{{ total_pago|moeda_br }}</div>
+                        </div>
+                        <div class="bg-success bg-opacity-10 rounded-circle p-3">
+                            <i class="bi bi-check-circle text-success fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card-moderno">
+        <div class="card-body-moderno">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label">Status</label>
+                    <select name="status" class="form-select">
+                        <option value="">Todos</option>
+                        <option value="PENDENTE" {% if status == "PENDENTE" %}selected{% endif %}>Pendente</option>
+                        <option value="VENCIDA" {% if status == "VENCIDA" %}selected{% endif %}>Vencida</option>
+                        <option value="PAGA" {% if status == "PAGA" %}selected{% endif %}>Paga</option>
+                        <option value="CANCELADA" {% if status == "CANCELADA" %}selected{% endif %}>Cancelada</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-outline-primary">
+                        <i class="bi bi-funnel me-1"></i> Filtrar
+                    </button>
+                    <a href="{% url 'financeiro_contas_pagar' propriedade.id %}" class="btn btn-link">
+                        Limpar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabela -->
+    <div class="card-moderno mt-3">
+        <div class="card-body-moderno">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Vencimento</th>
+                            <th>Descrição</th>
+                            <th>Fornecedor</th>
+                            <th>Categoria</th>
+                            <th class="text-end">Valor</th>
+                            <th>Status</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if contas %}
+                            {% for conta in contas %}
+                                <tr>
+                                    <td>
+                                        <div class="fw-semibold">{{ conta.data_vencimento|data_br }}</div>
+                                        {% if conta.data_pagamento %}
+                                            <small class="text-muted">Pago em {{ conta.data_pagamento|data_br }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="fw-semibold">{{ conta.descricao }}</div>
+                                        {% if conta.observacoes %}
+                                            <small class="text-muted">{{ conta.observacoes|truncatewords:5 }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if conta.fornecedor %}
+                                            {{ conta.fornecedor.nome }}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if conta.categoria %}
+                                            <span class="badge bg-light text-dark">{{ conta.categoria }}</span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        <span class="fw-bold text-danger">{{ conta.valor|moeda_br }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge
+                                            {% if conta.status == 'PENDENTE' %}bg-warning text-dark
+                                            {% elif conta.status == 'VENCIDA' %}bg-danger
+                                            {% elif conta.status == 'PAGA' %}bg-success
+                                            {% else %}bg-secondary{% endif %}">
+                                            {{ conta.get_status_display }}
+                                        </span>
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="btn-group">
+                                            <a href="{% url 'financeiro_conta_pagar_editar' propriedade.id conta.id %}" class="btn btn-outline-secondary btn-sm">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            {% if conta.status != 'PAGA' %}
+                                                <a href="{% url 'financeiro_conta_pagar_pagar' propriedade.id conta.id %}" class="btn btn-outline-success btn-sm">
+                                                    <i class="bi bi-check2-circle"></i>
+                                                </a>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="7" class="text-center py-5">
+                                    <i class="bi bi-inboxes display-6 text-muted d-block mb-2"></i>
+                                    <p class="text-muted mb-0">Nenhuma conta a pagar encontrada.</p>
+                                    <a href="{{ url_novo }}" class="btn btn-primary mt-3">
+                                        <i class="bi bi-plus-circle me-1"></i> Criar Primeira Conta
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+
+
+

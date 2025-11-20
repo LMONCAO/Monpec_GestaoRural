@@ -1,0 +1,124 @@
+﻿<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Monpec Projetista</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root { --primary-color: #004a99; --primary-hover: #003366; --secondary-color: #28a745; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); min-height: 100vh; color: #333; }
+        .navbar { background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%); box-shadow: 0 2px 20px rgba(0,0,0,0.1); padding: 1rem 0; }
+        .navbar-brand { font-weight: 700; font-size: 1.5rem; color: white !important; }
+        .navbar-nav .nav-link { color: rgba(255,255,255,0.9) !important; font-weight: 500; margin: 0 0.5rem; transition: all 0.3s ease; }
+        .navbar-nav .nav-link:hover { color: white !important; transform: translateY(-2px); }
+        .card { border: none; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); transition: all 0.3s ease; background: white; }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 20px 40px rgba(0,0,0,0.15); }
+        .card-header { background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%); color: white; border-radius: 15px 15px 0 0 !important; font-weight: 600; }
+        .btn-primary { background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%); border: none; border-radius: 10px; font-weight: 500; padding: 0.75rem 1.5rem; transition: all 0.3s ease; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(0,74,153,0.3); }
+        .btn-success { background: linear-gradient(135deg, var(--secondary-color) 0%, #218838 100%); border: none; border-radius: 10px; font-weight: 500; padding: 0.75rem 1.5rem; transition: all 0.3s ease; }
+        .btn-success:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(40,167,69,0.3); }
+        .stats-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 15px; padding: 2rem; text-align: center; margin-bottom: 1.5rem; }
+        .stats-card h3 { font-size: 2.5rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .stats-card p { font-size: 1.1rem; opacity: 0.9; }
+        .table { background: white; border-radius: 15px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .table thead th { background: var(--primary-color); color: white; border: none; font-weight: 600; padding: 1rem; }
+        .table tbody td { padding: 1rem; border-color: #f1f3f4; }
+        .table tbody tr:hover { background: #f8f9fa; }
+        .page-header { background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%); color: white; padding: 2rem; border-radius: 15px; margin-bottom: 2rem; }
+        .page-header h1 { font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .page-header p { font-size: 1.1rem; opacity: 0.9; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'dashboard' %}">
+                <i class="fas fa-seedling me-2"></i>Monpec Projetista
+            </a>
+            
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="{% url 'proprietarios_lista' %}">
+                    <i class="fas fa-users me-1"></i>Proprietários
+                </a>
+                <a class="nav-link" href="{% url 'propriedades_lista' %}">
+                    <i class="fas fa-home me-1"></i>Propriedades
+                </a>
+                <a class="nav-link" href="{% url 'logout' %}">
+                    <i class="fas fa-sign-out-alt me-1"></i>Sair
+                </a>
+            </div>
+        </div>
+    </nav>
+    
+    <div class="container mt-4">
+        <div class="page-header">
+            <h1>Dashboard Monpec Projetista</h1>
+            <p>Gerencie seus projetos de crédito rural de forma eficiente</p>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-3">
+                <div class="stats-card">
+                    <h3>{{ total_proprietarios }}</h3>
+                    <p>Proprietários</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card">
+                    <h3>{{ total_propriedades }}</h3>
+                    <p>Propriedades</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card">
+                    <h3>{{ total_projetos }}</h3>
+                    <p>Projetos</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card">
+                    <h3>{{ projetos_aprovados }}</h3>
+                    <p>Aprovados</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-plus me-2"></i>Ações Rápidas</h5>
+                    </div>
+                    <div class="card-body">
+                        <a href="{% url 'proprietario_novo' %}" class="btn btn-primary me-2">
+                            <i class="fas fa-user-plus me-1"></i>Novo Proprietário
+                        </a>
+                        <a href="{% url 'propriedades_lista' %}" class="btn btn-success">
+                            <i class="fas fa-home me-1"></i>Ver Propriedades
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-chart-line me-2"></i>Estatísticas</h5>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Total de Proprietários:</strong> {{ total_proprietarios }}</p>
+                        <p><strong>Total de Propriedades:</strong> {{ total_propriedades }}</p>
+                        <p><strong>Total de Projetos:</strong> {{ total_projetos }}</p>
+                        <p><strong>Projetos Aprovados:</strong> {{ projetos_aprovados }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

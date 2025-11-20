@@ -1,0 +1,145 @@
+{% extends "base_navegacao.html" %}
+
+{% block title %}Fluxo de Caixa - Sistema Monpec{% endblock %}
+
+{% block breadcrumbs %}
+<li><a href="{% url 'dashboard' %}">Início</a></li>
+<li class="breadcrumb-separator">›</li>
+<li><a href="{% url 'propriedades_lista' propriedade.produtor_id %}">Propriedades</a></li>
+<li class="breadcrumb-separator">›</li>
+<li><a href="{% url 'financeiro_dashboard' propriedade.id %}">Financeiro</a></li>
+<li class="breadcrumb-separator">›</li>
+<li class="active">Fluxo de Caixa</li>
+{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div class="d-flex justify-content-between align-items-start">
+        <div>
+            <h1 class="page-title">Fluxo de Caixa</h1>
+            <p class="page-subtitle">{{ propriedade.nome }} - Controle de entradas e saídas</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'financeiro_dashboard' propriedade.id %}" class="btn-outline">Voltar</a>
+            <button class="btn-navy">Novo Lançamento</button>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="card-clean mb-4">
+    <div class="row">
+        <div class="col-md-4">
+            <label class="form-label">Período</label>
+            <select class="form-control">
+                <option>Mês Atual</option>
+                <option>Últimos 3 meses</option>
+                <option>Últimos 6 meses</option>
+                <option>Ano Atual</option>
+                <option>Personalizado</option>
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Tipo</label>
+            <select class="form-control">
+                <option value="">Todos</option>
+                <option>Receitas</option>
+                <option>Despesas</option>
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Status</label>
+            <select class="form-control">
+                <option value="">Todos</option>
+                <option>Pago/Recebido</option>
+                <option>Pendente</option>
+            </select>
+        </div>
+    </div>
+</div>
+
+<!-- Resumo -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card-clean text-center">
+            <div class="card-valor-destaque" style="color: #28a745;">R$ {{ total_receitas|default:"0,00" }}</div>
+            <div style="font-size: 12px; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.05em;">
+                Receitas
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card-clean text-center">
+            <div class="card-valor-destaque" style="color: #dc3545;">R$ {{ total_despesas|default:"0,00" }}</div>
+            <div style="font-size: 12px; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.05em;">
+                Despesas
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card-clean text-center">
+            <div class="card-valor-destaque">R$ {{ saldo|default:"0,00" }}</div>
+            <div style="font-size: 12px; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.05em;">
+                Saldo
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Lançamentos -->
+<div class="table-clean">
+    <table class="table mb-0">
+        <thead>
+            <tr>
+                <th>Data</th>
+                <th>Descrição</th>
+                <th>Categoria</th>
+                <th>Tipo</th>
+                <th>Forma</th>
+                <th>Status</th>
+                <th class="text-end">Valor</th>
+                <th class="text-end">Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for lancamento in lancamentos %}
+            <tr>
+                <td>{{ lancamento.data|date:"d/m/Y" }}</td>
+                <td><strong>{{ lancamento.descricao }}</strong></td>
+                <td>{{ lancamento.categoria }}</td>
+                <td>
+                    {% if lancamento.tipo == 'RECEITA' %}
+                    <span class="badge-custom" style="background: #28a745; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 11px;">Receita</span>
+                    {% else %}
+                    <span class="badge-custom" style="background: #dc3545; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 11px;">Despesa</span>
+                    {% endif %}
+                </td>
+                <td>{{ lancamento.forma_pagamento }}</td>
+                <td>
+                    {% if lancamento.pago %}
+                    <span class="badge-destaque">Pago</span>
+                    {% else %}
+                    <span class="badge-custom badge-gray">Pendente</span>
+                    {% endif %}
+                </td>
+                <td class="text-end destaque-valor">R$ {{ lancamento.valor }}</td>
+                <td class="text-end">
+                    <button class="btn-outline" style="padding: 0.35rem 0.75rem; font-size: 12px;">Editar</button>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="8" class="text-center" style="padding: 3rem;">
+                    <div class="card-empty" style="border: none; padding: 2rem;">
+                        <h4 style="color: var(--text-light); font-weight: 400;">Nenhum lançamento no período</h4>
+                        <p style="color: var(--text-light);">Adicione receitas e despesas para visualizar o fluxo</p>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+

@@ -1,23 +1,27 @@
 from django import forms
 from django.core.exceptions import ValidationError
-from .models import CategoriaImobilizado, BemImobilizado
+from .models import Propriedade
+from .models_patrimonio import TipoBem, BemPatrimonial
 
 
-class CategoriaImobilizadoForm(forms.ModelForm):
-    """Formulário para categorias de imobilizado"""
+class TipoBemForm(forms.ModelForm):
+    """Formulário para tipos de bem"""
     
     class Meta:
-        model = CategoriaImobilizado
-        fields = ['nome', 'descricao', 'vida_util_anos', 'taxa_depreciacao']
+        model = TipoBem
+        fields = ['nome', 'categoria', 'descricao', 'vida_util_anos', 'taxa_depreciacao']
         widgets = {
             'nome': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Ex: Máquinas, Veículos, Construções...'
+                'placeholder': 'Ex: Trator, Implemento, Veículo...'
+            }),
+            'categoria': forms.Select(attrs={
+                'class': 'form-control'
             }),
             'descricao': forms.Textarea(attrs={
                 'class': 'form-control',
                 'rows': 3,
-                'placeholder': 'Descrição da categoria...'
+                'placeholder': 'Descrição do tipo de bem...'
             }),
             'vida_util_anos': forms.NumberInput(attrs={
                 'class': 'form-control',
@@ -30,68 +34,34 @@ class CategoriaImobilizadoForm(forms.ModelForm):
                 'min': '0',
                 'max': '100',
                 'placeholder': '10.00'
-            })
+            }),
         }
-    
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Adiciona eventos JavaScript para cálculos automáticos
-        self.fields['vida_util_anos'].widget.attrs['onchange'] = 'calcularTaxaDepreciacao()'
-    
-    def clean_vida_util_anos(self):
-        anos = self.cleaned_data.get('vida_util_anos')
-        if anos is not None and anos <= 0:
-            raise ValidationError('A vida útil deve ser maior que zero.')
-        return anos
     
     def clean_taxa_depreciacao(self):
         taxa = self.cleaned_data.get('taxa_depreciacao')
-        if taxa is not None and (taxa <= 0 or taxa > 100):
+        if taxa and (taxa < 0 or taxa > 100):
             raise ValidationError('A taxa de depreciação deve estar entre 0 e 100%.')
         return taxa
 
 
-class BemImobilizadoForm(forms.ModelForm):
-    """Formulário para bens imobilizados"""
+class BemPatrimonialForm(forms.ModelForm):
+    """Formulário para bens patrimoniais"""
     
     class Meta:
-        model = BemImobilizado
-        fields = [
-            'categoria', 'nome', 'descricao', 'marca', 'modelo', 'numero_serie',
-            'valor_aquisicao', 'valor_residual', 'data_aquisicao', 'data_inicio_depreciacao',
-            'tipo_aquisicao', 'ativo'
-        ]
+        model = BemPatrimonial
+        fields = ['tipo_bem', 'descricao', 'data_aquisicao', 'valor_aquisicao', 
+                 'valor_residual', 'quantidade', 'estado_conservacao', 'observacoes']
         widgets = {
-            'categoria': forms.Select(attrs={
-                'class': 'form-select',
-                'required': True
+            'tipo_bem': forms.Select(attrs={
+                'class': 'form-control'
             }),
-            'nome': forms.TextInput(attrs={
+            'descricao': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Nome do bem...'
+                'placeholder': 'Ex: Trator John Deere 6110J'
             }),
-            'descricao': forms.Textarea(attrs={
+            'data_aquisicao': forms.DateInput(attrs={
                 'class': 'form-control',
-                'rows': 3,
-                'placeholder': 'Descrição detalhada do bem...'
-            }),
-            'valor_aquisicao': forms.NumberInput(attrs={
-                'class': 'form-control',
-                'step': '0.01',
-                'min': '0',
-                'placeholder': '0.00'
-            }),
-            'marca': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Marca do bem...'
-            }),
-            'modelo': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Modelo do bem...'
-            }),
-            'numero_serie': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Número de série...'
+                'type': 'date'
             }),
             'valor_aquisicao': forms.NumberInput(attrs={
                 'class': 'form-control',
@@ -105,56 +75,31 @@ class BemImobilizadoForm(forms.ModelForm):
                 'min': '0',
                 'placeholder': '0.00'
             }),
-            'data_aquisicao': forms.DateInput(attrs={
+            'quantidade': forms.NumberInput(attrs={
                 'class': 'form-control',
-                'type': 'date'
+                'min': '1',
+                'placeholder': '1'
             }),
-            'data_inicio_depreciacao': forms.DateInput(attrs={
+            'estado_conservacao': forms.Select(attrs={
+                'class': 'form-control'
+            }),
+            'observacoes': forms.Textarea(attrs={
                 'class': 'form-control',
-                'type': 'date'
+                'rows': 3,
+                'placeholder': 'Observações adicionais...'
             }),
-            'tipo_aquisicao': forms.Select(attrs={
-                'class': 'form-select'
-            }),
-            'ativo': forms.CheckboxInput(attrs={
-                'class': 'form-check-input'
-            })
         }
-    
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        
-        # Configura data padrão de aquisição para hoje
-        if not self.instance.pk:
-            from datetime import date
-            self.fields['data_aquisicao'].initial = date.today()
-            self.fields['data_inicio_depreciacao'].initial = date.today()
     
     def clean_valor_aquisicao(self):
         valor = self.cleaned_data.get('valor_aquisicao')
-        if valor is not None and valor <= 0:
+        if valor and valor <= 0:
             raise ValidationError('O valor de aquisição deve ser maior que zero.')
         return valor
     
     def clean_valor_residual(self):
-        valor = self.cleaned_data.get('valor_residual')
-        if valor is not None and valor < 0:
-            raise ValidationError('O valor residual não pode ser negativo.')
-        return valor
-    
-    def clean(self):
-        cleaned_data = super().clean()
-        data_aquisicao = cleaned_data.get('data_aquisicao')
-        data_inicio_depreciacao = cleaned_data.get('data_inicio_depreciacao')
-        valor_aquisicao = cleaned_data.get('valor_aquisicao')
-        valor_residual = cleaned_data.get('valor_residual')
+        valor_residual = self.cleaned_data.get('valor_residual')
+        valor_aquisicao = self.cleaned_data.get('valor_aquisicao')
         
-        if data_aquisicao and data_inicio_depreciacao:
-            if data_inicio_depreciacao < data_aquisicao:
-                raise ValidationError('A data de início da depreciação não pode ser anterior à data de aquisição.')
-        
-        if valor_aquisicao and valor_residual:
-            if valor_residual > valor_aquisicao:
-                raise ValidationError('O valor residual não pode ser maior que o valor de aquisição.')
-        
-        return cleaned_data
+        if valor_residual and valor_aquisicao and valor_residual >= valor_aquisicao:
+            raise ValidationError('O valor residual deve ser menor que o valor de aquisição.')
+        return valor_residual

@@ -1,4 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
@@ -7,6 +8,7 @@ from .models import Propriedade, ParametrosVendaPorCategoria, CategoriaAnimal
 from .forms_vendas import ParametrosVendaPorCategoriaForm, BulkVendaPorCategoriaForm
 
 
+@login_required
 def vendas_por_categoria_lista(request, propriedade_id):
     """Lista os parâmetros de venda por categoria"""
     propriedade = get_object_or_404(Propriedade, id=propriedade_id)
@@ -30,6 +32,7 @@ def vendas_por_categoria_lista(request, propriedade_id):
     return render(request, 'gestao_rural/vendas_por_categoria_lista.html', context)
 
 
+@login_required
 def vendas_por_categoria_novo(request, propriedade_id):
     """Adiciona novo parâmetro de venda por categoria"""
     propriedade = get_object_or_404(Propriedade, id=propriedade_id)
@@ -54,6 +57,7 @@ def vendas_por_categoria_novo(request, propriedade_id):
     return render(request, 'gestao_rural/vendas_por_categoria_novo.html', context)
 
 
+@login_required
 def vendas_por_categoria_editar(request, propriedade_id, parametro_id):
     """Edita parâmetro de venda por categoria"""
     propriedade = get_object_or_404(Propriedade, id=propriedade_id)
@@ -77,6 +81,7 @@ def vendas_por_categoria_editar(request, propriedade_id, parametro_id):
     return render(request, 'gestao_rural/vendas_por_categoria_editar.html', context)
 
 
+@login_required
 def vendas_por_categoria_bulk(request, propriedade_id):
     """Configuração em massa de vendas por categoria"""
     propriedade = get_object_or_404(Propriedade, id=propriedade_id)
@@ -123,6 +128,7 @@ def vendas_por_categoria_bulk(request, propriedade_id):
     return render(request, 'gestao_rural/vendas_por_categoria_bulk.html', context)
 
 
+@login_required
 @require_http_methods(["POST"])
 def vendas_por_categoria_excluir(request, propriedade_id, parametro_id):
     """Exclui parâmetro de venda por categoria"""
@@ -136,6 +142,7 @@ def vendas_por_categoria_excluir(request, propriedade_id, parametro_id):
     return redirect('vendas_por_categoria_lista', propriedade_id=propriedade_id)
 
 
+@login_required
 def vendas_por_categoria_toggle_status(request, propriedade_id, parametro_id):
     """Ativa/desativa parâmetro de venda por categoria"""
     propriedade = get_object_or_404(Propriedade, id=propriedade_id)

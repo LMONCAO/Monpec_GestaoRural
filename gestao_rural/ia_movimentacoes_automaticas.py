@@ -44,38 +44,38 @@ class SistemaMovimentacoesAutomaticas:
             # Gerar movimentações mensais
             for mes in range(1, 13):
                 data_referencia = datetime(ano_atual, mes, 15)
+                data_final_mes = datetime(ano_atual, mes, 28)  # Último dia do mês
                 print(f"  📆 Mês {mes:02d}/{ano_atual}")
                 
                 # 1. NASCIMENTOS (baseado em matrizes existentes)
                 nascimentos = self._gerar_nascimentos(propriedade, data_referencia, saldos_iniciais, parametros, perfil)
                 movimentacoes.extend(nascimentos)
                 
-                # 2. EVOLUÇÃO DE IDADE (promoção de categorias)
-                promocoes = self._gerar_evolucao_idade(propriedade, data_referencia, saldos_iniciais, perfil)
-                movimentacoes.extend(promocoes)
-                
-                # 3. MORTES (baseado em mortalidade)
+                # 2. MORTES (baseado em mortalidade)
                 mortes = self._gerar_mortes(propriedade, data_referencia, saldos_iniciais, parametros)
                 movimentacoes.extend(mortes)
                 
-                # 4. VENDAS (baseado no perfil)
+                # 3. VENDAS (baseado no perfil)
                 vendas = self._gerar_vendas_automaticas(propriedade, data_referencia, saldos_iniciais, perfil, identificacao['estrategias'])
                 movimentacoes.extend(vendas)
                 
-                # 5. COMPRAS (baseado no perfil)
+                # 4. COMPRAS (baseado no perfil)
                 compras = self._gerar_compras_automaticas(propriedade, data_referencia, saldos_iniciais, perfil, identificacao['estrategias'])
                 movimentacoes.extend(compras)
                 
-                # 6. TRANSFERÊNCIAS (entre fazendas do mesmo produtor)
+                # 5. TRANSFERÊNCIAS (entre fazendas do mesmo produtor)
                 transferencias = self._gerar_transferencias_automaticas(propriedade, data_referencia, saldos_iniciais, perfil)
                 movimentacoes.extend(transferencias)
                 
-                # Atualizar saldos após as movimentações do mês
-                saldos_iniciais = self._atualizar_saldos_pos_movimentacoes(saldos_iniciais, nascimentos, promocoes, mortes, vendas, compras, transferencias)
-        
-        # Salvar todas as movimentações no banco
-        for movimentacao in movimentacoes:
-            movimentacao.save()
+                # 6. CALCULAR SALDO FINAL APÓS TODAS AS MOVIMENTAÇÕES
+                saldo_final = self._calcular_saldo_final(saldos_iniciais, nascimentos, mortes, vendas, compras, transferencias)
+                
+                # 7. EVOLUÇÃO DE IDADE (PROMOÇÃO) - BASEADA NO SALDO FINAL
+                promocoes = self._gerar_evolucao_idade(propriedade, data_final_mes, saldo_final, perfil)
+                movimentacoes.extend(promocoes)
+                
+                # Atualizar saldos para o próximo mês (após todas as movimentações + evolução)
+                saldos_iniciais = self._atualizar_saldos_pos_movimentacoes(saldo_final, promocoes, [], [], [], [], [])
         
         print(f"\n✅ Total de movimentações geradas: {len(movimentacoes)}")
         return movimentacoes
@@ -96,22 +96,31 @@ class SistemaMovimentacoesAutomaticas:
         """Calcula saldos finais do ano anterior"""
         ano_anterior = datetime.now().year + ano_atual - 1
         
-        # Agrupar movimentações por categoria
-        saldos = defaultdict(int)
+        # Verificar se há movimentações
+        if not movimentacoes:
+            return {}
         
+        # Começar com saldos iniciais do ano anterior
+        from .models import InventarioRebanho
+        propriedade = movimentacoes[0].propriedade
+        
+        # Inicializar saldos com o inventário inicial
+        saldos = defaultdict(int)
+        inventario_items = InventarioRebanho.objects.filter(propriedade=propriedade)
+        for item in inventario_items:
+            saldos[item.categoria.nome] = item.quantidade
+        
+        # Aplicar todas as movimentações até o final do ano anterior
         for mov in movimentacoes:
-            if mov.data_movimentacao.year == ano_anterior:
+            if mov.data_movimentacao.year <= ano_anterior:
                 categoria = mov.categoria.nome
                 
-                if mov.tipo_movimentacao in ['NASCIMENTO', 'COMPRA', 'TRANSFERENCIA_ENTRADA']:
+                if mov.tipo_movimentacao in ['NASCIMENTO', 'COMPRA', 'TRANSFERENCIA_ENTRADA', 'PROMOCAO_ENTRADA']:
                     saldos[categoria] += mov.quantidade
-                elif mov.tipo_movimentacao in ['VENDA', 'MORTE', 'TRANSFERENCIA_SAIDA']:
-                    saldos[categoria] -= mov.quantidade
-                elif mov.tipo_movimentacao == 'PROMOCAO_ENTRADA':
-                    saldos[categoria] += mov.quantidade
-                elif mov.tipo_movimentacao == 'PROMOCAO_SAIDA':
+                elif mov.tipo_movimentacao in ['VENDA', 'MORTE', 'TRANSFERENCIA_SAIDA', 'PROMOCAO_SAIDA']:
                     saldos[categoria] -= mov.quantidade
         
+        print(f"  💾 Saldos calculados para ano {ano_atual} (baseado no ano {ano_anterior}): {dict(saldos)}")
         return dict(saldos)
     
     def _gerar_nascimentos(self, propriedade, data_referencia: datetime, saldos_iniciais: Dict[str, int], parametros, perfil: PerfilFazenda) -> List[MovimentacaoProjetada]:
@@ -162,8 +171,47 @@ class SistemaMovimentacoesAutomaticas:
         
         return nascimentos
     
-    def _gerar_evolucao_idade(self, propriedade, data_referencia: datetime, saldos_iniciais: Dict[str, int], perfil: PerfilFazenda) -> List[MovimentacaoProjetada]:
-        """Gera evolução automática de idade dos animais"""
+    def _calcular_saldo_final(self, saldos_iniciais: Dict[str, int], nascimentos: List, mortes: List, vendas: List, compras: List, transferencias: List) -> Dict[str, int]:
+        """Calcula o saldo final após todas as movimentações do mês (exceto evolução)"""
+        saldo_final = saldos_iniciais.copy()
+        
+        # Aplicar nascimentos
+        for mov in nascimentos:
+            categoria = mov.categoria.nome
+            saldo_final[categoria] = saldo_final.get(categoria, 0) + mov.quantidade
+        
+        # Aplicar mortes
+        for mov in mortes:
+            categoria = mov.categoria.nome
+            saldo_final[categoria] = saldo_final.get(categoria, 0) - mov.quantidade
+        
+        # Aplicar vendas
+        for mov in vendas:
+            categoria = mov.categoria.nome
+            saldo_final[categoria] = saldo_final.get(categoria, 0) - mov.quantidade
+        
+        # Aplicar compras
+        for mov in compras:
+            categoria = mov.categoria.nome
+            saldo_final[categoria] = saldo_final.get(categoria, 0) + mov.quantidade
+        
+        # Aplicar transferências
+        for mov in transferencias:
+            categoria = mov.categoria.nome
+            if mov.tipo_movimentacao == 'TRANSFERENCIA_ENTRADA':
+                saldo_final[categoria] = saldo_final.get(categoria, 0) + mov.quantidade
+            elif mov.tipo_movimentacao == 'TRANSFERENCIA_SAIDA':
+                saldo_final[categoria] = saldo_final.get(categoria, 0) - mov.quantidade
+        
+        # Garantir que não há saldos negativos
+        for categoria in list(saldo_final.keys()):
+            if saldo_final[categoria] < 0:
+                saldo_final[categoria] = 0
+        
+        return saldo_final
+    
+    def _gerar_evolucao_idade(self, propriedade, data_referencia: datetime, saldos_finais: Dict[str, int], perfil: PerfilFazenda) -> List[MovimentacaoProjetada]:
+        """Gera evolução automática de idade dos animais - baseada no SALDO FINAL após todas as movimentações"""
         promocoes = []
         
         # Mapeamento de evolução de idade
@@ -176,7 +224,7 @@ class SistemaMovimentacoesAutomaticas:
         }
         
         for categoria_origem, categoria_destino in evolucoes.items():
-            quantidade_origem = saldos_iniciais.get(categoria_origem, 0)
+            quantidade_origem = saldos_finais.get(categoria_origem, 0)
             
             if quantidade_origem > 0:
                 # Calcular quantos animais evoluem (baseado na idade)
@@ -195,7 +243,7 @@ class SistemaMovimentacoesAutomaticas:
                             tipo_movimentacao='PROMOCAO_SAIDA',
                             categoria=categoria_origem_obj,
                             quantidade=quantidade_evolui,
-                            observacao=f'Evolução de idade - {categoria_origem} → {categoria_destino}'
+                            observacao=f'Evolução de idade - {quantidade_evolui} de {quantidade_origem} animais ({categoria_origem} → {categoria_destino})'
                         ))
                         
                         # Entrada na categoria destino
@@ -205,10 +253,10 @@ class SistemaMovimentacoesAutomaticas:
                             tipo_movimentacao='PROMOCAO_ENTRADA',
                             categoria=categoria_destino_obj,
                             quantidade=quantidade_evolui,
-                            observacao=f'Evolução de idade - {categoria_origem} → {categoria_destino}'
+                            observacao=f'Evolução de idade - {quantidade_evolui} de {quantidade_origem} animais ({categoria_origem} → {categoria_destino})'
                         ))
                         
-                        print(f"    🔄 Evolução: {quantidade_evolui} {categoria_origem} → {categoria_destino}")
+                        print(f"    🔄 Evolução: {quantidade_evolui}/{quantidade_origem} animais {categoria_origem} → {categoria_destino}")
                         
                     except CategoriaAnimal.DoesNotExist:
                         print(f"    ⚠️ Categoria não encontrada: {categoria_origem} ou {categoria_destino}")
@@ -269,10 +317,57 @@ class SistemaMovimentacoesAutomaticas:
         return mortes
     
     def _gerar_vendas_automaticas(self, propriedade, data_referencia: datetime, saldos_iniciais: Dict[str, int], perfil: PerfilFazenda, estrategias: Dict[str, Any]) -> List[MovimentacaoProjetada]:
-        """Gera vendas automáticas baseadas no perfil da fazenda"""
+        """Gera vendas automáticas baseadas nos parâmetros configurados pelo usuário"""
         vendas = []
         
-        estrategias_vendas = estrategias.get('vendas', {})
+        # Buscar políticas de vendas configuradas pelo usuário
+        from .models import PoliticaVendasCategoria
+        politicas_vendas = PoliticaVendasCategoria.objects.filter(propriedade=propriedade)
+        
+        if politicas_vendas.exists():
+            print(f"    💰 Usando políticas de vendas configuradas pelo usuário")
+            for politica in politicas_vendas:
+                categoria_nome = politica.categoria.nome
+                quantidade_disponivel = saldos_iniciais.get(categoria_nome, 0)
+                
+                if quantidade_disponivel > 0 and politica.percentual_venda > 0:
+                    # Calcular quantidade baseada no percentual
+                    quantidade_venda = int(quantidade_disponivel * politica.percentual_venda / 100)
+                    
+                    if quantidade_venda > 0:
+                        # Determinar valor por cabeça
+                        valor_por_cabeca = None
+                        valor_total = None
+                        
+                        if politica.usar_valor_personalizado and politica.valor_por_cabeca_personalizado:
+                            valor_por_cabeca = politica.valor_por_cabeca_personalizado
+                            valor_total = quantidade_venda * valor_por_cabeca
+                        else:
+                            # Usar valor do inventário
+                            inventario_item = InventarioRebanho.objects.filter(
+                                propriedade=propriedade,
+                                categoria=politica.categoria
+                            ).first()
+                            if inventario_item:
+                                valor_por_cabeca = inventario_item.valor_por_cabeca
+                                valor_total = quantidade_venda * valor_por_cabeca
+                        
+                        vendas.append(MovimentacaoProjetada(
+                            propriedade=propriedade,
+                            data_movimentacao=data_referencia,
+                            tipo_movimentacao='VENDA',
+                            categoria=politica.categoria,
+                            quantidade=quantidade_venda,
+                            valor_por_cabeca=valor_por_cabeca,
+                            valor_total=valor_total,
+                            observacao=f'Venda configurada - {categoria_nome} ({politica.percentual_venda}% do rebanho)'
+                        ))
+                        
+                        print(f"    💰 Venda configurada: {quantidade_venda} {categoria_nome} ({politica.percentual_venda}%)")
+        else:
+            # Fallback para estratégias automáticas baseadas no perfil
+            print(f"    💰 Usando estratégias automáticas (perfil: {perfil.value})")
+            estrategias_vendas = estrategias.get('vendas', {})
         
         for categoria, percentual_venda in estrategias_vendas.items():
             quantidade_disponivel = saldos_iniciais.get(categoria, 0)
@@ -295,7 +390,7 @@ class SistemaMovimentacoesAutomaticas:
                                 observacao=f'Venda automática - {categoria} ({percentual_venda*100:.0f}% do rebanho) - Perfil: {perfil.value}'
                             ))
                             
-                            print(f"    💰 Venda: {quantidade_venda} {categoria} ({percentual_venda*100:.0f}%)")
+                                print(f"    💰 Venda automática: {quantidade_venda} {categoria} ({percentual_venda*100:.0f}%)")
                             
                         except CategoriaAnimal.DoesNotExist:
                             print(f"    ⚠️ Categoria não encontrada: {categoria}")
@@ -303,10 +398,52 @@ class SistemaMovimentacoesAutomaticas:
         return vendas
     
     def _gerar_compras_automaticas(self, propriedade, data_referencia: datetime, saldos_iniciais: Dict[str, int], perfil: PerfilFazenda, estrategias: Dict[str, Any]) -> List[MovimentacaoProjetada]:
-        """Gera compras automáticas baseadas no perfil da fazenda"""
+        """Gera compras automáticas baseadas nos parâmetros configurados pelo usuário"""
         compras = []
         
-        estrategias_compras = estrategias.get('compras', {})
+        # Buscar políticas de vendas configuradas pelo usuário para reposição
+        from .models import PoliticaVendasCategoria
+        politicas_vendas = PoliticaVendasCategoria.objects.filter(propriedade=propriedade)
+        
+        if politicas_vendas.exists():
+            print(f"    🛒 Usando políticas de compras configuradas pelo usuário")
+            for politica in politicas_vendas:
+                if politica.reposicao_tipo in ['COMPRA', 'AMBOS'] and politica.quantidade_comprar > 0:
+                    # Verificar se é momento de comprar (baseado na frequência)
+                    if self._verificar_momento_compra(data_referencia, politica.categoria.nome, perfil):
+                        # Determinar valor por cabeça
+                        valor_por_cabeca = None
+                        valor_total = None
+                        
+                        if politica.usar_valor_personalizado and politica.valor_por_cabeca_personalizado:
+                            valor_por_cabeca = politica.valor_por_cabeca_personalizado
+                            valor_total = politica.quantidade_comprar * valor_por_cabeca
+                        else:
+                            # Usar valor do inventário
+                            inventario_item = InventarioRebanho.objects.filter(
+                                propriedade=propriedade,
+                                categoria=politica.categoria
+                            ).first()
+                            if inventario_item:
+                                valor_por_cabeca = inventario_item.valor_por_cabeca
+                                valor_total = politica.quantidade_comprar * valor_por_cabeca
+                        
+                        compras.append(MovimentacaoProjetada(
+                            propriedade=propriedade,
+                            data_movimentacao=data_referencia,
+                            tipo_movimentacao='COMPRA',
+                            categoria=politica.categoria,
+                            quantidade=politica.quantidade_comprar,
+                            valor_por_cabeca=valor_por_cabeca,
+                            valor_total=valor_total,
+                            observacao=f'Compra configurada - {politica.categoria.nome} ({politica.quantidade_comprar} cabeças)'
+                        ))
+                        
+                        print(f"    🛒 Compra configurada: {politica.quantidade_comprar} {politica.categoria.nome}")
+        else:
+            # Fallback para estratégias automáticas baseadas no perfil
+            print(f"    🛒 Usando estratégias automáticas (perfil: {perfil.value})")
+            estrategias_compras = estrategias.get('compras', {})
         
         for categoria, quantidade_compra in estrategias_compras.items():
             # Verificar se é momento de comprar
@@ -323,7 +460,7 @@ class SistemaMovimentacoesAutomaticas:
                         observacao=f'Compra automática - {categoria} ({quantidade_compra} cabeças) - Perfil: {perfil.value}'
                     ))
                     
-                    print(f"    🛒 Compra: {quantidade_compra} {categoria}")
+                        print(f"    🛒 Compra automática: {quantidade_compra} {categoria}")
                     
                 except CategoriaAnimal.DoesNotExist:
                     print(f"    ⚠️ Categoria não encontrada: {categoria}")

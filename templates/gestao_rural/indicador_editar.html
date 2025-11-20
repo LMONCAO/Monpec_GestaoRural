@@ -1,0 +1,38 @@
+{% extends 'gestao_rural/submenu_page_base.html' %}
+
+{% block title %}Editar Indicador - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% with module_name='Análise' module_icon='bi-graph-up-arrow' module_dashboard_url='analise_dashboard' page_icon='bi-pencil-square' page_title='Editar Indicador' %}
+{% endwith %}
+
+{% block page_description %}
+Atualize os dados do indicador selecionado.
+{% endblock %}
+
+{% block page_content %}
+<form method="post" class="content-card">
+    <div class="content-card-header"><strong>Dados do indicador</strong></div>
+    <div class="content-card-body">
+        {% csrf_token %}
+        {{ form.as_p }}
+    </div>
+    <div class="content-card-body pt-0">
+        <button type="submit" class="btn btn-primary"><i class="bi bi-check2"></i> Salvar</button>
+        <a href="{% url 'indicadores_lista' propriedade.id %}" class="btn btn-light">Cancelar</a>
+    </div>
+</form>
+{% endblock %}
+
+
+
+
+
+
+
+
+
+
+
+
+
+

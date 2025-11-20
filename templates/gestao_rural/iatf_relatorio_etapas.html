@@ -1,0 +1,665 @@
+{% extends "base_modulos_unificado.html" %}
+{% load formatacao_br %}
+
+{% block title %}Relatório IATF por Etapas - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    @media print {
+        .no-print {
+            display: none !important;
+        }
+        .table {
+            font-size: 10px;
+        }
+        .card {
+            border: none;
+            box-shadow: none;
+        }
+    }
+    
+    .relatorio-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+    }
+    
+    .etapa-col {
+        min-width: 200px;
+        vertical-align: top;
+    }
+    
+    .etapa-card {
+        background: #f8f9fa;
+        border-left: 4px solid #0d6efd;
+        padding: 0.75rem;
+        border-radius: 4px;
+        margin-bottom: 0.5rem;
+    }
+    
+    .etapa-card.d0 { border-left-color: #0d6efd; }
+    .etapa-card.d8 { border-left-color: #ffc107; }
+    .etapa-card.d10 { border-left-color: #198754; }
+    .etapa-card.diagnostico { border-left-color: #dc3545; }
+    
+    .status-badge {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-3">
+    <!-- Cabeçalho do Relatório -->
+    <div class="relatorio-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h2 class="mb-2">
+                    <i class="bi bi-file-earmark-text me-2"></i>
+                    Relatório de IATF por Etapas
+                </h2>
+                <h4 class="mb-0">{{ propriedade.nome_propriedade }}</h4>
+                <p class="mb-0 mt-2 opacity-75">
+                    <i class="bi bi-geo-alt me-1"></i>
+                    {{ propriedade.municipio }}{% if propriedade.uf %}, {{ propriedade.uf }}{% endif %}
+                </p>
+            </div>
+            <div class="col-md-4 text-end">
+                <div class="bg-white bg-opacity-20 rounded p-3">
+                    <div class="small mb-1">Data do Relatório</div>
+                    <div class="h5 mb-0">{{ "now"|date:"d/m/Y H:i" }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resumo dos Lotes -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-primary">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Total de Lotes</h6>
+                    <h2 class="text-primary mb-0">{{ total_lotes }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-success">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Total de Animais</h6>
+                    <h2 class="text-success mb-0">{{ total_animais|numero_br }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-info">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Prenhezes</h6>
+                    <h2 class="text-info mb-0">{{ total_prenhezes|numero_br }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-warning">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Taxa de Prenhez</h6>
+                    <h2 class="text-warning mb-0">{{ taxa_prenhez_geral|floatformat:1 }}%</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4 no-print">
+        <div class="card-header bg-light">
+            <h6 class="mb-0"><i class="bi bi-funnel me-2"></i>Filtros</h6>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Data Início</label>
+                    <input type="date" name="data_inicio" class="form-control" value="{{ filtros.data_inicio }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Data Fim</label>
+                    <input type="date" name="data_fim" class="form-control" value="{{ filtros.data_fim }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Lote Específico</label>
+                    <select name="lote_id" class="form-select">
+                        <option value="">Todos os lotes</option>
+                        {% for lote in todos_lotes %}
+                        <option value="{{ lote.id }}" {% if filtros.lote_id == lote.id|stringformat:"s" %}selected{% endif %}>
+                            {{ lote.nome_lote }} - {{ lote.data_inicio|date:"d/m/Y" }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-search me-1"></i>Filtrar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Gráficos de Taxa de Prenhez -->
+    <div class="row g-3 mb-4 no-print">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-graph-up-arrow me-2"></i>
+                        Taxa de Prenhez por Lote
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="height: 400px;">
+                        <canvas id="graficoPrenhezLotes"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabela de Etapas -->
+    <div class="card">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="bi bi-table me-2"></i>
+                Detalhamento por Lote e Etapas
+            </h5>
+            <div class="no-print">
+                <a href="{% url 'iatf_relatorio_etapas_pdf' propriedade.id %}?{% if filtros.data_inicio %}data_inicio={{ filtros.data_inicio }}&{% endif %}{% if filtros.data_fim %}data_fim={{ filtros.data_fim }}&{% endif %}{% if filtros.lote_id %}lote_id={{ filtros.lote_id }}{% endif %}" class="btn btn-sm btn-outline-danger">
+                    <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+                </a>
+                <button onclick="window.print()" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-printer me-1"></i>Imprimir
+                </button>
+                <button onclick="exportarExcel()" class="btn btn-sm btn-outline-success">
+                    <i class="bi bi-file-earmark-excel me-1"></i>Excel
+                </button>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover mb-0" id="tabelaRelatorio">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="min-width: 150px;">Lote</th>
+                            <th style="min-width: 120px;">Protocolo</th>
+                            <th style="min-width: 100px;">Data Início</th>
+                            <th style="min-width: 100px;">Animais</th>
+                            <th class="etapa-col">D0 - Início</th>
+                            <th class="etapa-col">D8 - Procedimentos</th>
+                            <th class="etapa-col">D10 - Inseminação</th>
+                            <th class="etapa-col">Diagnóstico</th>
+                            <th style="min-width: 100px;">Resultados</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in dados_tabela %}
+                        <tr>
+                            <!-- Lote -->
+                            <td>
+                                <strong>{{ item.lote.nome_lote }}</strong>
+                                {% if item.lote.touro_semen %}
+                                <br><small class="text-muted">
+                                    <i class="bi bi-bullseye me-1"></i>{{ item.lote.touro_semen.nome }}
+                                </small>
+                                {% endif %}
+                            </td>
+                            
+                            <!-- Protocolo -->
+                            <td>
+                                {{ item.lote.protocolo.nome|default:"-" }}
+                                <br><small class="text-muted">
+                                    <span class="badge bg-secondary status-badge">{{ item.lote.get_status_display }}</span>
+                                </small>
+                            </td>
+                            
+                            <!-- Data Início -->
+                            <td>
+                                {{ item.lote.data_inicio|date:"d/m/Y" }}
+                                {% if item.lote.data_iatf %}
+                                <br><small class="text-muted">IATF: {{ item.lote.data_iatf|date:"d/m/Y" }}</small>
+                                {% endif %}
+                            </td>
+                            
+                            <!-- Animais -->
+                            <td class="text-center">
+                                <strong>{{ item.lote.numero_animais|numero_br }}</strong>
+                            </td>
+                            
+                            <!-- Etapa D0 -->
+                            <td class="etapa-col">
+                                {% if item.etapa_d0 %}
+                                <div class="etapa-card d0">
+                                    <div class="d-flex justify-content-between align-items-start mb-1">
+                                        <strong class="small">D0</strong>
+                                        <span class="badge bg-{% if item.etapa_d0.status == 'CONCLUIDA' %}success{% elif item.etapa_d0.status == 'AGENDADA' %}warning{% else %}secondary{% endif %} status-badge">
+                                            {{ item.etapa_d0.get_status_display }}
+                                        </span>
+                                    </div>
+                                    <div class="small">
+                                        <div><strong>Data:</strong> {{ item.etapa_d0.data_prevista|date:"d/m/Y" }}</div>
+                                        {% if item.etapa_d0.hora_prevista %}
+                                        <div><strong>Hora:</strong> {{ item.etapa_d0.hora_prevista|time:"H:i" }}</div>
+                                        {% endif %}
+                                        {% if item.etapa_d0.medicamento_planejado %}
+                                        <div class="mt-1"><strong>Med:</strong> {{ item.etapa_d0.medicamento_planejado|truncatewords:5 }}</div>
+                                        {% endif %}
+                                        {% if item.etapa_d0.responsavel_planejado %}
+                                        <div class="mt-1"><small><i class="bi bi-person me-1"></i>{{ item.etapa_d0.responsavel_planejado.get_full_name|default:item.etapa_d0.responsavel_planejado.username }}</small></div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            
+                            <!-- Etapa D8 -->
+                            <td class="etapa-col">
+                                {% if item.etapa_d8 %}
+                                <div class="etapa-card d8">
+                                    <div class="d-flex justify-content-between align-items-start mb-1">
+                                        <strong class="small">D{{ item.etapa_d8.dia_relativo }}</strong>
+                                        <span class="badge bg-{% if item.etapa_d8.status == 'CONCLUIDA' %}success{% elif item.etapa_d8.status == 'AGENDADA' %}warning{% else %}secondary{% endif %} status-badge">
+                                            {{ item.etapa_d8.get_status_display }}
+                                        </span>
+                                    </div>
+                                    <div class="small">
+                                        <div><strong>Data:</strong> {{ item.etapa_d8.data_prevista|date:"d/m/Y" }}</div>
+                                        {% if item.etapa_d8.hora_prevista %}
+                                        <div><strong>Hora:</strong> {{ item.etapa_d8.hora_prevista|time:"H:i" }}</div>
+                                        {% endif %}
+                                        {% if item.etapa_d8.medicamento_planejado %}
+                                        <div class="mt-1"><strong>Med:</strong> {{ item.etapa_d8.medicamento_planejado|truncatewords:5 }}</div>
+                                        {% endif %}
+                                        {% if item.etapa_d8.responsavel_planejado %}
+                                        <div class="mt-1"><small><i class="bi bi-person me-1"></i>{{ item.etapa_d8.responsavel_planejado.get_full_name|default:item.etapa_d8.responsavel_planejado.username }}</small></div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            
+                            <!-- Etapa D10 -->
+                            <td class="etapa-col">
+                                {% if item.etapa_d10 %}
+                                <div class="etapa-card d10">
+                                    <div class="d-flex justify-content-between align-items-start mb-1">
+                                        <strong class="small">D{{ item.etapa_d10.dia_relativo }}</strong>
+                                        <span class="badge bg-{% if item.etapa_d10.status == 'CONCLUIDA' %}success{% elif item.etapa_d10.status == 'AGENDADA' %}warning{% else %}secondary{% endif %} status-badge">
+                                            {{ item.etapa_d10.get_status_display }}
+                                        </span>
+                                    </div>
+                                    <div class="small">
+                                        <div><strong>Data:</strong> {{ item.etapa_d10.data_prevista|date:"d/m/Y" }}</div>
+                                        {% if item.etapa_d10.hora_prevista %}
+                                        <div><strong>Hora:</strong> {{ item.etapa_d10.hora_prevista|time:"H:i" }}</div>
+                                        {% endif %}
+                                        {% if item.etapa_d10.medicamento_planejado %}
+                                        <div class="mt-1"><strong>Med:</strong> {{ item.etapa_d10.medicamento_planejado|truncatewords:5 }}</div>
+                                        {% endif %}
+                                        {% if item.etapa_d10.inseminador %}
+                                        <div class="mt-1"><small><i class="bi bi-person-check me-1"></i>{{ item.etapa_d10.inseminador.get_full_name|default:item.etapa_d10.inseminador.username }}</small></div>
+                                        {% elif item.etapa_d10.responsavel_planejado %}
+                                        <div class="mt-1"><small><i class="bi bi-person me-1"></i>{{ item.etapa_d10.responsavel_planejado.get_full_name|default:item.etapa_d10.responsavel_planejado.username }}</small></div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            
+                            <!-- Diagnóstico -->
+                            <td class="etapa-col">
+                                {% if item.diagnosticos %}
+                                {% for diag in item.diagnosticos %}
+                                <div class="etapa-card diagnostico mb-2">
+                                    <div class="small">
+                                        <div><strong>Data:</strong> {{ diag.data|date:"d/m/Y" }}</div>
+                                        <div class="mt-1">
+                                            <span class="badge bg-{% if diag.resultado == 'Prenhez Confirmada' %}success{% elif diag.resultado == 'Vazia' %}danger{% else %}warning{% endif %}">
+                                                {{ diag.resultado }}
+                                            </span>
+                                        </div>
+                                        {% if diag.dias_gestacao %}
+                                        <div class="mt-1"><small><strong>Gest:</strong> {{ diag.dias_gestacao }} dias</small></div>
+                                        {% endif %}
+                                        {% if diag.veterinario %}
+                                        <div class="mt-1"><small><i class="bi bi-person-badge me-1"></i>{{ diag.veterinario }}</small></div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% endfor %}
+                                {% else %}
+                                <span class="text-muted">Sem diagnóstico</span>
+                                {% endif %}
+                            </td>
+                            
+                            <!-- Resultados -->
+                            <td class="text-center">
+                                <div class="mb-1">
+                                    <strong class="text-success">{{ item.prenhezes }}</strong>
+                                    <small class="text-muted">/ {{ item.total_iatfs }}</small>
+                                </div>
+                                <div>
+                                    <span class="badge bg-{% if item.taxa_prenhez >= 50 %}success{% elif item.taxa_prenhez >= 30 %}warning{% else %}danger{% endif %}">
+                                        {{ item.taxa_prenhez|floatformat:1 }}%
+                                    </span>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center text-muted py-5">
+                                <i class="bi bi-inbox fs-1 d-block mb-2 opacity-50"></i>
+                                Nenhum lote encontrado com os filtros aplicados
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<script>
+// Gráfico de Taxa de Prenhez por Lote
+document.addEventListener('DOMContentLoaded', function() {
+    const ctxPrenhez = document.getElementById('graficoPrenhezLotes');
+    if (ctxPrenhez && typeof Chart !== 'undefined') {
+        const lotesNomes = [
+            {% for item in dados_tabela %}
+            '{{ item.lote.nome_lote|truncatewords:3 }}',
+            {% endfor %}
+        ];
+        const taxasPrenhez = [
+            {% for item in dados_tabela %}
+            {{ item.taxa_prenhez|floatformat:2 }},
+            {% endfor %}
+        ];
+        const prenhezes = [
+            {% for item in dados_tabela %}
+            {{ item.prenhezes }},
+            {% endfor %}
+        ];
+        const totalIATFs = [
+            {% for item in dados_tabela %}
+            {{ item.total_iatfs }},
+            {% endfor %}
+        ];
+        
+        new Chart(ctxPrenhez, {
+            type: 'bar',
+            data: {
+                labels: lotesNomes,
+                datasets: [{
+                    label: 'Taxa de Prenhez (%)',
+                    data: taxasPrenhez,
+                    backgroundColor: taxasPrenhez.map(t => 
+                        t >= 50 ? 'rgba(34, 197, 94, 0.8)' : 
+                        t >= 30 ? 'rgba(250, 204, 21, 0.8)' : 
+                        'rgba(239, 68, 68, 0.8)'
+                    ),
+                    borderColor: taxasPrenhez.map(t => 
+                        t >= 50 ? 'rgb(34, 197, 94)' : 
+                        t >= 30 ? 'rgb(250, 204, 21)' : 
+                        'rgb(239, 68, 68)'
+                    ),
+                    borderWidth: 2,
+                    yAxisID: 'y'
+                }, {
+                    label: 'Prenhezes',
+                    data: prenhezes,
+                    type: 'line',
+                    borderColor: 'rgb(102, 126, 234)',
+                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    yAxisID: 'y1'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            afterLabel: function(context) {
+                                const index = context.dataIndex;
+                                return `Prenhezes: ${prenhezes[index]} / Total: ${totalIATFs[index]}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: 'Taxa de Prenhez (%)'
+                        },
+                        min: 0,
+                        max: 100,
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        title: {
+                            display: true,
+                            text: 'Quantidade de Prenhezes'
+                        },
+                        grid: {
+                            drawOnChartArea: false
+                        }
+                    }
+                }
+            }
+        });
+    }
+});
+
+// Função melhorada para exportar Excel com formatação
+function exportarExcel() {
+    if (typeof XLSX === 'undefined') {
+        alert('Biblioteca XLSX não carregada. Aguarde um momento e tente novamente.');
+        return;
+    }
+    
+    // Criar workbook
+    const wb = XLSX.utils.book_new();
+    
+    // ===== ABA 1: RELATÓRIO DETALHADO =====
+    const dadosRelatorio = [];
+    
+    // Cabeçalho do relatório
+    dadosRelatorio.push(['RELATÓRIO DE IATF POR ETAPAS']);
+    dadosRelatorio.push(['Fazenda:', '{{ propriedade.nome_propriedade }}']);
+    dadosRelatorio.push(['Localização:', '{{ propriedade.municipio }}{% if propriedade.estado %}, {{ propriedade.estado }}{% endif %}']);
+    dadosRelatorio.push(['Data do Relatório:', '{{ "now"|date:"d/m/Y H:i" }}']);
+    dadosRelatorio.push(['']);
+    dadosRelatorio.push(['RESUMO GERAL']);
+    dadosRelatorio.push(['Total de Lotes:', {{ total_lotes }}]);
+    dadosRelatorio.push(['Total de Animais:', {{ total_animais }}]);
+    dadosRelatorio.push(['Total de Prenhezes:', {{ total_prenhezes }}]);
+    dadosRelatorio.push(['Taxa de Prenhez Geral:', '{{ taxa_prenhez_geral|floatformat:1 }}%']);
+    dadosRelatorio.push(['']);
+    dadosRelatorio.push(['']);
+    
+    // Cabeçalho da tabela
+    dadosRelatorio.push([
+        'Lote', 'Protocolo', 'Status', 'Data Início', 'Data IATF', 'Animais',
+        'D0 - Data', 'D0 - Hora', 'D0 - Medicamento', 'D0 - Responsável', 'D0 - Status',
+        'D8 - Data', 'D8 - Hora', 'D8 - Medicamento', 'D8 - Responsável', 'D8 - Status',
+        'D10 - Data', 'D10 - Hora', 'D10 - Medicamento', 'D10 - Inseminador', 'D10 - Status',
+        'Diagnóstico - Data', 'Diagnóstico - Resultado', 'Diagnóstico - Dias Gestação', 'Diagnóstico - Veterinário',
+        'Prenhezes', 'Total IATFs', 'Taxa Prenhez (%)'
+    ]);
+    
+    // Dados da tabela
+    {% for item in dados_tabela %}
+    dadosRelatorio.push([
+        '{{ item.lote.nome_lote }}',
+        '{{ item.lote.protocolo.nome|default:"-" }}',
+        '{{ item.lote.get_status_display }}',
+        '{{ item.lote.data_inicio|date:"d/m/Y" }}',
+        '{% if item.lote.data_iatf %}{{ item.lote.data_iatf|date:"d/m/Y" }}{% else %}-{% endif %}',
+        {{ item.lote.numero_animais }},
+        '{% if item.etapa_d0 %}{{ item.etapa_d0.data_prevista|date:"d/m/Y" }}{% else %}-{% endif %}',
+        '{% if item.etapa_d0 and item.etapa_d0.hora_prevista %}{{ item.etapa_d0.hora_prevista|time:"H:i" }}{% else %}-{% endif %}',
+        '{% if item.etapa_d0 %}{{ item.etapa_d0.medicamento_planejado|default:"-" }}{% else %}-{% endif %}',
+        '{% if item.etapa_d0 and item.etapa_d0.responsavel_planejado %}{{ item.etapa_d0.responsavel_planejado.get_full_name|default:item.etapa_d0.responsavel_planejado.username }}{% else %}-{% endif %}',
+        '{% if item.etapa_d0 %}{{ item.etapa_d0.get_status_display }}{% else %}-{% endif %}',
+        '{% if item.etapa_d8 %}{{ item.etapa_d8.data_prevista|date:"d/m/Y" }}{% else %}-{% endif %}',
+        '{% if item.etapa_d8 and item.etapa_d8.hora_prevista %}{{ item.etapa_d8.hora_prevista|time:"H:i" }}{% else %}-{% endif %}',
+        '{% if item.etapa_d8 %}{{ item.etapa_d8.medicamento_planejado|default:"-" }}{% else %}-{% endif %}',
+        '{% if item.etapa_d8 and item.etapa_d8.responsavel_planejado %}{{ item.etapa_d8.responsavel_planejado.get_full_name|default:item.etapa_d8.responsavel_planejado.username }}{% else %}-{% endif %}',
+        '{% if item.etapa_d8 %}{{ item.etapa_d8.get_status_display }}{% else %}-{% endif %}',
+        '{% if item.etapa_d10 %}{{ item.etapa_d10.data_prevista|date:"d/m/Y" }}{% else %}-{% endif %}',
+        '{% if item.etapa_d10 and item.etapa_d10.hora_prevista %}{{ item.etapa_d10.hora_prevista|time:"H:i" }}{% else %}-{% endif %}',
+        '{% if item.etapa_d10 %}{{ item.etapa_d10.medicamento_planejado|default:"-" }}{% else %}-{% endif %}',
+        '{% if item.etapa_d10 and item.etapa_d10.inseminador %}{{ item.etapa_d10.inseminador.get_full_name|default:item.etapa_d10.inseminador.username }}{% elif item.etapa_d10 and item.etapa_d10.responsavel_planejado %}{{ item.etapa_d10.responsavel_planejado.get_full_name|default:item.etapa_d10.responsavel_planejado.username }}{% else %}-{% endif %}',
+        '{% if item.etapa_d10 %}{{ item.etapa_d10.get_status_display }}{% else %}-{% endif %}',
+        '{% if item.diagnosticos %}{% for diag in item.diagnosticos %}{{ diag.data|date:"d/m/Y" }}{% if not forloop.last %}; {% endif %}{% endfor %}{% else %}-{% endif %}',
+        '{% if item.diagnosticos %}{% for diag in item.diagnosticos %}{{ diag.resultado }}{% if not forloop.last %}; {% endif %}{% endfor %}{% else %}-{% endif %}',
+        '{% if item.diagnosticos %}{% for diag in item.diagnosticos %}{{ diag.dias_gestacao|default:"-" }}{% if not forloop.last %}; {% endif %}{% endfor %}{% else %}-{% endif %}',
+        '{% if item.diagnosticos %}{% for diag in item.diagnosticos %}{{ diag.veterinario }}{% if not forloop.last %}; {% endif %}{% endfor %}{% else %}-{% endif %}',
+        {{ item.prenhezes }},
+        {{ item.total_iatfs }},
+        {{ item.taxa_prenhez|floatformat:2 }}
+    ]);
+    {% endfor %}
+    
+    const wsRelatorio = XLSX.utils.aoa_to_sheet(dadosRelatorio);
+    
+    // Formatação do cabeçalho
+    const range = XLSX.utils.decode_range(wsRelatorio['!ref']);
+    
+    // Estilizar título
+    if (!wsRelatorio['!merges']) wsRelatorio['!merges'] = [];
+    wsRelatorio['!merges'].push({s: {r: 0, c: 0}, e: {r: 0, c: range.e.c}});
+    
+    // Definir larguras das colunas
+    wsRelatorio['!cols'] = [
+        {wch: 25}, {wch: 20}, {wch: 15}, {wch: 12}, {wch: 12}, {wch: 10},
+        {wch: 12}, {wch: 8}, {wch: 25}, {wch: 20}, {wch: 12},
+        {wch: 12}, {wch: 8}, {wch: 25}, {wch: 20}, {wch: 12},
+        {wch: 12}, {wch: 8}, {wch: 25}, {wch: 20}, {wch: 12},
+        {wch: 15}, {wch: 20}, {wch: 15}, {wch: 20},
+        {wch: 12}, {wch: 12}, {wch: 15}
+    ];
+    
+    // Adicionar formatação básica (título em negrito)
+    for (let R = 0; R <= 10; ++R) {
+        for (let C = 0; C <= range.e.c; ++C) {
+            const cell_address = XLSX.utils.encode_cell({c: C, r: R});
+            if (!wsRelatorio[cell_address]) continue;
+            if (R === 0) {
+                wsRelatorio[cell_address].s = {
+                    font: {bold: true, sz: 16},
+                    alignment: {horizontal: 'center', vertical: 'center'}
+                };
+            } else if (R >= 1 && R <= 10) {
+                wsRelatorio[cell_address].s = {
+                    font: {bold: true}
+                };
+            } else if (R === 12) { // Cabeçalho da tabela
+                wsRelatorio[cell_address].s = {
+                    font: {bold: true, color: {rgb: "FFFFFF"}},
+                    fill: {fgColor: {rgb: "4472C4"}},
+                    alignment: {horizontal: 'center', vertical: 'center', wrapText: true}
+                };
+            }
+        }
+    }
+    
+    XLSX.utils.book_append_sheet(wb, wsRelatorio, "Relatório Detalhado");
+    
+    // ===== ABA 2: RESUMO POR LOTE =====
+    const dadosResumo = [];
+    dadosResumo.push(['RESUMO POR LOTE']);
+    dadosResumo.push(['']);
+    dadosResumo.push(['Lote', 'Protocolo', 'Data Início', 'Animais', 'Prenhezes', 'Total IATFs', 'Taxa Prenhez (%)']);
+    
+    {% for item in dados_tabela %}
+    dadosResumo.push([
+        '{{ item.lote.nome_lote }}',
+        '{{ item.lote.protocolo.nome|default:"-" }}',
+        '{{ item.lote.data_inicio|date:"d/m/Y" }}',
+        {{ item.lote.numero_animais }},
+        {{ item.prenhezes }},
+        {{ item.total_iatfs }},
+        {{ item.taxa_prenhez|floatformat:2 }}
+    ]);
+    {% endfor %}
+    
+    const wsResumo = XLSX.utils.aoa_to_sheet(dadosResumo);
+    wsResumo['!cols'] = [
+        {wch: 30}, {wch: 20}, {wch: 12}, {wch: 10}, {wch: 12}, {wch: 12}, {wch: 15}
+    ];
+    
+    // Formatar cabeçalho do resumo
+    const rangeResumo = XLSX.utils.decode_range(wsResumo['!ref']);
+    for (let C = 0; C <= rangeResumo.e.c; ++C) {
+        const cell_address = XLSX.utils.encode_cell({c: C, r: 2});
+        if (wsResumo[cell_address]) {
+            wsResumo[cell_address].s = {
+                font: {bold: true, color: {rgb: "FFFFFF"}},
+                fill: {fgColor: {rgb: "70AD47"}},
+                alignment: {horizontal: 'center', vertical: 'center'}
+            };
+        }
+    }
+    
+    XLSX.utils.book_append_sheet(wb, wsResumo, "Resumo");
+    
+    // Exportar
+    const nomeArquivo = 'Relatorio_IATF_Etapas_{{ propriedade.nome_propriedade|slugify }}_{{ "now"|date:"Ymd" }}.xlsx';
+    XLSX.writeFile(wb, nomeArquivo);
+}
+
+// Carregar biblioteca XLSX se não estiver disponível
+if (typeof XLSX === 'undefined') {
+    const script = document.createElement('script');
+    script.src = 'https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js';
+    script.onload = function() {
+        console.log('Biblioteca XLSX carregada');
+    };
+    document.head.appendChild(script);
+}
+</script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+{% endblock %}
+

@@ -1,0 +1,54 @@
+# === SOLUÇÃO DE EMERGÊNCIA - RECRIAR TUDO ===
+# Use apenas se o diagnóstico mostrar que há muitos problemas
+
+echo "=== PARANDO TUDO ==="
+pkill -9 python
+systemctl stop nginx
+
+echo "=== INDO PARA DIRETÓRIO ==="
+cd /var/www/monpec.com.br
+
+echo "=== FAZENDO BACKUP COMPLETO ==="
+cp -r gestao_rural gestao_rural.backup.$(date +%H%M%S)
+
+echo "=== RECRIANDO URLS.PY BÁSICO ==="
+cat > gestao_rural/urls.py << 'EOF'
+from django.urls import path
+from . import views
+
+app_name = 'gestao_rural'
+
+urlpatterns = [
+    path('', views.dashboard, name='dashboard'),
+]
+EOF
+
+echo "=== RECRIANDO VIEWS.PY MÍNIMO ==="
+cat > gestao_rural/views.py << 'EOF'
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse
+
+@login_required
+def dashboard(request):
+    return HttpResponse("<h1>Sistema MonPec funcionando!</h1><p>Dashboard básico carregado com sucesso.</p>")
+EOF
+
+echo "=== TESTANDO ==="
+python manage.py check
+
+echo "=== COLETANDO ARQUIVOS ESTÁTICOS ==="
+python manage.py collectstatic --noinput
+
+echo "=== INICIANDO NGINX ==="
+systemctl start nginx
+
+echo "=== INICIANDO DJANGO ==="
+source venv/bin/activate
+nohup python manage.py runserver 127.0.0.1:8000 > /tmp/django.log 2>&1 &
+
+echo "=== TESTANDO FINAL ==="
+sleep 5
+curl -I http://monpec.com.br/
+
+echo "=== SE FUNCIONOU, AGORA PODEMOS RESTAURAR GRADUALMENTE ==="

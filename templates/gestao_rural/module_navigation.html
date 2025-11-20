@@ -1,0 +1,383 @@
+<!-- Template de Navegação por Módulos -->
+<div class="module-navigation-container">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb-moderno">
+            <li class="breadcrumb-item">
+                <a href="{% url 'dashboard' %}">
+                    <i class="bi bi-house me-1"></i>Dashboard
+                </a>
+            </li>
+            <li class="breadcrumb-item">
+                <a href="{% url 'propriedades_lista' propriedade.produtor.id %}">
+                    <i class="bi bi-building me-1"></i>Propriedades
+                </a>
+            </li>
+            <li class="breadcrumb-item">
+                <a href="{% url 'propriedade_modulos' propriedade.id %}">
+                    <i class="bi bi-grid-3x3-gap me-1"></i>Módulos
+                </a>
+            </li>
+            <li class="breadcrumb-item active">
+                <i class="bi bi-cow me-1"></i>{{ module_name|default:"Pecuária" }}
+            </li>
+        </ol>
+    </nav>
+
+    <!-- Navegação por Abas do Módulo -->
+    <div class="module-tabs-container">
+        <div class="module-tabs">
+            {% if module_name == "Pecuária" %}
+                <a href="{% url 'pecuaria_dashboard' propriedade.id %}" 
+                   class="module-tab {% if current_page == 'dashboard' %}active{% endif %}">
+                    <div class="tab-icon">
+                        <i class="bi bi-speedometer2"></i>
+                    </div>
+                    <div class="tab-content">
+                        <span class="tab-title">Dashboard</span>
+                        <span class="tab-subtitle">Visão Geral</span>
+                    </div>
+                </a>
+                
+                <a href="{% url 'pecuaria_inventario' propriedade.id %}" 
+                   class="module-tab {% if current_page == 'inventario' %}active{% endif %}">
+                    <div class="tab-icon">
+                        <i class="bi bi-clipboard-data"></i>
+                    </div>
+                    <div class="tab-content">
+                        <span class="tab-title">Saldo do Rebanho</span>
+                        <span class="tab-subtitle">Cadastro de Animais</span>
+                    </div>
+                </a>
+                
+                <a href="{% url 'pecuaria_parametros' propriedade.id %}" 
+                   class="module-tab {% if current_page == 'parametros' %}active{% endif %}">
+                    <div class="tab-icon">
+                        <i class="bi bi-gear"></i>
+                    </div>
+                    <div class="tab-content">
+                        <span class="tab-title">Parâmetros</span>
+                        <span class="tab-subtitle">Configurações</span>
+                    </div>
+                </a>
+                
+                <a href="{% url 'pecuaria_projecao' propriedade.id %}" 
+                   class="module-tab {% if current_page == 'projecao' %}active{% endif %}">
+                    <div class="tab-icon">
+                        <i class="bi bi-graph-up"></i>
+                    </div>
+                    <div class="tab-content">
+                        <span class="tab-title">Projeções</span>
+                        <span class="tab-subtitle">Análises</span>
+                    </div>
+                </a>
+                
+                <a href="{% url 'pecuaria_planejamento_dashboard' propriedade.id %}" 
+                   class="module-tab {% if current_page == 'planejamento' %}active{% endif %}">
+                    <div class="tab-icon">
+                        <i class="bi bi-calendar3-range"></i>
+                    </div>
+                    <div class="tab-content">
+                        <span class="tab-title">Planejamento</span>
+                        <span class="tab-subtitle">Metas e Ações</span>
+                    </div>
+                </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Informações da Propriedade -->
+    <div class="property-info">
+        <div class="property-header">
+            <div class="property-icon">
+                <i class="bi bi-house"></i>
+            </div>
+            <div class="property-details">
+                <h3 class="property-name">{{ propriedade.nome_propriedade }}</h3>
+                <p class="property-location">
+                    <i class="bi bi-geo-alt me-1"></i>{{ propriedade.municipio }}/{{ propriedade.uf }}
+                </p>
+            </div>
+            <div class="property-actions">
+                <a href="{% url 'propriedade_modulos' propriedade.id %}" class="btn-moderno btn-outline">
+                    <i class="bi bi-arrow-left me-1"></i>Voltar aos Módulos
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Container Principal */
+.module-navigation-container {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    border: 1px solid #e5e7eb;
+}
+
+/* Breadcrumb Moderno */
+.breadcrumb-moderno {
+    background: transparent;
+    padding: 0;
+    margin: 0;
+    font-size: 0.875rem;
+}
+
+.breadcrumb-moderno .breadcrumb-item {
+    display: flex;
+    align-items: center;
+}
+
+.breadcrumb-moderno .breadcrumb-item a {
+    color: #6b7280;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+
+.breadcrumb-moderno .breadcrumb-item a:hover {
+    color: #6495ed;
+}
+
+.breadcrumb-moderno .breadcrumb-item.active {
+    color: #1f2937;
+    font-weight: 600;
+}
+
+.breadcrumb-moderno .breadcrumb-item + .breadcrumb-item::before {
+    content: "›";
+    color: #9ca3af;
+    margin: 0 0.5rem;
+    font-weight: 600;
+}
+
+/* Container das Abas */
+.module-tabs-container {
+    margin: 1.5rem 0;
+}
+
+.module-tabs {
+    display: flex;
+    gap: 0.5rem;
+    background: #f8fafc;
+    padding: 0.5rem;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+}
+
+/* Abas do Módulo */
+.module-tab {
+    display: flex;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    background: transparent;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    flex: 1;
+    min-width: 0;
+}
+
+.module-tab:hover {
+    background: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
+}
+
+.module-tab.active {
+    background: linear-gradient(135deg, #8cb5ff 0%, #6495ed 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(100, 149, 237, 0.3);
+}
+
+.module-tab.active:hover {
+    background: linear-gradient(135deg, #6495ed 0%, #3d6fd8 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(100, 149, 237, 0.4);
+}
+
+.module-tab .tab-icon {
+    width: 40px;
+    height: 40px;
+    background: rgba(100, 149, 237, 0.12);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+    font-size: 1.25rem;
+    color: #6495ed;
+    transition: all 0.3s ease;
+}
+
+.module-tab.active .tab-icon {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+.tab-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.tab-title {
+    display: block;
+    font-weight: 600;
+    font-size: 1rem;
+    margin-bottom: 0.25rem;
+    color: #1f2937;
+}
+
+.module-tab.active .tab-title {
+    color: white;
+}
+
+.tab-subtitle {
+    display: block;
+    font-size: 0.75rem;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+.module-tab.active .tab-subtitle {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* Informações da Propriedade */
+.property-info {
+    border-top: 1px solid #e5e7eb;
+    padding-top: 1.5rem;
+}
+
+.property-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.property-icon {
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, #8cb5ff 0%, #6495ed 100%);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+    box-shadow: 0 2px 8px rgba(100, 149, 237, 0.3);
+}
+
+.property-details {
+    flex: 1;
+}
+
+.property-name {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0 0 0.25rem 0;
+    letter-spacing: -0.025em;
+}
+
+.property-location {
+    color: #6b7280;
+    font-size: 0.875rem;
+    margin: 0;
+    font-weight: 500;
+}
+
+.property-actions {
+    display: flex;
+    gap: 0.75rem;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .module-navigation-container {
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .module-tabs {
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+    
+    .module-tab {
+        padding: 0.75rem 1rem;
+        flex-direction: row;
+        align-items: center;
+    }
+    
+    .tab-icon {
+        width: 35px;
+        height: 35px;
+        font-size: 1.1rem;
+        margin-right: 0.75rem;
+    }
+    
+    .tab-title {
+        font-size: 0.9rem;
+    }
+    
+    .tab-subtitle {
+        font-size: 0.7rem;
+    }
+    
+    .property-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+    
+    .property-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 1.25rem;
+    }
+    
+    .property-name {
+        font-size: 1.25rem;
+    }
+    
+    .property-actions {
+        width: 100%;
+        justify-content: stretch;
+    }
+    
+    .property-actions .btn-moderno {
+        flex: 1;
+        text-align: center;
+    }
+}
+
+@media (max-width: 576px) {
+    .module-tabs {
+        padding: 0.25rem;
+    }
+    
+    .module-tab {
+        padding: 0.5rem 0.75rem;
+    }
+    
+    .tab-icon {
+        width: 30px;
+        height: 30px;
+        font-size: 1rem;
+        margin-right: 0.5rem;
+    }
+    
+    .tab-title {
+        font-size: 0.8rem;
+    }
+    
+    .tab-subtitle {
+        font-size: 0.65rem;
+    }
+}
+</style>
+

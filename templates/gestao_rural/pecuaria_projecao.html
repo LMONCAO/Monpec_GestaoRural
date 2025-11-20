@@ -1,1316 +1,372 @@
-{% extends 'base.html' %}
+{% extends 'base_modulos_unificado.html' %}
+{% load static %}
+{% load formatacao_br %}
 
-{% block title %}Projeção - {{ propriedade.nome_propriedade }}{% endblock %}
+{% block title %}Projeções - {{ propriedade.nome_propriedade }}{% endblock %}
 
-{% block page_title %}Projeção do Rebanho{% endblock %}
+{% block breadcrumb_extra %}
+    <li class="breadcrumb-item">
+        <a href="{% url 'pecuaria_dashboard' propriedade.id %}">
+            <i class="bi bi-cow"></i> Pecuária
+        </a>
+    </li>
+    <li class="breadcrumb-item active">
+        <i class="bi bi-graph-up-arrow"></i> Projeções
+    </li>
+{% endblock %}
 
 {% block content %}
-<style>
-/* Estilos para os botões de exportação */
-.btn-export {
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
+<div class="container-fluid px-4 py-3">
+    <!-- Cabeçalho -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-1 fw-bold">
+                <i class="bi bi-graph-up-arrow text-primary me-2"></i>
+                Projeções do Rebanho
+            </h1>
+            <p class="text-muted mb-0">
+                Análise e projeção de crescimento do rebanho ao longo dos anos
+            </p>
+        </div>
+        <div class="text-end">
+            {% if estatisticas.tem_projecao %}
+            <span class="badge bg-success fs-6 px-3 py-2">
+                <i class="bi bi-check-circle me-1"></i>
+                Projeção Ativa
+            </span>
+            {% else %}
+            <span class="badge bg-warning fs-6 px-3 py-2">
+                <i class="bi bi-exclamation-triangle me-1"></i>
+                Sem Projeção
+            </span>
+            {% endif %}
+        </div>
+    </div>
 
-.btn-export:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-}
-
-.dropdown-menu {
-    border: none;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    border-radius: 8px;
-}
-
-.dropdown-item {
-    padding: 8px 16px;
-    transition: all 0.2s ease;
-}
-
-.dropdown-item:hover {
-    background-color: rgba(0,123,255,0.1);
-    color: #007bff;
-}
-
-/* Estilos para campos de valor */
-.valor-unitario {
-    border: 2px solid #e9ecef;
-    border-radius: 6px;
-    transition: all 0.3s ease;
-}
-
-.valor-unitario:focus {
-    border-color: #1e3a8a;
-    box-shadow: 0 0 0 0.2rem rgba(30, 58, 138, 0.25);
-    outline: none;
-}
-
-.valor-total {
-    font-weight: bold;
-    color: #1e3a8a;
-    background: rgba(30, 58, 138, 0.1);
-    padding: 4px 8px;
-    border-radius: 4px;
-    display: inline-block;
-    min-width: 80px;
-}
-
-/* Estilos para impressão */
-@media print {
-    .btn-export, .btn-group, .d-flex.gap-2 {
-        display: none !important;
-    }
-    
-    .card {
-        break-inside: avoid;
-        margin-bottom: 20px;
-    }
-    
-    .table {
-        font-size: 12px;
-    }
-    
-    .valor-unitario {
-        border: 1px solid #000;
-        background: transparent;
-    }
-}
-</style>
-
-<div class="row">
-    <div class="col-12">
-        <div class="d-flex justify-content-between align-items-center mb-4">
+    <!-- Alertas de validação -->
+    {% if not inventario %}
+    <div class="alert alert-warning border-0 shadow-sm mb-4">
+        <div class="d-flex align-items-center">
+            <i class="bi bi-exclamation-triangle-fill me-3 fs-4"></i>
             <div>
-                <h2><i class="bi bi-graph-up"></i> Projeção do Rebanho</h2>
-                <p class="text-muted">Propriedade: {{ propriedade.nome_propriedade }}</p>
-            </div>
-            <div class="d-flex gap-2">
-                <!-- Botões de Exportação -->
-                <div class="btn-group" role="group">
-                    <button type="button" class="btn btn-success btn-export dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="bi bi-file-earmark-spreadsheet"></i> Exportar Planilhas
-                    </button>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="#" onclick="exportarExcel()">
-                            <i class="bi bi-file-earmark-excel text-success"></i> Excel (.xlsx)
-                        </a></li>
-                        <li><a class="dropdown-item" href="#" onclick="exportarCSV()">
-                            <i class="bi bi-file-earmark-text text-info"></i> CSV (.csv)
-                        </a></li>
-                    </ul>
-                </div>
-                
-                <button type="button" class="btn btn-danger btn-export" onclick="exportarPDF()">
-                    <i class="bi bi-file-earmark-pdf"></i> Exportar PDF
-                </button>
-                
-                <button type="button" class="btn btn-warning btn-export" onclick="imprimirProjecao()">
-                    <i class="bi bi-printer"></i> Imprimir
-                </button>
-                
-                <button type="button" class="btn btn-primary btn-export" onclick="salvarProjecao()">
-                    <i class="bi bi-save"></i> Salvar Projeção
-                </button>
-                
-                <a href="{% url 'pecuaria_dashboard' propriedade.id %}" class="btn btn-secondary">
-                    <i class="bi bi-arrow-left"></i> Voltar
+                <strong>Inventário não cadastrado</strong>
+                <p class="mb-0">É necessário cadastrar o inventário inicial antes de gerar projeções.</p>
+                <a href="{% url 'pecuaria_inventario' propriedade.id %}" class="btn btn-sm btn-warning mt-2">
+                    Cadastrar Inventário
                 </a>
             </div>
         </div>
-        
-        <!-- Gerar Projeção -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0">Gerar Nova Projeção</h5>
-            </div>
-            <div class="card-body">
-                <form method="post">
-                    {% csrf_token %}
-                    <div class="row">
-                        <div class="col-md-6">
-                            <label for="anos_projecao" class="form-label">Anos de Projeção</label>
-                            <select class="form-select" id="anos_projecao" name="anos_projecao" required>
-                                <option value="1">1 ano</option>
-                                <option value="2">2 anos</option>
-                                <option value="3">3 anos</option>
-                                <option value="4">4 anos</option>
-                                <option value="5" selected>5 anos</option>
-                                <option value="10">10 anos</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6 d-flex align-items-end">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-calculator"></i> Gerar Projeção
-                            </button>
-                        </div>
-                    </div>
-                </form>
+    </div>
+    {% elif not parametros %}
+    <div class="alert alert-warning border-0 shadow-sm mb-4">
+        <div class="d-flex align-items-center">
+            <i class="bi bi-exclamation-triangle-fill me-3 fs-4"></i>
+            <div>
+                <strong>Parâmetros não configurados</strong>
+                <p class="mb-0">Configure os parâmetros de projeção antes de gerar projeções.</p>
+                <a href="{% url 'pecuaria_parametros' propriedade.id %}" class="btn btn-sm btn-warning mt-2">
+                    Configurar Parâmetros
+                </a>
             </div>
         </div>
-        
-        <!-- Resumo do Inventário Inicial -->
-        <div class="card mb-4 border-0 shadow-sm" style="border-radius: 10px; overflow: hidden;">
-            <div class="card-header" style="background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%); color: white;">
-                <div class="d-flex align-items-center">
-                    <div class="p-2 rounded-circle me-3" style="background: rgba(255,255,255,0.2); color: white; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
-                        <i class="bi bi-clipboard-data"></i>
+    </div>
+    {% else %}
+    
+    <!-- Cards de Resumo -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <span class="text-muted small">Rebanho Atual</span>
+                        <i class="bi bi-people-fill text-primary fs-4"></i>
                     </div>
-                    <div>
-                        <h6 class="mb-0 fw-bold">Inventário Inicial</h6>
-                        <small class="opacity-75">Resumo detalhado por categoria</small>
-                    </div>
-                </div>
-            </div>
-            <div class="card-body p-0">
-                <!-- Resumo por Sexo -->
-                <div class="row p-4 mb-0" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
-                    <div class="col-md-4">
-                        <div class="card bg-light border-0 shadow-sm">
-                            <div class="card-body text-center">
-                                <i class="bi bi-gender-female text-pink fs-1 mb-2"></i>
-                                <h6 class="text-muted">Fêmeas (FE)</h6>
-                                <h3 class="text-pink fw-bold">{{ total_femeas }}</h3>
-                                <small class="text-muted">cabeças</small>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card bg-light border-0 shadow-sm">
-                            <div class="card-body text-center">
-                                <i class="bi bi-gender-male text-blue fs-1 mb-2"></i>
-                                <h6 class="text-muted">Machos (MA)</h6>
-                                <h3 class="text-blue fw-bold">{{ total_machos }}</h3>
-                                <small class="text-muted">cabeças</small>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card bg-light border-0 shadow-sm">
-                            <div class="card-body text-center">
-                                <i class="bi bi-people-fill text-success fs-1 mb-2"></i>
-                                <h6 class="text-muted">Saldo Total</h6>
-                                <h3 class="text-success fw-bold">{{ total_geral }}</h3>
-                                <small class="text-muted">cabeças</small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Tabela Detalhada por Categoria -->
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead style="background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%); color: white;">
-                            <tr>
-                                <th class="text-center fw-bold" style="border-right: 2px solid rgba(255,255,255,0.3); padding: 15px 10px;">
-                                    <i class="bi bi-tag"></i><br>
-                                    <small>Categoria</small>
-                                </th>
-                                <th class="text-center fw-bold" style="border-right: 2px solid rgba(255,255,255,0.3); padding: 15px 10px;">
-                                    <i class="bi bi-gender-female"></i><br>
-                                    <small>Fêmeas</small>
-                                </th>
-                                <th class="text-center fw-bold" style="border-right: 2px solid rgba(255,255,255,0.3); padding: 15px 10px;">
-                                    <i class="bi bi-gender-male"></i><br>
-                                    <small>Machos</small>
-                                </th>
-                                <th class="text-center fw-bold" style="border-right: 2px solid rgba(255,255,255,0.3); padding: 15px 10px;">
-                                    <i class="bi bi-currency-dollar"></i><br>
-                                    <small>Valor por Cabeça</small>
-                                </th>
-                                <th class="text-center fw-bold" style="padding: 15px 10px;">
-                                    <i class="bi bi-calculator"></i><br>
-                                    <small>Valor Total</small>
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for item in inventario %}
-                            <tr>
-                                <td class="text-center fw-bold" style="border-right: 2px solid rgba(0,0,0,0.1); padding: 12px 8px;">
-                                    {{ item.categoria.nome }}
-                                </td>
-                                <td class="text-center" style="border-right: 2px solid rgba(0,0,0,0.1); padding: 12px 8px;">
-                                    {% if 'Fêmea' in item.categoria.nome or 'Vaca' in item.categoria.nome or 'Bezerra' in item.categoria.nome or 'Novilha' in item.categoria.nome or 'Primípara' in item.categoria.nome or 'Multípara' in item.categoria.nome %}
-                                        {{ item.quantidade }}
-                                    {% else %}
-                                        0
-                                    {% endif %}
-                                </td>
-                                <td class="text-center" style="border-right: 2px solid rgba(0,0,0,0.1); padding: 12px 8px;">
-                                    {% if 'Macho' in item.categoria.nome or 'Boi' in item.categoria.nome or 'Bezerro' in item.categoria.nome or 'Garrotes' in item.categoria.nome or 'Touro' in item.categoria.nome %}
-                                        {{ item.quantidade }}
-                                    {% else %}
-                                        0
-                                    {% endif %}
-                                </td>
-                                <td class="text-center" style="border-right: 2px solid rgba(0,0,0,0.1); padding: 12px 8px;">
-                                    R$ {{ item.valor_por_cabeca|default:0|floatformat:2 }}
-                                </td>
-                                <td class="text-center fw-bold" style="padding: 12px 8px;">
-                                    R$ {{ item.valor_total|default:0|floatformat:2 }}
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                    <h2 class="h4 mb-0 fw-bold text-primary">{{ total_geral|numero_br:0 }}</h2>
+                    <small class="text-muted">cabezas</small>
                 </div>
             </div>
         </div>
         
-        <!-- Identificação Automática da Fazenda -->
-        {% if identificacao_fazenda %}
-        <div class="card mb-4 border-0 shadow-sm" style="border-radius: 10px;">
-            <div class="card-header" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white;">
-                <div class="d-flex align-items-center">
-                    <div class="p-2 rounded-circle me-3" style="background: rgba(255,255,255,0.2); color: white; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
-                        <i class="bi bi-robot"></i>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <span class="text-muted small">Fêmeas</span>
+                        <i class="bi bi-gender-female text-danger fs-4"></i>
                     </div>
-                    <div>
-                        <h5 class="mb-0 fw-bold">🏭 {{ identificacao_fazenda.nome_perfil }}</h5>
-                        <small class="opacity-75">Perfil identificado automaticamente pela IA</small>
-                    </div>
-                </div>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6><i class="bi bi-pie-chart-fill text-primary"></i> Composição do Inventário</h6>
-                        <ul class="list-unstyled">
-                            <li><strong>Total de Animais:</strong> {{ identificacao_fazenda.analise_inventario.total_animais }}</li>
-                            <li><strong>Fêmeas Reprodutoras:</strong> {{ identificacao_fazenda.analise_inventario.femeas_reprodutoras }} ({{ identificacao_fazenda.analise_inventario.percent_femeas_reprodutoras|floatformat:1 }}%)</li>
-                            <li><strong>Machos Comerciais:</strong> {{ identificacao_fazenda.analise_inventario.machos_comerciais }} ({{ identificacao_fazenda.analise_inventario.percent_machos_comerciais|floatformat:1 }}%)</li>
-                            <li><strong>Bezerros/Bezerras:</strong> {{ identificacao_fazenda.analise_inventario.bezerros_ambos }} ({{ identificacao_fazenda.analise_inventario.percent_bezerros|floatformat:1 }}%)</li>
-                        </ul>
-                    </div>
-                    <div class="col-md-6">
-                        <h6><i class="bi bi-gear-fill text-success"></i> Estratégias Automáticas</h6>
-                        <ul class="list-unstyled">
-                            {% for categoria, percentual in identificacao_fazenda.estrategias.vendas.items %}
-                            <li><strong>Vendas:</strong> {{ categoria }}: {{ percentual|floatformat:0 }}%</li>
-                            {% endfor %}
-                            {% for categoria, quantidade in identificacao_fazenda.estrategias.compras.items %}
-                            <li><strong>Compras:</strong> {{ categoria }}: {{ quantidade }} cabeças</li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                </div>
-                <div class="alert alert-success mt-3">
-                    <i class="bi bi-robot"></i>
-                    <strong>Sistema IA Ativo:</strong> Todas as movimentações foram geradas automaticamente baseadas no perfil identificado: <strong>{{ identificacao_fazenda.nome_perfil }}</strong>
+                    <h2 class="h4 mb-0 fw-bold text-danger">{{ total_femeas|numero_br:0 }}</h2>
+                    <small class="text-muted">cabezas</small>
                 </div>
             </div>
         </div>
-        {% endif %}
+        
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <span class="text-muted small">Machos</span>
+                        <i class="bi bi-gender-male text-info fs-4"></i>
+                    </div>
+                    <h2 class="h4 mb-0 fw-bold text-info">{{ total_machos|numero_br:0 }}</h2>
+                    <small class="text-muted">cabezas</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <span class="text-muted small">Anos Projetados</span>
+                        <i class="bi bi-calendar-range text-success fs-4"></i>
+                    </div>
+                    <h2 class="h4 mb-0 fw-bold text-success">{{ estatisticas.total_anos }}</h2>
+                    <small class="text-muted">anos</small>
+                </div>
+            </div>
+        </div>
+    </div>
 
-        <!-- Parâmetros Utilizados -->
-        <div class="card mb-4 border-0 shadow-sm" style="border-radius: 10px;">
-            <div class="card-header" style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); color: white;">
-                <div class="d-flex align-items-center">
-                    <div class="p-2 rounded-circle me-3" style="background: rgba(255,255,255,0.2); color: white; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
-                        <i class="bi bi-gear-fill"></i>
-                    </div>
-                    <div>
-                        <h5 class="mb-0 fw-bold">Parâmetros Utilizados - Tempo Real</h5>
-                        <small class="opacity-75">Configurações ativas na projeção</small>
-                    </div>
+    <!-- Ações -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h5 class="mb-1">
+                        <i class="bi bi-gear-fill text-primary me-2"></i>
+                        Gerar Nova Projeção
+                    </h5>
+                    <p class="text-muted small mb-0">
+                        Configure o período de projeção e gere uma nova análise do crescimento do rebanho
+                    </p>
                 </div>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-3">
-                        <div class="text-center p-3 rounded" style="background: linear-gradient(135deg, #e8f5e8 0%, #d4edda 100%);">
-                            <i class="bi bi-heart-fill text-success fs-4"></i>
-                            <p class="mb-1 mt-2"><strong>Natalidade</strong></p>
-                            <h4 class="text-success mb-0">{{ parametros.taxa_natalidade_anual }}%</h4>
-                            <small class="text-muted">Taxa anual</small>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="text-center p-3 rounded" style="background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);">
-                            <i class="bi bi-exclamation-triangle-fill text-warning fs-4"></i>
-                            <p class="mb-1 mt-2"><strong>Mortalidade Bezerros</strong></p>
-                            <h4 class="text-warning mb-0">{{ parametros.taxa_mortalidade_bezerros_anual }}%</h4>
-                            <small class="text-muted">Taxa anual</small>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="text-center p-3 rounded" style="background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);">
-                            <i class="bi bi-x-circle-fill text-danger fs-4"></i>
-                            <p class="mb-1 mt-2"><strong>Mortalidade Adultos</strong></p>
-                            <h4 class="text-danger mb-0">{{ parametros.taxa_mortalidade_adultos_anual }}%</h4>
-                            <small class="text-muted">Taxa anual</small>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="text-center p-3 rounded" style="background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);">
-                            <i class="bi bi-calendar3 text-info fs-4"></i>
-                            <p class="mb-1 mt-2"><strong>Periodicidade</strong></p>
-                            <h4 class="text-info mb-0">{{ parametros.get_periodicidade_display }}</h4>
-                            <small class="text-muted">Intervalo de cálculo</small>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Parâmetros de Vendas -->
-                <div class="row mt-3">
-                    <div class="col-md-6">
-                        <div class="text-center p-3 rounded" style="background: linear-gradient(135deg, #e2e3e5 0%, #d6d8db 100%);">
-                            <i class="bi bi-gender-male text-primary fs-4"></i>
-                            <p class="mb-1 mt-2"><strong>Venda Machos</strong></p>
-                            <h4 class="text-primary mb-0">{{ parametros.percentual_venda_machos_anual }}%</h4>
-                            <small class="text-muted">Percentual anual de venda</small>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="text-center p-3 rounded" style="background: linear-gradient(135deg, #fce4ec 0%, #f8bbd9 100%);">
-                            <i class="bi bi-gender-female text-pink fs-4"></i>
-                            <p class="mb-1 mt-2"><strong>Venda Fêmeas</strong></p>
-                            <h4 class="text-pink mb-0">{{ parametros.percentual_venda_femeas_anual }}%</h4>
-                            <small class="text-muted">Percentual anual de venda</small>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Informações de Inflação -->
-                <div class="row mt-3">
-                    <div class="col-12">
-                        <div class="alert alert-info">
-                            <div class="d-flex align-items-center">
-                                <i class="bi bi-graph-up-arrow fs-4 me-3"></i>
-                                <div>
-                                    <h6 class="mb-1"><strong>Inflação Automática Aplicada</strong></h6>
-                                    <p class="mb-0">Valores unitários aumentam automaticamente 5% ao ano em todas as vendas e compras</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                <div class="col-md-4">
+                    <form method="post" class="d-flex gap-2">
+                        {% csrf_token %}
+                        <select name="anos_projecao" class="form-select form-select-sm" required>
+                            <option value="1">1 ano</option>
+                            <option value="2">2 anos</option>
+                            <option value="3">3 anos</option>
+                            <option value="4">4 anos</option>
+                            <option value="5" selected>5 anos</option>
+                            <option value="10">10 anos</option>
+                            <option value="15">15 anos</option>
+                            <option value="20">20 anos</option>
+                        </select>
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="bi bi-play-circle me-1"></i>
+                            Gerar
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>
-        
-        <!-- Evolução Detalhada do Rebanho -->
-        {% if evolucao_detalhada %}
-        <div class="card mb-4 border-0 shadow-sm" style="border-radius: 10px; overflow: hidden;">
-            <div class="card-header" style="background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%); color: white;">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div class="d-flex align-items-center">
-                        <div class="p-2 rounded-circle me-3" style="background: rgba(255,255,255,0.2); color: white; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
-                            <i class="bi bi-bar-chart-line"></i>
-                        </div>
-                        <div>
-                            <h6 class="mb-0 fw-bold">Evolução Detalhada do Rebanho</h6>
-                            <small class="opacity-75">Análise completa das movimentações por categoria</small>
-                        </div>
-                    </div>
-                    <div class="btn-group shadow-sm" role="group">
-                        <button type="button" class="btn btn-sm btn-light btn-outline-light" onclick="filtrarPeriodo('mensal')" id="btn-mensal" style="border-radius: 20px 0 0 20px;">
-                            <i class="bi bi-calendar3 me-1"></i> Mensal
-                        </button>
-                        <button type="button" class="btn btn-sm btn-light btn-outline-light" onclick="filtrarPeriodo('trimestral')" id="btn-trimestral">
-                            <i class="bi bi-calendar3-week me-1"></i> Trimestral
-                        </button>
-                        <button type="button" class="btn btn-sm btn-light btn-outline-light" onclick="filtrarPeriodo('semestral')" id="btn-semestral">
-                            <i class="bi bi-calendar3-range me-1"></i> Semestral
-                        </button>
-                        <button type="button" class="btn btn-sm btn-light btn-outline-light" onclick="filtrarPeriodo('anual')" id="btn-anual" style="border-radius: 0 20px 20px 0;">
-                            <i class="bi bi-calendar3-event me-1"></i> Anual
-                        </button>
-                    </div>
-                </div>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0" id="tabela-evolucao-detalhada">
-                        <thead style="background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%); color: white;">
-                            <tr>
-                                <th class="text-center fw-bold" style="border-right: 2px solid rgba(255,255,255,0.3); padding: 15px 10px;">
-                                    <i class="bi bi-tag"></i><br>
-                                    <small>Categoria</small>
-                                </th>
-                                <th class="text-center fw-bold" style="border-right: 2px solid rgba(255,255,255,0.3); padding: 15px 10px;">
-                                    <i class="bi bi-arrow-right-circle"></i><br>
-                                    <small>Saldo Inicial</small>
-                                </th>
-                                <th class="text-center fw-bold" style="border-right: 2px solid rgba(255,255,255,0.3); padding: 15px 10px;">
-                                    <i class="bi bi-heart-fill"></i><br>
-                                    <small>Nascimentos</small>
-                                </th>
-                                <th class="text-center fw-bold" style="border-right: 2px solid rgba(255,255,255,0.3); padding: 15px 10px;">
-                                    <i class="bi bi-cart-plus"></i><br>
-                                    <small>Compras</small>
-                                </th>
-                                <th class="text-center fw-bold" style="border-right: 2px solid rgba(255,255,255,0.3); padding: 15px 10px;">
-                                    <i class="bi bi-cash-stack"></i><br>
-                                    <small>Vendas</small>
-                                </th>
-                                <th class="text-center fw-bold" style="border-right: 2px solid rgba(255,255,255,0.3); padding: 15px 10px;">
-                                    <i class="bi bi-arrow-left-right"></i><br>
-                                    <small>Transferências</small>
-                                </th>
-                                <th class="text-center fw-bold" style="border-right: 2px solid rgba(255,255,255,0.3); padding: 15px 10px;">
-                                    <i class="bi bi-x-circle-fill"></i><br>
-                                    <small>Mortes</small>
-                                </th>
-                                <th class="text-center fw-bold" style="border-right: 2px solid rgba(255,255,255,0.3); padding: 15px 10px;">
-                                    <i class="bi bi-arrow-up-circle"></i><br>
-                                    <small>Evolução</small>
-                                </th>
-                                <th class="text-center fw-bold" style="padding: 15px 10px;">
-                                    <i class="bi bi-check-circle"></i><br>
-                                    <small>Saldo Final</small>
-                                </th>
-                                <th class="text-center fw-bold" style="padding: 15px 10px;">
-                                    <i class="bi bi-speedometer2"></i><br>
-                                    <small>Peso Médio (kg)</small>
-                                </th>
-                                <th class="text-center fw-bold" style="padding: 15px 10px;">
-                                    <i class="bi bi-currency-dollar"></i><br>
-                                    <small>Valor Unitário (R$)</small>
-                                </th>
-                                <th class="text-center fw-bold" style="padding: 15px 10px;">
-                                    <i class="bi bi-calculator"></i><br>
-                                    <small>Valor Total (R$)</small>
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for categoria, dados in evolucao_detalhada.items %}
-                            <tr>
-                                <td class="text-center fw-bold" style="border-right: 2px solid rgba(0,0,0,0.1); padding: 12px 8px;">
-                                    {{ categoria }}
-                                </td>
-                                <td class="text-center" style="border-right: 2px solid rgba(0,0,0,0.1); padding: 12px 8px;">
-                                    {{ dados.saldo_inicial|default:0 }}
-                                </td>
-                                <td class="text-center" style="border-right: 2px solid rgba(0,0,0,0.1); padding: 12px 8px;">
-                                    +{{ dados.nascimentos|default:0 }}
-                                </td>
-                                <td class="text-center" style="border-right: 2px solid rgba(0,0,0,0.1); padding: 12px 8px;">
-                                    +{{ dados.compras|default:0 }}
-                                </td>
-                                <td class="text-center" style="border-right: 2px solid rgba(0,0,0,0.1); padding: 12px 8px;">
-                                    -{{ dados.vendas|default:0 }}
-                                </td>
-                                <td class="text-center" style="border-right: 2px solid rgba(0,0,0,0.1); padding: 12px 8px;">
-                                    {% if dados.transferencias_entrada > 0 or dados.transferencias_saida > 0 %}
-                                        +{{ dados.transferencias_entrada|default:0 }}/-{{ dados.transferencias_saida|default:0 }}
-                                    {% else %}
-                                        0
-                                    {% endif %}
-                                </td>
-                                <td class="text-center" style="border-right: 2px solid rgba(0,0,0,0.1); padding: 12px 8px;">
-                                    -{{ dados.mortes|default:0 }}
-                                </td>
-                                <td class="text-center" style="border-right: 2px solid rgba(0,0,0,0.1); padding: 12px 8px;">
-                                    {% if dados.evolucao_categoria and dados.evolucao_categoria != "-" %}
-                                        <span class="badge bg-success">{{ dados.evolucao_categoria }}</span>
-                                    {% else %}
-                                        {% if dados.saldo_inicial > 0 %}
-                                            {% if dados.saldo_final > dados.saldo_inicial %}
-                                                <span class="badge bg-success">+{{ dados.saldo_final }}</span>
-                                            {% elif dados.saldo_final < dados.saldo_inicial %}
-                                                <span class="badge bg-danger">{{ dados.saldo_final }}</span>
-                                            {% else %}
-                                                <span class="badge bg-secondary">0</span>
-                                            {% endif %}
-                                        {% else %}
-                                            {% if dados.saldo_final > 0 %}
-                                                <span class="badge bg-info">+{{ dados.saldo_final }}</span>
-                                            {% else %}
-                                                <span class="badge bg-secondary">0</span>
-                                            {% endif %}
-                                        {% endif %}
-                                    {% endif %}
-                                </td>
-                                <td class="text-center fw-bold" style="padding: 12px 8px;">
-                                    {{ dados.saldo_final|default:0 }}
-                                </td>
-                                <td class="text-center" style="padding: 12px 8px;">
-                                    <span class="badge bg-info" style="font-size: 0.9rem;">
-                                        {{ dados.peso_medio_kg|default:0|floatformat:1 }} kg
-                                    </span>
-                                </td>
-                                <td class="text-center" style="padding: 12px 8px;">
-                                    <input type="number" 
-                                           class="form-control form-control-sm text-center valor-unitario" 
-                                           value="{{ dados.valor_unitario|default:0|floatformat:2 }}" 
-                                           step="0.01" 
-                                           min="0"
-                                           data-categoria="{{ categoria }}"
-                                           onchange="calcularValorTotal(this)"
-                                           style="width: 100px; display: inline-block;">
-                                </td>
-                                <td class="text-center fw-bold" style="padding: 12px 8px;">
-                                    <span class="valor-total" data-categoria="{{ categoria }}">
-                                        R$ {{ dados.valor_total|default:0|floatformat:2 }}
-                                    </span>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                            
-                            <!-- Linha de Totais -->
-                            <tr style="background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%); border-top: 3px solid #1e3a8a;">
-                                <td class="text-center fw-bold" style="border-right: 2px solid rgba(0,0,0,0.3); padding: 15px 8px; font-size: 1.1rem; color: #1e3a8a;">
-                                    <i class="bi bi-calculator"></i><br>
-                                    <strong>TOTAIS</strong>
-                                </td>
-                                <td class="text-center fw-bold" style="border-right: 2px solid rgba(0,0,0,0.3); padding: 15px 8px; font-size: 1.1rem; color: #1e3a8a;">
-                                    <span id="total-saldo-inicial">0</span>
-                                </td>
-                                <td class="text-center fw-bold" style="border-right: 2px solid rgba(0,0,0,0.3); padding: 15px 8px; font-size: 1.1rem; color: #28a745;">
-                                    +<span id="total-nascimentos">0</span>
-                                </td>
-                                <td class="text-center fw-bold" style="border-right: 2px solid rgba(0,0,0,0.3); padding: 15px 8px; font-size: 1.1rem; color: #28a745;">
-                                    +<span id="total-compras">0</span>
-                                </td>
-                                <td class="text-center fw-bold" style="border-right: 2px solid rgba(0,0,0,0.3); padding: 15px 8px; font-size: 1.1rem; color: #dc3545;">
-                                    -<span id="total-vendas">0</span>
-                                </td>
-                                <td class="text-center fw-bold" style="border-right: 2px solid rgba(0,0,0,0.3); padding: 15px 8px; font-size: 1.1rem; color: #17a2b8;">
-                                    <span id="total-transferencias">0</span>
-                                </td>
-                                <td class="text-center fw-bold" style="border-right: 2px solid rgba(0,0,0,0.3); padding: 15px 8px; font-size: 1.1rem; color: #dc3545;">
-                                    -<span id="total-mortes">0</span>
-                                </td>
-                                <td class="text-center fw-bold" style="border-right: 2px solid rgba(0,0,0,0.3); padding: 15px 8px; font-size: 1.1rem; color: #6f42c1;">
-                                    <i class="bi bi-arrow-up-down"></i>
-                                </td>
-                                <td class="text-center fw-bold" style="padding: 15px 8px; font-size: 1.1rem; color: #1e3a8a;">
-                                    <span id="total-saldo-final">0</span>
-                                </td>
-                                <td class="text-center fw-bold" style="padding: 15px 8px; font-size: 1.1rem; color: #17a2b8;">
-                                    <span class="badge bg-info" style="font-size: 1rem;" id="total-peso-medio">0.0 kg</span>
-                                </td>
-                                <td class="text-center fw-bold" style="padding: 15px 8px; font-size: 1.1rem; color: #17a2b8;">
-                                    <span class="badge bg-info" style="font-size: 1rem;" id="total-valor-unitario">R$ 0,00</span>
-                                </td>
-                                <td class="text-center fw-bold" style="padding: 15px 8px; font-size: 1.1rem; color: #28a745;">
-                                    <span class="badge bg-success" style="font-size: 1rem;" id="total-valor-total">R$ 0,00</span>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                
-                <!-- Card Informativo do Rodapé -->
-                <div class="card-footer" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-top: 3px solid #1e3a8a;">
-                    <div class="row">
-                        <div class="col-12">
-                            <h6 class="text-primary mb-3">
-                                <i class="bi bi-info-circle me-2"></i>
-                                Resumo Geral das Movimentações
-                            </h6>
-                            <div class="row">
-                                <div class="col-md-3 mb-2">
-                                    <div class="d-flex align-items-center">
-                                        <div class="me-2 p-1 rounded" style="background: rgba(46, 204, 113, 0.2);">
-                                            <i class="bi bi-heart-fill text-success"></i>
-                                        </div>
-                                        <div>
-                                            <small class="text-muted">Total Nascimentos</small>
-                                            <div class="fw-bold text-success">
-                                                {% with total_nascimentos=0 %}
-                                                    {% for categoria, dados in evolucao_detalhada.items %}
-                                                        {% if dados.nascimentos > 0 %}
-                                                            {% with total_nascimentos=total_nascimentos|add:dados.nascimentos %}{% endwith %}
-                                                        {% endif %}
-                                                    {% endfor %}
-                                                    {{ total_nascimentos }}
-                                                {% endwith %}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-3 mb-2">
-                                    <div class="d-flex align-items-center">
-                                        <div class="me-2 p-1 rounded" style="background: rgba(52, 152, 219, 0.2);">
-                                            <i class="bi bi-cash-stack text-primary"></i>
-                                        </div>
-                                        <div>
-                                            <small class="text-muted">Total Vendas</small>
-                                            <div class="fw-bold text-primary">
-                                                {% with total_vendas=0 %}
-                                                    {% for categoria, dados in evolucao_detalhada.items %}
-                                                        {% if dados.vendas > 0 %}
-                                                            {% with total_vendas=total_vendas|add:dados.vendas %}{% endwith %}
-                                                        {% endif %}
-                                                    {% endfor %}
-                                                    {{ total_vendas }}
-                                                {% endwith %}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-3 mb-2">
-                                    <div class="d-flex align-items-center">
-                                        <div class="me-2 p-1 rounded" style="background: rgba(243, 156, 18, 0.2);">
-                                            <i class="bi bi-arrow-left-right text-warning"></i>
-                                        </div>
-                                        <div>
-                                            <small class="text-muted">Transferências</small>
-                                            <div class="fw-bold text-warning">
-                                                {% for categoria, dados in evolucao_detalhada.items %}
-                                                    {% if dados.transferencias_entrada > 0 or dados.transferencias_saida > 0 %}
-                                                        <div class="small">
-                                                            <span class="text-success">+{{ dados.transferencias_entrada }}</span>
-                                                            <span class="text-danger">-{{ dados.transferencias_saida }}</span>
-                                                            <br><small class="text-muted">{{ categoria }}</small>
-                                                        </div>
-                                                    {% endif %}
-                                                {% endfor %}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-3 mb-2">
-                                    <div class="d-flex align-items-center">
-                                        <div class="me-2 p-1 rounded" style="background: rgba(231, 76, 60, 0.2);">
-                                            <i class="bi bi-x-circle-fill text-danger"></i>
-                                        </div>
-                                        <div>
-                                            <small class="text-muted">Total Mortes</small>
-                                            <div class="fw-bold text-danger">
-                                                {% with total_mortes=0 %}
-                                                    {% for categoria, dados in evolucao_detalhada.items %}
-                                                        {% if dados.mortes > 0 %}
-                                                            {% with total_mortes=total_mortes|add:dados.mortes %}{% endwith %}
-                                                        {% endif %}
-                                                    {% endfor %}
-                                                    {{ total_mortes }}
-                                                {% endwith %}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Seção Detalhada de Transferências -->
-                            {% if evolucao_detalhada %}
-                            <div class="row mt-3">
-                                <div class="col-12">
-                                    <h6 class="text-info mb-2">
-                                        <i class="bi bi-info-square me-2"></i>
-                                        Detalhes das Transferências
-                                    </h6>
-                                    <div class="row">
-                                        {% for categoria, dados in evolucao_detalhada.items %}
-                                            {% if dados.transferencias_entrada > 0 or dados.transferencias_saida > 0 %}
-                                                <div class="col-md-6 mb-2">
-                                                    <div class="card border-0" style="background: rgba(243, 156, 18, 0.1);">
-                                                        <div class="card-body p-2">
-                                                            <div class="d-flex justify-content-between align-items-center">
-                                                                <div>
-                                                                    <strong class="text-warning">{{ categoria }}</strong>
-                                                                    <br>
-                                                                    <small class="text-muted">
-                                                                        {% if dados.transferencias_entrada > 0 %}
-                                                                            <span class="text-success">+{{ dados.transferencias_entrada }} entrada(s)</span>
-                                                                        {% endif %}
-                                                                        {% if dados.transferencias_saida > 0 %}
-                                                                            <span class="text-danger">-{{ dados.transferencias_saida }} saída(s)</span>
-                                                                        {% endif %}
-                                                                    </small>
-                                                                </div>
-                                                                <div class="text-end">
-                                                                    <small class="text-muted">Transferências</small>
-                                                                    <br>
-                                                                    <i class="bi bi-arrow-left-right text-warning"></i>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            {% endif %}
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                            </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-            </div>
+    </div>
+
+    <!-- Gráfico de Evolução do Rebanho -->
+    {% if evolucao_rebanho %}
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white border-bottom">
+            <h5 class="mb-0">
+                <i class="bi bi-graph-up text-primary me-2"></i>
+                Evolução do Rebanho
+            </h5>
         </div>
-        {% endif %}
-        
-        <!-- Análise Financeira Detalhada CONSOLIDADO DE TODOS OS ANOS DA PROJEÇÃO -->
-        <div class="card mb-4 border-0 shadow-sm" style="border-radius: 10px; overflow: hidden;">
-            <div class="card-header" style="background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%); color: white;">
-                <div class="d-flex align-items-center">
-                    <div class="p-2 rounded-circle me-3" style="background: rgba(255,255,255,0.2); color: white; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
-                        <i class="bi bi-graph-up-arrow"></i>
-                    </div>
-                    <div>
-                        <h5 class="mb-0 fw-bold">Análise Financeira Detalhada</h5>
-                        <small class="opacity-75">CONSOLIDADO DE TODOS OS ANOS DA PROJEÇÃO</small>
-                    </div>
-                </div>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <!-- Receitas Consolidadas -->
-                    <div class="col-md-6">
-                        <div class="card border-success">
-                            <div class="card-header bg-success text-white">
-                                <h6 class="mb-0">
-                                    <i class="bi bi-cash-stack me-2"></i>
-                                    RECEITAS CONSOLIDADAS (Todos os Anos)
-                                </h6>
-                            </div>
-                            <div class="card-body">
-                                <div class="table-responsive">
-                                    <table class="table table-sm">
-                                        <thead>
-                                            <tr>
-                                                <th>Categoria</th>
-                                                <th class="text-center">Quantidade</th>
-                                                <th class="text-end">Valor Total (R$)</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {% for categoria, dados in evolucao_detalhada.items %}
-                                                {% if dados.vendas > 0 %}
-                                                <tr>
-                                                    <td><small>{{ categoria }}</small></td>
-                                                    <td class="text-center">{{ dados.vendas }}</td>
-                                                    <td class="text-end">
-                                                        {% if dados.valor_unitario and dados.valor_unitario > 0 %}
-                                                            <span class="valor-venda" data-valor="{{ dados.valor_unitario }}" data-quantidade="{{ dados.vendas }}">
-                                                                R$ {{ dados.valor_unitario|floatformat:2 }}
-                                                            </span>
-                                                        {% else %}
-                                                            R$ 0,00
-                                                        {% endif %}
-                                                    </td>
-                                                </tr>
-                                                {% endif %}
-                                            {% empty %}
-                                            <tr>
-                                                <td colspan="3" class="text-center text-muted">Nenhuma venda registrada</td>
-                                            </tr>
-                                            {% endfor %}
-                                        </tbody>
-                                        <tfoot>
-                                            <tr class="table-success">
-                                                <th>Total Receitas</th>
-                                                <th class="text-center">
-                                                    {% with total_vendas_consolidado=0 %}
-                                                        {% for categoria, dados in evolucao_detalhada.items %}
-                                                            {% with total_vendas_consolidado=total_vendas_consolidado|add:dados.vendas %}{% endwith %}
-                                                        {% endfor %}
-                                                        {{ total_vendas_consolidado }}
-                                                    {% endwith %}
-                                                </th>
-                                                <th class="text-end total-receitas">
-                                                    R$ 0,00
-                                                </th>
-                                            </tr>
-                                        </tfoot>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
+        <div class="card-body">
+            <canvas id="graficoEvolucao" height="80"></canvas>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Tabelas de Projeção por Ano -->
+    {% if resumo_projecao_por_ano %}
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white border-bottom">
+            <h5 class="mb-0">
+                <i class="bi bi-table text-primary me-2"></i>
+                Resumo da Projeção por Ano
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                {% for ano, dados in resumo_projecao_por_ano.items %}
+                {% if dados.categorias %}
+                <div class="border-bottom">
+                    <div class="bg-light px-3 py-2">
+                        <h6 class="mb-0 fw-bold">
+                            <i class="bi bi-calendar-year text-primary me-2"></i>
+                            Ano {{ ano }}
+                        </h6>
                     </div>
                     
-                    <!-- Despesas Consolidadas -->
-                    <div class="col-md-6">
-                        <div class="card border-danger">
-                            <div class="card-header bg-danger text-white">
-                                <h6 class="mb-0">
-                                    <i class="bi bi-cart-plus me-2"></i>
-                                    DESPESAS CONSOLIDADAS (Todos os Anos)
-                                </h6>
-                            </div>
-                            <div class="card-body">
-                                <div class="table-responsive">
-                                    <table class="table table-sm">
-                                        <thead>
-                                            <tr>
-                                                <th>Categoria</th>
-                                                <th class="text-center">Quantidade</th>
-                                                <th class="text-end">Valor Total (R$)</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {% for categoria, dados in evolucao_detalhada.items %}
-                                                {% if dados.compras > 0 %}
-                                                <tr>
-                                                    <td><small>{{ categoria }}</small></td>
-                                                    <td class="text-center">{{ dados.compras }}</td>
-                                                    <td class="text-end">
-                                                        {% if dados.valor_unitario and dados.valor_unitario > 0 %}
-                                                            <span class="valor-compra" data-valor="{{ dados.valor_unitario }}" data-quantidade="{{ dados.compras }}">
-                                                                R$ {{ dados.valor_unitario|floatformat:2 }}
-                                                            </span>
-                                                        {% else %}
-                                                            R$ 0,00
-                                                        {% endif %}
-                                                    </td>
-                                                </tr>
-                                                {% endif %}
-                                            {% empty %}
-                                            <tr>
-                                                <td colspan="3" class="text-center text-muted">Nenhuma compra registrada</td>
-                                            </tr>
-                                            {% endfor %}
-                                        </tbody>
-                                        <tfoot>
-                                            <tr class="table-danger">
-                                                <th>Total Despesas</th>
-                                                <th class="text-center">
-                                                    {% with total_compras_consolidado=0 %}
-                                                        {% for categoria, dados in evolucao_detalhada.items %}
-                                                            {% with total_compras_consolidado=total_compras_consolidado|add:dados.compras %}{% endwith %}
-                                                        {% endfor %}
-                                                        {{ total_compras_consolidado }}
-                                                    {% endwith %}
-                                                </th>
-                                                <th class="text-end">
-                                                    R$ 0,00
-                                                </th>
-                                            </tr>
-                                        </tfoot>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    {% if dados.categorias %}
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Categoria</th>
+                                <th class="text-center">Saldo Inicial</th>
+                                <th class="text-center">Nascimentos</th>
+                                <th class="text-center">Compras</th>
+                                <th class="text-center">Vendas</th>
+                                <th class="text-center">Mortes</th>
+                                <th class="text-center">Saldo Final</th>
+                                <th class="text-end">Valor Total (R$)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for categoria, info in dados.categorias.items %}
+                            <tr>
+                                <td>
+                                    <span class="badge bg-light text-dark">
+                                        {{ categoria }}
+                                    </span>
+                                </td>
+                                <td class="text-center">{{ info.saldo_inicial|numero_br:0 }}</td>
+                                <td class="text-center text-success">
+                                    {% if info.nascimentos > 0 %}+{{ info.nascimentos|numero_br:0 }}{% else %}-{% endif %}
+                                </td>
+                                <td class="text-center text-info">
+                                    {% if info.compras > 0 %}+{{ info.compras|numero_br:0 }}{% else %}-{% endif %}
+                                </td>
+                                <td class="text-center text-danger">
+                                    {% if info.vendas > 0 %}-{{ info.vendas|numero_br:0 }}{% else %}-{% endif %}
+                                </td>
+                                <td class="text-center text-muted">
+                                    {% if info.mortes > 0 %}-{{ info.mortes|numero_br:0 }}{% else %}-{% endif %}
+                                </td>
+                                <td class="text-center fw-bold">{{ info.saldo_final|numero_br:0 }}</td>
+                                <td class="text-end">
+                                    <strong>R$ {{ info.valor_total|floatformat:2 }}</strong>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        {% if dados.totais %}
+                        <tfoot class="table-light">
+                            <tr>
+                                <th>TOTAL</th>
+                                <th class="text-center">{{ dados.totais.saldo_inicial_total|numero_br:0 }}</th>
+                                <th class="text-center text-success">{{ dados.totais.nascimentos_total|numero_br:0 }}</th>
+                                <th class="text-center text-info">{{ dados.totais.compras_total|numero_br:0 }}</th>
+                                <th class="text-center text-danger">{{ dados.totais.vendas_total|numero_br:0 }}</th>
+                                <th class="text-center text-muted">{{ dados.totais.mortes_total|numero_br:0 }}</th>
+                                <th class="text-center">{{ dados.totais.saldo_final_total|numero_br:0 }}</th>
+                                <th class="text-end">
+                                    <strong>R$ {{ dados.totais.valor_total_geral|floatformat:2 }}</strong>
+                                </th>
+                            </tr>
+                        </tfoot>
+                        {% endif %}
+                    </table>
+                    {% endif %}
                 </div>
-                
-                <!-- Resumo Financeiro Consolidado -->
-                <div class="row mt-4">
-                    <div class="col-12">
-                        <div class="alert alert-info">
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <h6 class="text-success mb-2">
-                                        <i class="bi bi-arrow-up-circle me-2"></i>
-                                        Receita Total Consolidada
-                                    </h6>
-                                    <h4 class="text-success mb-0">
-                                        R$ 0,00
-                                    </h4>
-                                </div>
-                                <div class="col-md-4">
-                                    <h6 class="text-danger mb-2">
-                                        <i class="bi bi-arrow-down-circle me-2"></i>
-                                        Despesas Totais Consolidadas
-                                    </h6>
-                                    <h4 class="text-danger mb-0">
-                                        R$ 0,00
-                                    </h4>
-                                </div>
-                                <div class="col-md-4">
-                                    <h6 class="text-primary mb-2">
-                                        <i class="bi bi-calculator me-2"></i>
-                                        Valor Líquido Consolidado
-                                    </h6>
-                                    <h4 class="text-primary mb-0">
-                                        R$ 0,00
-                                    </h4>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                {% endif %}
+                {% endfor %}
             </div>
         </div>
-        
-        <!-- Resumo da Projeção por Ano -->
-        {% include 'gestao_rural/resumo_por_ano.html' %}
-        
-        <!-- Movimentações Detalhadas -->
-        {% if movimentacoes_detalhadas %}
-        <div class="card mb-4">
-            <div class="card-header">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">
-                        <i class="bi bi-list-ul"></i> Movimentações Detalhadas
-                    </h5>
-                    <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#movimentacoes-detalhadas" aria-expanded="false" aria-controls="movimentacoes-detalhadas" id="btn-toggle-movimentacoes">
-                        <i class="bi bi-chevron-down" id="icon-toggle"></i> Expandir
-                    </button>
-                </div>
-            </div>
-            <div class="collapse" id="movimentacoes-detalhadas">
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Data</th>
-                                    <th>Tipo</th>
-                                    <th>Categoria</th>
-                                    <th>Quantidade</th>
-                                    <th>Observação</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for mov in movimentacoes_detalhadas %}
-                                <tr>
-                                    <td>{{ mov.data_movimentacao|date:"d/m/Y" }}</td>
-                                    <td>
-                                        <span class="badge bg-{% if mov.tipo_movimentacao == 'NASCIMENTO' %}success{% elif mov.tipo_movimentacao == 'VENDA' %}primary{% elif mov.tipo_movimentacao == 'MORTE' %}danger{% elif mov.tipo_movimentacao == 'TRANSFERENCIA_ENTRADA' %}info{% elif mov.tipo_movimentacao == 'TRANSFERENCIA_SAIDA' %}warning{% else %}secondary{% endif %}">
-                                            {{ mov.get_tipo_movimentacao_display }}
-                                        </span>
-                                    </td>
-                                    <td>{{ mov.categoria.nome }}</td>
-                                    <td>{{ mov.quantidade }}</td>
-                                    <td>{{ mov.observacao }}</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-        {% endif %}
     </div>
+    {% else %}
+    <div class="alert alert-info border-0 shadow-sm">
+        <div class="d-flex align-items-center">
+            <i class="bi bi-info-circle-fill me-3 fs-4"></i>
+            <div>
+                <strong>Nenhuma projeção encontrada</strong>
+                <p class="mb-0">Gere uma nova projeção usando o formulário acima para visualizar os dados.</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% endif %}
 </div>
 
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
 <script>
-// Funções de Exportação
-function exportarExcel() {
-    // Implementar exportação para Excel
-    alert('Funcionalidade de exportação para Excel será implementada em breve!');
-    // Aqui você pode implementar a lógica para gerar um arquivo Excel
-    // usando bibliotecas como SheetJS ou similar
-}
-
-function exportarCSV() {
-    // Implementar exportação para CSV
-    alert('Funcionalidade de exportação para CSV será implementada em breve!');
-    // Aqui você pode implementar a lógica para gerar um arquivo CSV
-}
-
-function exportarPDF() {
-    // Implementar exportação para PDF
-    alert('Funcionalidade de exportação para PDF será implementada em breve!');
-    // Aqui você pode implementar a lógica para gerar um PDF
-    // usando bibliotecas como jsPDF ou similar
-}
-
-function imprimirProjecao() {
-    // Implementar impressão da projeção
-    window.print();
-}
-
-function salvarProjecao() {
-    // Implementar salvamento da projeção
-    alert('Funcionalidade de salvamento da projeção será implementada em breve!');
-    // Aqui você pode implementar a lógica para salvar a projeção no banco de dados
-}
-
-// Função para calcular valor total automaticamente
-function calcularValorTotal(input) {
-    const categoria = input.getAttribute('data-categoria');
-    const valorUnitario = parseFloat(input.value) || 0;
-    
-    console.log(`🔢 Calculando para ${categoria}: Valor Unitário = R$ ${valorUnitario}`);
-    
-    // Encontrar o saldo final para esta categoria
-    const row = input.closest('tr');
-    // Procurar pela célula que contém o saldo final (antes do peso médio)
-    const saldoFinalCell = row.querySelector('td:nth-child(8)'); // 8ª coluna (Saldo Final)
-    const saldoFinal = parseFloat(saldoFinalCell ? saldoFinalCell.textContent : 0) || 0;
-    
-    console.log(`📊 Saldo Final encontrado: ${saldoFinal}`);
-    
-    // Calcular valor total
-    const valorTotal = valorUnitario * saldoFinal;
-    
-    console.log(`💰 Valor Total calculado: R$ ${valorTotal.toFixed(2)}`);
-    
-    // Atualizar o valor total na mesma linha
-    const valorTotalSpan = row.querySelector('.valor-total');
-    if (valorTotalSpan) {
-        valorTotalSpan.textContent = `R$ ${valorTotal.toFixed(2).replace('.', ',')}`;
-        console.log(`✅ Valor total atualizado: ${valorTotalSpan.textContent}`);
-    } else {
-        console.log(`❌ Elemento .valor-total não encontrado`);
-    }
-    
-    // Atualizar todos os campos de valor unitário da mesma categoria
-    document.querySelectorAll(`input[data-categoria="${categoria}"]`).forEach(inputElement => {
-        if (inputElement !== input) { // Não atualizar o próprio input
-            inputElement.value = valorUnitario.toFixed(2);
-        }
-    });
-    
-    // Recalcular todos os valores totais da mesma categoria
-    document.querySelectorAll(`.valor-total[data-categoria="${categoria}"]`).forEach(span => {
-        const row = span.closest('tr');
-        const saldoFinalCell = row.querySelector('td:nth-child(8)');
-        const saldoFinal = parseFloat(saldoFinalCell ? saldoFinalCell.textContent : 0) || 0;
-        const valorTotal = valorUnitario * saldoFinal;
-        span.textContent = `R$ ${valorTotal.toFixed(2).replace('.', ',')}`;
-    });
-}
-
-// Função para calcular totais da tabela de evolução detalhada
-function calcularTotaisEvolucao() {
-    console.log('🔄 Calculando totais da evolução detalhada...');
-    
-    let totalSaldoInicial = 0;
-    let totalNascimentos = 0;
-    let totalCompras = 0;
-    let totalVendas = 0;
-    let totalTransferenciasEntrada = 0;
-    let totalTransferenciasSaida = 0;
-    let totalMortes = 0;
-    let totalSaldoFinal = 0;
-    let totalPesoMedio = 0;
-    let totalValorUnitario = 0;
-    let totalValorTotal = 0;
-    let totalCategorias = 0;
-    
-    // Iterar por todas as linhas da tabela (exceto a linha de totais)
-    const tbody = document.querySelector('#tabela-evolucao-detalhada tbody');
-    if (tbody) {
-        const rows = tbody.querySelectorAll('tr');
-        console.log(`Encontradas ${rows.length} linhas na tabela`);
-        
-        rows.forEach((row, index) => {
-            // Pular a linha de totais (última linha)
-            if (index === rows.length - 1) {
-                console.log('Pulando linha de totais');
-                return;
-            }
-            
-            const cells = row.querySelectorAll('td');
-            if (cells.length >= 12) {
-                // Extrair valores das células
-                const saldoInicial = parseFloat(cells[1].textContent) || 0;
-                const nascimentos = parseFloat(cells[2].textContent.replace('+', '')) || 0;
-                const compras = parseFloat(cells[3].textContent.replace('+', '')) || 0;
-                const vendas = parseFloat(cells[4].textContent.replace('-', '')) || 0;
-                
-                // Transferências (formato: +entrada/-saida)
-                const transferenciasText = cells[5].textContent;
-                let transfEntrada = 0, transfSaida = 0;
-                if (transferenciasText.includes('/')) {
-                    const parts = transferenciasText.split('/');
-                    transfEntrada = parseFloat(parts[0].replace('+', '')) || 0;
-                    transfSaida = parseFloat(parts[1].replace('-', '')) || 0;
-                } else {
-                    transfEntrada = parseFloat(transferenciasText.replace('+', '')) || 0;
-                }
-                
-                const mortes = parseFloat(cells[6].textContent.replace('-', '')) || 0;
-                const saldoFinal = parseFloat(cells[7].textContent) || 0;
-                
-                // Peso médio e valor unitário
-                const pesoBadge = cells[9].querySelector('.badge');
-                const pesoMedio = parseFloat(pesoBadge ? pesoBadge.textContent.replace(' kg', '') : 0) || 0;
-                
-                const valorUnitarioBadge = cells[10].querySelector('.badge');
-                const valorUnitario = parseFloat(valorUnitarioBadge ? valorUnitarioBadge.textContent.replace('R$ ', '').replace(',', '.') : 0) || 0;
-                
-                // Valor total
-                const valorTotalBadge = cells[11].querySelector('.badge');
-                const valorTotal = parseFloat(valorTotalBadge ? valorTotalBadge.textContent.replace('R$ ', '').replace(',', '.') : 0) || 0;
-                
-                // Somar aos totais
-                totalSaldoInicial += saldoInicial;
-                totalNascimentos += nascimentos;
-                totalCompras += compras;
-                totalVendas += vendas;
-                totalTransferenciasEntrada += transfEntrada;
-                totalTransferenciasSaida += transfSaida;
-                totalMortes += mortes;
-                totalSaldoFinal += saldoFinal;
-                totalPesoMedio += pesoMedio;
-                totalValorUnitario += valorUnitario;
-                totalValorTotal += valorTotal;
-                totalCategorias++;
-                
-                console.log(`Linha ${index + 1}: ${cells[0].textContent} - Saldo Final: ${saldoFinal}, Valor Total: ${valorTotal}`);
-            }
-        });
-    }
-    
-    // Atualizar os elementos de totais
-    const updateElement = (id, value, format = 'number') => {
-        const element = document.getElementById(id);
-        if (element) {
-            if (format === 'currency') {
-                element.textContent = `R$ ${value.toFixed(2).replace('.', ',')}`;
-            } else if (format === 'weight') {
-                element.textContent = `${value.toFixed(1)} kg`;
-            } else {
-                element.textContent = Math.round(value).toString();
-            }
-        }
-    };
-    
-    updateElement('total-saldo-inicial', totalSaldoInicial);
-    updateElement('total-nascimentos', totalNascimentos);
-    updateElement('total-compras', totalCompras);
-    updateElement('total-vendas', totalVendas);
-    
-    // Transferências
-    const totalTransferenciasElement = document.getElementById('total-transferencias');
-    if (totalTransferenciasElement) {
-        if (totalTransferenciasEntrada > 0 || totalTransferenciasSaida > 0) {
-            totalTransferenciasElement.textContent = `+${Math.round(totalTransferenciasEntrada)}/-${Math.round(totalTransferenciasSaida)}`;
-        } else {
-            totalTransferenciasElement.textContent = '0';
-        }
-    }
-    
-    updateElement('total-mortes', totalMortes);
-    updateElement('total-saldo-final', totalSaldoFinal);
-    
-    // Médias
-    if (totalCategorias > 0) {
-        updateElement('total-peso-medio', totalPesoMedio / totalCategorias, 'weight');
-        updateElement('total-valor-unitario', totalValorUnitario / totalCategorias, 'currency');
-    } else {
-        updateElement('total-peso-medio', 0, 'weight');
-        updateElement('total-valor-unitario', 0, 'currency');
-    }
-    
-    updateElement('total-valor-total', totalValorTotal, 'currency');
-    
-    console.log('✅ Totais calculados:', {
-        totalSaldoInicial,
-        totalNascimentos,
-        totalCompras,
-        totalVendas,
-        totalTransferenciasEntrada,
-        totalTransferenciasSaida,
-        totalMortes,
-        totalSaldoFinal,
-        totalValorTotal,
-        totalCategorias
-    });
-}
-
-// Função para filtrar por período
-function filtrarPeriodo(tipo) {
-    // Remover classe ativa de todos os botões
-    document.querySelectorAll('.btn-group .btn').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    
-    // Adicionar classe ativa ao botão clicado
-    event.target.classList.add('active');
-    
-    // Atualizar título da tabela
-    const titulo = document.querySelector('#tabela-evolucao-detalhada thead tr:first-child th:first-child');
-    const icones = {
-        'mensal': 'bi-calendar3',
-        'trimestral': 'bi-calendar3-week',
-        'semestral': 'bi-calendar3-range',
-        'anual': 'bi-calendar3-event'
-    };
-    
-    titulo.innerHTML = `<i class="bi ${icones[tipo]}"></i><br><small>Categoria (${tipo.charAt(0).toUpperCase() + tipo.slice(1)})</small>`;
-    
-    // Adicionar animação suave
-    const tabela = document.getElementById('tabela-evolucao-detalhada');
-    if (tabela) {
-        tabela.style.opacity = '0.7';
-        setTimeout(() => {
-            tabela.style.opacity = '1';
-        }, 200);
-    }
-}
-
-// Controle do botão expandir/recolher
 document.addEventListener('DOMContentLoaded', function() {
-    const btnToggle = document.getElementById('btn-toggle-movimentacoes');
-    const iconToggle = document.getElementById('icon-toggle');
-    const collapseElement = document.getElementById('movimentacoes-detalhadas');
-    
-    if (btnToggle && collapseElement) {
-        collapseElement.addEventListener('show.bs.collapse', function() {
-            iconToggle.className = 'bi bi-chevron-up';
-            btnToggle.innerHTML = '<i class="bi bi-chevron-up" id="icon-toggle"></i> Recolher';
-        });
+    {% if evolucao_rebanho %}
+    // Gráfico de Evolução do Rebanho
+    const ctx = document.getElementById('graficoEvolucao');
+    if (ctx) {
+        {{ evolucao_rebanho|json_script:"evolucao-data" }}
+        const evolucaoData = JSON.parse(document.getElementById('evolucao-data').textContent);
         
-        collapseElement.addEventListener('hide.bs.collapse', function() {
-            iconToggle.className = 'bi bi-chevron-down';
-            btnToggle.innerHTML = '<i class="bi bi-chevron-down" id="icon-toggle"></i> Expandir';
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: evolucaoData.map(e => e.ano),
+                datasets: [
+                    {
+                        label: 'Saldo Inicial',
+                        data: evolucaoData.map(e => e.saldo_inicial),
+                        borderColor: 'rgb(54, 162, 235)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    },
+                    {
+                        label: 'Saldo Final',
+                        data: evolucaoData.map(e => e.saldo_final),
+                        borderColor: 'rgb(75, 192, 192)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    title: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return value.toLocaleString('pt-BR');
+                            }
+                        }
+                    }
+                }
+            }
         });
     }
-    
-    // Inicializar com filtro mensal
-    if (document.getElementById('tabela-evolucao-detalhada')) {
-        filtrarPeriodo('mensal');
-    }
-    
-    // Inicializar cálculos dos valores totais
-    console.log('🔄 Inicializando cálculos dos valores totais...');
-    document.querySelectorAll('.valor-unitario').forEach(input => {
-        if (input.value && parseFloat(input.value) > 0) {
-            console.log(`💰 Inicializando cálculo para ${input.getAttribute('data-categoria')}: R$ ${input.value}`);
-            calcularValorTotal(input);
-        }
-    });
-    
-    // Calcular totais da evolução detalhada
-    setTimeout(() => {
-        calcularTotaisEvolucao();
-    }, 500);
-    });
-    
-    // Calcular valores totais da análise financeira consolidada
-    function calcularValoresConsolidados() {
-        let totalReceitas = 0;
-        let totalDespesas = 0;
-        
-        // Calcular total de receitas
-        document.querySelectorAll('.valor-venda').forEach(function(element) {
-            const valor = parseFloat(element.getAttribute('data-valor'));
-            const quantidade = parseInt(element.getAttribute('data-quantidade'));
-            const total = valor * quantidade;
-            totalReceitas += total;
-            
-            // Atualizar o texto com o valor total
-            element.textContent = `R$ ${total.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
-        });
-        
-        // Calcular total de despesas
-        document.querySelectorAll('.valor-compra').forEach(function(element) {
-            const valor = parseFloat(element.getAttribute('data-valor'));
-            const quantidade = parseInt(element.getAttribute('data-quantidade'));
-            const total = valor * quantidade;
-            totalDespesas += total;
-            
-            // Atualizar o texto com o valor total
-            element.textContent = `R$ ${total.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
-        });
-        
-        // Atualizar os totais nas tabelas
-        const totalReceitasElement = document.querySelector('.total-receitas');
-        const totalDespesasElement = document.querySelector('.total-despesas');
-        const valorLiquidoElement = document.querySelector('.valor-liquido');
-        
-        if (totalReceitasElement) {
-            totalReceitasElement.textContent = `R$ ${totalReceitas.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
-        }
-        
-        if (totalDespesasElement) {
-            totalDespesasElement.textContent = `R$ ${totalDespesas.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
-        }
-        
-        if (valorLiquidoElement) {
-            const valorLiquido = totalReceitas - totalDespesas;
-            valorLiquidoElement.textContent = `R$ ${valorLiquido.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
-            valorLiquidoElement.className = valorLiquido >= 0 ? 'valor-liquido text-success' : 'valor-liquido text-danger';
-        }
-        
-        console.log(`Receitas: R$ ${totalReceitas.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
-        console.log(`Despesas: R$ ${totalDespesas.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
-        console.log(`Líquido: R$ ${(totalReceitas - totalDespesas).toLocaleString('pt-BR', {minimumFractionDigits: 2})}`);
-    }
-    
-    // Executar quando a página carregar
-    document.addEventListener('DOMContentLoaded', function() {
-        calcularValoresConsolidados();
-    });
+    {% endif %}
+});
 </script>
+
+<style>
+.card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+}
+
+.table th {
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.table td {
+    font-size: 0.9rem;
+    vertical-align: middle;
+}
+
+.badge {
+    font-weight: 500;
+}
+</style>
 {% endblock %}

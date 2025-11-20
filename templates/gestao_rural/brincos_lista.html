@@ -1,0 +1,399 @@
+{% extends "base_modulos_unificado.html" %}
+{% load formatacao_br %}
+
+{% block title %}Controle de Brincos - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'rastreabilidade_dashboard' propriedade.id %}">Rastreabilidade</a></li>
+            <li class="breadcrumb-item active">Brincos</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h2 class="mb-0"><i class="bi bi-tags text-warning me-2"></i>Controle de Brincos Oficiais</h2>
+            <small class="text-muted">Gestão de estoque e utilização de identificadores SISBOV</small>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'brinco_cadastrar_lote' propriedade.id %}" class="btn btn-warning">
+                <i class="bi bi-plus-circle me-1"></i>Cadastrar Brincos em Lote
+            </a>
+            <a href="{% url 'brinco_importar_lista' propriedade.id %}" class="btn btn-success">
+                <i class="bi bi-upload me-1"></i>Importar de Lista
+            </a>
+            <a href="{% url 'animais_individuais_lista' propriedade.id %}" class="btn btn-outline-secondary">
+                <i class="bi bi-cow me-1"></i>Animais Individuais
+            </a>
+        </div>
+    </div>
+
+    <div class="row row-cols-1 row-cols-md-4 g-3 mb-4">
+        <div class="col">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <h6 class="text-muted text-uppercase">Total de Brincos</h6>
+                    <h2 class="mb-1">{{ totais.total|numero_br:0 }}</h2>
+                    <small class="text-muted">Inclui todos os status</small>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <h6 class="text-muted text-uppercase">Disponíveis</h6>
+                    <h2 class="text-success mb-1">{{ totais.disponiveis|numero_br:0 }}</h2>
+                    <small class="text-muted">Prontos para uso</small>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <h6 class="text-muted text-uppercase">Em Uso</h6>
+                    <h2 class="text-primary mb-1">{{ totais.em_uso|numero_br:0 }}</h2>
+                    <small class="text-muted">Vinculados a animais</small>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <h6 class="text-muted text-uppercase">Saldo Livre</h6>
+                    <h2 class="text-warning mb-1">{{ totais.saldo|numero_br:0 }}</h2>
+                    <small class="text-muted">Disponíveis para novas identificações</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center bg-light">
+            <div>
+                <h5 class="mb-0"><i class="bi bi-collection me-2 text-warning"></i>Lotes Registrados</h5>
+                <small class="text-muted">Resumo de aquisições, validade e consumo <span class="d-inline-block" data-bs-toggle="collapse" data-bs-target="#resumo-lotes" aria-expanded="true" aria-controls="resumo-lotes">(clique para expandir/recolher)</span></small>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <div class="text-end text-muted small">
+                    <div>Última compra: {{ totais.ultima_compra|date:"d/m/Y"|default:"-" }}</div>
+                    <div>Vencimentos em 2 anos: {{ totais.vencendo_em_dois_anos|numero_br:0 }}</div>
+                </div>
+                <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#resumo-lotes" aria-expanded="true" aria-controls="resumo-lotes">
+                    <i class="bi bi-arrows-expand"></i> Mostrar / ocultar
+                </button>
+            </div>
+        </div>
+        <div id="resumo-lotes" class="collapse show">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Lote</th>
+                                <th>Fornecedor</th>
+                                <th class="text-end">Qtd. Adquirida</th>
+                                <th class="text-end">Utilizados</th>
+                                <th class="text-end">Saldo</th>
+                                <th class="text-center">Aquisição</th>
+                                <th class="text-center">Vencimento (2 anos)</th>
+                                <th class="text-center">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for lote in totais.lotes %}
+                            <tr>
+                                <td class="fw-semibold">{{ lote.codigo_lote|default:"-" }}</td>
+                                <td>{{ lote.fornecedor|default:"-" }}</td>
+                                <td class="text-end">{{ lote.quantidade|numero_br:0 }}</td>
+                                <td class="text-end">{{ lote.utilizados|numero_br:0 }}</td>
+                                <td class="text-end">{{ lote.saldo|numero_br:0 }}</td>
+                                <td class="text-center">{{ lote.data_aquisicao|date:"d/m/Y"|default:"-" }}</td>
+                                <td class="text-center">
+                                    {% if lote.vencimento %}
+                                        <span class="badge bg-{% if lote.vencido %}danger{% elif lote.vencendo %}warning text-dark{% else %}success{% endif %}">
+                                            {{ lote.vencimento|date:"d/m/Y" }}
+                                        </span>
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-outline-danger btn-sm btn-excluir-lote"
+                                            data-lote-codigo="{% if lote.codigo_lote and lote.codigo_lote != 'Lote não informado' %}{{ lote.codigo_lote }}{% else %}{% endif %}"
+                                            data-lote-sem-codigo="{% if not lote.codigo_lote or lote.codigo_lote == 'Lote não informado' %}true{% else %}false{% endif %}"
+                                            data-lote-fornecedor="{{ lote.fornecedor|default_if_none:'' }}"
+                                            data-lote-data="{% if lote.data_aquisicao %}{{ lote.data_aquisicao|date:'Y-m-d' }}{% endif %}">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-3">Nenhum lote cadastrado.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label">Status</label>
+                    <select name="status" class="form-select">
+                        <option value="">Todos</option>
+                        <option value="DISPONIVEL" {% if status_filtro == 'DISPONIVEL' %}selected{% endif %}>Disponível</option>
+                        <option value="EM_USO" {% if status_filtro == 'EM_USO' %}selected{% endif %}>Em Uso</option>
+                        <option value="DANIFICADO" {% if status_filtro == 'DANIFICADO' %}selected{% endif %}>Danificado</option>
+                        <option value="PERDIDO" {% if status_filtro == 'PERDIDO' %}selected{% endif %}>Perdido</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Tipo de Brinco</label>
+                    <select name="tipo" class="form-select">
+                        <option value="">Todos</option>
+                        <option value="VISUAL" {% if tipo_filtro == 'VISUAL' %}selected{% endif %}>Visual</option>
+                        <option value="ELETRONICO" {% if tipo_filtro == 'ELETRONICO' %}selected{% endif %}>Eletrônico (RFID)</option>
+                        <option value="BOTTON" {% if tipo_filtro == 'BOTTON' %}selected{% endif %}>Botton</option>
+                        <option value="BOLINHA" {% if tipo_filtro == 'BOLINHA' %}selected{% endif %}>Bolinha</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Buscar número</label>
+                    <input type="text" name="busca" class="form-control" value="{{ busca }}" placeholder="Digite o número do brinco">
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-warning"><i class="bi bi-search me-1"></i>Filtrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Número SISBOV</th>
+                            <th>Manejo SISBOV</th>
+                            <th>Raça</th>
+                            <th>Sexo</th>
+                            <th>Data Nascimento</th>
+                            <th>Data Identificação</th>
+                            <th>Data Cadastro Fazenda</th>
+                            <th>Data Inclusão BND</th>
+                            <th>Status do Brinco / Estoque</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for brinco in brincos %}
+                        {% with animal=brinco.animal %}
+                        <tr>
+                            <td class="fw-semibold">
+                                {% if animal %}
+                                    <a href="{% url 'animal_individual_detalhes' propriedade.id animal.id %}">
+                                        {{ animal.codigo_sisbov|default:brinco.numero_brinco }}
+                                    </a>
+                                {% else %}
+                                    {{ brinco.numero_brinco }}
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if animal and animal.codigo_sisbov %}
+                                    {{ animal.codigo_sisbov|extrair_manejo_sisbov }}
+                                {% elif brinco.numero_brinco %}
+                                    {{ brinco.numero_brinco|extrair_manejo_sisbov|default:"-" }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if animal %}
+                                    {{ animal.raca|default:"-" }}
+                                {% else %}
+                                    <span class="text-muted">Estoque</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if animal %}
+                                    {{ animal.get_sexo_display }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if animal and animal.data_nascimento %}
+                                    {{ animal.data_nascimento|date:"d/m/Y" }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if animal and animal.data_identificacao %}
+                                    {{ animal.data_identificacao|date:"d/m/Y" }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if animal and animal.data_cadastro %}
+                                    {{ animal.data_cadastro|date:"d/m/Y" }}
+                                {% elif brinco.data_aquisicao %}
+                                    {{ brinco.data_aquisicao|date:"d/m/Y" }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if animal and animal.data_identificacao %}
+                                    {{ animal.data_identificacao|date:"d/m/Y" }}
+                                {% elif brinco.data_aquisicao %}
+                                    {{ brinco.data_aquisicao|date:"d/m/Y" }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if brinco.status == 'DISPONIVEL' %}
+                                    <span class="badge bg-success">Estoque</span>
+                                {% else %}
+                                    <span class="badge bg-primary">
+                                        Utilizado - {{ brinco.get_status_display }}
+                                    </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endwith %}
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-4">Nenhum brinco cadastrado.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmação para Exclusão de Lote -->
+<div class="modal fade" id="modalExcluirLote" tabindex="-1" aria-labelledby="modalExcluirLoteLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalExcluirLoteLabel">Confirmar Exclusão</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Tem certeza que deseja excluir TODOS os brincos deste lote?</p>
+                <p class="text-danger"><strong>Esta ação não pode ser desfeita!</strong></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="btnConfirmarExclusao">
+                    <i class="bi bi-trash"></i> Excluir
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Formulário oculto para submissão -->
+<form id="formExcluirLote" method="post" action="{% url 'brinco_excluir_lote' propriedade.id %}" style="display: none;">
+    {% csrf_token %}
+    <input type="hidden" name="codigo_lote" id="inputCodigoLote">
+    <input type="hidden" name="sem_codigo" id="inputSemCodigo">
+    <input type="hidden" name="fornecedor" id="inputFornecedor">
+    <input type="hidden" name="data_aquisicao" id="inputDataAquisicao">
+</form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const modalExcluirLote = document.getElementById('modalExcluirLote');
+    const formExcluirLote = document.getElementById('formExcluirLote');
+    const inputCodigoLote = document.getElementById('inputCodigoLote');
+    const inputSemCodigo = document.getElementById('inputSemCodigo');
+    const inputFornecedor = document.getElementById('inputFornecedor');
+    const inputDataAquisicao = document.getElementById('inputDataAquisicao');
+    
+    if (!modalExcluirLote || !formExcluirLote) {
+        console.error('Elementos do modal não encontrados');
+        return;
+    }
+    
+    // Capturar todos os botões de exclusão
+    const botoesExcluir = document.querySelectorAll('.btn-excluir-lote');
+    
+    botoesExcluir.forEach(function(botao) {
+        botao.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Extrair dados dos atributos data-*
+            const codigoLote = botao.getAttribute('data-lote-codigo');
+            const semCodigo = botao.getAttribute('data-lote-sem-codigo') === 'true';
+            const fornecedor = botao.getAttribute('data-lote-fornecedor');
+            const dataAquisicao = botao.getAttribute('data-lote-data');
+            
+            console.log('Dados do lote:', { codigoLote, semCodigo, fornecedor, dataAquisicao });
+            
+            // Preencher os campos hidden do formulário ANTES de abrir o modal
+            if (inputCodigoLote) inputCodigoLote.value = codigoLote || '';
+            if (inputSemCodigo) inputSemCodigo.value = semCodigo ? 'true' : 'false';
+            if (inputFornecedor) inputFornecedor.value = fornecedor || '';
+            if (inputDataAquisicao) inputDataAquisicao.value = dataAquisicao || '';
+            
+            // Abrir o modal usando Bootstrap
+            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                const modal = new bootstrap.Modal(modalExcluirLote);
+                modal.show();
+            } else {
+                // Fallback se Bootstrap não estiver disponível
+                modalExcluirLote.classList.add('show');
+                modalExcluirLote.style.display = 'block';
+                document.body.classList.add('modal-open');
+            }
+        });
+    });
+    
+    // Botão de confirmação dentro do modal
+    const btnConfirmarExclusao = document.getElementById('btnConfirmarExclusao');
+    
+    if (btnConfirmarExclusao) {
+        btnConfirmarExclusao.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Log dos dados que serão enviados
+            console.log('Submetendo formulário com:', {
+                codigo_lote: inputCodigoLote.value,
+                sem_codigo: inputSemCodigo.value,
+                fornecedor: inputFornecedor.value,
+                data_aquisicao: inputDataAquisicao.value
+            });
+            
+            // Fechar o modal
+            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                const modalInstance = bootstrap.Modal.getInstance(modalExcluirLote);
+                if (modalInstance) {
+                    modalInstance.hide();
+                }
+            }
+            
+            // Submeter o formulário
+            formExcluirLote.submit();
+        });
+    }
+});
+</script>
+{% endblock %}
+

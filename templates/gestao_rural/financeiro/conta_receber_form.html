@@ -1,0 +1,132 @@
+{% extends 'base_modulos_unificado.html' %}
+{% load formatacao_br %}
+
+{% block title %}{{ titulo }} - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block breadcrumb_extra %}
+    <li class="breadcrumb-item">
+        <a href="{% url 'financeiro_dashboard' propriedade.id %}">
+            <i class="bi bi-cash-coin me-1"></i>Financeiro
+        </a>
+    </li>
+    <li class="breadcrumb-item">
+        <a href="{% url 'financeiro_contas_receber' propriedade.id %}">Contas a Receber</a>
+    </li>
+    <li class="breadcrumb-item active">{{ titulo }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="submenu-page-header">
+        <div class="d-flex align-items-start gap-4">
+            <div class="submenu-page-icon bg-success bg-opacity-10 text-success">
+                <i class="bi bi-arrow-down-circle"></i>
+            </div>
+            <div class="flex-grow-1">
+                <h1 class="submenu-page-title mb-1">{{ titulo }}</h1>
+                <p class="submenu-page-description mb-0">
+                    Preencha os dados da conta a receber da propriedade {{ propriedade.nome_propriedade }}.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="card-moderno">
+        <div class="card-body-moderno">
+            <form method="post">
+                {% csrf_token %}
+                {{ form.propriedade }}
+                
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">{{ form.descricao.label }}</label>
+                        {{ form.descricao }}
+                        {% if form.descricao.errors %}
+                            <div class="text-danger small">{{ form.descricao.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label">{{ form.categoria.label }}</label>
+                        {{ form.categoria }}
+                        {% if form.categoria.errors %}
+                            <div class="text-danger small">{{ form.categoria.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label">{{ form.cliente.label }}</label>
+                        {{ form.cliente }}
+                        {% if form.cliente.errors %}
+                            <div class="text-danger small">{{ form.cliente.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label">{{ form.valor.label }}</label>
+                        {{ form.valor }}
+                        {% if form.valor.errors %}
+                            <div class="text-danger small">{{ form.valor.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label">{{ form.data_vencimento.label }}</label>
+                        {{ form.data_vencimento }}
+                        {% if form.data_vencimento.errors %}
+                            <div class="text-danger small">{{ form.data_vencimento.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label">{{ form.data_recebimento.label }}</label>
+                        {{ form.data_recebimento }}
+                        {% if form.data_recebimento.errors %}
+                            <div class="text-danger small">{{ form.data_recebimento.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label">{{ form.status.label }}</label>
+                        {{ form.status }}
+                        {% if form.status.errors %}
+                            <div class="text-danger small">{{ form.status.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label">{{ form.forma_recebimento.label }}</label>
+                        {{ form.forma_recebimento }}
+                        {% if form.forma_recebimento.errors %}
+                            <div class="text-danger small">{{ form.forma_recebimento.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-12">
+                        <label class="form-label">{{ form.observacoes.label }}</label>
+                        {{ form.observacoes }}
+                        {% if form.observacoes.errors %}
+                            <div class="text-danger small">{{ form.observacoes.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="mt-4 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle me-1"></i> Salvar
+                    </button>
+                    <a href="{% url 'financeiro_contas_receber' propriedade.id %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle me-1"></i> Cancelar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+
+
+

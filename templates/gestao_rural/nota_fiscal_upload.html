@@ -1,0 +1,67 @@
+{% extends "base_modulos_unificado.html" %}
+
+{% block title %}Importar NF-e - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'compras_dashboard' propriedade.id %}">Compras</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'notas_fiscais_lista' propriedade.id %}">Notas Fiscais</a></li>
+            <li class="breadcrumb-item active">Importar XML</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-xl-7">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-filetype-xml me-2"></i>Importar arquivo XML</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data" class="row g-3">
+                        {% csrf_token %}
+                        <div class="col-12">
+                            <label class="form-label">Arquivo XML da NF-e *</label>
+                            <input type="file" name="arquivo_xml" accept=".xml" class="form-control" required>
+                            <small class="text-muted">Faça o upload do XML autorizado pela SEFAZ.</small>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Fornecedor (opcional)</label>
+                            <select name="fornecedor_manual" class="form-select">
+                                <option value="">Auto identificar pelo XML</option>
+                                {% for fornecedor in fornecedores %}
+                                <option value="{{ fornecedor.id }}">{{ fornecedor.nome }}</option>
+                                {% endfor %}
+                            </select>
+                            <small class="text-muted">Use apenas se o fornecedor não constar no arquivo.</small>
+                        </div>
+                        <div class="col-12 d-flex gap-2">
+                            <button type="submit" class="btn btn-success"><i class="bi bi-upload me-1"></i>Importar</button>
+                            <a href="{% url 'notas_fiscais_lista' propriedade.id %}" class="btn btn-outline-secondary">Cancelar</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-5">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Informações importantes</h6>
+                </div>
+                <div class="card-body small text-muted">
+                    <ul class="mb-3">
+                        <li>Somente arquivos XML oficiais da NF-e são aceitos.</li>
+                        <li>O sistema confere a chave de acesso para evitar duplicidade.</li>
+                        <li>Fornecedores são criados/atualizados automaticamente a partir do XML.</li>
+                        <li>Os itens da NF-e são gravados para integrar com estoque e financeiro.</li>
+                    </ul>
+                    <p class="mb-0">Após a importação, revise os dados e vincule aos centros de custo ou estoques conforme necessário.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

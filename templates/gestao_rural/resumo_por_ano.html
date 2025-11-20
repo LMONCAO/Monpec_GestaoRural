@@ -1,390 +1,125 @@
+{% load formato_numeros %}
 <!-- Resumo da Projeção por Ano -->
 {% if resumo_projecao_por_ano %}
-<div class="card mb-4 border-0 shadow-sm" style="border-radius: 10px; overflow: hidden;">
-    <div class="card-header" style="background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%); color: white;">
-        <div class="d-flex align-items-center">
-            <div class="p-2 rounded-circle me-3" style="background: rgba(255,255,255,0.2); color: white; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
-                <i class="bi bi-graph-up-arrow"></i>
-            </div>
-            <div>
-                <h6 class="mb-0 fw-bold">Resumo da Projeção por Ano</h6>
-                <small class="opacity-75">Análise detalhada por ano da projeção</small>
-            </div>
-        </div>
+<div class="card mb-3 shadow-sm">
+    <div class="card-header bg-secondary text-white">
+        <h6 class="mb-0"><i class="bi bi-calendar3"></i> Projeção por Ano</h6>
     </div>
     <div class="card-body p-0">
+        {% if resumo_projecao_por_ano|length <= 1 %}
+        <div class="alert alert-warning m-3" role="alert">
+            <h6 class="alert-heading"><i class="bi bi-info-circle"></i> Informação</h6>
+            <p>A projeção está mostrando apenas dados do ano atual. Para visualizar projeções futuras:</p>
+            <ol class="mb-0">
+                <li>Clique no botão <strong>"Gerar Projeção"</strong> acima</li>
+                <li>Selecione a quantidade de anos desejada (2, 3, 4, 5 ou 10 anos)</li>
+                <li>Clique em <strong>"Gerar Projeção"</strong></li>
+                <li>As tabelas dos próximos anos aparecerão automaticamente abaixo</li>
+            </ol>
+        </div>
+        {% endif %}
         {% for ano, dados_ano in resumo_projecao_por_ano.items %}
-        <div class="card mb-4 border-0 shadow-sm" style="border-radius: 10px; overflow: hidden;">
-            <div class="card-header" style="background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%); color: white;">
-                <div class="d-flex align-items-center">
-                    <div class="p-2 rounded-circle me-3" style="background: rgba(255,255,255,0.2); color: white; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
-                        <i class="bi bi-calendar3"></i>
-                    </div>
-                    <div>
-                        <h6 class="mb-0 fw-bold">Ano {{ ano }}</h6>
-                        <small class="opacity-75">Projeção anual detalhada</small>
-                    </div>
-                </div>
+        <div class="card mb-3 border">
+            <div class="card-header bg-primary text-white">
+                <h6 class="mb-0"><i class="bi bi-calendar-check"></i> Ano {{ ano }}</h6>
             </div>
-            <div class="card-body p-0">
+            <div class="card-body p-2">
                 <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead style="background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%); color: white;">
+                    <table class="table table-sm table-hover mb-0">
+                            <thead class="table-dark">
                             <tr>
-                                <th class="text-center fw-bold" style="border-right: 2px solid rgba(255,255,255,0.3); padding: 15px 10px;">
-                                    <i class="bi bi-tag"></i><br>
-                                    <small>Categoria</small>
-                                </th>
-                                <th class="text-center fw-bold" style="border-right: 2px solid rgba(255,255,255,0.3); padding: 15px 10px;">
-                                    <i class="bi bi-arrow-right-circle"></i><br>
-                                    <small>Saldo Inicial</small>
-                                </th>
-                                <th class="text-center fw-bold" style="border-right: 2px solid rgba(255,255,255,0.3); padding: 15px 10px;">
-                                    <i class="bi bi-heart-fill"></i><br>
-                                    <small>Nascimentos</small>
-                                </th>
-                                <th class="text-center fw-bold" style="border-right: 2px solid rgba(255,255,255,0.3); padding: 15px 10px;">
-                                    <i class="bi bi-cart-plus"></i><br>
-                                    <small>Compras</small>
-                                </th>
-                                <th class="text-center fw-bold" style="border-right: 2px solid rgba(255,255,255,0.3); padding: 15px 10px;">
-                                    <i class="bi bi-cash-stack"></i><br>
-                                    <small>Vendas</small>
-                                </th>
-                                <th class="text-center fw-bold" style="border-right: 2px solid rgba(255,255,255,0.3); padding: 15px 10px;">
-                                    <i class="bi bi-arrow-left-right"></i><br>
-                                    <small>Transferências</small>
-                                </th>
-                                <th class="text-center fw-bold" style="border-right: 2px solid rgba(255,255,255,0.3); padding: 15px 10px;">
-                                    <i class="bi bi-x-circle-fill"></i><br>
-                                    <small>Mortes</small>
-                                </th>
-                                <th class="text-center fw-bold" style="border-right: 2px solid rgba(255,255,255,0.3); padding: 15px 10px;">
-                                    <i class="bi bi-arrow-up-circle"></i><br>
-                                    <small>Evolução</small>
-                                </th>
-                                <th class="text-center fw-bold" style="padding: 15px 10px;">
-                                    <i class="bi bi-check-circle"></i><br>
-                                    <small>Saldo Final</small>
-                                </th>
-                                <th class="text-center fw-bold" style="padding: 15px 10px;">
-                                    <i class="bi bi-speedometer2"></i><br>
-                                    <small>Peso Médio (kg)</small>
-                                </th>
-                                <th class="text-center fw-bold" style="padding: 15px 10px;">
-                                    <i class="bi bi-currency-dollar"></i><br>
-                                    <small>Valor Unitário (R$)</small>
-                                </th>
-                                <th class="text-center fw-bold" style="padding: 15px 10px;">
-                                    <i class="bi bi-calculator"></i><br>
-                                    <small>Valor Total (R$)</small>
-                                </th>
+                                <th class="text-center"><small>Categoria</small></th>
+                                <th class="text-center"><small>Inicial</small></th>
+                                <th class="text-center"><small>Nasc</small></th>
+                                <th class="text-center"><small>Comp</small></th>
+                                <th class="text-center"><small>Vend</small></th>
+                                <th class="text-center"><small>Trans</small></th>
+                                <th class="text-center"><small>Mort</small></th>
+                                <th class="text-center"><small>Evol</small></th>
+                                <th class="text-center"><small>Final</small></th>
+                                <th class="text-center"><small>Peso (kg)</small></th>
+                                <th class="text-center"><small>R$/Cabeça</small></th>
+                                <th class="text-center"><small>Total (R$)</small></th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for categoria, dados in dados_ano.items %}
-                            <tr {% if categoria == 'TOTAIS' %}style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-top: 3px solid #1e3a8a;"{% endif %}>
-                                <td class="text-center fw-bold" style="border-right: 2px solid rgba(0,0,0,0.1); padding: 12px 8px; {% if categoria == 'TOTAIS' %}color: #1e3a8a; font-size: 1.1rem;{% endif %}">
-                                    {% if categoria == 'TOTAIS' %}
-                                        <i class="bi bi-calculator me-2"></i>{{ categoria }}
-                                    {% else %}
-                                        {{ categoria }}
-                                    {% endif %}
+                            <tr class="{% if categoria == 'TOTAIS' %}table-active fw-bold{% endif %}">
+                                <td class="text-center {% if categoria == 'TOTAIS' %}text-primary{% endif %}">
+                                    <small>{{ categoria }}</small>
                                 </td>
-                                <td class="text-center {% if categoria == 'TOTAIS' %}fw-bold{% endif %}" style="border-right: 2px solid rgba(0,0,0,0.1); padding: 12px 8px; {% if categoria == 'TOTAIS' %}color: #1e3a8a; font-size: 1.1rem;{% endif %}">
-                                    {{ dados.saldo_inicial|default:0 }}
+                                <td class="text-center"><small class="fw-bold">{{ dados.saldo_inicial|default:0|formato_numero_inteiro }}</small></td>
+                                <td class="text-center"><small class="text-success">+{{ dados.nascimentos|default:0|formato_numero_inteiro }}</small></td>
+                                <td class="text-center"><small class="text-info">+{{ dados.compras|default:0|formato_numero_inteiro }}</small></td>
+                                <td class="text-center"><small class="text-danger">-{{ dados.vendas|default:0|formato_numero_inteiro }}</small></td>
+                                <td class="text-center">
+                                    <small>{% if dados.transferencias_entrada > 0 or dados.transferencias_saida > 0 %}<span class="text-success">+{{ dados.transferencias_entrada|default:0|formato_numero_inteiro }}</span>/<span class="text-warning">-{{ dados.transferencias_saida|default:0|formato_numero_inteiro }}</span>{% else %}0{% endif %}</small>
                                 </td>
-                                <td class="text-center {% if categoria == 'TOTAIS' %}fw-bold{% endif %}" style="border-right: 2px solid rgba(0,0,0,0.1); padding: 12px 8px; {% if categoria == 'TOTAIS' %}color: #1e3a8a; font-size: 1.1rem;{% endif %}">
-                                    +{{ dados.nascimentos|default:0 }}
-                                </td>
-                                <td class="text-center {% if categoria == 'TOTAIS' %}fw-bold{% endif %}" style="border-right: 2px solid rgba(0,0,0,0.1); padding: 12px 8px; {% if categoria == 'TOTAIS' %}color: #1e3a8a; font-size: 1.1rem;{% endif %}">
-                                    +{{ dados.compras|default:0 }}
-                                </td>
-                                <td class="text-center {% if categoria == 'TOTAIS' %}fw-bold{% endif %}" style="border-right: 2px solid rgba(0,0,0,0.1); padding: 12px 8px; {% if categoria == 'TOTAIS' %}color: #1e3a8a; font-size: 1.1rem;{% endif %}">
-                                    -{{ dados.vendas|default:0 }}
-                                </td>
-                                <td class="text-center {% if categoria == 'TOTAIS' %}fw-bold{% endif %}" style="border-right: 2px solid rgba(0,0,0,0.1); padding: 12px 8px; {% if categoria == 'TOTAIS' %}color: #1e3a8a; font-size: 1.1rem;{% endif %}">
-                                    {% if dados.transferencias_entrada > 0 or dados.transferencias_saida > 0 %}
-                                        +{{ dados.transferencias_entrada|default:0 }}/-{{ dados.transferencias_saida|default:0 }}
-                                    {% else %}
-                                        0
-                                    {% endif %}
-                                </td>
-                                <td class="text-center {% if categoria == 'TOTAIS' %}fw-bold{% endif %}" style="border-right: 2px solid rgba(0,0,0,0.1); padding: 12px 8px; {% if categoria == 'TOTAIS' %}color: #1e3a8a; font-size: 1.1rem;{% endif %}">
-                                    -{{ dados.mortes|default:0 }}
-                                </td>
-                                <td class="text-center {% if categoria == 'TOTAIS' %}fw-bold{% endif %}" style="border-right: 2px solid rgba(0,0,0,0.1); padding: 12px 8px; {% if categoria == 'TOTAIS' %}color: #1e3a8a; font-size: 1.1rem;{% endif %}">
-                                    {% if dados.evolucao_categoria %}
-                                        {{ dados.evolucao_categoria }}
-                                    {% else %}
-                                        -
-                                    {% endif %}
-                                </td>
-                                <td class="text-center fw-bold" style="padding: 12px 8px; {% if categoria == 'TOTAIS' %}color: #1e3a8a; font-size: 1.1rem;{% endif %}">
-                                    {{ dados.saldo_final|default:0 }}
-                                </td>
-                                <td class="text-center" style="padding: 12px 8px;">
-                                    {% if categoria == 'TOTAIS' %}
-                                        <span class="badge bg-secondary" style="font-size: 1rem;">
-                                            -
-                                        </span>
-                                    {% else %}
-                                        <span class="badge bg-info" style="font-size: 0.9rem;">
-                                            {{ dados.peso_medio_kg|default:0|floatformat:1 }} kg
-                                        </span>
-                                    {% endif %}
-                                </td>
-                                <td class="text-center" style="padding: 12px 8px;">
-                                    {% if categoria == 'TOTAIS' %}
-                                        <span class="fw-bold" style="color: #1e3a8a; font-size: 1.1rem;">
-                                            -
-                                        </span>
-                                    {% else %}
+                                <td class="text-center"><small class="text-danger">-{{ dados.mortes|default:0|formato_numero_inteiro }}</small></td>
+                                <td class="text-center"><small>{{ dados.evolucao_categoria|default:"-" }}</small></td>
+                                <td class="text-center {% if categoria == 'TOTAIS' %}text-primary{% endif %}"><small class="fw-bold">{{ dados.saldo_final|default:0|formato_numero_inteiro }}</small></td>
+                                <td class="text-center"><small class="fw-bold">{{ dados.peso_medio_kg|default:0|formato_decimal }}</small></td>
+                                <td class="text-center">
+                                    {% if categoria != 'TOTAIS' %}
                                         <input type="number" 
-                                               class="form-control form-control-sm text-center valor-unitario" 
+                                               class="form-control form-control-sm text-center" 
                                                value="{{ dados.valor_unitario|default:0|floatformat:2 }}" 
                                                step="0.01" 
                                                min="0"
                                                data-categoria="{{ categoria }}"
-                                               onchange="calcularValorTotal(this)"
-                                               style="width: 100px; display: inline-block;">
+                                               data-ano="{{ ano }}"
+                                               onchange="atualizarValorUnitario(this)"
+                                               style="width: 100px; display: inline-block; font-size: 0.75rem; padding: 2px 4px;">
+                                    {% else %}
+                                        <small class="fw-bold">{{ dados.valor_unitario|default:0|formato_monetario }}</small>
                                     {% endif %}
                                 </td>
-                                <td class="text-center fw-bold" style="padding: 12px 8px; {% if categoria == 'TOTAIS' %}color: #1e3a8a; font-size: 1.1rem;{% endif %}">
-                                    <span class="valor-total" data-categoria="{{ categoria }}">
-                                        R$ {{ dados.valor_total|default:0|floatformat:2 }}
-                                    </span>
+                                <td class="text-center {% if categoria == 'TOTAIS' %}text-primary{% endif %}">
+                                    <small class="fw-bold" id="valor-total-{{ categoria|slugify }}-{{ ano }}">{{ dados.valor_total|default:0|formato_monetario }}</small>
                                 </td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
-                
-                <!-- Card Informativo do Rodapé -->
-                <div class="card-footer" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-top: 3px solid #1e3a8a;">
-                    <div class="row">
-                        <div class="col-12">
-                            <h6 class="text-primary mb-3">
-                                <i class="bi bi-calculator me-2"></i>
-                                Análise Financeira Detalhada - Ano {{ ano }}
-                                <small class="text-muted">({{ periodicidade|default:"Mensal" }})</small>
-                            </h6>
-                            <!-- Resumo Financeiro Simplificado -->
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="card border-success">
-                                        <div class="card-header bg-success text-white">
-                                            <h6 class="mb-0"><i class="bi bi-cash-stack me-2"></i>💰 RECEITAS (Vendas)</h6>
-                                        </div>
-                                        <div class="card-body">
-                                            <div class="table-responsive">
-                                                <table class="table table-sm">
-                                                    <thead>
-                                                        <tr>
-                                                            <th>Categoria</th>
-                                                            <th>Qtd</th>
-                                                            <th>Valor (R$)</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {% for categoria, dados in dados_ano.items %}
-                                                            {% if dados.vendas > 0 %}
-                                                                <tr>
-                                                                    <td>{{ categoria }}</td>
-                                                                    <td>{{ dados.vendas }}</td>
-                                                                    <td class="text-success fw-bold valor-venda" 
-                                                                        data-categoria="{{ categoria }}" 
-                                                                        data-quantidade="{{ dados.vendas }}" 
-                                                                        data-valor-unitario="{{ dados.valor_unitario }}">
-                                                                        R$ 0,00
-                                                                    </td>
-                                                                </tr>
-                                                            {% endif %}
-                                                        {% endfor %}
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="col-md-6">
-                                    <div class="card border-danger">
-                                        <div class="card-header bg-danger text-white">
-                                            <h6 class="mb-0"><i class="bi bi-cart-dash me-2"></i>💸 DESPESAS (Compras)</h6>
-                                        </div>
-                                        <div class="card-body">
-                                            <div class="table-responsive">
-                                                <table class="table table-sm">
-                                                    <thead>
-                                                        <tr>
-                                                            <th>Categoria</th>
-                                                            <th>Qtd</th>
-                                                            <th>Valor (R$)</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {% for categoria, dados in dados_ano.items %}
-                                                            {% if dados.compras > 0 %}
-                                                                <tr>
-                                                                    <td>{{ categoria }}</td>
-                                                                    <td>{{ dados.compras }}</td>
-                                                                    <td class="text-danger fw-bold valor-compra" 
-                                                                        data-categoria="{{ categoria }}" 
-                                                                        data-quantidade="{{ dados.compras }}" 
-                                                                        data-valor-unitario="{{ dados.valor_unitario }}">
-                                                                        R$ 0,00
-                                                                    </td>
-                                                                </tr>
-                                                            {% endif %}
-                                                        {% endfor %}
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Resumo Financeiro Consolidado -->
-                            <div class="row mt-3">
-                                <div class="col-12">
-                                    <div class="alert alert-info">
-                                        <h6 class="mb-3">
-                                            <i class="bi bi-calculator me-2"></i>📊 Resumo Financeiro Consolidado - Ano {{ ano }}
-                                        </h6>
-                                        <div class="row">
-                                            <div class="col-md-3">
-                                                <div class="text-center">
-                                                    <p class="mb-1"><strong>Receita Total</strong></p>
-                                                    <h5 class="text-success" id="receita-total-{{ ano }}">R$ 0,00</h5>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-3">
-                                                <div class="text-center">
-                                                    <p class="mb-1"><strong>Despesas Totais</strong></p>
-                                                    <h5 class="text-danger" id="despesas-total-{{ ano }}">R$ 0,00</h5>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-3">
-                                                <div class="text-center">
-                                                    <p class="mb-1"><strong>Valor Líquido Anual</strong></p>
-                                                    <h5 id="valor-liquido-{{ ano }}">R$ 0,00</h5>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-3">
-                                                <div class="text-center">
-                                                    <p class="mb-1"><strong>Status Financeiro</strong></p>
-                                                    <span id="status-financeiro-{{ ano }}" class="badge bg-secondary">CALCULANDO</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        
-                                        <!-- Dados para JavaScript -->
-                                        <div style="display: none;" id="dados-financeiros-{{ ano }}">
-                                            {% for categoria, dados in dados_ano.items %}
-                                                <span data-categoria="{{ categoria }}" 
-                                                      data-vendas="{{ dados.vendas }}" 
-                                                      data-compras="{{ dados.compras }}" 
-                                                      data-valor-total="{{ dados.valor_total }}">
-                                                </span>
-                                            {% endfor %}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
+        <div class="mb-5"></div>
         {% endfor %}
     </div>
 </div>
 {% endif %}
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Calcular valores financeiros para cada ano
-    calcularValoresFinanceiros();
-});
-
-function calcularValoresFinanceiros() {
-    // Buscar todos os anos na página
-    const anosElements = document.querySelectorAll('[id^="dados-financeiros-"]');
+// Função para atualizar valor unitário na tabela por ano
+function atualizarValorUnitario(input) {
+    const categoria = input.getAttribute('data-categoria');
+    const ano = input.getAttribute('data-ano');
+    const novoValor = parseFloat(input.value) || 0;
     
-    anosElements.forEach(function(elementoAno) {
-        const ano = elementoAno.id.replace('dados-financeiros-', '');
-        console.log(`Calculando valores para o ano ${ano}`);
-        
-        // Inicializar totais
-        let totalReceitas = 0;
-        let totalDespesas = 0;
-        
-        // Calcular valores das vendas
-        const vendasElements = document.querySelectorAll('.valor-venda');
-        vendasElements.forEach(function(element) {
-            const quantidade = parseFloat(element.getAttribute('data-quantidade')) || 0;
-            const valorUnitario = parseFloat(element.getAttribute('data-valor-unitario')) || 0;
-            const valorTotal = quantidade * valorUnitario;
-            
-            element.textContent = `R$ ${valorTotal.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-            totalReceitas += valorTotal;
-            
-            console.log(`Venda: ${element.getAttribute('data-categoria')} - ${quantidade} x R$ ${valorUnitario} = R$ ${valorTotal}`);
-        });
-        
-        // Calcular valores das compras
-        const comprasElements = document.querySelectorAll('.valor-compra');
-        comprasElements.forEach(function(element) {
-            const quantidade = parseFloat(element.getAttribute('data-quantidade')) || 0;
-            const valorUnitario = parseFloat(element.getAttribute('data-valor-unitario')) || 0;
-            const valorTotal = quantidade * valorUnitario;
-            
-            element.textContent = `R$ ${valorTotal.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-            totalDespesas += valorTotal;
-            
-            console.log(`Compra: ${element.getAttribute('data-categoria')} - ${quantidade} x R$ ${valorUnitario} = R$ ${valorTotal}`);
-        });
-        
-        // Calcular valor líquido
-        const valorLiquido = totalReceitas - totalDespesas;
-        
-        // Atualizar elementos na página
-        const receitaElement = document.getElementById(`receita-total-${ano}`);
-        const despesasElement = document.getElementById(`despesas-total-${ano}`);
-        const valorLiquidoElement = document.getElementById(`valor-liquido-${ano}`);
-        const statusElement = document.getElementById(`status-financeiro-${ano}`);
-        
-        if (receitaElement) {
-            receitaElement.textContent = `R$ ${totalReceitas.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+    // Encontrar a linha da tabela
+    const row = input.closest('tr');
+    
+    // Buscar o saldo final na mesma linha
+    const saldoFinalCell = row.querySelector('td:nth-child(9)'); // 9ª coluna (Saldo Final)
+    const saldoFinal = parseFloat(saldoFinalCell ? saldoFinalCell.textContent : 0) || 0;
+    
+    // Calcular novo valor total
+    const valorTotal = novoValor * saldoFinal;
+    
+    // Atualizar o valor total usando o ID específico
+    const categoriaSlug = categoria.toLowerCase().replace(/\s+/g, '-');
+    const valorTotalId = `valor-total-${categoriaSlug}-${ano}`;
+    const valorTotalElement = document.getElementById(valorTotalId);
+    
+    if (valorTotalElement) {
+        valorTotalElement.textContent = `R$ ${valorTotal.toFixed(2).replace('.', ',')}`;
+    } else {
+        // Fallback: atualizar pela célula
+        const valorTotalCell = row.querySelector('td:nth-child(12)');
+        if (valorTotalCell) {
+            valorTotalCell.innerHTML = `<small class="fw-bold">R$ ${valorTotal.toFixed(2).replace('.', ',')}</small>`;
         }
-        
-        if (despesasElement) {
-            despesasElement.textContent = `R$ ${totalDespesas.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-        }
-        
-        if (valorLiquidoElement) {
-            valorLiquidoElement.textContent = `R$ ${valorLiquido.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-            if (valorLiquido > 0) {
-                valorLiquidoElement.className = 'text-success';
-            } else {
-                valorLiquidoElement.className = 'text-danger';
-            }
-        }
-        
-        if (statusElement) {
-            if (valorLiquido > 0) {
-                statusElement.textContent = 'LUCRO';
-                statusElement.className = 'badge bg-success fs-6';
-            } else {
-                statusElement.textContent = 'PREJUÍZO';
-                statusElement.className = 'badge bg-danger fs-6';
-            }
-        }
-        
-        console.log(`Ano ${ano}: Receitas: R$ ${totalReceitas}, Despesas: R$ ${totalDespesas}, Líquido: R$ ${valorLiquido}`);
-    });
+    }
 }
 </script>

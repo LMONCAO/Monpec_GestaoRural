@@ -1,0 +1,802 @@
+{% extends 'base_navegacao_inteligente.html' %}
+
+{% block title %}Contas a Receber - {{ propriedade.nome }} - MONPEC{% endblock %}
+
+{% block breadcrumb_extra %}
+<li class="breadcrumb-item">
+    <a href="{% url 'financeiro_dashboard' propriedade.id %}">Financeiro</a>
+</li>
+<li class="breadcrumb-item active">Contas a Receber</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Cabeçalho -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card card-modulo card-financeiro">
+                <div class="card-header-colorido card-header">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h3 class="mb-0">
+                                <i class="bi bi-cash-coin"></i> Contas a Receber
+                            </h3>
+                            <p class="mb-0 mt-2">
+                                <i class="bi bi-calendar"></i> {{ propriedade.nome }} • 
+                                Controle de Clientes e Recebimentos
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <button class="btn btn-modulo-financeiro" data-bs-toggle="modal" data-bs-target="#modalNovaReceita">
+                                <i class="bi bi-plus-circle"></i> Nova Receita
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cards de Resumo -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-danger bg-opacity-10 border-danger h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-exclamation-triangle-fill text-danger display-4 mb-2"></i>
+                    <h3 class="text-danger mb-0">R$ 12.800,00</h3>
+                    <h6 class="text-muted">EM ATRASO</h6>
+                    <small class="text-danger">
+                        <i class="bi bi-clock"></i> 3 clientes inadimplentes
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-warning bg-opacity-10 border-warning h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-hourglass-split text-warning display-4 mb-2"></i>
+                    <h3 class="text-warning mb-0">R$ 28.450,00</h3>
+                    <h6 class="text-muted">A VENCER</h6>
+                    <small class="text-warning">
+                        <i class="bi bi-calendar-check"></i> Próximos 30 dias
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-success bg-opacity-10 border-success h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-check-circle-fill text-success display-4 mb-2"></i>
+                    <h3 class="text-success mb-0">R$ 68.920,00</h3>
+                    <h6 class="text-muted">RECEBIDO</h6>
+                    <small class="text-success">
+                        <i class="bi bi-graph-up"></i> +18% vs mês anterior
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-info bg-opacity-10 border-info h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-graph-up-arrow text-info display-4 mb-2"></i>
+                    <h3 class="text-info mb-0">R$ 82.150,00</h3>
+                    <h6 class="text-muted">PROJEÇÃO</h6>
+                    <small class="text-info">
+                        <i class="bi bi-calendar"></i> Próximos 60 dias
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alerta de Inadimplência -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-warning d-flex align-items-center">
+                <i class="bi bi-exclamation-triangle-fill me-3 fs-4"></i>
+                <div class="flex-grow-1">
+                    <strong>Alerta de Inadimplência!</strong> Você tem <strong>3 clientes</strong> com pagamentos em atraso totalizando R$ 12.800,00. 
+                    <a href="#" class="alert-link">Enviar cobrança automática</a>.
+                </div>
+                <button class="btn btn-sm btn-outline-warning">
+                    <i class="bi bi-envelope"></i> Enviar Cobranças
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros e Tabela -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card card-modulo">
+                <div class="card-header-colorido card-header">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <h5 class="mb-0">
+                                <i class="bi bi-list-ul"></i> Contas a Receber
+                            </h5>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <select class="form-select form-select-sm" id="filtroStatus">
+                                        <option value="">Todos os Status</option>
+                                        <option value="vencida">🔴 Vencidas</option>
+                                        <option value="vence_hoje">🟡 Vence Hoje</option>
+                                        <option value="proxima">🟠 A Vencer</option>
+                                        <option value="recebida">🟢 Recebidas</option>
+                                        <option value="cancelada">⚫ Canceladas</option>
+                                    </select>
+                                </div>
+                                <div class="col-6">
+                                    <input type="text" class="form-control form-control-sm" id="buscaCliente" placeholder="Buscar cliente...">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0" id="tabelaContasReceber">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Status</th>
+                                    <th>Vencimento</th>
+                                    <th>Cliente</th>
+                                    <th>Descrição</th>
+                                    <th>Tipo</th>
+                                    <th class="text-end">Valor</th>
+                                    <th class="text-center">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Contas Vencidas -->
+                                <tr class="table-danger" data-status="vencida">
+                                    <td>
+                                        <span class="badge bg-danger">
+                                            <i class="bi bi-exclamation-triangle"></i> VENCIDA
+                                        </span>
+                                        <br><small class="text-danger">8 dias de atraso</small>
+                                    </td>
+                                    <td>
+                                        <strong>17/10/2024</strong>
+                                        <br><small class="text-muted">Qui</small>
+                                    </td>
+                                    <td>
+                                        <strong>Frigorífico Norte</strong>
+                                        <br><small class="text-muted">CNPJ: 22.333.444/0001-55</small>
+                                        <br><span class="badge bg-danger badge-sm">Inadimplente</span>
+                                    </td>
+                                    <td>Venda de Gado - Lote 18 (25 cabeças)</td>
+                                    <td><span class="badge bg-success">Venda</span></td>
+                                    <td class="text-end">
+                                        <strong class="text-danger">R$ 8.500,00</strong>
+                                        <br><small class="text-muted">+ R$ 127,50 juros</small>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group">
+                                            <button class="btn btn-sm btn-success" title="Receber" onclick="receberConta(1)">
+                                                <i class="bi bi-cash"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-warning" title="Cobrar" onclick="enviarCobranca(1)">
+                                                <i class="bi bi-envelope"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-info" title="Detalhes">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+
+                                <!-- Vence Hoje -->
+                                <tr class="table-warning" data-status="vence_hoje">
+                                    <td>
+                                        <span class="badge bg-warning">
+                                            <i class="bi bi-clock"></i> VENCE HOJE
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <strong>25/10/2024</strong>
+                                        <br><small class="text-muted">Hoje</small>
+                                    </td>
+                                    <td>
+                                        <strong>Laticínio São Paulo</strong>
+                                        <br><small class="text-muted">CNPJ: 11.222.333/0001-44</small>
+                                        <br><span class="badge bg-success badge-sm">Adimplente</span>
+                                    </td>
+                                    <td>Venda de Leite - Outubro (1ª quinzena)</td>
+                                    <td><span class="badge bg-info">Leite</span></td>
+                                    <td class="text-end">
+                                        <strong class="text-warning">R$ 4.300,00</strong>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group">
+                                            <button class="btn btn-sm btn-success" title="Receber" onclick="receberConta(2)">
+                                                <i class="bi bi-cash"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-info" title="Lembrete">
+                                                <i class="bi bi-bell"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-info" title="Detalhes">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+
+                                <!-- A Vencer -->
+                                <tr data-status="proxima">
+                                    <td>
+                                        <span class="badge bg-primary">
+                                            <i class="bi bi-calendar-check"></i> A VENCER
+                                        </span>
+                                        <br><small class="text-primary">5 dias</small>
+                                    </td>
+                                    <td>
+                                        <strong>30/10/2024</strong>
+                                        <br><small class="text-muted">Qua</small>
+                                    </td>
+                                    <td>
+                                        <strong>Comercial Agro</strong>
+                                        <br><small class="text-muted">CNPJ: 33.444.555/0001-66</small>
+                                        <br><span class="badge bg-success badge-sm">Bom Pagador</span>
+                                    </td>
+                                    <td>Prestação de Serviços - Consultoria</td>
+                                    <td><span class="badge bg-secondary">Serviço</span></td>
+                                    <td class="text-end">
+                                        <strong>R$ 2.800,00</strong>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group">
+                                            <button class="btn btn-sm btn-success" title="Receber" onclick="receberConta(3)">
+                                                <i class="bi bi-cash"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-secondary" title="Editar">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-info" title="Detalhes">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+
+                                <!-- Recebida -->
+                                <tr class="table-success" data-status="recebida">
+                                    <td>
+                                        <span class="badge bg-success">
+                                            <i class="bi bi-check-circle"></i> RECEBIDA
+                                        </span>
+                                        <br><small class="text-success">Recebida em 22/10</small>
+                                    </td>
+                                    <td>
+                                        <strong>22/10/2024</strong>
+                                        <br><small class="text-muted">Ter</small>
+                                    </td>
+                                    <td>
+                                        <strong>Supermercado Central</strong>
+                                        <br><small class="text-muted">CNPJ: 44.555.666/0001-77</small>
+                                        <br><span class="badge bg-success badge-sm">Cliente VIP</span>
+                                    </td>
+                                    <td>Venda de Produtos Orgânicos</td>
+                                    <td><span class="badge bg-warning">Orgânicos</span></td>
+                                    <td class="text-end">
+                                        <strong class="text-success">R$ 15.200,00</strong>
+                                        <br><small class="text-success">✓ PIX</small>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group">
+                                            <button class="btn btn-sm btn-outline-success" title="Comprovante">
+                                                <i class="bi bi-file-pdf"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-info" title="Detalhes">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+
+                                <!-- Mais contas -->
+                                <tr data-status="proxima">
+                                    <td>
+                                        <span class="badge bg-info">
+                                            <i class="bi bi-calendar"></i> FUTURO
+                                        </span>
+                                        <br><small class="text-info">20 dias</small>
+                                    </td>
+                                    <td>
+                                        <strong>14/11/2024</strong>
+                                        <br><small class="text-muted">Qui</small>
+                                    </td>
+                                    <td>
+                                        <strong>Exportadora Brasil</strong>
+                                        <br><small class="text-muted">CNPJ: 55.666.777/0001-88</small>
+                                        <br><span class="badge bg-primary badge-sm">Internacional</span>
+                                    </td>
+                                    <td>Exportação de Grãos - Container</td>
+                                    <td><span class="badge bg-primary">Exportação</span></td>
+                                    <td class="text-end">
+                                        <strong>R$ 28.500,00</strong>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group">
+                                            <button class="btn btn-sm btn-success" title="Receber" onclick="receberConta(5)">
+                                                <i class="bi bi-cash"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-secondary" title="Editar">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-info" title="Detalhes">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer d-flex justify-content-between align-items-center">
+                    <small class="text-muted">Mostrando 5 de 18 contas</small>
+                    <div>
+                        <button class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-arrow-left"></i> Anterior
+                        </button>
+                        <button class="btn btn-outline-primary btn-sm ms-2">
+                            Próxima <i class="bi bi-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="row">
+        <div class="col-md-8 mb-4">
+            <div class="card card-modulo h-100">
+                <div class="card-header-colorido card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-graph-up"></i> Evolução dos Recebimentos
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="graficoRecebimentos" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <div class="card card-modulo h-100">
+                <div class="card-header-colorido card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-people"></i> Principais Clientes
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="cliente-item mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>Frigorífico Norte</strong>
+                                <br><small class="text-muted">3 vendas</small>
+                                <br><span class="badge bg-warning badge-sm">Risco Médio</span>
+                            </div>
+                            <div class="text-end">
+                                <div class="text-success fw-bold">R$ 24.500,00</div>
+                                <small class="text-danger">R$ 8.500 atraso</small>
+                            </div>
+                        </div>
+                        <div class="progress mt-2" style="height: 6px;">
+                            <div class="progress-bar bg-success" style="width: 65%"></div>
+                            <div class="progress-bar bg-danger" style="width: 35%"></div>
+                        </div>
+                    </div>
+
+                    <div class="cliente-item mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>Laticínio São Paulo</strong>
+                                <br><small class="text-muted">2 vendas</small>
+                                <br><span class="badge bg-success badge-sm">Baixo Risco</span>
+                            </div>
+                            <div class="text-end">
+                                <div class="text-success fw-bold">R$ 18.600,00</div>
+                                <small class="text-success">Em dia</small>
+                            </div>
+                        </div>
+                        <div class="progress mt-2" style="height: 6px;">
+                            <div class="progress-bar bg-success" style="width: 100%"></div>
+                        </div>
+                    </div>
+
+                    <div class="cliente-item mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>Exportadora Brasil</strong>
+                                <br><small class="text-muted">1 venda</small>
+                                <br><span class="badge bg-primary badge-sm">Internacional</span>
+                            </div>
+                            <div class="text-end">
+                                <div class="text-info fw-bold">R$ 28.500,00</div>
+                                <small class="text-info">Futuro</small>
+                            </div>
+                        </div>
+                        <div class="progress mt-2" style="height: 6px;">
+                            <div class="progress-bar bg-info" style="width: 100%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nova Receita -->
+<div class="modal fade" id="modalNovaReceita" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-plus-circle"></i> Nova Conta a Receber
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formNovaReceita">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label class="form-label">Cliente *</label>
+                            <select class="form-select" required>
+                                <option value="">Selecione o cliente...</option>
+                                <option value="frigorifico_norte">Frigorífico Norte</option>
+                                <option value="laticinio_sp">Laticínio São Paulo</option>
+                                <option value="comercial_agro">Comercial Agro</option>
+                                <option value="supermercado_central">Supermercado Central</option>
+                                <option value="exportadora_brasil">Exportadora Brasil</option>
+                                <option value="novo">➕ Cadastrar Novo Cliente</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Valor *</label>
+                            <div class="input-group">
+                                <span class="input-group-text">R$</span>
+                                <input type="number" class="form-control" step="0.01" placeholder="0,00" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Data de Vencimento *</label>
+                            <input type="date" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Tipo de Venda *</label>
+                            <select class="form-select" required>
+                                <option value="">Selecione...</option>
+                                <option value="gado">🐄 Venda de Gado</option>
+                                <option value="leite">🥛 Venda de Leite</option>
+                                <option value="graos">🌾 Venda de Grãos</option>
+                                <option value="organicos">🥬 Produtos Orgânicos</option>
+                                <option value="servicos">🔧 Prestação de Serviços</option>
+                                <option value="exportacao">✈️ Exportação</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Descrição *</label>
+                        <input type="text" class="form-control" placeholder="Ex: Venda de gado - Lote 20, Leite do mês..." required>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Nota Fiscal</label>
+                            <input type="text" class="form-control" placeholder="Número da NF">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Condições de Pagamento</label>
+                            <select class="form-select">
+                                <option value="">Selecione...</option>
+                                <option value="a_vista">💰 À Vista</option>
+                                <option value="30_dias">📅 30 dias</option>
+                                <option value="60_dias">📅 60 dias</option>
+                                <option value="90_dias">📅 90 dias</option>
+                                <option value="parcelado">💳 Parcelado</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Forma de Recebimento</label>
+                            <select class="form-select">
+                                <option value="">Selecione...</option>
+                                <option value="pix">📱 PIX</option>
+                                <option value="transferencia">🏦 Transferência</option>
+                                <option value="boleto">📄 Boleto</option>
+                                <option value="cheque">📋 Cheque</option>
+                                <option value="dinheiro">💵 Dinheiro</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Vendedor Responsável</label>
+                            <select class="form-select">
+                                <option value="">Selecione (opcional)</option>
+                                <option value="joao">João Silva</option>
+                                <option value="maria">Maria Santos</option>
+                                <option value="pedro">Pedro Oliveira</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Observações</label>
+                        <textarea class="form-control" rows="2" placeholder="Informações adicionais (opcional)"></textarea>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="alertaVencimentoReceita">
+                                <label class="form-check-label" for="alertaVencimentoReceita">
+                                    📧 Lembrete de vencimento
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="cobrancaAutomatica">
+                                <label class="form-check-label" for="cobrancaAutomatica">
+                                    🤖 Cobrança automática
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-circle"></i> Cadastrar Receita
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Recebimento -->
+<div class="modal fade" id="modalRecebimento" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-cash"></i> Registrar Recebimento
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formRecebimento">
+                <div class="modal-body">
+                    <div id="detalheReceita" class="alert alert-info">
+                        <strong>Cliente:</strong> <span id="clienteRecebimento"></span><br>
+                        <strong>Valor:</strong> R$ <span id="valorRecebimento"></span><br>
+                        <strong>Vencimento:</strong> <span id="vencimentoRecebimento"></span>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Data do Recebimento *</label>
+                            <input type="date" class="form-control" id="dataRecebimento" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Valor Recebido *</label>
+                            <div class="input-group">
+                                <span class="input-group-text">R$</span>
+                                <input type="number" class="form-control" id="valorRecebido" step="0.01" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Forma de Recebimento *</label>
+                            <select class="form-select" required>
+                                <option value="">Selecione...</option>
+                                <option value="pix">📱 PIX</option>
+                                <option value="transferencia">🏦 Transferência</option>
+                                <option value="dinheiro">💵 Dinheiro</option>
+                                <option value="cheque">📋 Cheque</option>
+                                <option value="cartao">💳 Cartão</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Desconto/Juros</label>
+                            <div class="input-group">
+                                <span class="input-group-text">R$</span>
+                                <input type="number" class="form-control" step="0.01" placeholder="0,00">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Observações do Recebimento</label>
+                        <textarea class="form-control" rows="2" placeholder="Informações sobre o recebimento (opcional)"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-circle"></i> Confirmar Recebimento
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .cliente-item {
+        border-bottom: 1px solid #f0f0f0;
+        padding-bottom: 0.75rem;
+    }
+
+    .cliente-item:last-child {
+        border-bottom: none;
+    }
+
+    .table tbody tr.table-danger {
+        background-color: rgba(220, 53, 69, 0.1);
+    }
+
+    .table tbody tr.table-warning {
+        background-color: rgba(255, 193, 7, 0.1);
+    }
+
+    .table tbody tr.table-success {
+        background-color: rgba(40, 167, 69, 0.1);
+    }
+
+    .badge-sm {
+        font-size: 0.7rem;
+    }
+
+    .progress {
+        border-radius: 10px;
+    }
+
+    .progress-bar {
+        border-radius: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Gráfico de Recebimentos
+    const ctx = document.getElementById('graficoRecebimentos').getContext('2d');
+    const chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ['Set', 'Out', 'Nov', 'Dez', 'Jan', 'Fev', 'Mar'],
+            datasets: [{
+                label: 'Recebido',
+                data: [52000, 68920, 45000, 72000, 58000, 61000, 75000],
+                borderColor: '#28a745',
+                backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                tension: 0.4,
+                fill: true
+            }, {
+                label: 'Previsto',
+                data: [55000, 65000, 70000, 68000, 72000, 66000, 78000],
+                borderColor: '#007bff',
+                backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                tension: 0.4,
+                fill: false,
+                borderDash: [5, 5]
+            }, {
+                label: 'Em Atraso',
+                data: [3000, 12800, 8500, 4200, 6800, 3200, 2100],
+                borderColor: '#dc3545',
+                backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return 'R$ ' + value.toLocaleString('pt-BR');
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Filtros
+    document.getElementById('filtroStatus').addEventListener('change', filtrarTabela);
+    document.getElementById('buscaCliente').addEventListener('input', filtrarTabela);
+
+    function filtrarTabela() {
+        const status = document.getElementById('filtroStatus').value;
+        const busca = document.getElementById('buscaCliente').value.toLowerCase();
+        const rows = document.querySelectorAll('#tabelaContasReceber tbody tr');
+
+        rows.forEach(row => {
+            const rowStatus = row.getAttribute('data-status');
+            const cliente = row.cells[2].textContent.toLowerCase();
+            
+            const statusMatch = !status || rowStatus === status;
+            const buscaMatch = !busca || cliente.includes(busca);
+            
+            row.style.display = (statusMatch && buscaMatch) ? '' : 'none';
+        });
+    }
+
+    // Forms
+    document.getElementById('formNovaReceita').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const modal = bootstrap.Modal.getInstance(document.getElementById('modalNovaReceita'));
+        modal.hide();
+        alert('✅ Receita cadastrada com sucesso!');
+        this.reset();
+    });
+
+    document.getElementById('formRecebimento').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const modal = bootstrap.Modal.getInstance(document.getElementById('modalRecebimento'));
+        modal.hide();
+        alert('✅ Recebimento registrado com sucesso!');
+    });
+
+    // Setar data de hoje
+    document.getElementById('dataRecebimento').valueAsDate = new Date();
+});
+
+// Funções globais
+function receberConta(id) {
+    const contas = {
+        1: { cliente: 'Frigorífico Norte', valor: '8.500,00', vencimento: '17/10/2024' },
+        2: { cliente: 'Laticínio São Paulo', valor: '4.300,00', vencimento: '25/10/2024' },
+        3: { cliente: 'Comercial Agro', valor: '2.800,00', vencimento: '30/10/2024' },
+        5: { cliente: 'Exportadora Brasil', valor: '28.500,00', vencimento: '14/11/2024' }
+    };
+
+    const conta = contas[id];
+    if (conta) {
+        document.getElementById('clienteRecebimento').textContent = conta.cliente;
+        document.getElementById('valorRecebimento').textContent = conta.valor;
+        document.getElementById('vencimentoRecebimento').textContent = conta.vencimento;
+        document.getElementById('valorRecebido').value = conta.valor.replace('.', '').replace(',', '.');
+
+        const modal = new bootstrap.Modal(document.getElementById('modalRecebimento'));
+        modal.show();
+    }
+}
+
+function enviarCobranca(id) {
+    alert('📧 Cobrança enviada por email e WhatsApp!');
+}
+</script>
+{% endblock %}

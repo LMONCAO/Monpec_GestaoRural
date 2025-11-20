@@ -1,0 +1,177 @@
+{% extends "base_modulos_unificado.html" %}
+
+{% block title %}Novo Convite de Cotação - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'compras_dashboard' propriedade.id %}">Compras</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'convites_cotacao_lista' propriedade.id %}">Convites</a></li>
+            <li class="breadcrumb-item active">Novo Convite</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-lg-7">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-envelope-plus me-2"></i>Enviar convite</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+                        <input type="hidden" name="requisicao_id" value="{{ requisicao.id }}">
+
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {{ form.non_field_errors }}
+                        </div>
+                        {% endif %}
+
+                        <div class="mb-3">
+                            <label class="form-label">Requisição</label>
+                            <div class="form-control-plaintext">
+                                <strong>{{ requisicao.numero }}</strong> - {{ requisicao.titulo }}
+                            </div>
+                        </div>
+
+                        {% for field in form.visible_fields %}
+                        <div class="mb-3">
+                            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} *{% endif %}</label>
+                            {{ field }}
+                            {% if field.help_text %}
+                            <div class="form-text">{{ field.help_text }}</div>
+                            {% endif %}
+                            {% for error in field.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        {% endfor %}
+
+                        <div class="d-flex justify-content-between align-items-center mt-4 flex-wrap gap-2">
+                            <a href="{% url 'convites_cotacao_lista' propriedade.id %}" class="btn btn-outline-secondary">
+                                Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-send me-1"></i>Gerar convite
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Como funciona</h6>
+                </div>
+                <div class="card-body small text-muted">
+                    <p class="mb-2">Ao salvar, o sistema gera um token único para o fornecedor responder à cotação.</p>
+                    <ul class="mb-0">
+                        <li>Compartilhe o link do convite com o fornecedor.</li>
+                        <li>Ele poderá preencher preços e anexar a proposta diretamente pelo portal.</li>
+                        <li>Assim que responder, o status muda para <strong>Respondido</strong> e a cotação fica disponível na requisição.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+{% block title %}Novo Convite de Cotação - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'compras_dashboard' propriedade.id %}">Compras</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'convites_cotacao_lista' propriedade.id %}">Convites</a></li>
+            <li class="breadcrumb-item active">Novo Convite</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-lg-7">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-envelope-plus me-2"></i>Enviar convite</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+                        <input type="hidden" name="requisicao_id" value="{{ requisicao.id }}">
+
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {{ form.non_field_errors }}
+                        </div>
+                        {% endif %}
+
+                        <div class="mb-3">
+                            <label class="form-label">Requisição</label>
+                            <div class="form-control-plaintext">
+                                <strong>{{ requisicao.numero }}</strong> - {{ requisicao.titulo }}
+                            </div>
+                        </div>
+
+                        {% for field in form.visible_fields %}
+                        <div class="mb-3">
+                            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} *{% endif %}</label>
+                            {{ field }}
+                            {% if field.help_text %}
+                            <div class="form-text">{{ field.help_text }}</div>
+                            {% endif %}
+                            {% for error in field.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        {% endfor %}
+
+                        <div class="d-flex justify-content-between align-items-center mt-4 flex-wrap gap-2">
+                            <a href="{% url 'convites_cotacao_lista' propriedade.id %}" class="btn btn-outline-secondary">
+                                Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-send me-1"></i>Gerar convite
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Como funciona</h6>
+                </div>
+                <div class="card-body small text-muted">
+                    <p class="mb-2">Ao salvar, o sistema gera um token único para o fornecedor responder à cotação.</p>
+                    <ul class="mb-0">
+                        <li>Compartilhe o link do convite com o fornecedor.</li>
+                        <li>Ele poderá preencher preços e anexar a proposta diretamente pelo portal.</li>
+                        <li>Assim que responder, o status muda para <strong>Respondido</strong> e a cotação fica disponível na requisição.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+
+
+
+
+
+

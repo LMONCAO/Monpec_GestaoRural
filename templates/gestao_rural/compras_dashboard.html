@@ -1,0 +1,712 @@
+{% extends "base_modulos_unificado.html" %}
+{% load formatacao_br %}
+
+{% block title %}Compras - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Cards de Estatísticas - Design Compacto e Organizado */
+    .stat-card {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        padding: 0.75rem 0.875rem;
+        position: relative;
+        transition: all 0.2s ease;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        min-height: 85px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .stat-card:hover {
+        border-color: #d1d5db;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .stat-card h6 {
+        font-size: 0.625rem;
+        text-transform: uppercase;
+        margin-bottom: 0.375rem;
+        color: #6b7280;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        line-height: 1.2;
+    }
+
+    .stat-card h3 {
+        font-size: 1.375rem;
+        font-weight: 700;
+        margin: 0 0 0.25rem 0;
+        color: #111827;
+        line-height: 1.2;
+        word-break: break-word;
+    }
+
+    .stat-card p {
+        margin: 0;
+        font-size: 0.6875rem;
+        color: #6b7280;
+        font-weight: 400;
+        line-height: 1.3;
+        flex-grow: 1;
+    }
+
+    .stat-card .icon-wrapper {
+        position: absolute;
+        right: 0.75rem;
+        top: 0.75rem;
+        width: 28px;
+        height: 28px;
+        border-radius: 5px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f3f4f6;
+        color: #6b7280;
+        font-size: 0.875rem;
+        flex-shrink: 0;
+    }
+
+    /* Cores apenas para estados importantes */
+    .stat-card-warning {
+        border-left: 3px solid #f59e0b;
+    }
+
+    .stat-card-warning .icon-wrapper {
+        background: #fef3c7;
+        color: #f59e0b;
+    }
+
+    .stat-card-danger {
+        border-left: 3px solid #ef4444;
+    }
+
+    .stat-card-danger .icon-wrapper {
+        background: #fee2e2;
+        color: #ef4444;
+    }
+
+    .stat-card-success {
+        border-left: 3px solid #10b981;
+    }
+
+    .stat-card-success .icon-wrapper {
+        background: #d1fae5;
+        color: #10b981;
+    }
+
+    /* Seções de Agrupamento */
+    .section-header {
+        background: #f9fafb;
+        color: #111827;
+        padding: 0.625rem 1rem;
+        border-radius: 6px 6px 0 0;
+        margin-bottom: 0;
+        font-weight: 600;
+        font-size: 0.875rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .section-group {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        padding: 0;
+        margin-bottom: 1.25rem;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    .section-group > div:last-child {
+        padding: 0.75rem;
+    }
+
+    /* Container de cards horizontal */
+    .cards-horizontal {
+        display: flex;
+        flex-wrap: nowrap !important;
+        gap: 0.5rem;
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding-bottom: 0.5rem;
+        width: 100%;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .cards-horizontal::-webkit-scrollbar {
+        height: 6px;
+    }
+
+    .cards-horizontal::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 3px;
+    }
+
+    .cards-horizontal::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 3px;
+    }
+
+    .cards-horizontal::-webkit-scrollbar-thumb:hover {
+        background: #a8a8a8;
+    }
+
+    .cards-horizontal .stat-card {
+        flex: 0 0 auto !important;
+        min-width: 160px;
+        width: 160px;
+        max-width: 160px;
+    }
+
+    /* Botões de Ação Rápida - Design Compacto */
+    .quick-actions-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 0.625rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .btn-quick {
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        padding: 0.625rem 0.875rem;
+        color: #374151;
+        font-weight: 500;
+        font-size: 0.8125rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+        background: #ffffff;
+        transition: all 0.2s ease;
+        text-decoration: none;
+    }
+
+    .btn-quick:hover {
+        border-color: #d1d5db;
+        background: #f9fafb;
+        color: #111827;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .btn-quick .icon {
+        font-size: 1.25rem;
+        color: #6b7280;
+    }
+
+    .btn-quick:hover .icon {
+        color: #374151;
+    }
+
+    .badge-novo {
+        background: #f3f4f6;
+        color: #6b7280;
+        border-radius: 4px;
+        font-size: 0.625rem;
+        padding: 0.125rem 0.375rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-weight: 600;
+    }
+
+    /* Cards de Tabela */
+    .card {
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+        transition: all 0.2s ease;
+    }
+
+    .card:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    .card-header {
+        background: #f9fafb;
+        border-bottom: 1px solid #e5e7eb;
+        padding: 1rem 1.25rem;
+        font-weight: 600;
+        font-size: 0.9375rem;
+        color: #111827;
+    }
+
+    .table {
+        margin-bottom: 0;
+    }
+
+    .table thead th {
+        background: #f9fafb;
+        border: none;
+        border-bottom: 1px solid #e5e7eb;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.05em;
+        color: #6b7280;
+        padding: 0.875rem 1rem;
+    }
+
+    .table tbody tr {
+        transition: background 0.15s ease;
+    }
+
+    .table tbody tr:hover {
+        background: #f9fafb;
+    }
+
+    .table tbody td {
+        padding: 0.875rem 1rem;
+        vertical-align: middle;
+        border-color: #f3f4f6;
+        color: #374151;
+    }
+
+    /* Badges Simplificados */
+    .badge {
+        padding: 0.375rem 0.75rem;
+        font-weight: 500;
+        border-radius: 4px;
+        font-size: 0.75rem;
+    }
+
+    .badge.bg-success { 
+        background: #d1fae5 !important; 
+        color: #065f46 !important;
+    }
+    
+    .badge.bg-warning { 
+        background: #fef3c7 !important; 
+        color: #92400e !important;
+    }
+    
+    .badge.bg-secondary { 
+        background: #f3f4f6 !important; 
+        color: #6b7280 !important;
+    }
+
+    /* Botões de Ação */
+    .btn {
+        border-radius: 6px;
+        font-weight: 500;
+        padding: 0.5rem 1rem;
+        transition: all 0.2s ease;
+        border: 1px solid transparent;
+    }
+
+    .btn-primary { 
+        background: #374151; 
+        border-color: #374151;
+        color: #ffffff;
+    }
+
+    .btn-primary:hover {
+        background: #1f2937;
+        border-color: #1f2937;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-info { 
+        background: #374151; 
+        border-color: #374151;
+        color: #ffffff;
+    }
+
+    .btn-info:hover {
+        background: #1f2937;
+        border-color: #1f2937;
+    }
+
+    .btn-success { 
+        background: #10b981; 
+        border-color: #10b981;
+        color: #ffffff;
+    }
+
+    .btn-success:hover {
+        background: #059669;
+        border-color: #059669;
+    }
+
+    .btn-outline-info {
+        border: 1px solid #d1d5db;
+        color: #374151;
+        background: transparent;
+    }
+
+    .btn-outline-info:hover {
+        background: #f9fafb;
+        border-color: #9ca3af;
+        color: #111827;
+    }
+
+    /* Header do Dashboard */
+    .dashboard-header {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        color: #111827;
+        padding: 1rem 1.25rem;
+        border-radius: 6px;
+        margin-bottom: 1.25rem;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    .dashboard-header h2 {
+        margin: 0;
+        font-weight: 700;
+        font-size: 1.375rem;
+        color: #111827;
+    }
+
+    .dashboard-header p {
+        margin: 0.25rem 0 0;
+        color: #6b7280;
+        font-size: 0.8125rem;
+    }
+
+    /* Ajustes responsivos para cards */
+    @media (max-width: 575px) {
+        .btn-quick {
+            flex-direction: row;
+            align-items: center;
+        }
+        
+        .cards-horizontal {
+            flex-wrap: nowrap !important;
+        }
+        
+        .cards-horizontal .stat-card {
+            min-width: 140px !important;
+            width: 140px !important;
+            max-width: 140px !important;
+        }
+        
+        .stat-card {
+            min-height: 80px;
+            padding: 0.625rem 0.75rem;
+        }
+        
+        .stat-card h3 {
+            font-size: 1.125rem;
+        }
+        
+        .stat-card h6 {
+            font-size: 0.5625rem;
+        }
+        
+        .stat-card p {
+            font-size: 0.625rem;
+        }
+        
+        .stat-card .icon-wrapper {
+            width: 24px;
+            height: 24px;
+            font-size: 0.75rem;
+            right: 0.625rem;
+            top: 0.625rem;
+        }
+    }
+
+    @media (min-width: 576px) and (max-width: 767px) {
+        .cards-horizontal .stat-card {
+            min-width: 150px !important;
+            width: 150px !important;
+            max-width: 150px !important;
+        }
+        
+        .stat-card {
+            min-height: 82px;
+        }
+    }
+
+    @media (min-width: 768px) and (max-width: 991px) {
+        .cards-horizontal .stat-card {
+            min-width: 155px !important;
+            width: 155px !important;
+            max-width: 155px !important;
+        }
+        
+        .stat-card {
+            min-height: 85px;
+        }
+    }
+
+    @media (min-width: 992px) {
+        .cards-horizontal .stat-card {
+            min-width: 160px !important;
+            width: 160px !important;
+            max-width: 160px !important;
+        }
+        
+        .stat-card {
+            min-height: 85px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item active">Compras</li>
+        </ol>
+    </nav>
+
+    <!-- Header -->
+    <div class="dashboard-header">
+        <h2><i class="bi bi-cart me-2"></i>Compras e Fornecedores</h2>
+        <p>{{ propriedade.nome_propriedade }}</p>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions-grid">
+        <a href="{% url 'requisicao_compra_nova' propriedade.id %}" class="btn-quick">
+            <span><i class="bi bi-journal-plus icon"></i> Nova Requisição</span>
+            <span class="badge-novo">Novo</span>
+        </a>
+        <a href="{% url 'requisicoes_compra_lista' propriedade.id %}" class="btn-quick">
+            <span><i class="bi bi-diagram-3 icon"></i> Fluxo</span>
+            <i class="bi bi-arrow-right-short icon"></i>
+        </a>
+        <a href="{% url 'requisicoes_compra_lista' propriedade.id %}" class="btn-quick">
+            <span><i class="bi bi-journal-text icon"></i> Ver Requisições</span>
+            <i class="bi bi-arrow-right-short icon"></i>
+        </a>
+        <a href="{% url 'convites_cotacao_lista' propriedade.id %}" class="btn-quick">
+            <span><i class="bi bi-envelope-paper icon"></i> Convites de Cotação</span>
+            <span class="badge-novo">Portal</span>
+        </a>
+        <a href="{% url 'nota_fiscal_upload' propriedade.id %}" class="btn-quick">
+            <span><i class="bi bi-upload icon"></i> Importar NF-e</span>
+            <i class="bi bi-arrow-up-square icon"></i>
+        </a>
+        <a href="{% url 'ordem_compra_nova' propriedade.id %}" class="btn-quick">
+            <span><i class="bi bi-file-earmark-plus icon"></i> Nova Ordem</span>
+            <i class="bi bi-clipboard-check icon"></i>
+        </a>
+    </div>
+
+    <!-- Seção: Visão Geral -->
+    <div class="section-group">
+        <div class="section-header">
+            <i class="bi bi-speedometer2"></i>
+            <span>Visão Geral</span>
+        </div>
+        <div class="cards-horizontal">
+            <div class="stat-card">
+                <div class="icon-wrapper"><i class="bi bi-people"></i></div>
+                <h6>Fornecedores</h6>
+                <h3>{{ total_fornecedores|numero_br }}</h3>
+                <p>Cadastrados</p>
+            </div>
+            <div class="stat-card stat-card-success">
+                <div class="icon-wrapper"><i class="bi bi-cart-check"></i></div>
+                <h6>Compras (Mês)</h6>
+                <h3>{{ valor_compras_mes|moeda_br }}</h3>
+                <p>Total investido</p>
+            </div>
+            <div class="stat-card">
+                <div class="icon-wrapper"><i class="bi bi-diagram-3"></i></div>
+                <h6>Setores de Compras</h6>
+                <h3>{{ total_setores|numero_br }}</h3>
+                <p>
+                    {% if setores_inativos > 0 %}
+                        {{ setores_inativos|numero_br }} inativos •
+                    {% endif %}
+                    {% if setores_sem_responsavel > 0 %}
+                        {{ setores_sem_responsavel|numero_br }} sem responsável
+                    {% else %}
+                        Todos com responsável
+                    {% endif %}
+                </p>
+            </div>
+            <div class="stat-card stat-card-success">
+                <div class="icon-wrapper"><i class="bi bi-check2-square"></i></div>
+                <h6>Respostas Recebidas</h6>
+                <h3>{{ convites_respondidos|numero_br }}</h3>
+                <p>Comparativos atualizados</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Seção: Pendências e Alertas -->
+    <div class="section-group">
+        <div class="section-header">
+            <i class="bi bi-exclamation-triangle"></i>
+            <span>Pendências e Alertas</span>
+        </div>
+        <div class="cards-horizontal">
+            <div class="stat-card stat-card-warning">
+                <div class="icon-wrapper"><i class="bi bi-file-earmark-text"></i></div>
+                <h6>Ordens Pendentes</h6>
+                <h3>{{ ordens_pendentes|numero_br }}</h3>
+                <p>Aguardando ações</p>
+            </div>
+            <div class="stat-card stat-card-warning">
+                <div class="icon-wrapper"><i class="bi bi-clipboard-check"></i></div>
+                <h6>Requisições Pendentes</h6>
+                <h3>{{ requisicoes_pendentes|numero_br }}</h3>
+                <p>Aguardam aprovação/compras</p>
+            </div>
+            <div class="stat-card stat-card-danger">
+                <div class="icon-wrapper"><i class="bi bi-file-earmark-pdf"></i></div>
+                <h6>NF-es Pendentes</h6>
+                <h3>{{ nfes_pendentes|numero_br }}</h3>
+                <p>Upload necessário</p>
+            </div>
+            <div class="stat-card stat-card-danger">
+                <div class="icon-wrapper"><i class="bi bi-shield-exclamation"></i></div>
+                <h6>OCs sem Autorização</h6>
+                <h3>{{ ordens_autorizacao_pendente|numero_br }}</h3>
+                <p>Setor responsável precisa agir</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Seção: Convites e Cotações -->
+    <div class="section-group">
+        <div class="section-header">
+            <i class="bi bi-envelope-paper"></i>
+            <span>Convites e Cotações</span>
+        </div>
+        <div class="cards-horizontal">
+            <div class="stat-card">
+                <div class="icon-wrapper"><i class="bi bi-envelope-paper"></i></div>
+                <h6>Convites Enviados</h6>
+                <h3>{{ convites_abertos|numero_br }}</h3>
+                <p><span class="badge-novo me-2">Portal</span>De {{ convites_total|numero_br }} convites</p>
+            </div>
+            <div class="stat-card stat-card-warning">
+                <div class="icon-wrapper"><i class="bi bi-hourglass-split"></i></div>
+                <h6>Convites a Vencer</h6>
+                <h3>{{ convites_expirando|numero_br }}</h3>
+                <p>Expiram em até 48h</p>
+            </div>
+            <div class="stat-card stat-card-success">
+                <div class="icon-wrapper"><i class="bi bi-check-circle"></i></div>
+                <h6>Status Portal</h6>
+                <h3>{{ convites_respondidos|numero_br }}</h3>
+                <p>Comparativos disponíveis</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Seções -->
+    <div class="row">
+        <!-- Ordens Recentes -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-file-earmark-text me-2"></i>Ordens de Compra Recentes</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Número</th>
+                                    <th>Fornecedor</th>
+                                    <th>Data</th>
+                                    <th class="text-end">Valor</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for ordem in ordens_recentes %}
+                                <tr>
+                                    <td>
+                                        <a href="#">{{ ordem.numero_ordem }}</a>
+                                    </td>
+                                    <td>{{ ordem.fornecedor.nome }}</td>
+                                    <td>{{ ordem.data_emissao|date:"d/m/Y" }}</td>
+                                    <td class="text-end">{{ ordem.valor_total|moeda_br }}</td>
+                                    <td>
+                                        <span class="badge bg-{% if ordem.status == 'RECEBIDA' %}success{% elif ordem.status == 'PENDENTE' %}warning{% else %}secondary{% endif %}">
+                                            {{ ordem.get_status_display }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted">Nenhuma ordem de compra</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-3">
+                        <a href="{% url 'ordens_compra_lista' propriedade.id %}" class="btn btn-primary btn-sm">
+                            <i class="bi bi-list-ul me-1"></i>Ver Todas
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fornecedores -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-people me-2"></i>Fornecedores</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Tipo</th>
+                                    <th>Telefone</th>
+                                    <th>Avaliação</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for fornecedor in fornecedores %}
+                                <tr>
+                                    <td>
+                                        <a href="#">{{ fornecedor.nome }}</a>
+                                    </td>
+                                    <td>{{ fornecedor.get_tipo_display }}</td>
+                                    <td>{{ fornecedor.telefone|default:"-" }}</td>
+                                    <td>
+                                        {% if fornecedor.avaliacao %}
+                                        <span class="badge bg-success">{{ fornecedor.avaliacao|floatformat:1 }} ⭐</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">-</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted">Nenhum fornecedor cadastrado</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-3">
+                        <a href="{% url 'fornecedores_lista' propriedade.id %}" class="btn btn-info btn-sm">
+                            <i class="bi bi-list-ul me-1"></i>Ver Todos
+                        </a>
+                        <a href="{% url 'fornecedor_novo' propriedade.id %}" class="btn btn-outline-info btn-sm">
+                            <i class="bi bi-plus-circle me-1"></i>Novo
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+

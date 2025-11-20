@@ -1,23 +1,35 @@
-{% extends 'base.html' %}
+{% extends 'base_modulos_unificado.html' %}
 {% load static %}
+{% load formatacao_br %}
 
 {% block title %}Capacidade de Pagamento - {{ propriedade.nome_propriedade }}{% endblock %}
 
+{% block breadcrumb_extra %}
+    <li class="breadcrumb-item active">
+        <i class="bi bi-wallet2"></i>
+        Capacidade de Pagamento
+    </li>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid">
+    <!-- Header da Página -->
+    <div class="submenu-page-header">
+        <div class="d-flex align-items-start gap-4">
+            <div class="submenu-page-icon">
+                <i class="bi bi-wallet2"></i>
+            </div>
+            <div class="flex-grow-1">
+                <h1 class="submenu-page-title">Capacidade de Pagamento</h1>
+                <p class="submenu-page-description">
+                    Analise a capacidade de pagamento e endividamento da propriedade {{ propriedade.nome_propriedade }}.
+                </p>
+            </div>
+        </div>
+    </div>
+    
     <div class="row">
         <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h2 class="text-dark mb-1">
-                        <i class="bi bi-shield-check text-primary"></i> Capacidade de Pagamento
-                    </h2>
-                    <p class="text-muted mb-0">{{ propriedade.nome_propriedade }} - {{ propriedade.municipio }}/{{ propriedade.uf }}</p>
-                </div>
-                <a href="{% url 'propriedades_lista' propriedade.produtor.id %}" class="btn btn-outline-secondary">
-                    <i class="bi bi-arrow-left"></i> Voltar às Propriedades
-                </a>
-            </div>
 
             <!-- Classificação da Capacidade -->
             <div class="row mb-4">
@@ -28,7 +40,7 @@
                                 <i class="bi bi-{% if indicadores.classificacao == 'Excelente' %}star-fill{% elif indicadores.classificacao == 'Boa' %}check-circle{% elif indicadores.classificacao == 'Adequada' %}exclamation-triangle{% else %}x-circle{% endif %} text-{{ indicadores.cor_classificacao }} fs-1"></i>
                             </div>
                             <h3 class="text-{{ indicadores.cor_classificacao }} mb-2">{{ indicadores.classificacao }}</h3>
-                            <p class="text-muted mb-0">Capacidade de Pagamento: {{ indicadores.indice_capacidade_pagamento|floatformat:1 }}%</p>
+                            <p class="text-muted mb-0">Capacidade de Pagamento: {{ indicadores.indice_capacidade_pagamento|percentual_br:1 }}</p>
                         </div>
                     </div>
                 </div>
@@ -43,7 +55,7 @@
                                 <i class="bi bi-arrow-up-circle text-success fs-4"></i>
                             </div>
                             <h6 class="text-dark mb-1">Receita Mensal</h6>
-                            <h4 class="text-success mb-0">R$ {{ indicadores.receita_mensal|floatformat:2 }}</h4>
+                            <h4 class="text-success mb-0">{{ indicadores.receita_mensal|moeda_br }}</h4>
                         </div>
                     </div>
                 </div>
@@ -55,7 +67,7 @@
                                 <i class="bi bi-arrow-down-circle text-warning fs-4"></i>
                             </div>
                             <h6 class="text-dark mb-1">Custos Mensais</h6>
-                            <h4 class="text-warning mb-0">R$ {{ indicadores.custos_mensais|floatformat:2 }}</h4>
+                            <h4 class="text-warning mb-0">{{ indicadores.custos_mensais|moeda_br }}</h4>
                         </div>
                     </div>
                 </div>
@@ -68,7 +80,7 @@
                             </div>
                             <h6 class="text-dark mb-1">Margem de Segurança</h6>
                             <h4 class="text-{% if indicadores.margem_seguranca_mensal >= 0 %}success{% else %}danger{% endif %} mb-0">
-                                R$ {{ indicadores.margem_seguranca_mensal|floatformat:2 }}
+                                {{ indicadores.margem_seguranca_mensal|moeda_br }}
                             </h4>
                         </div>
                     </div>
@@ -82,7 +94,7 @@
                             </div>
                             <h6 class="text-dark mb-1">Índice Endividamento</h6>
                             <h4 class="text-{% if indicadores.indice_endividamento <= 30 %}success{% elif indicadores.indice_endividamento <= 50 %}warning{% else %}danger{% endif %} mb-0">
-                                {{ indicadores.indice_endividamento|floatformat:1 }}%
+                                {{ indicadores.indice_endividamento|percentual_br:1 }}
                             </h4>
                         </div>
                     </div>

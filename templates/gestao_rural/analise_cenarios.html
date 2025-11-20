@@ -1,0 +1,572 @@
+{% extends 'base_modulos_unificado.html' %}
+{% load static %}
+
+{% block title %}Análise de Cenários - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block breadcrumb_extra %}
+    <li class="breadcrumb-item">
+        <a href="{% url 'pecuaria_dashboard' propriedade.id %}">
+            <i class="bi bi-cow"></i>
+            Pecuária
+        </a>
+    </li>
+    <li class="breadcrumb-item">
+        <a href="{% url 'pecuaria_planejamento_dashboard' propriedade.id %}">
+            <i class="bi bi-calendar-check"></i>
+            Planejamento
+        </a>
+    </li>
+    <li class="breadcrumb-item active">
+        <i class="bi bi-diagram-3"></i>
+        Cenários
+    </li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header da Página -->
+    <div class="submenu-page-header">
+        <div class="d-flex align-items-start gap-4">
+            <div class="submenu-page-icon">
+                <i class="bi bi-diagram-3"></i>
+            </div>
+            <div class="flex-grow-1">
+                <h1 class="submenu-page-title">Análise de Cenários</h1>
+                <p class="submenu-page-description">
+                    Crie e compare diferentes cenários de planejamento para avaliar impactos financeiros e operacionais.
+                </p>
+            </div>
+            <div>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCriarCenario">
+                    <i class="bi bi-plus-circle"></i> Novo Cenário
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Informações do Planejamento -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="content-card">
+                <div class="content-card-header">
+                    <h5 class="mb-0 text-dark fw-semibold">
+                        <i class="bi bi-calendar-check me-2"></i>
+                        Planejamento: {{ planejamento.ano }}
+                    </h5>
+                </div>
+                <div class="content-card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <small class="text-muted d-block">Status</small>
+                            <span class="badge bg-{% if planejamento.status == 'APROVADO' %}success{% elif planejamento.status == 'EM_ANDAMENTO' %}info{% elif planejamento.status == 'RASCUNHO' %}warning{% else %}secondary{% endif %}">
+                                {{ planejamento.get_status_display }}
+                            </span>
+                        </div>
+                        <div class="col-md-3">
+                            <small class="text-muted d-block">Descrição</small>
+                            <span>{{ planejamento.descricao|default:"Sem descrição" }}</span>
+                        </div>
+                        <div class="col-md-3">
+                            <small class="text-muted d-block">Total de Cenários</small>
+                            <span class="fw-bold">{{ cenarios_data|length }}</span>
+                        </div>
+                        <div class="col-md-3">
+                            <small class="text-muted d-block">Última Atualização</small>
+                            <span>{{ planejamento.data_atualizacao|date:"d/m/Y H:i" }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Comparação de Cenários -->
+    {% if cenarios_data %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="content-card">
+                <div class="content-card-header">
+                    <h5 class="mb-0 text-dark fw-semibold">
+                        <i class="bi bi-bar-chart me-2"></i>
+                        Comparação de Cenários
+                    </h5>
+                </div>
+                <div class="content-card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Cenário</th>
+                                    <th class="text-end">Receitas (R$)</th>
+                                    <th class="text-end">Custos (R$)</th>
+                                    <th class="text-end">Lucro (R$)</th>
+                                    <th class="text-end">Margem (%)</th>
+                                    <th class="text-end">Animais</th>
+                                    <th class="text-center">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in cenarios_data %}
+                                <tr class="{% if item.cenario.is_baseline %}table-primary{% endif %}">
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            {% if item.cenario.is_baseline %}
+                                            <span class="badge bg-primary">Baseline</span>
+                                            {% endif %}
+                                            <strong>{{ item.cenario.nome }}</strong>
+                                        </div>
+                                        {% if item.cenario.descricao %}
+                                        <small class="text-muted d-block">{{ item.cenario.descricao }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        <span class="text-success fw-semibold">
+                                            R$ {{ item.dados.receitas_totais|floatformat:2 }}
+                                        </span>
+                                    </td>
+                                    <td class="text-end">
+                                        <span class="text-danger fw-semibold">
+                                            R$ {{ item.dados.custos_totais|floatformat:2 }}
+                                        </span>
+                                    </td>
+                                    <td class="text-end">
+                                        <span class="fw-bold {% if item.dados.lucro >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                            R$ {{ item.dados.lucro|floatformat:2 }}
+                                        </span>
+                                    </td>
+                                    <td class="text-end">
+                                        <span class="badge {% if item.dados.margem >= 20 %}bg-success{% elif item.dados.margem >= 10 %}bg-warning{% else %}bg-danger{% endif %}">
+                                            {{ item.dados.margem|floatformat:1 }}%
+                                        </span>
+                                    </td>
+                                    <td class="text-end">
+                                        {{ item.dados.quantidade_animais|floatformat:0 }}
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group btn-group-sm">
+                                            <button type="button" class="btn btn-outline-primary" 
+                                                    onclick="editarCenario({{ item.cenario.id }})"
+                                                    title="Editar">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            {% if not item.cenario.is_baseline or cenarios_data|length > 1 %}
+                                            <button type="button" class="btn btn-outline-danger" 
+                                                    onclick="excluirCenario({{ item.cenario.id }}, '{{ item.cenario.nome }}')"
+                                                    title="Excluir">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos de Comparação -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="content-card">
+                <div class="content-card-header">
+                    <h5 class="mb-0 text-dark fw-semibold">
+                        <i class="bi bi-graph-up me-2"></i>
+                        Comparação Financeira
+                    </h5>
+                </div>
+                <div class="content-card-body">
+                    <canvas id="graficoFinanceiro" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="content-card">
+                <div class="content-card-header">
+                    <h5 class="mb-0 text-dark fw-semibold">
+                        <i class="bi bi-pie-chart me-2"></i>
+                        Margem por Cenário
+                    </h5>
+                </div>
+                <div class="content-card-body">
+                    <canvas id="graficoMargem" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detalhes dos Ajustes -->
+    <div class="row">
+        <div class="col-12">
+            <div class="content-card">
+                <div class="content-card-header">
+                    <h5 class="mb-0 text-dark fw-semibold">
+                        <i class="bi bi-sliders me-2"></i>
+                        Ajustes Aplicados por Cenário
+                    </h5>
+                </div>
+                <div class="content-card-body">
+                    <div class="row">
+                        {% for item in cenarios_data %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100 {% if item.cenario.is_baseline %}border-primary{% endif %}">
+                                <div class="card-header {% if item.cenario.is_baseline %}bg-primary text-white{% else %}bg-light{% endif %}">
+                                    <h6 class="mb-0">
+                                        {{ item.cenario.nome }}
+                                        {% if item.cenario.is_baseline %}
+                                        <span class="badge bg-light text-primary ms-2">Baseline</span>
+                                        {% endif %}
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-2">
+                                        <small class="text-muted d-block">Ajuste de Preço</small>
+                                        <span class="fw-semibold {% if item.cenario.ajuste_preco_percentual > 0 %}text-success{% elif item.cenario.ajuste_preco_percentual < 0 %}text-danger{% else %}text-muted{% endif %}">
+                                            {{ item.cenario.ajuste_preco_percentual|floatformat:2 }}%
+                                        </span>
+                                    </div>
+                                    <div class="mb-2">
+                                        <small class="text-muted d-block">Ajuste de Custo</small>
+                                        <span class="fw-semibold {% if item.cenario.ajuste_custo_percentual > 0 %}text-danger{% elif item.cenario.ajuste_custo_percentual < 0 %}text-success{% else %}text-muted{% endif %}">
+                                            {{ item.cenario.ajuste_custo_percentual|floatformat:2 }}%
+                                        </span>
+                                    </div>
+                                    <div class="mb-2">
+                                        <small class="text-muted d-block">Ajuste de Produção</small>
+                                        <span class="fw-semibold {% if item.cenario.ajuste_producao_percentual > 0 %}text-success{% elif item.cenario.ajuste_producao_percentual < 0 %}text-danger{% else %}text-muted{% endif %}">
+                                            {{ item.cenario.ajuste_producao_percentual|floatformat:2 }}%
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <small class="text-muted d-block">Ajuste de Taxas</small>
+                                        <span class="fw-semibold {% if item.cenario.ajuste_taxas_percentual > 0 %}text-danger{% elif item.cenario.ajuste_taxas_percentual < 0 %}text-success{% else %}text-muted{% endif %}">
+                                            {{ item.cenario.ajuste_taxas_percentual|floatformat:2 }}%
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <!-- Estado vazio -->
+    <div class="row">
+        <div class="col-12">
+            <div class="content-card">
+                <div class="content-card-body text-center py-5">
+                    <i class="bi bi-diagram-3" style="font-size: 4rem; color: #ccc;"></i>
+                    <h4 class="mt-3 text-muted">Nenhum cenário criado</h4>
+                    <p class="text-muted">Crie seu primeiro cenário para começar a análise comparativa.</p>
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCriarCenario">
+                        <i class="bi bi-plus-circle"></i> Criar Primeiro Cenário
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modal Criar Cenário -->
+<div class="modal fade" id="modalCriarCenario" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-plus-circle me-2"></i>
+                    Novo Cenário
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'criar_cenario' propriedade.id %}">
+                {% csrf_token %}
+                <input type="hidden" name="planejamento_id" value="{{ planejamento.id }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="nome" class="form-label">Nome do Cenário <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="nome" name="nome" required 
+                               placeholder="Ex: Otimista, Pessimista, Realista">
+                    </div>
+                    <div class="mb-3">
+                        <label for="descricao" class="form-label">Descrição</label>
+                        <textarea class="form-control" id="descricao" name="descricao" rows="3" 
+                                  placeholder="Descreva as características deste cenário..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="is_baseline" name="is_baseline">
+                            <label class="form-check-label" for="is_baseline">
+                                Definir como cenário baseline (referência)
+                            </label>
+                        </div>
+                    </div>
+                    <hr>
+                    <h6 class="mb-3">Ajustes Percentuais</h6>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="ajuste_preco_percentual" class="form-label">Ajuste de Preço (%)</label>
+                            <input type="number" class="form-control" id="ajuste_preco_percentual" 
+                                   name="ajuste_preco_percentual" step="0.01" value="0"
+                                   placeholder="Ex: 10 para +10%, -5 para -5%">
+                            <small class="text-muted">Ajuste percentual nos preços de venda</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="ajuste_custo_percentual" class="form-label">Ajuste de Custo (%)</label>
+                            <input type="number" class="form-control" id="ajuste_custo_percentual" 
+                                   name="ajuste_custo_percentual" step="0.01" value="0"
+                                   placeholder="Ex: 10 para +10%, -5 para -5%">
+                            <small class="text-muted">Ajuste percentual nos custos operacionais</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="ajuste_producao_percentual" class="form-label">Ajuste de Produção (%)</label>
+                            <input type="number" class="form-control" id="ajuste_producao_percentual" 
+                                   name="ajuste_producao_percentual" step="0.01" value="0"
+                                   placeholder="Ex: 10 para +10%, -5 para -5%">
+                            <small class="text-muted">Ajuste percentual na produção/quantidade</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="ajuste_taxas_percentual" class="form-label">Ajuste de Taxas (%)</label>
+                            <input type="number" class="form-control" id="ajuste_taxas_percentual" 
+                                   name="ajuste_taxas_percentual" step="0.01" value="0"
+                                   placeholder="Ex: 10 para +10%, -5 para -5%">
+                            <small class="text-muted">Ajuste percentual em taxas e encargos</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle me-2"></i>
+                        Criar Cenário
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Cenário -->
+<div class="modal fade" id="modalEditarCenario" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-pencil me-2"></i>
+                    Editar Cenário
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" id="formEditarCenario">
+                {% csrf_token %}
+                <div class="modal-body" id="conteudoEditarCenario">
+                    <!-- Conteúdo será preenchido via JavaScript -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle me-2"></i>
+                        Salvar Alterações
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<script>
+// Dados dos cenários para os gráficos
+const cenariosData = [
+    {% for item in cenarios_data %}
+    {
+        id: {{ item.cenario.id }},
+        nome: "{{ item.cenario.nome|escapejs }}",
+        is_baseline: {{ item.cenario.is_baseline|yesno:"true,false" }},
+        receitas: {{ item.dados.receitas_totais }},
+        custos: {{ item.dados.custos_totais }},
+        lucro: {{ item.dados.lucro }},
+        margem: {{ item.dados.margem }},
+    }{% if not forloop.last %},{% endif %}
+    {% empty %}
+    {% endfor %}
+];
+
+// Gráfico Financeiro
+document.addEventListener('DOMContentLoaded', function() {
+    if (cenariosData.length > 0) {
+        const ctxFinanceiro = document.getElementById('graficoFinanceiro');
+        if (ctxFinanceiro) {
+            new Chart(ctxFinanceiro.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: cenariosData.map(c => c.nome),
+                    datasets: [
+                        {
+                            label: 'Receitas',
+                            data: cenariosData.map(c => c.receitas),
+                            backgroundColor: 'rgba(40, 167, 69, 0.8)',
+                        },
+                        {
+                            label: 'Custos',
+                            data: cenariosData.map(c => c.custos),
+                            backgroundColor: 'rgba(220, 53, 69, 0.8)',
+                        },
+                        {
+                            label: 'Lucro',
+                            data: cenariosData.map(c => c.lucro),
+                            backgroundColor: 'rgba(0, 123, 255, 0.8)',
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: { position: 'top' },
+                        title: { display: false }
+                    },
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        // Gráfico de Margem
+        const ctxMargem = document.getElementById('graficoMargem');
+        if (ctxMargem) {
+            new Chart(ctxMargem.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: cenariosData.map(c => c.nome),
+                    datasets: [{
+                        data: cenariosData.map(c => c.margem),
+                        backgroundColor: [
+                            'rgba(40, 167, 69, 0.8)',
+                            'rgba(0, 123, 255, 0.8)',
+                            'rgba(255, 193, 7, 0.8)',
+                            'rgba(220, 53, 69, 0.8)',
+                            'rgba(108, 117, 125, 0.8)',
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        title: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.label + ': ' + context.parsed.toFixed(2) + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    }
+});
+
+// Função para editar cenário
+function editarCenario(cenarioId) {
+    fetch(`/propriedade/{{ propriedade.id }}/pecuaria/cenarios/${cenarioId}/editar/?format=json`, {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Erro ao carregar dados');
+            }
+            return response.json();
+        })
+        .then(data => {
+            const form = document.getElementById('formEditarCenario');
+            form.action = `/propriedade/{{ propriedade.id }}/pecuaria/cenarios/${cenarioId}/editar/`;
+            
+            const conteudo = document.getElementById('conteudoEditarCenario');
+            conteudo.innerHTML = `
+                <input type="hidden" name="planejamento_id" value="{{ planejamento.id }}">
+                <div class="mb-3">
+                    <label for="edit_nome" class="form-label">Nome do Cenário <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="edit_nome" name="nome" required value="${data.nome}">
+                </div>
+                <div class="mb-3">
+                    <label for="edit_descricao" class="form-label">Descrição</label>
+                    <textarea class="form-control" id="edit_descricao" name="descricao" rows="3">${data.descricao || ''}</textarea>
+                </div>
+                <div class="mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="edit_is_baseline" name="is_baseline" ${data.is_baseline ? 'checked' : ''}>
+                        <label class="form-check-label" for="edit_is_baseline">
+                            Definir como cenário baseline (referência)
+                        </label>
+                    </div>
+                </div>
+                <hr>
+                <h6 class="mb-3">Ajustes Percentuais</h6>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="edit_ajuste_preco_percentual" class="form-label">Ajuste de Preço (%)</label>
+                        <input type="number" class="form-control" id="edit_ajuste_preco_percentual" 
+                               name="ajuste_preco_percentual" step="0.01" value="${data.ajuste_preco_percentual}">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="edit_ajuste_custo_percentual" class="form-label">Ajuste de Custo (%)</label>
+                        <input type="number" class="form-control" id="edit_ajuste_custo_percentual" 
+                               name="ajuste_custo_percentual" step="0.01" value="${data.ajuste_custo_percentual}">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="edit_ajuste_producao_percentual" class="form-label">Ajuste de Produção (%)</label>
+                        <input type="number" class="form-control" id="edit_ajuste_producao_percentual" 
+                               name="ajuste_producao_percentual" step="0.01" value="${data.ajuste_producao_percentual}">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="edit_ajuste_taxas_percentual" class="form-label">Ajuste de Taxas (%)</label>
+                        <input type="number" class="form-control" id="edit_ajuste_taxas_percentual" 
+                               name="ajuste_taxas_percentual" step="0.01" value="${data.ajuste_taxas_percentual}">
+                    </div>
+                </div>
+            `;
+            
+            const modal = new bootstrap.Modal(document.getElementById('modalEditarCenario'));
+            modal.show();
+        })
+        .catch(error => {
+            console.error('Erro ao carregar dados do cenário:', error);
+            alert('Erro ao carregar dados do cenário. Tente novamente.');
+        });
+}
+
+// Função para excluir cenário
+function excluirCenario(cenarioId, nome) {
+    if (confirm(`Tem certeza que deseja excluir o cenário "${nome}"?`)) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/propriedade/{{ propriedade.id }}/pecuaria/cenarios/${cenarioId}/excluir/`;
+        
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrfmiddlewaretoken';
+        csrfInput.value = csrfToken;
+        form.appendChild(csrfInput);
+        
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+</script>
+{% endblock %}

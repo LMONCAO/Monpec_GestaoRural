@@ -1,0 +1,188 @@
+{% extends 'base_modulos_unificado.html' %}
+{% load static %}
+
+{% block title %}Calcular Depreciação - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block breadcrumb_extra %}
+    <li class="breadcrumb-item">
+        <a href="{% url 'imobilizado_dashboard' propriedade.id %}">
+            <i class="bi bi-building"></i>
+            Bens e Patrimônio
+        </a>
+    </li>
+    <li class="breadcrumb-item active">
+        <i class="bi bi-calculator"></i>
+        Depreciação
+    </li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header da Página -->
+    <div class="submenu-page-header">
+        <div class="d-flex align-items-center gap-3">
+            <div class="submenu-page-icon">
+                <i class="bi bi-calculator"></i>
+            </div>
+            <div class="flex-grow-1">
+                <h1 class="submenu-page-title">Calcular Depreciação</h1>
+                <p class="submenu-page-description">
+                    Calcule a depreciação automática de todos os bens patrimoniais da propriedade {{ propriedade.nome_propriedade }}.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Conteúdo -->
+    <div class="row">
+        <div class="col-12">
+            <div class="content-card">
+                <div class="content-card-header">
+                    <h6 class="mb-0 text-dark fw-semibold">
+                        <i class="bi bi-graph-down me-2 text-muted"></i>Cálculo de Depreciação
+                    </h6>
+                </div>
+                <div class="content-card-body">
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>
+                        <strong>Como funciona:</strong> O sistema calculará a depreciação de todos os bens ativos baseado no tempo decorrido desde a aquisição e na taxa de depreciação de cada tipo de bem.
+                    </div>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            <strong>Atenção:</strong> Esta ação irá recalcular a depreciação de todos os bens ativos. Deseja continuar?
+                        </div>
+
+                        <div class="d-flex gap-2 justify-content-end mt-4">
+                            <a href="{% url 'imobilizado_dashboard' propriedade.id %}" class="btn btn-outline-secondary btn-sm">
+                                <i class="bi bi-arrow-left me-1"></i>Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary btn-sm">
+                                <i class="bi bi-calculator me-1"></i>Calcular Depreciação
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Informações sobre Depreciação -->
+            <div class="content-card mt-3">
+                <div class="content-card-header">
+                    <h6 class="mb-0 text-dark fw-semibold">
+                        <i class="bi bi-lightbulb me-2 text-muted"></i>Informações sobre Depreciação
+                    </h6>
+                </div>
+                <div class="content-card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <h6 class="text-primary"><i class="bi bi-info-circle me-2"></i>Depreciação Linear</h6>
+                            <p class="text-muted small mb-0">
+                                A depreciação é calculada de forma linear, distribuindo uniformemente o valor ao longo da vida útil estimada do bem.
+                            </p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <h6 class="text-success"><i class="bi bi-check-circle me-2"></i>Método Utilizado</h6>
+                            <p class="text-muted small mb-0">
+                                O cálculo considera o tempo decorrido desde a aquisição e aplica a taxa de depreciação anual definida para cada tipo de bem.
+                            </p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <h6 class="text-warning"><i class="bi bi-clock me-2"></i>Vida Útil</h6>
+                            <p class="text-muted small mb-0">
+                                Cada tipo de bem possui uma vida útil estimada, que determina o período de depreciação completa do valor.
+                            </p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <h6 class="text-info"><i class="bi bi-cash-stack me-2"></i>Valor Residual</h6>
+                            <p class="text-muted small mb-0">
+                                O valor residual é o valor estimado do bem após o término da vida útil, que não é depreciado.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .submenu-page-header {
+        background: linear-gradient(135deg, rgba(30, 58, 95, 0.05) 0%, rgba(45, 80, 130, 0.08) 100%);
+        padding: 1.25rem 1.5rem;
+        border-radius: 12px;
+        margin-bottom: 1.5rem;
+        border: 1px solid rgba(0,0,0,0.05);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    
+    .submenu-page-icon {
+        width: 50px;
+        height: 50px;
+        background: linear-gradient(135deg, rgba(100, 149, 237, 0.15) 0%, rgba(100, 149, 237, 0.25) 100%);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 8px rgba(100, 149, 237, 0.15);
+    }
+    
+    .submenu-page-icon i {
+        font-size: 1.5rem;
+        color: var(--navy);
+    }
+    
+    .submenu-page-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--text-dark);
+        margin-bottom: 0.25rem;
+    }
+    
+    .submenu-page-description {
+        color: var(--text-light);
+        font-size: 0.9rem;
+        margin-bottom: 0;
+    }
+    
+    .content-card {
+        background: white;
+        border: 1px solid var(--gray-border);
+        border-radius: 8px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+        margin-bottom: 1rem;
+    }
+    
+    .content-card-header {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid var(--gray-border);
+        background: linear-gradient(135deg, rgba(248,249,250,1) 0%, rgba(255,255,255,1) 100%);
+        border-radius: 8px 8px 0 0;
+    }
+    
+    .content-card-body {
+        padding: 1.25rem;
+    }
+</style>
+{% endblock %}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

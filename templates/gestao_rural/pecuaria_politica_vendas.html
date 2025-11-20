@@ -1,0 +1,214 @@
+{% extends 'base.html' %}
+
+{% block title %}Política de Vendas - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- Cabeçalho -->
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h2 class="mb-0">
+                        <i class="bi bi-cart-check text-primary"></i> Política de Vendas
+                    </h2>
+                    <p class="text-muted small mb-0">{{ propriedade.nome_propriedade }}</p>
+                </div>
+                <a href="{% url 'pecuaria_parametros' propriedade.id %}" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Voltar
+                </a>
+            </div>
+
+            <!-- Alertas -->
+            <div class="alert alert-info mb-3">
+                <i class="bi bi-info-circle"></i>
+                Configure a política de vendas para TODAS as categorias de animais do sistema.
+            </div>
+
+            <!-- Formulário de Vendas por Categoria -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-list-check"></i> Configurar Vendas por Categoria
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" id="politica-vendas-form">
+                        {% csrf_token %}
+                        
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Categoria</th>
+                                        <th>Frequência</th>
+                                        <th>% Venda Anual</th>
+                                        <th>Quantidade Min.</th>
+                                        <th>Tipo</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for categoria in categorias %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ categoria.nome }}</strong>
+                                            {% if categoria.descricao %}
+                                            <br><small class="text-muted">{{ categoria.descricao }}</small>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <select class="form-select form-select-sm" name="frequencia_{{ categoria.id }}" id="freq_{{ categoria.id }}">
+                                                <option value="">Não configurado</option>
+                                                <option value="MENSAL">Mensal</option>
+                                                <option value="BIMESTRAL">Bimestral</option>
+                                                <option value="TRIMESTRAL">Trimestral</option>
+                                                <option value="SEMESTRAL">Semestral</option>
+                                                <option value="ANUAL">Anual</option>
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <div class="input-group input-group-sm">
+                                                <input type="number" class="form-control" 
+                                                       name="percentual_{{ categoria.id }}" 
+                                                       id="perc_{{ categoria.id }}"
+                                                       min="0" max="100" step="0.1" 
+                                                       placeholder="0">
+                                                <span class="input-group-text">%</span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <input type="number" class="form-control form-control-sm" 
+                                                   name="quantidade_{{ categoria.id }}" 
+                                                   id="qtd_{{ categoria.id }}"
+                                                   min="0" step="1" placeholder="0">
+                                        </td>
+                                        <td>
+                                            <select class="form-select form-select-sm" name="tipo_{{ categoria.id }}" id="tipo_{{ categoria.id }}">
+                                                <option value="MANUAL">Manual</option>
+                                                <option value="AUTOMATICA">Automática</option>
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <button type="button" class="btn btn-sm btn-outline-primary" 
+                                                    onclick="salvarCategoria({{ categoria.id }})">
+                                                <i class="bi bi-save"></i> Salvar
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Botões de Ação -->
+                        <div class="d-flex justify-content-between mt-3">
+                            <button type="button" class="btn btn-success" onclick="salvarTodas()">
+                                <i class="bi bi-check-circle"></i> Salvar Todas as Políticas
+                            </button>
+                            <a href="{% url 'pecuaria_dashboard' propriedade.id %}" class="btn btn-secondary">
+                                <i class="bi bi-x-circle"></i> Cancelar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Resumo de Políticas Configuradas -->
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-check2-square"></i> Políticas Configuradas
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="resumo-politicas">
+                        <p class="text-muted">Nenhuma política configurada ainda.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    border-radius: 8px;
+}
+
+.form-select-sm, .form-control-sm {
+    font-size: 0.875rem;
+}
+
+.table {
+    font-size: 0.9rem;
+}
+
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+</style>
+
+<script>
+// Salvar uma categoria específica
+function salvarCategoria(categoriaId) {
+    const frequencia = document.getElementById('freq_' + categoriaId).value;
+    const percentual = document.getElementById('perc_' + categoriaId).value;
+    const quantidade = document.getElementById('qtd_' + categoriaId).value;
+    const tipo = document.getElementById('tipo_' + categoriaId).value;
+    
+    if (!frequencia || !percentual || !quantidade) {
+        alert('Preencha todos os campos obrigatórios!');
+        return;
+    }
+    
+    // Enviar via AJAX
+    fetch('{% url "pecuaria_parametros_avancados" propriedade.id %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            categoria_id: categoriaId,
+            frequencia: frequencia,
+            percentual: percentual,
+            quantidade: quantidade,
+            tipo: tipo
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Política salva com sucesso!');
+            atualizarResumo();
+        } else {
+            alert('Erro ao salvar política: ' + data.error);
+        }
+    });
+}
+
+// Salvar todas as categorias
+function salvarTodas() {
+    if (confirm('Deseja salvar todas as políticas configuradas?')) {
+        alert('Funcionalidade em desenvolvimento');
+    }
+}
+
+// Atualizar resumo
+function atualizarResumo() {
+    // Implementar lógica para mostrar políticas configuradas
+    console.log('Atualizando resumo...');
+}
+
+// Salvar ao sair do campo
+document.querySelectorAll('input, select').forEach(element => {
+    element.addEventListener('blur', function() {
+        const categoriaId = this.name.split('_')[1];
+        // Auto-save pode ser implementado aqui
+    });
+});
+</script>
+{% endblock %}
+

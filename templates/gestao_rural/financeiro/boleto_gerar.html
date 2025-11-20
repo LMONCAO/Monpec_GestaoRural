@@ -1,0 +1,92 @@
+{% extends 'base_modulos_unificado.html' %}
+{% load formatacao_br %}
+
+{% block title %}Gerar Boleto - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block breadcrumb_extra %}
+    <li class="breadcrumb-item">
+        <a href="{% url 'financeiro_dashboard' propriedade.id %}">
+            <i class="bi bi-cash-coin me-1"></i>Financeiro
+        </a>
+    </li>
+    <li class="breadcrumb-item">
+        <a href="{% url 'financeiro_boletos' propriedade.id %}">Boletos</a>
+    </li>
+    <li class="breadcrumb-item active">Gerar Boleto</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="submenu-page-header">
+        <div class="d-flex align-items-start gap-4">
+            <div class="submenu-page-icon bg-info bg-opacity-10 text-info">
+                <i class="bi bi-receipt-cutoff"></i>
+            </div>
+            <div class="flex-grow-1">
+                <h1 class="submenu-page-title mb-1">Gerar Boleto</h1>
+                <p class="submenu-page-description mb-0">
+                    Configure e gere o boleto para a conta a receber.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="card-moderno">
+        <div class="card-body-moderno">
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <h5>Dados da Conta</h5>
+                    <table class="table table-borderless">
+                        <tr>
+                            <td class="text-muted">Descrição:</td>
+                            <td><strong>{{ conta_receber.descricao }}</strong></td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Valor:</td>
+                            <td><strong class="text-success">{{ conta_receber.valor|moeda_br }}</strong></td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Vencimento:</td>
+                            <td>{{ conta_receber.data_vencimento|data_br }}</td>
+                        </tr>
+                        {% if conta_receber.cliente %}
+                        <tr>
+                            <td class="text-muted">Cliente:</td>
+                            <td>{{ conta_receber.cliente }}</td>
+                        </tr>
+                        {% endif %}
+                    </table>
+                </div>
+            </div>
+
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle me-2"></i>
+                <strong>Integração com Gerador de Boletos:</strong>
+                <p class="mb-0 mt-2">
+                    Para gerar boletos, é necessário integrar uma biblioteca de geração de boletos, como:
+                </p>
+                <ul class="mb-0 mt-2">
+                    <li><strong>python-boleto</strong> - Biblioteca para geração de boletos bancários</li>
+                    <li><strong>boleto-python</strong> - Outra opção para geração de boletos</li>
+                    <li><strong>API de Bancos</strong> - Integração direta com APIs bancárias</li>
+                </ul>
+            </div>
+
+            <div class="mt-4">
+                <button type="button" class="btn btn-primary" disabled>
+                    <i class="bi bi-file-earmark-pdf me-1"></i> Gerar Boleto PDF
+                </button>
+                <a href="{% url 'financeiro_boletos' propriedade.id %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i> Voltar
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+
+
+

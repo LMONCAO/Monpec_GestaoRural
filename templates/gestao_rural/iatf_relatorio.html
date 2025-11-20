@@ -1,0 +1,492 @@
+{% extends "base_modulos_unificado.html" %}
+{% load formatacao_br %}
+
+{% block title %}Relatório IATF - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'reproducao_dashboard' propriedade.id %}">Reprodução</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'iatf_dashboard' propriedade.id %}">IATF</a></li>
+            <li class="breadcrumb-item active">Relatório</li>
+        </ol>
+    </nav>
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1"><i class="bi bi-file-earmark-text text-primary me-2"></i>Relatório de IATF</h2>
+            <p class="text-muted mb-0">{{ propriedade.nome_propriedade }}</p>
+        </div>
+        <div>
+            <a href="{% url 'iatf_dashboard' propriedade.id %}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left me-1"></i>Voltar
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-funnel me-2"></i>Filtros</h5>
+        </div>
+        <div class="card-body">
+            <form method="get" action="{% url 'iatf_relatorio' propriedade.id %}" id="filtrosForm">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label for="data_inicio" class="form-label">Data IATF - Início</label>
+                        <input type="date" class="form-control" id="data_inicio" name="data_inicio" 
+                               value="{{ filtros_aplicados.data_inicio|date:'Y-m-d'|default:'' }}">
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="data_final" class="form-label">Data IATF - Final</label>
+                        <input type="date" class="form-control" id="data_final" name="data_final" 
+                               value="{{ filtros_aplicados.data_final|date:'Y-m-d'|default:'' }}">
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="diagnostico_ate" class="form-label">Diagnóstico até</label>
+                        <input type="date" class="form-control" id="diagnostico_ate" name="diagnostico_ate" 
+                               value="{{ filtros_aplicados.diagnostico_ate|date:'Y-m-d'|default:'' }}">
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="lote_id" class="form-label">Lote IATF</label>
+                        <select class="form-select" id="lote_id" name="lote_id">
+                            <option value="">Todos os lotes</option>
+                            {% for lote in lotes %}
+                            <option value="{{ lote.id }}" {% if filtros_aplicados.lote_id == lote.id %}selected{% endif %}>
+                                {{ lote.nome_lote }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label for="resultado" class="form-label">Resultado</label>
+                        <select class="form-select" id="resultado" name="resultado">
+                            <option value="">Todos</option>
+                            {% for valor, label in resultado_choices %}
+                            <option value="{{ valor }}" {% if filtros_aplicados.resultado == valor %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3 mb-3 d-flex align-items-end">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="incluir_sem_diagnostico" 
+                                   name="incluir_sem_diagnostico" {% if filtros_aplicados.incluir_sem_diagnostico %}checked{% endif %}>
+                            <label class="form-check-label" for="incluir_sem_diagnostico">
+                                Incluir sem diagnóstico
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary me-2">
+                            <i class="bi bi-search me-1"></i>Filtrar
+                        </button>
+                        <a href="{% url 'iatf_relatorio' propriedade.id %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle me-1"></i>Limpar
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Resumo Geral -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-bar-chart me-2"></i>Resumo Geral</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <div class="text-center p-3 border rounded">
+                                <h6 class="text-muted mb-2">Total de IATFs</h6>
+                                <h3 class="mb-0 text-primary">{{ dados.resumo.total_animais|numero_br }}</h3>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="text-center p-3 border rounded">
+                                <h6 class="text-muted mb-2">Prenhezes</h6>
+                                <h3 class="mb-0 text-success">{{ dados.resumo.total_prenhezes|numero_br }}</h3>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="text-center p-3 border rounded">
+                                <h6 class="text-muted mb-2">Taxa de Prenhez</h6>
+                                <h3 class="mb-0 text-success">{{ dados.resumo.taxa_prenhez|percentual_br:1 }}</h3>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="text-center p-3 border rounded">
+                                <h6 class="text-muted mb-2">Custo Total</h6>
+                                <h3 class="mb-0 text-info">{{ dados.resumo.custo_total|moeda_br }}</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-3 mb-3">
+                            <div class="text-center p-3 border rounded">
+                                <h6 class="text-muted mb-2">Vazias</h6>
+                                <h4 class="mb-0 text-danger">{{ dados.resumo.total_vazias|numero_br }}</h4>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="text-center p-3 border rounded">
+                                <h6 class="text-muted mb-2">Abortos</h6>
+                                <h4 class="mb-0 text-warning">{{ dados.resumo.total_abortos|numero_br }}</h4>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="text-center p-3 border rounded">
+                                <h6 class="text-muted mb-2">Custo Médio/Prenhez</h6>
+                                <h4 class="mb-0 text-info">{{ dados.resumo.custo_medio_prenhez|moeda_br }}</h4>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="text-center p-3 border rounded">
+                                <h6 class="text-muted mb-2">Dias Médios Diagnóstico</h6>
+                                <h4 class="mb-0 text-secondary">
+                                    {% if dados.resumo.media_dias_diagnostico %}
+                                        {{ dados.resumo.media_dias_diagnostico|floatformat:1 }} dias
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botões de Exportação -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'exportar_iatf_excel' propriedade.id %}?{{ request.GET.urlencode }}" 
+                           class="btn btn-success">
+                            <i class="bi bi-file-earmark-excel me-1"></i>Exportar Excel
+                        </a>
+                        <a href="{% url 'exportar_iatf_pdf' propriedade.id %}?{{ request.GET.urlencode }}" 
+                           class="btn btn-danger">
+                            <i class="bi bi-file-earmark-pdf me-1"></i>Exportar PDF
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Desempenho por Touro -->
+    {% if dados.por_touro %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="bi bi-graph-up me-2"></i>Desempenho por Touro</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Touro</th>
+                                    <th class="text-center">Total</th>
+                                    <th class="text-center">Prenhezes</th>
+                                    <th class="text-center">Taxa (%)</th>
+                                    <th class="text-center">Vazias</th>
+                                    <th class="text-center">Custo Médio/Prenhez</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in dados.por_touro %}
+                                <tr>
+                                    <td><strong>{{ item.rotulo }}</strong></td>
+                                    <td class="text-center">{{ item.total|numero_br }}</td>
+                                    <td class="text-center text-success"><strong>{{ item.prenhezes|numero_br }}</strong></td>
+                                    <td class="text-center">
+                                        <span class="badge bg-{% if item.taxa_prenhez >= 50 %}success{% elif item.taxa_prenhez >= 30 %}warning{% else %}danger{% endif %}">
+                                            {{ item.taxa_prenhez|percentual_br:1 }}
+                                        </span>
+                                    </td>
+                                    <td class="text-center">{{ item.vazias|numero_br }}</td>
+                                    <td class="text-center">{{ item.custo_medio_prenhez|moeda_br }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Desempenho por Inseminador -->
+    {% if dados.por_inseminador %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-person-check me-2"></i>Desempenho por Inseminador</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Inseminador</th>
+                                    <th class="text-center">Total</th>
+                                    <th class="text-center">Prenhezes</th>
+                                    <th class="text-center">Taxa (%)</th>
+                                    <th class="text-center">Vazias</th>
+                                    <th class="text-center">Custo Médio/Prenhez</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in dados.por_inseminador %}
+                                <tr>
+                                    <td><strong>{{ item.rotulo }}</strong></td>
+                                    <td class="text-center">{{ item.total|numero_br }}</td>
+                                    <td class="text-center text-success"><strong>{{ item.prenhezes|numero_br }}</strong></td>
+                                    <td class="text-center">
+                                        <span class="badge bg-{% if item.taxa_prenhez >= 50 %}success{% elif item.taxa_prenhez >= 30 %}warning{% else %}danger{% endif %}">
+                                            {{ item.taxa_prenhez|percentual_br:1 }}
+                                        </span>
+                                    </td>
+                                    <td class="text-center">{{ item.vazias|numero_br }}</td>
+                                    <td class="text-center">{{ item.custo_medio_prenhez|moeda_br }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Desempenho por Protocolo -->
+    {% if dados.por_protocolo %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="bi bi-list-check me-2"></i>Desempenho por Protocolo</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Protocolo</th>
+                                    <th class="text-center">Total</th>
+                                    <th class="text-center">Prenhezes</th>
+                                    <th class="text-center">Taxa (%)</th>
+                                    <th class="text-center">Vazias</th>
+                                    <th class="text-center">Custo Médio/Prenhez</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in dados.por_protocolo %}
+                                <tr>
+                                    <td><strong>{{ item.rotulo }}</strong></td>
+                                    <td class="text-center">{{ item.total|numero_br }}</td>
+                                    <td class="text-center text-success"><strong>{{ item.prenhezes|numero_br }}</strong></td>
+                                    <td class="text-center">
+                                        <span class="badge bg-{% if item.taxa_prenhez >= 50 %}success{% elif item.taxa_prenhez >= 30 %}warning{% else %}danger{% endif %}">
+                                            {{ item.taxa_prenhez|percentual_br:1 }}
+                                        </span>
+                                    </td>
+                                    <td class="text-center">{{ item.vazias|numero_br }}</td>
+                                    <td class="text-center">{{ item.custo_medio_prenhez|moeda_br }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Desempenho por Lote -->
+    {% if dados.por_lote %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="bi bi-collection me-2"></i>Desempenho por Lote IATF</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Lote</th>
+                                    <th class="text-center">Total</th>
+                                    <th class="text-center">Prenhezes</th>
+                                    <th class="text-center">Taxa (%)</th>
+                                    <th class="text-center">Vazias</th>
+                                    <th class="text-center">Custo Médio/Prenhez</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in dados.por_lote %}
+                                <tr>
+                                    <td><strong>{{ item.rotulo }}</strong></td>
+                                    <td class="text-center">{{ item.total|numero_br }}</td>
+                                    <td class="text-center text-success"><strong>{{ item.prenhezes|numero_br }}</strong></td>
+                                    <td class="text-center">
+                                        <span class="badge bg-{% if item.taxa_prenhez >= 50 %}success{% elif item.taxa_prenhez >= 30 %}warning{% else %}danger{% endif %}">
+                                            {{ item.taxa_prenhez|percentual_br:1 }}
+                                        </span>
+                                    </td>
+                                    <td class="text-center">{{ item.vazias|numero_br }}</td>
+                                    <td class="text-center">{{ item.custo_medio_prenhez|moeda_br }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Diagnósticos por Data -->
+    {% if dados.diagnosticos_por_data %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="bi bi-calendar-event me-2"></i>Diagnósticos por Data</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Data Diagnóstico</th>
+                                    <th class="text-center">Total</th>
+                                    <th class="text-center">Prenhezes</th>
+                                    <th class="text-center">Taxa (%)</th>
+                                    <th class="text-center">Vazias</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in dados.diagnosticos_por_data %}
+                                <tr>
+                                    <td><strong>{{ item.data_diagnostico|date:"d/m/Y" }}</strong></td>
+                                    <td class="text-center">{{ item.total|numero_br }}</td>
+                                    <td class="text-center text-success"><strong>{{ item.prenhezes|numero_br }}</strong></td>
+                                    <td class="text-center">
+                                        <span class="badge bg-{% if item.taxa_prenhez >= 50 %}success{% elif item.taxa_prenhez >= 30 %}warning{% else %}danger{% endif %}">
+                                            {{ item.taxa_prenhez|percentual_br:1 }}
+                                        </span>
+                                    </td>
+                                    <td class="text-center">{{ item.vazias|numero_br }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Detalhes (limitado a 50 registros) -->
+    {% if dados.detalhes %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-list-ul me-2"></i>Detalhamento por Animal 
+                        <small class="text-white-50">(Mostrando {{ dados.detalhes|length }} registros)</small>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Animal</th>
+                                    <th>Categoria</th>
+                                    <th>Protocolo</th>
+                                    <th>Lote IATF</th>
+                                    <th>Touro</th>
+                                    <th>Resultado</th>
+                                    <th>Data IATF</th>
+                                    <th>Data Diagnóstico</th>
+                                    <th class="text-end">Custo</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in dados.detalhes|slice:":50" %}
+                                <tr>
+                                    <td><strong>{{ item.animal }}</strong></td>
+                                    <td>{{ item.categoria|default:"-" }}</td>
+                                    <td>{{ item.protocolo|default:"-" }}</td>
+                                    <td>{{ item.lote_iatf|default:"-" }}</td>
+                                    <td>{{ item.touro|default:"-" }}</td>
+                                    <td>
+                                        <span class="badge bg-{% if item.resultado == 'Prenhez Confirmada' %}success{% elif item.resultado == 'Vazia' %}danger{% else %}secondary{% endif %}">
+                                            {{ item.resultado }}
+                                        </span>
+                                    </td>
+                                    <td>{{ item.data_iatf|date:"d/m/Y"|default:"-" }}</td>
+                                    <td>{{ item.data_diagnostico|date:"d/m/Y"|default:"-" }}</td>
+                                    <td class="text-end">{{ item.custo_total|moeda_br|default:"-" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        {% if dados.detalhes|length > 50 %}
+                        <div class="alert alert-info mt-3">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Mostrando apenas os primeiros 50 registros. Use a exportação Excel para ver todos os {{ dados.detalhes|length }} registros.
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Mensagem se não houver dados -->
+    {% if dados.resumo.total_animais == 0 %}
+    <div class="row">
+        <div class="col-12">
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                Nenhum registro de IATF encontrado com os filtros aplicados.
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+
+
+
+
+

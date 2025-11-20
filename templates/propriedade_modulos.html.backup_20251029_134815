@@ -1,0 +1,215 @@
+{% extends "base_navegacao.html" %}
+
+{% block title %}Módulos - {{ propriedade.nome }} - Monpec Rural{% endblock %}
+
+{% block breadcrumbs %}
+<li><a href="{% url 'dashboard' %}">Início</a></li>
+<li class="breadcrumb-separator">›</li>
+<li><a href="{% url 'propriedades_lista' propriedade.produtor_id %}">Propriedades</a></li>
+<li class="breadcrumb-separator">›</li>
+<li class="active">{{ propriedade.nome }}</li>
+{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div class="d-flex justify-content-between align-items-start">
+        <div>
+            <h1 class="page-title">{{ propriedade.nome }}</h1>
+            <p class="page-subtitle">{{ propriedade.municipio }}/{{ propriedade.estado }} - {{ propriedade.area_total|default:"0" }} hectares</p>
+        </div>
+        <a href="{% url 'propriedades_lista' propriedade.produtor_id %}" class="btn-outline">
+            Voltar
+        </a>
+    </div>
+</div>
+
+<!-- Informações da Propriedade -->
+<div class="card-clean mb-4">
+    <div class="row">
+        <div class="col-md-3">
+            <div style="font-size: 12px; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">
+                Tipo
+            </div>
+            <div style="font-weight: 600; color: var(--text-dark);">
+                {{ propriedade.perfil|default:"Ciclo Completo" }}
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div style="font-size: 12px; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">
+                Área Total
+            </div>
+            <div style="font-weight: 600; color: var(--text-dark);">
+                {{ propriedade.area_total|default:"0" }} hectares
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div style="font-size: 12px; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">
+                Localização
+            </div>
+            <div style="font-weight: 600; color: var(--text-dark);">
+                {{ propriedade.municipio }}, {{ propriedade.estado }}
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div style="font-size: 12px; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">
+                Valor Total
+            </div>
+            <div class="destaque-valor">
+                R$ {{ propriedade.valor_total|default:"0,00" }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Módulos Disponíveis -->
+<h2 style="font-family: 'Playfair Display', serif; font-size: 1.75rem; color: var(--navy); margin-bottom: 1.5rem;">
+    Módulos de Gestão
+</h2>
+
+<div class="cards-grid">
+    <!-- Pecuária -->
+    <a href="{% url 'pecuaria_dashboard' propriedade.id %}" style="text-decoration: none;">
+        <div class="card-clean">
+            <h3 class="card-title">Pecuária</h3>
+            <p style="color: var(--text-light); font-size: 14px; margin-bottom: 1.5rem;">
+                Gestão completa do rebanho, inventário, projeções e movimentações de animais
+            </p>
+            <span class="btn-navy" style="padding: 0.65rem 1.5rem; font-size: 14px; display: inline-block;">
+                Acessar
+            </span>
+        </div>
+    </a>
+    
+    <!-- Agricultura -->
+    <a href="{% url 'agricultura_dashboard' propriedade.id %}" style="text-decoration: none;">
+        <div class="card-clean">
+            <h3 class="card-title">Agricultura</h3>
+            <p style="color: var(--text-light); font-size: 14px; margin-bottom: 1.5rem;">
+                Gestão de cultivos, ciclos agrícolas, custos e produtividade
+            </p>
+            <span class="btn-navy" style="padding: 0.65rem 1.5rem; font-size: 14px; display: inline-block;">
+                Acessar
+            </span>
+        </div>
+    </a>
+    
+    <!-- Inteligência Artificial -->
+    <a href="{% url 'pecuaria_parametros' propriedade.id %}" style="text-decoration: none;">
+        <div class="card-clean">
+            <h3 class="card-title">Inteligência Artificial</h3>
+            <p style="color: var(--text-light); font-size: 14px; margin-bottom: 1.5rem;">
+                Parâmetros inteligentes, projeções automáticas e sugestões de movimentações
+            </p>
+            <span class="btn-navy" style="padding: 0.65rem 1.5rem; font-size: 14px; display: inline-block;">
+                Acessar
+            </span>
+        </div>
+    </a>
+    
+    <!-- Bens e Patrimônio -->
+    <a href="{% url 'imobilizado_dashboard' propriedade.id %}" style="text-decoration: none;">
+        <div class="card-clean">
+            <h3 class="card-title">Bens e Patrimônio</h3>
+            <p style="color: var(--text-light); font-size: 14px; margin-bottom: 1.5rem;">
+                Controle de máquinas, veículos, instalações e depreciação
+            </p>
+            <span class="btn-navy" style="padding: 0.65rem 1.5rem; font-size: 14px; display: inline-block;">
+                Acessar
+            </span>
+        </div>
+    </a>
+    
+    <!-- Financeiro -->
+    <a href="{% url 'financeiro_dashboard' propriedade.id %}" style="text-decoration: none;">
+        <div class="card-clean">
+            <h3 class="card-title">Financeiro</h3>
+            <p style="color: var(--text-light); font-size: 14px; margin-bottom: 1.5rem;">
+                Fluxo de caixa, contas a pagar/receber, DRE e relatórios financeiros
+            </p>
+            <span class="btn-navy" style="padding: 0.65rem 1.5rem; font-size: 14px; display: inline-block;">
+                Acessar
+            </span>
+        </div>
+    </a>
+    
+    <!-- Dívidas Financeiras -->
+    <a href="{% url 'dividas_dashboard' propriedade.id %}" style="text-decoration: none;">
+        <div class="card-clean">
+            <h3 class="card-title">Dívidas Financeiras</h3>
+            <p style="color: var(--text-light); font-size: 14px; margin-bottom: 1.5rem;">
+                Gestão de dívidas, SCR do Banco Central, contratos e amortização
+            </p>
+            <span class="btn-navy" style="padding: 0.65rem 1.5rem; font-size: 14px; display: inline-block;">
+                Acessar
+            </span>
+        </div>
+    </a>
+    
+    <!-- Projetos Bancários -->
+    <a href="{% url 'projeto_bancario_dashboard' propriedade.id %}" style="text-decoration: none;">
+        <div class="card-clean">
+            <h3 class="card-title">Projetos Bancários</h3>
+            <p style="color: var(--text-light); font-size: 14px; margin-bottom: 1.5rem;">
+                Projetos de crédito rural, análise de viabilidade e documentação bancária
+            </p>
+            <span class="btn-navy" style="padding: 0.65rem 1.5rem; font-size: 14px; display: inline-block;">
+                Acessar
+            </span>
+        </div>
+    </a>
+    
+    <!-- Projetos -->
+    <a href="{% url 'projetos_dashboard' propriedade.id %}" style="text-decoration: none;">
+        <div class="card-clean">
+            <h3 class="card-title">Projetos</h3>
+            <p style="color: var(--text-light); font-size: 14px; margin-bottom: 1.5rem;">
+                Planejamento de investimentos, cronogramas e controle de execução
+            </p>
+            <span class="btn-navy" style="padding: 0.65rem 1.5rem; font-size: 14px; display: inline-block;">
+                Acessar
+            </span>
+        </div>
+    </a>
+    
+    <!-- Relatórios -->
+    <a href="{% url 'relatorio_final' propriedade.id %}" style="text-decoration: none;">
+        <div class="card-clean">
+            <h3 class="card-title">Relatórios</h3>
+            <p style="color: var(--text-light); font-size: 14px; margin-bottom: 1.5rem;">
+                Gere relatórios completos em PDF com todas as informações da propriedade
+            </p>
+            <span class="btn-outline" style="padding: 0.65rem 1.5rem; font-size: 14px; display: inline-block;">
+                Gerar
+            </span>
+        </div>
+    </a>
+    
+    <!-- Categorias -->
+    <a href="{% url 'categorias_lista' %}" style="text-decoration: none;">
+        <div class="card-clean">
+            <h3 class="card-title">Categorias de Animais</h3>
+            <p style="color: var(--text-light); font-size: 14px; margin-bottom: 1.5rem;">
+                Gerencie as categorias de animais utilizadas no sistema
+            </p>
+            <span class="btn-outline" style="padding: 0.65rem 1.5rem; font-size: 14px; display: inline-block;">
+                Gerenciar
+            </span>
+        </div>
+    </a>
+    
+    <!-- Configurações -->
+    <a href="{% url 'propriedade_editar' propriedade.id %}" style="text-decoration: none;">
+        <div class="card-clean">
+            <h3 class="card-title">Configurações da Propriedade</h3>
+            <p style="color: var(--text-light); font-size: 14px; margin-bottom: 1.5rem;">
+                Edite informações, área, localização e dados cadastrais
+            </p>
+            <span class="btn-outline" style="padding: 0.65rem 1.5rem; font-size: 14px; display: inline-block;">
+                Editar
+            </span>
+        </div>
+    </a>
+</div>
+{% endblock %}
+

@@ -1,74 +1,59 @@
-# -*- coding: utf-8 -*-
 """
-Configurações de Produção - Sistema Rural com IA
-Servidor: 45.32.219.76
-"""
+Django settings for sistema_rural project - PRODUÇÃO LOCAWEB
 
+Configurações específicas para produção no servidor Locaweb.
+"""
 import os
-from decouple import config
 from .settings import *
 
-# ==================== CONFIGURAÇÕES DE PRODUÇÃO ====================
-
-# Modo de debug desabilitado
+# Configurações de produção
 DEBUG = False
 
-# Hosts permitidos
 ALLOWED_HOSTS = [
-    '45.32.219.76',
+    'monpec.com.br',
+    'www.monpec.com.br',
+    '10.1.1.234',  # IP da VM Locaweb
     'localhost',
     '127.0.0.1',
-    'sistema-rural.local'
+    '0.0.0.0',  # Permite acesso de qualquer IP na rede
 ]
 
-# ==================== BANCO DE DADOS ====================
+# Configuração CSRF para produção
+CSRF_TRUSTED_ORIGINS = [
+    'https://monpec.com.br',
+    'https://www.monpec.com.br',
+    'http://10.1.1.234',
+    'http://10.1.1.234:8000',  # IP com porta para acesso direto
+    'http://localhost:8000',
+]
 
-# PostgreSQL para produção
+# Banco de dados PostgreSQL para produção
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': config('DB_NAME', default='sistema_rural'),
-        'USER': config('DB_USER', default='django_user'),
-        'PASSWORD': config('DB_PASSWORD', default='Django2025@'),
-        'HOST': config('DB_HOST', default='localhost'),
-        'PORT': config('DB_PORT', default='5432'),
-        'OPTIONS': {
-            'connect_timeout': 60,
-        }
+        'NAME': os.getenv('DB_NAME', 'monpec_db'),
+        'USER': os.getenv('DB_USER', 'monpec_user'),
+        'PASSWORD': os.getenv('DB_PASSWORD', 'Monpec2025!'),
+        'HOST': os.getenv('DB_HOST', 'localhost'),
+        'PORT': os.getenv('DB_PORT', '5432'),
     }
 }
 
-# ==================== ARQUIVOS ESTÁTICOS ====================
-
-# Configuração de arquivos estáticos
-STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-
-# WhiteNoise para servir arquivos estáticos
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
-
-# Middleware para arquivos estáticos
-MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
-
-# ==================== SEGURANÇA ====================
-
-# Chave secreta
-SECRET_KEY = config('SECRET_KEY', default='django-insecure-sistema-rural-ia-2025-producao-segura')
-
 # Configurações de segurança
-SECURE_BROWSER_XSS_FILTER = True
-SECURE_CONTENT_TYPE_NOSNIFF = True
-X_FRAME_OPTIONS = 'DENY'
+# ⚠️ ATENÇÃO: Desabilitado temporariamente para permitir acesso HTTP pelo celular
+# Reative quando configurar SSL corretamente
+SECURE_SSL_REDIRECT = False  # Era True - desabilitado para acesso pelo celular
 SECURE_HSTS_SECONDS = 31536000
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_BROWSER_XSS_FILTER = True
+X_FRAME_OPTIONS = 'DENY'
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-# HTTPS (descomentar quando configurar SSL)
-# SECURE_SSL_REDIRECT = True
-# SESSION_COOKIE_SECURE = True
-# CSRF_COOKIE_SECURE = True
-
-# ==================== LOGS ====================
+# Arquivos estáticos e mídia
+STATIC_ROOT = '/var/www/monpec.com.br/static'
+MEDIA_ROOT = '/var/www/monpec.com.br/media'
 
 # Configuração de logs
 LOGGING = {
@@ -76,11 +61,7 @@ LOGGING = {
     'disable_existing_loggers': False,
     'formatters': {
         'verbose': {
-            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
-            'style': '{',
-        },
-        'simple': {
-            'format': '{levelname} {message}',
+            'format': '{levelname} {asctime} {module} {message}',
             'style': '{',
         },
     },
@@ -88,13 +69,13 @@ LOGGING = {
         'file': {
             'level': 'INFO',
             'class': 'logging.FileHandler',
-            'filename': '/home/django/sistema-rural/sistema_rural.log',
+            'filename': '/var/log/monpec/django.log',
             'formatter': 'verbose',
         },
         'console': {
-            'level': 'INFO',
+            'level': 'ERROR',
             'class': 'logging.StreamHandler',
-            'formatter': 'simple',
+            'formatter': 'verbose',
         },
     },
     'loggers': {
@@ -111,9 +92,11 @@ LOGGING = {
     },
 }
 
-# ==================== CACHE ====================
+# URLs do Stripe para produção
+STRIPE_SUCCESS_URL = os.getenv('STRIPE_SUCCESS_URL', 'https://monpec.com.br/assinaturas/sucesso/')
+STRIPE_CANCEL_URL = os.getenv('STRIPE_CANCEL_URL', 'https://monpec.com.br/assinaturas/cancelado/')
 
-# Cache em memória para produção
+# Cache para produção (usando Redis se disponível, senão memória)
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
@@ -121,62 +104,10 @@ CACHES = {
     }
 }
 
-# ==================== EMAIL ====================
-
-# Configuração de email (se necessário)
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = config('EMAIL_HOST', default='localhost')
-EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
-EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
-EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
-EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
-
-# ==================== PERFORMANCE ====================
-
-# Configurações de performance
-CONN_MAX_AGE = 60
-
 # Sessões
-SESSION_COOKIE_AGE = 86400  # 24 horas
-SESSION_SAVE_EVERY_REQUEST = False
-
-# ==================== IA E SISTEMA INTELIGENTE ====================
-
-# Configurações específicas para IA
-IA_CONFIG = {
-    'ENABLE_AI': True,
-    'AI_MODEL_PATH': '/home/django/sistema-rural/ia_models/',
-    'AI_LOG_LEVEL': 'INFO',
-    'AI_CACHE_TTL': 3600,  # 1 hora
-}
-
-# ==================== BACKUP ====================
-
-# Configurações de backup automático
-BACKUP_CONFIG = {
-    'ENABLE_AUTO_BACKUP': True,
-    'BACKUP_DIR': '/home/django/backups/',
-    'BACKUP_RETENTION_DAYS': 30,
-    'BACKUP_TIME': '02:00',  # 2:00 AM
-}
-
-# ==================== MONITORAMENTO ====================
-
-# Configurações de monitoramento
-MONITORING_CONFIG = {
-    'ENABLE_METRICS': True,
-    'METRICS_PORT': 8001,
-    'HEALTH_CHECK_ENDPOINT': '/health/',
-}
-
-# ==================== FIM DAS CONFIGURAÇÕES ====================
-
-print("🚀 Sistema Rural com IA - Configuração de Produção Carregada")
-print(f"🌐 Hosts permitidos: {ALLOWED_HOSTS}")
-print(f"🗄️ Banco de dados: {DATABASES['default']['NAME']}")
-print(f"📁 Arquivos estáticos: {STATIC_ROOT}")
-print(f"🤖 IA habilitada: {IA_CONFIG['ENABLE_AI']}")
-print("✅ Configuração de produção ativa!")
-
-
-
+# ⚠️ ATENÇÃO: Desabilitado temporariamente para permitir acesso HTTP pelo celular
+# Reative quando configurar SSL corretamente
+SESSION_COOKIE_SECURE = False  # Era True - desabilitado para acesso HTTP
+SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_SECURE = False  # Era True - desabilitado para acesso HTTP
+CSRF_COOKIE_HTTPONLY = True

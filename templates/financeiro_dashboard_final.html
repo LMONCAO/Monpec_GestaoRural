@@ -1,0 +1,747 @@
+{% extends 'base_navegacao_inteligente.html' %}
+
+{% block title %}Financeiro - {{ propriedade.nome }} - MONPEC{% endblock %}
+
+{% block breadcrumb_extra %}
+<li class="breadcrumb-item active">Financeiro</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Cabeçalho Financeiro -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card card-modulo card-financeiro">
+                <div class="card-header-colorido card-header">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h2 class="mb-0">
+                                <i class="bi bi-cash-coin"></i> Centro Financeiro
+                            </h2>
+                            <p class="mb-0 mt-2">
+                                <i class="bi bi-building"></i> {{ propriedade.nome }} • 
+                                <i class="bi bi-calendar"></i> Outubro 2024 • 
+                                <i class="bi bi-speedometer"></i> Dashboard Completo
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <div class="btn-group">
+                                <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalLancamentoRapido">
+                                    <i class="bi bi-plus-circle"></i> Lançamento Rápido
+                                </button>
+                                <button class="btn btn-outline-light dropdown-toggle" data-bs-toggle="dropdown">
+                                    <i class="bi bi-gear"></i> Ações
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="#" onclick="exportarDados()"><i class="bi bi-download me-2"></i>Exportar Dados</a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="gerarBackup()"><i class="bi bi-shield-check me-2"></i>Backup Financeiro</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="#" onclick="configurarAlertas()"><i class="bi bi-bell me-2"></i>Configurar Alertas</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cards de Resumo Executivo -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card card-estatistica-financeira bg-success bg-opacity-10 border-success h-100">
+                <div class="card-body text-center p-3">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <i class="bi bi-arrow-up-circle-fill text-success display-5"></i>
+                        <span class="badge bg-success">+12.5%</span>
+                    </div>
+                    <h3 class="text-success mb-1 fw-bold">R$ 68.920,00</h3>
+                    <h6 class="text-muted mb-0">RECEITAS</h6>
+                    <small class="text-success">
+                        <i class="bi bi-calendar"></i> Últimos 30 dias
+                    </small>
+                </div>
+                <div class="card-footer bg-success bg-opacity-25 text-center py-2">
+                    <a href="#" class="text-success text-decoration-none fw-bold">
+                        <i class="bi bi-eye"></i> Detalhes
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card card-estatistica-financeira bg-danger bg-opacity-10 border-danger h-100">
+                <div class="card-body text-center p-3">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <i class="bi bi-arrow-down-circle-fill text-danger display-5"></i>
+                        <span class="badge bg-warning">+8.2%</span>
+                    </div>
+                    <h3 class="text-danger mb-1 fw-bold">R$ 41.280,00</h3>
+                    <h6 class="text-muted mb-0">DESPESAS</h6>
+                    <small class="text-danger">
+                        <i class="bi bi-calendar"></i> Últimos 30 dias
+                    </small>
+                </div>
+                <div class="card-footer bg-danger bg-opacity-25 text-center py-2">
+                    <a href="#" class="text-danger text-decoration-none fw-bold">
+                        <i class="bi bi-eye"></i> Detalhes
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card card-estatistica-financeira bg-primary bg-opacity-10 border-primary h-100">
+                <div class="card-body text-center p-3">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <i class="bi bi-wallet-fill text-primary display-5"></i>
+                        <span class="badge bg-success">Positivo</span>
+                    </div>
+                    <h3 class="text-primary mb-1 fw-bold">R$ 27.640,00</h3>
+                    <h6 class="text-muted mb-0">SALDO ATUAL</h6>
+                    <small class="text-primary">
+                        <i class="bi bi-clock"></i> Atualizado agora
+                    </small>
+                </div>
+                <div class="card-footer bg-primary bg-opacity-25 text-center py-2">
+                    <a href="#" class="text-primary text-decoration-none fw-bold">
+                        <i class="bi bi-graph-up"></i> Fluxo Caixa
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card card-estatistica-financeira bg-info bg-opacity-10 border-info h-100">
+                <div class="card-body text-center p-3">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <i class="bi bi-trophy-fill text-info display-5"></i>
+                        <span class="badge bg-success">+22.1%</span>
+                    </div>
+                    <h3 class="text-info mb-1 fw-bold">R$ 27.640,00</h3>
+                    <h6 class="text-muted mb-0">LUCRO LÍQUIDO</h6>
+                    <small class="text-info">
+                        <i class="bi bi-percent"></i> Margem: 40,1%
+                    </small>
+                </div>
+                <div class="card-footer bg-info bg-opacity-25 text-center py-2">
+                    <a href="#" class="text-info text-decoration-none fw-bold">
+                        <i class="bi bi-file-text"></i> DRE
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alertas Financeiros -->
+    <div class="row mb-4">
+        <div class="col-md-8 mb-3">
+            <div class="alert alert-warning d-flex align-items-center">
+                <i class="bi bi-exclamation-triangle-fill me-3 fs-4"></i>
+                <div class="flex-grow-1">
+                    <strong>Atenção Financeira!</strong> 
+                    Você tem <strong>5 contas vencidas</strong> (R$ 8.450) e <strong>3 clientes inadimplentes</strong> (R$ 12.800).
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-sm btn-outline-warning" onclick="verContasVencidas()">
+                        <i class="bi bi-credit-card"></i> Contas
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="enviarCobrancas()">
+                        <i class="bi bi-envelope"></i> Cobrar
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-3">
+            <div class="alert alert-success d-flex align-items-center">
+                <i class="bi bi-check-circle-fill me-3 fs-4"></i>
+                <div>
+                    <strong>Meta Atingida!</strong><br>
+                    <small>ROI mensal: 18.5% (meta: 15%)</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Módulos Financeiros -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h4 class="mb-3">
+                <i class="bi bi-grid-3x3-gap"></i> Módulos Financeiros
+            </h4>
+        </div>
+
+        <!-- Fluxo de Caixa -->
+        <div class="col-lg-6 col-xl-3 mb-4">
+            <div class="card card-modulo card-financeiro h-100">
+                <div class="card-header text-white text-center" style="background: linear-gradient(135deg, #28a745, #20c997);">
+                    <i class="bi bi-cash-stack display-4 mb-2"></i>
+                    <h5 class="mb-0">FLUXO DE CAIXA</h5>
+                    <small>Entradas e Saídas</small>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center mb-3">
+                        <div class="col-6">
+                            <div class="h6 mb-0 text-success">R$ 45.850</div>
+                            <small class="text-muted">Entradas</small>
+                        </div>
+                        <div class="col-6">
+                            <div class="h6 mb-0 text-danger">R$ 28.340</div>
+                            <small class="text-muted">Saídas</small>
+                        </div>
+                    </div>
+                    <div class="text-center">
+                        <div class="h5 mb-0 text-primary">R$ 17.510</div>
+                        <small class="text-muted">Saldo Líquido</small>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <a href="fluxo_caixa_completo.html" class="btn btn-success w-100">
+                        <i class="bi bi-graph-up"></i> Acessar
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contas a Pagar -->
+        <div class="col-lg-6 col-xl-3 mb-4">
+            <div class="card card-modulo card-financeiro h-100">
+                <div class="card-header text-white text-center" style="background: linear-gradient(135deg, #dc3545, #e74c3c);">
+                    <i class="bi bi-credit-card-2-back display-4 mb-2"></i>
+                    <h5 class="mb-0">CONTAS A PAGAR</h5>
+                    <small>Fornecedores e Despesas</small>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-danger p-2 mb-2">
+                        <small><strong>5 vencidas</strong><br>R$ 8.450,00</small>
+                    </div>
+                    <div class="alert alert-warning p-2 mb-2">
+                        <small><strong>8 próx. 7 dias</strong><br>R$ 15.280,00</small>
+                    </div>
+                    <div class="text-center">
+                        <div class="h6 mb-0 text-success">R$ 32.180</div>
+                        <small class="text-muted">Pagas no mês</small>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <a href="contas_pagar_completo.html" class="btn btn-danger w-100">
+                        <i class="bi bi-credit-card"></i> Gerenciar
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contas a Receber -->
+        <div class="col-lg-6 col-xl-3 mb-4">
+            <div class="card card-modulo card-financeiro h-100">
+                <div class="card-header text-white text-center" style="background: linear-gradient(135deg, #28a745, #34ce57);">
+                    <i class="bi bi-cash-coin display-4 mb-2"></i>
+                    <h5 class="mb-0">CONTAS A RECEBER</h5>
+                    <small>Clientes e Recebimentos</small>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-danger p-2 mb-2">
+                        <small><strong>3 inadimplentes</strong><br>R$ 12.800,00</small>
+                    </div>
+                    <div class="alert alert-warning p-2 mb-2">
+                        <small><strong>A vencer</strong><br>R$ 28.450,00</small>
+                    </div>
+                    <div class="text-center">
+                        <div class="h6 mb-0 text-success">R$ 68.920</div>
+                        <small class="text-muted">Recebido no mês</small>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <a href="contas_receber_completo.html" class="btn btn-success w-100">
+                        <i class="bi bi-cash"></i> Acessar
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Relatórios Financeiros -->
+        <div class="col-lg-6 col-xl-3 mb-4">
+            <div class="card card-modulo card-financeiro h-100">
+                <div class="card-header text-white text-center" style="background: linear-gradient(135deg, #6f42c1, #9b59b6);">
+                    <i class="bi bi-graph-up-arrow display-4 mb-2"></i>
+                    <h5 class="mb-0">RELATÓRIOS</h5>
+                    <small>DRE, KPIs e Análises</small>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center mb-2">
+                        <div class="col-6">
+                            <div class="h6 mb-0 text-info">26,9%</div>
+                            <small class="text-muted">Margem</small>
+                        </div>
+                        <div class="col-6">
+                            <div class="h6 mb-0 text-warning">18,5%</div>
+                            <small class="text-muted">ROI</small>
+                        </div>
+                    </div>
+                    <div class="text-center">
+                        <span class="badge bg-success">Meta Atingida</span>
+                    </div>
+                    <div class="text-center mt-2">
+                        <small class="text-muted">EBITDA: R$ 58.430</small>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <a href="relatorios_financeiros_completo.html" class="btn btn-purple w-100">
+                        <i class="bi bi-file-earmark-text"></i> Ver Relatórios
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos e Análises -->
+    <div class="row mb-4">
+        <!-- Gráfico Principal -->
+        <div class="col-lg-8 mb-4">
+            <div class="card card-modulo h-100">
+                <div class="card-header-colorido card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-graph-up"></i> Performance Financeira - Últimos 6 Meses
+                    </h5>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-secondary active" data-periodo="6m">6M</button>
+                        <button class="btn btn-outline-secondary" data-periodo="12m">12M</button>
+                        <button class="btn btn-outline-secondary" data-periodo="24m">24M</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <canvas id="graficoPerformance" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPIs Rápidos -->
+        <div class="col-lg-4 mb-4">
+            <div class="card card-modulo h-100">
+                <div class="card-header-colorido card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-speedometer"></i> KPIs em Tempo Real
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="kpi-item mb-3 p-3 bg-success bg-opacity-10 rounded">
+                        <div class="row">
+                            <div class="col-8">
+                                <h6 class="text-success mb-1">Liquidez Corrente</h6>
+                                <small class="text-muted">Capacidade de pagamento</small>
+                            </div>
+                            <div class="col-4 text-end">
+                                <h4 class="text-success mb-0">1,8x</h4>
+                                <small class="text-success">Ideal</small>
+                            </div>
+                        </div>
+                        <div class="progress mt-2" style="height: 4px;">
+                            <div class="progress-bar bg-success" style="width: 90%"></div>
+                        </div>
+                    </div>
+
+                    <div class="kpi-item mb-3 p-3 bg-primary bg-opacity-10 rounded">
+                        <div class="row">
+                            <div class="col-8">
+                                <h6 class="text-primary mb-1">Giro do Ativo</h6>
+                                <small class="text-muted">Eficiência dos ativos</small>
+                            </div>
+                            <div class="col-4 text-end">
+                                <h4 class="text-primary mb-0">2,3x</h4>
+                                <small class="text-primary">Bom</small>
+                            </div>
+                        </div>
+                        <div class="progress mt-2" style="height: 4px;">
+                            <div class="progress-bar bg-primary" style="width: 76%"></div>
+                        </div>
+                    </div>
+
+                    <div class="kpi-item mb-3 p-3 bg-warning bg-opacity-10 rounded">
+                        <div class="row">
+                            <div class="col-8">
+                                <h6 class="text-warning mb-1">Prazo Médio Pgto</h6>
+                                <small class="text-muted">Dias para pagar</small>
+                            </div>
+                            <div class="col-4 text-end">
+                                <h4 class="text-warning mb-0">22d</h4>
+                                <small class="text-warning">Ótimo</small>
+                            </div>
+                        </div>
+                        <div class="progress mt-2" style="height: 4px;">
+                            <div class="progress-bar bg-warning" style="width: 85%"></div>
+                        </div>
+                    </div>
+
+                    <div class="kpi-item p-3 bg-info bg-opacity-10 rounded">
+                        <div class="row">
+                            <div class="col-8">
+                                <h6 class="text-info mb-1">Endividamento</h6>
+                                <small class="text-muted">% do patrimônio</small>
+                            </div>
+                            <div class="col-4 text-end">
+                                <h4 class="text-info mb-0">28%</h4>
+                                <small class="text-info">Baixo</small>
+                            </div>
+                        </div>
+                        <div class="progress mt-2" style="height: 4px;">
+                            <div class="progress-bar bg-info" style="width: 28%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ações Rápidas -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card card-modulo">
+                <div class="card-header-colorido card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-lightning-charge"></i> Ações Rápidas Financeiras
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 col-lg-3 mb-3">
+                            <div class="d-grid">
+                                <button class="btn btn-outline-success" onclick="novaReceita()">
+                                    <i class="bi bi-plus-circle-fill mb-2 fs-4 d-block"></i>
+                                    <strong>Nova Receita</strong><br>
+                                    <small>Registrar recebimento</small>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 col-lg-3 mb-3">
+                            <div class="d-grid">
+                                <button class="btn btn-outline-danger" onclick="novaDespesa()">
+                                    <i class="bi bi-dash-circle-fill mb-2 fs-4 d-block"></i>
+                                    <strong>Nova Despesa</strong><br>
+                                    <small>Registrar pagamento</small>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 col-lg-3 mb-3">
+                            <div class="d-grid">
+                                <button class="btn btn-outline-primary" onclick="conciliarConta()">
+                                    <i class="bi bi-check2-all mb-2 fs-4 d-block"></i>
+                                    <strong>Conciliação</strong><br>
+                                    <small>Conferir extratos</small>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 col-lg-3 mb-3">
+                            <div class="d-grid">
+                                <button class="btn btn-outline-info" onclick="gerarDRE()">
+                                    <i class="bi bi-file-earmark-pdf-fill mb-2 fs-4 d-block"></i>
+                                    <strong>Gerar DRE</strong><br>
+                                    <small>Relatório mensal</small>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Lançamento Rápido -->
+<div class="modal fade" id="modalLancamentoRapido" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-lightning-charge-fill"></i> Lançamento Rápido
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formLancamentoRapido">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Tipo *</label>
+                            <select class="form-select" required>
+                                <option value="">Selecione...</option>
+                                <option value="receita">💰 Receita</option>
+                                <option value="despesa">💸 Despesa</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Valor *</label>
+                            <div class="input-group">
+                                <span class="input-group-text">R$</span>
+                                <input type="number" class="form-control" step="0.01" placeholder="0,00" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Descrição *</label>
+                        <input type="text" class="form-control" placeholder="Ex: Venda de gado, compra de ração..." required>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Data</label>
+                            <input type="date" class="form-control" id="dataLancamento">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Categoria</label>
+                            <select class="form-select">
+                                <option value="">Selecione...</option>
+                                <option value="vendas">Vendas</option>
+                                <option value="servicos">Serviços</option>
+                                <option value="insumos">Insumos</option>
+                                <option value="pessoal">Pessoal</option>
+                                <option value="administrativo">Administrativo</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="adicionarFluxo" checked>
+                        <label class="form-check-label" for="adicionarFluxo">
+                            Adicionar automaticamente ao fluxo de caixa
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-circle"></i> Salvar Lançamento
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .card-estatistica-financeira {
+        transition: all 0.3s ease;
+        border-width: 2px;
+    }
+
+    .card-estatistica-financeira:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+
+    .kpi-item {
+        border-left: 4px solid transparent;
+        transition: all 0.3s ease;
+    }
+
+    .kpi-item:hover {
+        transform: translateX(5px);
+    }
+
+    .btn-purple {
+        background-color: #6f42c1;
+        border-color: #6f42c1;
+        color: white;
+    }
+
+    .btn-purple:hover {
+        background-color: #5a32a3;
+        border-color: #5a32a3;
+        color: white;
+    }
+
+    .btn-outline-success:hover,
+    .btn-outline-danger:hover,
+    .btn-outline-primary:hover,
+    .btn-outline-info:hover {
+        transform: translateY(-2px);
+    }
+
+    .alert {
+        border-radius: 10px;
+    }
+
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+
+    .card-estatistica-financeira .display-5 {
+        animation: pulse 3s infinite;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Gráfico de Performance Financeira
+    const ctx = document.getElementById('graficoPerformance').getContext('2d');
+    const chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ['Mai/24', 'Jun/24', 'Jul/24', 'Ago/24', 'Set/24', 'Out/24'],
+            datasets: [{
+                label: 'Receitas',
+                data: [128000, 156000, 148000, 162000, 139400, 156850],
+                borderColor: '#28a745',
+                backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                tension: 0.4,
+                fill: true,
+                borderWidth: 3
+            }, {
+                label: 'Despesas',
+                data: [85000, 102000, 96000, 105000, 91000, 98420],
+                borderColor: '#dc3545',
+                backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                tension: 0.4,
+                fill: true,
+                borderWidth: 3
+            }, {
+                label: 'Lucro Líquido',
+                data: [28500, 38500, 35200, 42000, 31290, 42180],
+                borderColor: '#007bff',
+                backgroundColor: 'rgba(0, 123, 255, 0.2)',
+                tension: 0.4,
+                fill: true,
+                borderWidth: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 20
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return 'R$ ' + (value/1000) + 'K';
+                        }
+                    }
+                }
+            },
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            }
+        }
+    });
+
+    // Botões de período
+    document.querySelectorAll('[data-periodo]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('[data-periodo]').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            
+            // Aqui você atualizaria os dados do gráfico baseado no período
+            console.log('Período selecionado:', this.getAttribute('data-periodo'));
+        });
+    });
+
+    // Form lançamento rápido
+    document.getElementById('formLancamentoRapido').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const modal = bootstrap.Modal.getInstance(document.getElementById('modalLancamentoRapido'));
+        modal.hide();
+        
+        // Simular salvamento
+        const alert = document.createElement('div');
+        alert.className = 'alert alert-success alert-dismissible fade show';
+        alert.innerHTML = `
+            <i class="bi bi-check-circle-fill me-2"></i>
+            <strong>Sucesso!</strong> Lançamento registrado e adicionado ao fluxo de caixa.
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        document.querySelector('.container-fluid').prepend(alert);
+        
+        // Auto-dismiss após 5 segundos
+        setTimeout(() => {
+            if (alert.parentNode) {
+                alert.remove();
+            }
+        }, 5000);
+        
+        this.reset();
+    });
+
+    // Setar data de hoje
+    document.getElementById('dataLancamento').valueAsDate = new Date();
+
+    // Animação dos KPIs
+    function animarKPIs() {
+        document.querySelectorAll('.kpi-item').forEach((item, index) => {
+            setTimeout(() => {
+                item.style.transform = 'scale(1.02)';
+                setTimeout(() => {
+                    item.style.transform = 'scale(1)';
+                }, 200);
+            }, index * 100);
+        });
+    }
+
+    // Animar KPIs a cada 8 segundos
+    setInterval(animarKPIs, 8000);
+});
+
+// Funções globais para ações rápidas
+function novaReceita() {
+    document.querySelector('#modalLancamentoRapido select').value = 'receita';
+    const modal = new bootstrap.Modal(document.getElementById('modalLancamentoRapido'));
+    modal.show();
+}
+
+function novaDespesa() {
+    document.querySelector('#modalLancamentoRapido select').value = 'despesa';
+    const modal = new bootstrap.Modal(document.getElementById('modalLancamentoRapido'));
+    modal.show();
+}
+
+function conciliarConta() {
+    alert('🏦 Módulo de conciliação bancária será aberto em breve!');
+}
+
+function gerarDRE() {
+    window.open('relatorios_financeiros_completo.html', '_blank');
+}
+
+function exportarDados() {
+    alert('📊 Iniciando exportação dos dados financeiros...');
+}
+
+function gerarBackup() {
+    alert('💾 Backup financeiro iniciado. Você receberá um email quando concluído.');
+}
+
+function configurarAlertas() {
+    alert('🔔 Configurações de alertas financeiros em desenvolvimento.');
+}
+
+function verContasVencidas() {
+    window.open('contas_pagar_completo.html', '_blank');
+}
+
+function enviarCobrancas() {
+    alert('📧 Cobranças automáticas enviadas para 3 clientes!');
+}
+</script>
+{% endblock %}

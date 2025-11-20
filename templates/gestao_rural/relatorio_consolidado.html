@@ -1,0 +1,364 @@
+{% extends 'base_modulos_unificado.html' %}
+{% load static %}
+{% load formato_numeros %}
+
+{% block title %}Relatório Consolidado - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- Cabeçalho do Relatório -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2><i class="bi bi-file-earmark-check"></i> Relatório Consolidado</h2>
+                    <p class="text-muted mb-0">Propriedade: {{ propriedade.nome_propriedade }}</p>
+                    <p class="text-muted mb-0">Data do Relatório: {{ data_relatorio|date:"d/m/Y" }}</p>
+                </div>
+                <div>
+                    <a href="{% url 'relatorios_dashboard' propriedade.id %}" class="btn btn-secondary me-2">
+                        <i class="bi bi-arrow-left"></i> Voltar
+                    </a>
+                    <a href="{% url 'exportar_relatorio_consolidado_pdf' propriedade.id %}" class="btn btn-danger me-2">
+                        <i class="bi bi-file-pdf"></i> PDF
+                    </a>
+                    <a href="{% url 'exportar_relatorio_consolidado_excel' propriedade.id %}" class="btn btn-success me-2">
+                        <i class="bi bi-file-excel"></i> Excel
+                    </a>
+                    <button class="btn btn-primary" onclick="window.print()">
+                        <i class="bi bi-printer"></i> Imprimir
+                    </button>
+                </div>
+            </div>
+
+            <!-- Resumo Executivo -->
+            <div class="row mb-4">
+                <div class="col-md-3 mb-3">
+                    <div class="card border-primary">
+                        <div class="card-body text-center py-3">
+                            <i class="bi bi-clipboard-data fs-3 text-primary"></i>
+                            <h6 class="mt-2 mb-1 small">Total de Animais</h6>
+                            <h4 class="text-primary mb-0">{{ resumo_dados.total_animais|default:0 }}</h4>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3 mb-3">
+                    <div class="card border-success">
+                        <div class="card-body text-center py-3">
+                            <i class="bi bi-cash-stack fs-3 text-success"></i>
+                            <h6 class="mt-2 mb-1 small">Valor do Rebanho</h6>
+                            <h4 class="text-success mb-0">R$ {{ valor_total_rebanho|default:0|floatformat:2 }}</h4>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3 mb-3">
+                    <div class="card border-warning">
+                        <div class="card-body text-center py-3">
+                            <i class="bi bi-house fs-3 text-warning"></i>
+                            <h6 class="mt-2 mb-1 small">Custos Fixos/Ano</h6>
+                            <h4 class="text-warning mb-0">R$ {{ total_custos_fixos_ano|default:0|floatformat:2 }}</h4>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3 mb-3">
+                    <div class="card border-danger">
+                        <div class="card-body text-center py-3">
+                            <i class="bi bi-credit-card fs-3 text-danger"></i>
+                            <h6 class="mt-2 mb-1 small">Parcelas/Ano</h6>
+                            <h4 class="text-danger mb-0">R$ {{ total_parcelas_ano|default:0|floatformat:2 }}</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Análise Financeira -->
+            {% if dados_financeiros %}
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card border-info">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0">
+                                <i class="bi bi-graph-up"></i> Análise Financeira Consolidada
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="text-center p-3">
+                                        <h6 class="text-success">Receita Potencial/Ano</h6>
+                                        <h4 class="text-success">R$ {{ dados_financeiros.receita_potencial_ano|default:0|floatformat:2 }}</h4>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="text-center p-3">
+                                        <h6 class="text-warning">Custos Totais/Ano</h6>
+                                        <h4 class="text-warning">R$ {{ dados_financeiros.custos_fixos_ano|add:dados_financeiros.parcelas_ano|floatformat:2 }}</h4>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="text-center p-3">
+                                        <h6 class="text-info">Lucro Estimado</h6>
+                                        <h4 class="text-info">R$ {{ dados_financeiros.lucro_estimado|default:0|floatformat:2 }}</h4>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Indicadores de Performance -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card border-success">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0">
+                                <i class="bi bi-speedometer2"></i> Indicadores de Performance
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="text-center p-3">
+                                        <h6 class="text-primary">Valor por Animal</h6>
+                                        <h4 class="text-primary">
+                                            {% if resumo_dados.total_animais > 0 %}
+                                                R$ {{ valor_total_rebanho|div:resumo_dados.total_animais|floatformat:2 }}
+                                            {% else %}
+                                                R$ 0,00
+                                            {% endif %}
+                                        </h4>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="text-center p-3">
+                                        <h6 class="text-warning">Custo por Animal/Ano</h6>
+                                        <h4 class="text-warning">
+                                            {% if resumo_dados.total_animais > 0 %}
+                                                R$ {{ total_custos_fixos_ano|div:resumo_dados.total_animais|floatformat:2 }}
+                                            {% else %}
+                                                R$ 0,00
+                                            {% endif %}
+                                        </h4>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="text-center p-3">
+                                        <h6 class="text-danger">Parcela por Animal/Ano</h6>
+                                        <h4 class="text-danger">
+                                            {% if resumo_dados.total_animais > 0 %}
+                                                R$ {{ total_parcelas_ano|div:resumo_dados.total_animais|floatformat:2 }}
+                                            {% else %}
+                                                R$ 0,00
+                                            {% endif %}
+                                        </h4>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="text-center p-3">
+                                        <h6 class="text-info">Margem de Lucro</h6>
+                                        <h4 class="text-info">
+                                            {% if dados_financeiros.receita_potencial_ano > 0 %}
+                                                {{ dados_financeiros.lucro_estimado|div:dados_financeiros.receita_potencial_ano|mul:100|floatformat:1 }}%
+                                            {% else %}
+                                                0,0%
+                                            {% endif %}
+                                        </h4>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Análise de Risco -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card border-warning">
+                        <div class="card-header bg-warning text-dark">
+                            <h5 class="mb-0">
+                                <i class="bi bi-exclamation-triangle"></i> Análise de Risco
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6>Riscos Identificados:</h6>
+                                    <ul class="list-unstyled">
+                                        <li><i class="bi bi-exclamation-triangle text-warning"></i> Dependência de receitas do rebanho</li>
+                                        <li><i class="bi bi-exclamation-triangle text-warning"></i> Variações de preços de mercado</li>
+                                        <li><i class="bi bi-exclamation-triangle text-warning"></i> Custos fixos elevados</li>
+                                        <li><i class="bi bi-exclamation-triangle text-warning"></i> Endividamento significativo</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Mitigações Sugeridas:</h6>
+                                    <ul class="small mb-0">
+                                        <li>Diversificar fontes de receita</li>
+                                        <li>Implementar controle de custos</li>
+                                        <li>Manter reserva de emergência</li>
+                                        <li>Monitorar indicadores financeiros</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recomendações Estratégicas -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card border-success">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0">
+                                <i class="bi bi-lightbulb"></i> Recomendações Estratégicas
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <h6 class="text-primary">Curto Prazo (1-6 meses):</h6>
+                                    <ul class="small mb-0">
+                                        <li>Otimizar custos operacionais</li>
+                                        <li>Negociar melhores condições de financiamento</li>
+                                        <li>Implementar controle de estoque</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-4">
+                                    <h6 class="text-warning">Médio Prazo (6-18 meses):</h6>
+                                    <ul class="small mb-0">
+                                        <li>Diversificar atividades produtivas</li>
+                                        <li>Investir em tecnologia</li>
+                                        <li>Buscar parcerias comerciais</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-4">
+                                    <h6 class="text-info">Longo Prazo (18+ meses):</h6>
+                                    <ul class="small mb-0">
+                                        <li>Expandir capacidade produtiva</li>
+                                        <li>Desenvolver marca própria</li>
+                                        <li>Considerar exportação</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gráfico de Visão Geral -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card border-primary">
+                        <div class="card-header bg-primary text-white">
+                            <h6 class="mb-0">
+                                <i class="bi bi-bar-chart"></i> Visão Geral Financeira
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="chartVisaoGeral" width="400" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Informações do Relatório -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card border-info">
+                        <div class="card-header bg-info text-white">
+                            <h6 class="mb-0">
+                                <i class="bi bi-info-circle"></i> Informações do Relatório
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6>Metodologia:</h6>
+                                    <ul class="small mb-0">
+                                        <li>Consolidação de todos os módulos do sistema</li>
+                                        <li>Análise baseada em dados atuais</li>
+                                        <li>Projeções considerando tendências</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Observações:</h6>
+                                    <ul class="small mb-0">
+                                        <li>Relatório gerado automaticamente</li>
+                                        <li>Valores estimados para planejamento</li>
+                                        <li>Atualize regularmente os dados</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts para Gráficos -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctxVisaoGeral = document.getElementById('chartVisaoGeral').getContext('2d');
+    
+    new Chart(ctxVisaoGeral, {
+        type: 'bar',
+        data: {
+            labels: ['Receita Potencial', 'Custos Fixos', 'Parcelas', 'Lucro Estimado'],
+            datasets: [{
+                label: 'Valores (R$)',
+                data: [
+                    {{ dados_financeiros.receita_potencial_ano|default:0 }},
+                    {{ total_custos_fixos_ano|default:0 }},
+                    {{ total_parcelas_ano|default:0 }},
+                    {{ dados_financeiros.lucro_estimado|default:0 }}
+                ],
+                backgroundColor: [
+                    '#28a745',
+                    '#ffc107',
+                    '#dc3545',
+                    '#17a2b8'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return 'R$ ' + value.toLocaleString('pt-BR');
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+
+<style>
+@media print {
+    .btn, .card-header {
+        display: none !important;
+    }
+    .card {
+        border: 1px solid #000 !important;
+        page-break-inside: avoid;
+    }
+    .table {
+        font-size: 12px;
+    }
+}
+</style>
+{% endblock %}

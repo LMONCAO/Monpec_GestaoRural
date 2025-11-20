@@ -26,7 +26,35 @@ SECRET_KEY = 'django-insecure-your-secret-key-here'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+       'localhost',
+       '127.0.0.1',
+       '192.168.100.4',  # IP do seu PC na rede Wi-Fi
+       '192.168.100.91',  # IP atual do servidor na rede local
+       '0.0.0.0',  # Permite acesso de qualquer IP na rede local
+   ]
+
+# Configuração CSRF para aceitar requisições do celular na rede local
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+    'http://192.168.100.4:8000',
+    'http://192.168.100.91:8000',
+]
+
+STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY', '')
+STRIPE_PUBLISHABLE_KEY = os.getenv('STRIPE_PUBLISHABLE_KEY', '')
+STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET', '')
+STRIPE_SUCCESS_URL = os.getenv('STRIPE_SUCCESS_URL', 'http://localhost:8000/assinaturas/sucesso/')
+STRIPE_CANCEL_URL = os.getenv('STRIPE_CANCEL_URL', 'http://localhost:8000/assinaturas/cancelado/')
+
+TENANT_DATABASE_DIR = Path(os.getenv('TENANT_DATABASE_DIR', str(BASE_DIR / 'tenants')))
+TENANT_DATABASE_DIR.mkdir(parents=True, exist_ok=True)
+STRIPE_ALERT_EMAILS = [
+    email.strip()
+    for email in os.getenv('STRIPE_ALERT_EMAILS', '').split(',')
+    if email.strip()
+]
 
 
 # Application definition
@@ -38,17 +66,23 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'gestao_rural',
+    'django.contrib.humanize',
+    'gestao_rural.apps.GestaoRuralConfig',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'gestao_rural.middleware_security.RateLimitMiddleware',  # Rate limiting
+    'gestao_rural.middleware_protecao_codigo.ProtecaoCodigoMiddleware',  # Proteção contra cópia
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'gestao_rural.middleware_seguranca_avancada.SegurancaAvancadaMiddleware',  # Segurança avançada
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'gestao_rural.middleware_security.SecurityHeadersMiddleware',  # Headers de segurança
+    'gestao_rural.middleware_demo.DemoRestrictionMiddleware',  # Restrição de demo (deve ser o último)
 ]
 
 ROOT_URLCONF = 'sistema_rural.urls'
@@ -64,6 +98,8 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'django.template.context_processors.static',
+                'gestao_rural.context_processors.demo_mode',  # Adiciona DEMO_MODE ao contexto
             ],
         },
     },
@@ -92,6 +128,9 @@ AUTH_PASSWORD_VALIDATORS = [
     },
     {
         'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'OPTIONS': {
+            'min_length': 12,  # Mínimo de 12 caracteres
+        }
     },
     {
         'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
@@ -121,6 +160,10 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     BASE_DIR / 'static',
 ]
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
@@ -128,7 +171,33 @@ STATICFILES_DIRS = [
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Login URLs
-LOGIN_URL = '/login/'
-LOGIN_REDIRECT_URL = '/dashboard/'
-LOGOUT_REDIRECT_URL = '/login/'
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = 'dashboard'
+LOGOUT_REDIRECT_URL = 'landing_page'
+
+# Configuração de E-mail (para recuperação de senha)
+EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
+EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() == 'true'
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@monpec.com.br')
+SERVER_EMAIL = DEFAULT_FROM_EMAIL
+
+# Configuração de Backup
+BACKUP_DIR = Path(os.getenv('BACKUP_DIR', str(BASE_DIR / 'backups')))
+BACKUP_DIR.mkdir(parents=True, exist_ok=True)
+
+# URL do site (para links em e-mails)
+SITE_URL = os.getenv('SITE_URL', 'http://localhost:8000')
+
+# ========================================
+# CONFIGURAÇÕES DE DEMONSTRAÇÃO
+# ========================================
+# Ativar modo demo (True) ou desativar (False)
+DEMO_MODE = os.getenv('DEMO_MODE', 'False').lower() == 'true'  # DESATIVADO - Versão completa
+
+# Link para página de pagamento/assinatura
+DEMO_LINK_PAGAMENTO = os.getenv('DEMO_LINK_PAGAMENTO', 'http://localhost:8000/assinaturas/')
 

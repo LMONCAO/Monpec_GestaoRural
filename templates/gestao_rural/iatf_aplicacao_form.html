@@ -1,0 +1,110 @@
+{% extends "base_modulos_unificado.html" %}
+{% load formatacao_br %}
+
+{% block title %}Registrar Aplicação - {{ iatf.animal_individual.numero_brinco }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'iatf_dashboard' propriedade.id %}">IATF</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'iatf_individual_detalhes' propriedade.id iatf.id %}">IATF {{ iatf.animal_individual.numero_brinco }}</a></li>
+            <li class="breadcrumb-item active">Aplicação</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-prescription2 text-primary me-2"></i>Registrar Aplicação de Medicamento</h2>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Dados da Aplicação</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <strong>Animal:</strong> {{ iatf.animal_individual.numero_brinco }}<br>
+                        <strong>Protocolo:</strong> {{ iatf.protocolo.nome }}
+                    </div>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="tipo_medicamento" class="form-label">Tipo de Medicamento *</label>
+                                <select class="form-select" id="tipo_medicamento" name="tipo_medicamento" required>
+                                    <option value="">Selecione...</option>
+                                    <option value="GnRH">GnRH</option>
+                                    <option value="PGF2A">PGF2α</option>
+                                    <option value="CIDR">CIDR</option>
+                                    <option value="E2">Estradiol</option>
+                                    <option value="OUTROS">Outros</option>
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="nome_medicamento" class="form-label">Nome do Medicamento *</label>
+                                <input type="text" class="form-control" id="nome_medicamento" name="nome_medicamento" required>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="dia_protocolo" class="form-label">Dia do Protocolo *</label>
+                                <input type="number" class="form-control" id="dia_protocolo" name="dia_protocolo" min="0" max="10" required>
+                                <small class="text-muted">Ex: 0, 7, 9</small>
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <label for="data_aplicacao" class="form-label">Data da Aplicação *</label>
+                                <input type="date" class="form-control" id="data_aplicacao" name="data_aplicacao" required>
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <label for="hora_aplicacao" class="form-label">Hora</label>
+                                <input type="time" class="form-control" id="hora_aplicacao" name="hora_aplicacao">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="dosagem" class="form-label">Dosagem</label>
+                                <input type="text" class="form-control" id="dosagem" name="dosagem" placeholder="Ex: 2ml, 100mg">
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <div class="form-check mt-4">
+                                    <input class="form-check-input" type="checkbox" id="aplicado_corretamente" name="aplicado_corretamente" checked>
+                                    <label class="form-check-label" for="aplicado_corretamente">
+                                        Aplicado Corretamente
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="observacoes" class="form-label">Observações</label>
+                            <textarea class="form-control" id="observacoes" name="observacoes" rows="3"></textarea>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle me-1"></i>Registrar Aplicação
+                            </button>
+                            <a href="{% url 'iatf_individual_detalhes' propriedade.id iatf.id %}" class="btn btn-secondary">
+                                <i class="bi bi-x-circle me-1"></i>Cancelar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+

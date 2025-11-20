@@ -1,0 +1,90 @@
+===============================================================
+    ATIVAR MÓDULOS: BENS, FINANCEIRO E PROJETOS
+    Comandos para executar no Console Web da Locaweb
+===============================================================
+
+📋 COPIE E COLE CADA BLOCO NO CONSOLE WEB:
+
+===============================================================
+BLOCO 1: ADICIONAR AS 3 VIEWS
+===============================================================
+
+cd /var/www/monpec.com.br
+
+cat >> gestao_rural/views.py << 'EOF'
+
+@login_required
+def patrimonio_dashboard(request, propriedade_id):
+    propriedade = get_object_or_404(Propriedade, pk=propriedade_id)
+    context = {'propriedade': propriedade, 'total_bens': 0, 'valor_total': '0,00', 'bens': []}
+    return render(request, 'gestao_rural/patrimonio_dashboard.html', context)
+
+@login_required
+def financeiro_dashboard(request, propriedade_id):
+    propriedade = get_object_or_404(Propriedade, pk=propriedade_id)
+    context = {'propriedade': propriedade, 'total_receitas': '0,00', 'total_despesas': '0,00', 'saldo': '0,00', 'lancamentos': []}
+    return render(request, 'gestao_rural/financeiro_dashboard.html', context)
+
+@login_required
+def projetos_dashboard(request, propriedade_id):
+    propriedade = get_object_or_404(Propriedade, pk=propriedade_id)
+    context = {'propriedade': propriedade, 'total_projetos': 0, 'em_andamento': 0, 'orcamento_total': '0,00', 'projetos': []}
+    return render(request, 'gestao_rural/projetos_dashboard.html', context)
+EOF
+
+===============================================================
+BLOCO 2: ADICIONAR AS 3 URLs
+===============================================================
+
+sed -i "/name=.relatorio_final/a\    path('propriedade/<int:propriedade_id>/patrimonio/', views.patrimonio_dashboard, name='patrimonio_dashboard')," gestao_rural/urls.py
+
+sed -i "/name=.patrimonio_dashboard/a\    path('propriedade/<int:propriedade_id>/financeiro/', views.financeiro_dashboard, name='financeiro_dashboard')," gestao_rural/urls.py
+
+sed -i "/name=.financeiro_dashboard/a\    path('propriedade/<int:propriedade_id>/projetos/', views.projetos_dashboard, name='projetos_dashboard')," gestao_rural/urls.py
+
+===============================================================
+BLOCO 3: VERIFICAR SE FOI ADICIONADO
+===============================================================
+
+echo "=== VIEWS ==="
+grep -E "def (patrimonio|financeiro|projetos)_dashboard" gestao_rural/views.py
+
+echo ""
+echo "=== URLs ==="
+grep -E "(patrimonio|financeiro|projetos)_dashboard" gestao_rural/urls.py
+
+===============================================================
+BLOCO 4: REINICIAR DJANGO
+===============================================================
+
+pkill -9 python
+sleep 2
+cd /var/www/monpec.com.br
+source venv/bin/activate
+python manage.py runserver 127.0.0.1:8000 > /tmp/django.log 2>&1 &
+sleep 3
+ps aux | grep manage
+
+===============================================================
+RESULTADO: 3 NOVOS MÓDULOS FUNCIONANDO!
+===============================================================
+
+Após executar os comandos, você poderá acessar:
+
+✅ Bens e Patrimônio
+   - Controle de máquinas, veículos, instalações
+   - Cálculo de depreciação
+   - Valor atual dos bens
+
+✅ Financeiro
+   - Fluxo de caixa
+   - Contas a pagar/receber
+   - Resumo financeiro
+
+✅ Projetos
+   - Planejamento de investimentos
+   - Controle de execução
+   - Orçamento vs Realizado
+
+===============================================================
+

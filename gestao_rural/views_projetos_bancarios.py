@@ -1,4 +1,5 @@
 from django.shortcuts import render, get_object_or_404
+from django.contrib.auth.decorators import login_required
 from django.db.models import Sum, Avg
 from django.utils import timezone
 from decimal import Decimal
@@ -6,6 +7,7 @@ from datetime import datetime, timedelta
 from .models import Propriedade, InventarioRebanho, CustoFixo, CustoVariavel, Financiamento, IndicadorFinanceiro
 
 
+@login_required
 def projetos_bancarios_dashboard(request, propriedade_id):
     """Dashboard centralizado de projetos bancários"""
     propriedade = get_object_or_404(Propriedade, id=propriedade_id)
@@ -36,11 +38,26 @@ def consolidar_dados_propriedade(propriedade):
     try:
         # 1. DADOS DO REBANHO (Pecuária)
         inventario = InventarioRebanho.objects.filter(propriedade=propriedade)
+        
+        # Calcular valor_total manualmente (não é campo do banco, é property)
+        valor_total_rebanho = sum(
+            Decimal(str(item.quantidade)) * Decimal(str(item.valor_por_cabeca))
+            for item in inventario
+        )
+        
         dados['rebanho'] = {
             'total_animais': sum(item.quantidade for item in inventario),
-            'valor_total': sum(item.valor_total for item in inventario if item.valor_total),
+            'valor_total': valor_total_rebanho,
             'categorias': len(inventario),
-            'detalhes': list(inventario.values('categoria__nome', 'quantidade', 'valor_total'))
+            'detalhes': [
+                {
+                    'categoria': item.categoria.nome,
+                    'quantidade': item.quantidade,
+                    'valor_por_cabeca': float(item.valor_por_cabeca),
+                    'valor_total': float(item.quantidade * item.valor_por_cabeca)
+                }
+                for item in inventario
+            ]
         }
         
         # 2. CUSTOS DE PRODUÇÃO
@@ -66,11 +83,14 @@ def consolidar_dados_propriedade(propriedade):
         }
         
         # 4. ANÁLISE FINANCEIRA
+        receita_pecuaria = dados['rebanho']['valor_total'] * Decimal('0.15')  # 15% ao ano
+        receita_potencial_total = receita_pecuaria
+        
         dados['analise'] = {
-            'receita_potencial': dados['rebanho']['valor_total'] * Decimal('0.15'),  # 15% ao ano
+            'receita_pecuaria': receita_pecuaria,
+            'receita_potencial': receita_potencial_total,
             'custos_totais': dados['custos']['total_anual'] + dados['endividamento']['parcelas_anuais'],
-            'lucro_estimado': (dados['rebanho']['valor_total'] * Decimal('0.15')) - 
-                             (dados['custos']['total_anual'] + dados['endividamento']['parcelas_anuais']),
+            'lucro_estimado': receita_potencial_total - (dados['custos']['total_anual'] + dados['endividamento']['parcelas_anuais']),
             'margem_lucro': 0
         }
         
@@ -105,7 +125,12 @@ def calcular_indicadores_automaticos(propriedade):
     try:
         # Busca dados básicos
         inventario = InventarioRebanho.objects.filter(propriedade=propriedade)
-        valor_rebanho = sum(item.valor_total for item in inventario if item.valor_total)
+        
+        # Calcular valor_rebanho manualmente (não é campo do banco)
+        valor_rebanho = sum(
+            Decimal(str(item.quantidade)) * Decimal(str(item.valor_por_cabeca))
+            for item in inventario
+        )
         
         custos_fixos = CustoFixo.objects.filter(propriedade=propriedade, ativo=True)
         custo_fixo_anual = sum(custo.custo_anual for custo in custos_fixos)

@@ -1,62 +1,81 @@
-{% extends 'base.html' %}
+{% extends 'base_modulos_unificado.html' %}
 {% load static %}
 
 {% block title %}Relatórios - {{ propriedade.nome_propriedade }}{% endblock %}
 
+{% block breadcrumb_extra %}
+    <li class="breadcrumb-item active">
+        <i class="bi bi-file-earmark-text"></i>
+        Relatórios
+    </li>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid">
+    <!-- Header da Página -->
+    <div class="submenu-page-header">
+        <div class="d-flex align-items-start gap-4">
+            <div class="submenu-page-icon">
+                <i class="bi bi-file-earmark-text"></i>
+            </div>
+            <div class="flex-grow-1">
+                <h1 class="submenu-page-title">Relatórios Gerenciais</h1>
+                <p class="submenu-page-description">
+                    Acesse todos os relatórios gerenciais da propriedade {{ propriedade.nome_propriedade }}.
+                </p>
+            </div>
+        </div>
+    </div>
+    
     <div class="row">
         <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h2><i class="bi bi-file-earmark-text"></i> Relatórios Gerenciais</h2>
-                    <p class="text-muted mb-0">Propriedade: {{ propriedade.nome_propriedade }}</p>
-                </div>
-                <div>
-                    <a href="{% url 'pecuaria_dashboard' propriedade.id %}" class="btn btn-secondary">
-                        <i class="bi bi-arrow-left"></i> Voltar
-                    </a>
-                </div>
-            </div>
 
             <!-- Resumo da Propriedade -->
             {% if resumo_dados %}
             <div class="row mb-4">
                 <div class="col-md-3 mb-3">
-                    <div class="card border-primary">
-                        <div class="card-body text-center py-3">
-                            <i class="bi bi-clipboard-data fs-3 text-primary"></i>
-                            <h6 class="mt-2 mb-1 small">Total de Animais</h6>
+                    <div class="card-moderno text-center">
+                        <div class="card-body-moderno">
+                            <div class="bg-primary bg-opacity-10 rounded-circle p-3 mx-auto mb-3" style="width: 70px; height: 70px;">
+                                <i class="bi bi-clipboard-data text-primary fs-3"></i>
+                            </div>
+                            <h6 class="text-dark mb-1">Total de Animais</h6>
                             <h4 class="text-primary mb-0">{{ resumo_dados.total_animais|default:0 }}</h4>
                         </div>
                     </div>
                 </div>
                 
                 <div class="col-md-3 mb-3">
-                    <div class="card border-success">
-                        <div class="card-body text-center py-3">
-                            <i class="bi bi-cash-stack fs-3 text-success"></i>
-                            <h6 class="mt-2 mb-1 small">Valor do Rebanho</h6>
+                    <div class="card-moderno text-center">
+                        <div class="card-body-moderno">
+                            <div class="bg-success bg-opacity-10 rounded-circle p-3 mx-auto mb-3" style="width: 70px; height: 70px;">
+                                <i class="bi bi-cash-stack text-success fs-3"></i>
+                            </div>
+                            <h6 class="text-dark mb-1">Valor do Rebanho</h6>
                             <h4 class="text-success mb-0">R$ {{ resumo_dados.valor_rebanho|default:0|floatformat:2 }}</h4>
                         </div>
                     </div>
                 </div>
                 
                 <div class="col-md-3 mb-3">
-                    <div class="card border-warning">
-                        <div class="card-body text-center py-3">
-                            <i class="bi bi-house fs-3 text-warning"></i>
-                            <h6 class="mt-2 mb-1 small">Custos Fixos/Mês</h6>
+                    <div class="card-moderno text-center">
+                        <div class="card-body-moderno">
+                            <div class="bg-warning bg-opacity-10 rounded-circle p-3 mx-auto mb-3" style="width: 70px; height: 70px;">
+                                <i class="bi bi-house text-warning fs-3"></i>
+                            </div>
+                            <h6 class="text-dark mb-1">Custos Fixos/Mês</h6>
                             <h4 class="text-warning mb-0">R$ {{ resumo_dados.custos_fixos_mes|default:0|floatformat:2 }}</h4>
                         </div>
                     </div>
                 </div>
                 
                 <div class="col-md-3 mb-3">
-                    <div class="card border-info">
-                        <div class="card-body text-center py-3">
-                            <i class="bi bi-credit-card fs-3 text-info"></i>
-                            <h6 class="mt-2 mb-1 small">Parcelas/Mês</h6>
+                    <div class="card-moderno text-center">
+                        <div class="card-body-moderno">
+                            <div class="bg-info bg-opacity-10 rounded-circle p-3 mx-auto mb-3" style="width: 70px; height: 70px;">
+                                <i class="bi bi-credit-card text-info fs-3"></i>
+                            </div>
+                            <h6 class="text-dark mb-1">Parcelas/Mês</h6>
                             <h4 class="text-info mb-0">R$ {{ resumo_dados.parcelas_mes|default:0|floatformat:2 }}</h4>
                         </div>
                     </div>
@@ -67,87 +86,99 @@
             <!-- Relatórios Disponíveis -->
             <div class="row mb-4">
                 <div class="col-12">
-                    <div class="card border-success">
-                        <div class="card-header bg-success text-white">
-                            <h5 class="mb-0">
-                                <i class="bi bi-file-earmark-text"></i> Relatórios Disponíveis
+                    <div class="card-moderno">
+                        <div class="card-header-moderno">
+                            <h5 class="mb-0 text-white">
+                                <i class="bi bi-file-earmark-text me-2"></i> Relatórios Disponíveis
                             </h5>
                         </div>
-                        <div class="card-body py-3">
+                        <div class="card-body-moderno">
                             <div class="row">
                                 <div class="col-md-4 mb-3">
-                                    <div class="card h-100 border-info">
-                                        <div class="card-body text-center py-3">
-                                            <i class="bi bi-clipboard-data fs-3 text-info"></i>
-                                            <h6 class="mt-2 mb-2">Inventário do Rebanho</h6>
+                                    <div class="card-moderno h-100">
+                                        <div class="card-body-moderno text-center">
+                                            <div class="bg-info bg-opacity-10 rounded-circle p-3 mx-auto mb-3" style="width: 70px; height: 70px;">
+                                                <i class="bi bi-clipboard-data text-info fs-3"></i>
+                                            </div>
+                                            <h6 class="text-dark mb-2">Inventário do Rebanho</h6>
                                             <p class="text-muted small mb-3">Relatório detalhado do inventário atual com valores por categoria</p>
-                                            <a href="{% url 'relatorio_inventario' propriedade.id %}" class="btn btn-info btn-sm w-100">
-                                                <i class="bi bi-eye"></i> Visualizar
+                                            <a href="{% url 'relatorio_inventario' propriedade.id %}" class="btn-moderno btn-info btn-sm w-100">
+                                                <i class="bi bi-eye me-1"></i> Visualizar
                                             </a>
                                         </div>
                                     </div>
                                 </div>
                                 
                                 <div class="col-md-4 mb-3">
-                                    <div class="card h-100 border-primary">
-                                        <div class="card-body text-center py-3">
-                                            <i class="bi bi-graph-up fs-3 text-primary"></i>
-                                            <h6 class="mt-2 mb-2">Relatório Financeiro</h6>
+                                    <div class="card-moderno h-100">
+                                        <div class="card-body-moderno text-center">
+                                            <div class="bg-primary bg-opacity-10 rounded-circle p-3 mx-auto mb-3" style="width: 70px; height: 70px;">
+                                                <i class="bi bi-graph-up text-primary fs-3"></i>
+                                            </div>
+                                            <h6 class="text-dark mb-2">Relatório Financeiro</h6>
                                             <p class="text-muted small mb-3">Análise financeira completa com receitas, custos e indicadores</p>
-                                            <a href="{% url 'relatorio_financeiro' propriedade.id %}" class="btn btn-primary btn-sm w-100">
-                                                <i class="bi bi-eye"></i> Visualizar
+                                            <a href="{% url 'relatorio_financeiro' propriedade.id %}" class="btn-moderno btn-primary btn-sm w-100">
+                                                <i class="bi bi-eye me-1"></i> Visualizar
                                             </a>
                                         </div>
                                     </div>
                                 </div>
                                 
                                 <div class="col-md-4 mb-3">
-                                    <div class="card h-100 border-warning">
-                                        <div class="card-body text-center py-3">
-                                            <i class="bi bi-calculator fs-3 text-warning"></i>
-                                            <h6 class="mt-2 mb-2">Relatório de Custos</h6>
+                                    <div class="card-moderno h-100">
+                                        <div class="card-body-moderno text-center">
+                                            <div class="bg-warning bg-opacity-10 rounded-circle p-3 mx-auto mb-3" style="width: 70px; height: 70px;">
+                                                <i class="bi bi-calculator text-warning fs-3"></i>
+                                            </div>
+                                            <h6 class="text-dark mb-2">Relatório de Custos</h6>
                                             <p class="text-muted small mb-3">Detalhamento de custos fixos e variáveis da produção</p>
-                                            <a href="{% url 'relatorio_custos' propriedade.id %}" class="btn btn-warning btn-sm w-100">
-                                                <i class="bi bi-eye"></i> Visualizar
+                                            <a href="{% url 'relatorio_custos' propriedade.id %}" class="btn-moderno btn-warning btn-sm w-100">
+                                                <i class="bi bi-eye me-1"></i> Visualizar
                                             </a>
                                         </div>
                                     </div>
                                 </div>
                                 
                                 <div class="col-md-4 mb-3">
-                                    <div class="card h-100 border-danger">
-                                        <div class="card-body text-center py-3">
-                                            <i class="bi bi-credit-card fs-3 text-danger"></i>
-                                            <h6 class="mt-2 mb-2">Relatório de Endividamento</h6>
+                                    <div class="card-moderno h-100">
+                                        <div class="card-body-moderno text-center">
+                                            <div class="bg-danger bg-opacity-10 rounded-circle p-3 mx-auto mb-3" style="width: 70px; height: 70px;">
+                                                <i class="bi bi-credit-card text-danger fs-3"></i>
+                                            </div>
+                                            <h6 class="text-dark mb-2">Relatório de Endividamento</h6>
                                             <p class="text-muted small mb-3">Análise de financiamentos e situação de endividamento</p>
-                                            <a href="{% url 'relatorio_endividamento' propriedade.id %}" class="btn btn-danger btn-sm w-100">
-                                                <i class="bi bi-eye"></i> Visualizar
+                                            <a href="{% url 'relatorio_endividamento' propriedade.id %}" class="btn-moderno btn-danger btn-sm w-100">
+                                                <i class="bi bi-eye me-1"></i> Visualizar
                                             </a>
                                         </div>
                                     </div>
                                 </div>
                                 
                                 <div class="col-md-4 mb-3">
-                                    <div class="card h-100 border-success">
-                                        <div class="card-body text-center py-3">
-                                            <i class="bi bi-file-earmark-check fs-3 text-success"></i>
-                                            <h6 class="mt-2 mb-2">Relatório Consolidado</h6>
+                                    <div class="card-moderno h-100">
+                                        <div class="card-body-moderno text-center">
+                                            <div class="bg-success bg-opacity-10 rounded-circle p-3 mx-auto mb-3" style="width: 70px; height: 70px;">
+                                                <i class="bi bi-file-earmark-check text-success fs-3"></i>
+                                            </div>
+                                            <h6 class="text-dark mb-2">Relatório Consolidado</h6>
                                             <p class="text-muted small mb-3">Visão geral completa de todos os aspectos da propriedade</p>
-                                            <a href="{% url 'relatorio_consolidado' propriedade.id %}" class="btn btn-success btn-sm w-100">
-                                                <i class="bi bi-eye"></i> Visualizar
+                                            <a href="{% url 'relatorio_consolidado' propriedade.id %}" class="btn-moderno btn-success btn-sm w-100">
+                                                <i class="bi bi-eye me-1"></i> Visualizar
                                             </a>
                                         </div>
                                     </div>
                                 </div>
                                 
                                 <div class="col-md-4 mb-3">
-                                    <div class="card h-100 border-secondary">
-                                        <div class="card-body text-center py-3">
-                                            <i class="bi bi-printer fs-3 text-secondary"></i>
-                                            <h6 class="mt-2 mb-2">Imprimir Todos</h6>
+                                    <div class="card-moderno h-100">
+                                        <div class="card-body-moderno text-center">
+                                            <div class="bg-secondary bg-opacity-10 rounded-circle p-3 mx-auto mb-3" style="width: 70px; height: 70px;">
+                                                <i class="bi bi-printer text-secondary fs-3"></i>
+                                            </div>
+                                            <h6 class="text-dark mb-2">Imprimir Todos</h6>
                                             <p class="text-muted small mb-3">Gerar versão para impressão de todos os relatórios</p>
-                                            <button class="btn btn-secondary btn-sm w-100" onclick="window.print()">
-                                                <i class="bi bi-printer"></i> Imprimir
+                                            <button class="btn-moderno btn-secondary btn-sm w-100" onclick="window.print()">
+                                                <i class="bi bi-printer me-1"></i> Imprimir
                                             </button>
                                         </div>
                                     </div>
@@ -161,13 +192,13 @@
             <!-- Informações dos Relatórios -->
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <div class="card border-info">
-                        <div class="card-header bg-info text-white">
-                            <h6 class="mb-0">
-                                <i class="bi bi-info-circle"></i> Sobre os Relatórios
+                    <div class="card-moderno">
+                        <div class="card-header-moderno">
+                            <h6 class="mb-0 text-white">
+                                <i class="bi bi-info-circle me-2"></i> Sobre os Relatórios
                             </h6>
                         </div>
-                        <div class="card-body py-3">
+                        <div class="card-body-moderno">
                             <ul class="small mb-0">
                                 <li><strong>Inventário:</strong> Lista completa de animais por categoria com valores</li>
                                 <li><strong>Financeiro:</strong> Análise de receitas, custos e indicadores financeiros</li>
@@ -180,13 +211,13 @@
                 </div>
                 
                 <div class="col-md-6 mb-3">
-                    <div class="card border-warning">
-                        <div class="card-header bg-warning text-dark">
-                            <h6 class="mb-0">
-                                <i class="bi bi-lightbulb"></i> Dicas
+                    <div class="card-moderno">
+                        <div class="card-header-moderno">
+                            <h6 class="mb-0 text-white">
+                                <i class="bi bi-lightbulb me-2"></i> Dicas
                             </h6>
                         </div>
-                        <div class="card-body py-3">
+                        <div class="card-body-moderno">
                             <ul class="small mb-0">
                                 <li>Use Ctrl+P para imprimir qualquer relatório</li>
                                 <li>Os dados são atualizados em tempo real</li>

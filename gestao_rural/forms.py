@@ -1,7 +1,7 @@
 from django import forms
 from .models import (
     ProdutorRural, Propriedade, InventarioRebanho, ParametrosProjecaoRebanho,
-    MovimentacaoProjetada, CicloProducaoAgricola, TransferenciaPropriedade, CategoriaAnimal
+    MovimentacaoProjetada, TransferenciaPropriedade, CategoriaAnimal
 )
 
 
@@ -25,6 +25,13 @@ class ProdutorRuralForm(forms.ModelForm):
 
 
 class PropriedadeForm(forms.ModelForm):
+    tipo_ciclo_pecuario = forms.MultipleChoiceField(
+        choices=Propriedade.TIPO_CICLO_PECUARIO_CHOICES,
+        widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}),
+        required=False,
+        label="Tipos de Ciclo Pecuário"
+    )
+
     class Meta:
         model = Propriedade
         fields = [
@@ -38,7 +45,6 @@ class PropriedadeForm(forms.ModelForm):
             'uf': forms.Select(attrs={'class': 'form-control'}),
             'area_total_ha': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0.01'}),
             'tipo_operacao': forms.Select(attrs={'class': 'form-control'}),
-            'tipo_ciclo_pecuario': forms.Select(attrs={'class': 'form-control'}),
             'tipo_propriedade': forms.Select(attrs={'class': 'form-control'}),
             'valor_hectare_proprio': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0.01'}),
             'valor_mensal_hectare_arrendamento': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0.01'}),
@@ -60,6 +66,10 @@ class PropriedadeForm(forms.ModelForm):
             ('RS', 'Rio Grande do Sul'), ('RO', 'Rondônia'), ('RR', 'Roraima'), ('SC', 'Santa Catarina'),
             ('SP', 'São Paulo'), ('SE', 'Sergipe'), ('TO', 'Tocantins')
         ]
+        if self.instance and getattr(self.instance, 'ciclos_pecuarios_list', None) and self.instance.pk:
+            self.fields['tipo_ciclo_pecuario'].initial = self.instance.ciclos_pecuarios_list()
+        elif not self.initial.get('tipo_ciclo_pecuario'):
+            self.fields['tipo_ciclo_pecuario'].initial = ['CICLO_COMPLETO']
 
 
 class InventarioRebanhoForm(forms.ModelForm):
@@ -83,13 +93,93 @@ class ParametrosProjecaoForm(forms.ModelForm):
             'percentual_venda_femeas_anual', 'periodicidade'
         ]
         widgets = {
-            'taxa_natalidade_anual': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
-            'taxa_mortalidade_bezerros_anual': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
-            'taxa_mortalidade_adultos_anual': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
-            'percentual_venda_machos_anual': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
-            'percentual_venda_femeas_anual': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
-            'periodicidade': forms.Select(attrs={'class': 'form-control'}),
+            'taxa_natalidade_anual': forms.NumberInput(attrs={
+                'class': 'form-control', 
+                'step': '0.01',
+                'min': '0',
+                'max': '100',
+                'required': True
+            }),
+            'taxa_mortalidade_bezerros_anual': forms.NumberInput(attrs={
+                'class': 'form-control', 
+                'step': '0.01',
+                'min': '0',
+                'max': '100',
+                'required': True
+            }),
+            'taxa_mortalidade_adultos_anual': forms.NumberInput(attrs={
+                'class': 'form-control', 
+                'step': '0.01',
+                'min': '0',
+                'max': '100',
+                'required': True
+            }),
+            'percentual_venda_machos_anual': forms.NumberInput(attrs={
+                'class': 'form-control', 
+                'step': '0.01',
+                'min': '0',
+                'max': '100',
+                'required': True
+            }),
+            'percentual_venda_femeas_anual': forms.NumberInput(attrs={
+                'class': 'form-control', 
+                'step': '0.01',
+                'min': '0',
+                'max': '100',
+                'required': True
+            }),
+            'periodicidade': forms.Select(attrs={'class': 'form-control', 'required': True}),
         }
+        help_texts = {
+            'taxa_natalidade_anual': 'Percentual de fêmeas que parirão por ano (0-100%)',
+            'taxa_mortalidade_bezerros_anual': 'Percentual de bezerros que morrerão por ano (0-100%)',
+            'taxa_mortalidade_adultos_anual': 'Percentual de adultos que morrerão por ano (0-100%)',
+            'percentual_venda_machos_anual': 'Percentual de machos vendidos por ano (0-100%)',
+            'percentual_venda_femeas_anual': 'Percentual de fêmeas vendidas por ano (0-100%)',
+            'periodicidade': 'Periodicidade da projeção',
+        }
+    
+    def clean_taxa_natalidade_anual(self):
+        taxa = self.cleaned_data.get('taxa_natalidade_anual')
+        if taxa is not None and (taxa < 0 or taxa > 100):
+            raise forms.ValidationError('Taxa de natalidade deve estar entre 0 e 100.')
+        return taxa
+    
+    def clean_taxa_mortalidade_bezerros_anual(self):
+        taxa = self.cleaned_data.get('taxa_mortalidade_bezerros_anual')
+        if taxa is not None and (taxa < 0 or taxa > 100):
+            raise forms.ValidationError('Taxa de mortalidade de bezerros deve estar entre 0 e 100.')
+        return taxa
+    
+    def clean_taxa_mortalidade_adultos_anual(self):
+        taxa = self.cleaned_data.get('taxa_mortalidade_adultos_anual')
+        if taxa is not None and (taxa < 0 or taxa > 100):
+            raise forms.ValidationError('Taxa de mortalidade de adultos deve estar entre 0 e 100.')
+        return taxa
+    
+    def clean_percentual_venda_machos_anual(self):
+        taxa = self.cleaned_data.get('percentual_venda_machos_anual')
+        if taxa is not None and (taxa < 0 or taxa > 100):
+            raise forms.ValidationError('Percentual de venda de machos deve estar entre 0 e 100.')
+        return taxa
+    
+    def clean_percentual_venda_femeas_anual(self):
+        taxa = self.cleaned_data.get('percentual_venda_femeas_anual')
+        if taxa is not None and (taxa < 0 or taxa > 100):
+            raise forms.ValidationError('Percentual de venda de fêmeas deve estar entre 0 e 100.')
+        return taxa
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        natalidade = cleaned_data.get('taxa_natalidade_anual')
+        mortalidade = cleaned_data.get('taxa_mortalidade_bezerros_anual')
+        
+        if natalidade and mortalidade and natalidade <= mortalidade:
+            raise forms.ValidationError(
+                'A taxa de natalidade deve ser maior que a taxa de mortalidade de bezerros.'
+            )
+        
+        return cleaned_data
 
 
 class MovimentacaoProjetadaForm(forms.ModelForm):
@@ -102,25 +192,6 @@ class MovimentacaoProjetadaForm(forms.ModelForm):
             'categoria': forms.Select(attrs={'class': 'form-control'}),
             'quantidade': forms.NumberInput(attrs={'class': 'form-control'}),
             'observacao': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-        }
-
-
-class CicloProducaoForm(forms.ModelForm):
-    class Meta:
-        model = CicloProducaoAgricola
-        fields = [
-            'cultura', 'safra', 'area_plantada_ha', 'produtividade_esperada_sc_ha',
-            'custo_producao_por_ha', 'preco_venda_por_sc', 'data_inicio_plantio', 'data_fim_colheita'
-        ]
-        widgets = {
-            'cultura': forms.Select(attrs={'class': 'form-control'}),
-            'safra': forms.TextInput(attrs={'class': 'form-control'}),
-            'area_plantada_ha': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
-            'produtividade_esperada_sc_ha': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
-            'custo_producao_por_ha': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
-            'preco_venda_por_sc': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
-            'data_inicio_plantio': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'data_fim_colheita': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
         }
 
 
@@ -158,22 +229,22 @@ class CategoriaAnimalForm(forms.ModelForm):
         model = CategoriaAnimal
         fields = ['nome', 'idade_minima_meses', 'idade_maxima_meses', 'sexo', 'raca', 'peso_medio_kg', 'descricao']
         widgets = {
-            'nome': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: Bezerras (0-12m)'}),
+            'nome': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex.: Bezerro 0-12 meses (SISBOV)'}),
             'idade_minima_meses': forms.NumberInput(attrs={'class': 'form-control', 'min': '0', 'max': '1200'}),
             'idade_maxima_meses': forms.NumberInput(attrs={'class': 'form-control', 'min': '0', 'max': '1200'}),
             'sexo': forms.Select(attrs={'class': 'form-select'}),
             'raca': forms.Select(attrs={'class': 'form-select'}),
             'peso_medio_kg': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0', 'placeholder': 'Ex: 150.50'}),
-            'descricao': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Descrição da categoria...'}),
+            'descricao': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Informe o texto padrão SISBOV para esta categoria'}),
         }
         labels = {
-            'nome': 'Nome da Categoria',
+            'nome': 'Categoria SISBOV',
             'idade_minima_meses': 'Idade Mínima (meses)',
             'idade_maxima_meses': 'Idade Máxima (meses)',
             'sexo': 'Sexo',
             'raca': 'Raça',
             'peso_medio_kg': 'Peso Médio (kg)',
-            'descricao': 'Descrição',
+            'descricao': 'Descrição padrão SISBOV',
         }
     
     def clean(self):

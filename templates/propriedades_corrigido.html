@@ -1,0 +1,99 @@
+{% extends "base_navegacao.html" %}
+
+{% block title %}Propriedades - Sistema Monpec{% endblock %}
+
+{% block breadcrumbs %}
+<li><a href="{% url 'dashboard' %}">Início</a></li>
+<li class="breadcrumb-separator">›</li>
+<li class="active">Propriedades</li>
+{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div class="d-flex justify-content-between align-items-start">
+        <div>
+            <h1 class="page-title">Minhas Propriedades</h1>
+            <p class="page-subtitle">Gestão completa das suas propriedades rurais</p>
+        </div>
+        <a href="{% url 'propriedade_nova' produtor.id %}" class="btn-navy">
+            Adicionar Propriedade
+        </a>
+    </div>
+</div>
+
+<!-- Grid de Propriedades -->
+<div class="cards-grid">
+    {% for propriedade in propriedades %}
+    <div class="card-clean">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+            <h3 class="card-title" style="margin-bottom: 0;">{{ propriedade.nome }}</h3>
+            <span class="badge-destaque">{{ propriedade.tipo|default:"Mista" }}</span>
+        </div>
+        
+        <div class="mb-3">
+            <p style="color: var(--text-light); font-size: 14px; margin-bottom: 0.5rem;">
+                <strong>Localização:</strong> {{ propriedade.municipio }}, {{ propriedade.estado }}
+            </p>
+            <p style="color: var(--text-light); font-size: 14px; margin-bottom: 0.5rem;">
+                <strong>Área Total:</strong> {{ propriedade.area_total|default:"0" }} hectares
+            </p>
+            <p style="color: var(--text-light); font-size: 14px; margin-bottom: 0.5rem;">
+                <strong>Tipo:</strong> {{ propriedade.perfil|default:"Ciclo Completo" }}
+            </p>
+            <p style="color: var(--text-light); font-size: 14px; margin-bottom: 0.5rem;">
+                <strong>Propriedade:</strong> {{ propriedade.situacao_posse|default:"Própria" }}
+            </p>
+            <p style="color: var(--text-light); font-size: 14px;">
+                <strong>Cadastro:</strong> {{ propriedade.data_cadastro|date:"d/m/Y"|default:"—" }}
+            </p>
+        </div>
+        
+        <div style="border-top: 1px solid var(--gray-border); margin: 1rem 0; padding-top: 1rem;">
+            <div class="row">
+                <div class="col-6">
+                    <div style="font-size: 11px; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">
+                        Total Animais
+                    </div>
+                    <div class="destaque-valor" style="font-size: 1.5rem;">
+                        {{ propriedade.total_animais|default:"0" }}
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div style="font-size: 11px; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem;">
+                        Valor Total
+                    </div>
+                    <div class="card-valor-destaque" style="font-size: 1.25rem;">
+                        R$ {{ propriedade.valor_total|default:"0,00" }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="d-flex gap-2 mt-3">
+            <a href="{% url 'propriedade_editar' propriedade.id %}" class="btn-outline flex-fill text-center" style="padding: 0.65rem;">
+                Editar
+            </a>
+            <a href="{% url 'propriedade_modulos' propriedade.id %}" class="btn-navy flex-fill text-center" style="padding: 0.65rem;">
+                Acessar
+            </a>
+        </div>
+    </div>
+    {% empty %}
+    <div style="grid-column: 1 / -1;">
+        <div class="card-clean text-center" style="padding: 3rem;">
+            <h3 style="color: var(--text-light); font-weight: 400; margin-bottom: 1rem;">
+                Nenhuma propriedade cadastrada
+            </h3>
+            <p style="color: var(--text-light); margin-bottom: 2rem;">
+                Comece adicionando sua primeira propriedade rural
+            </p>
+            <a href="{% url 'propriedade_nova' produtor.id %}" class="btn-navy">
+                Adicionar Primeira Propriedade
+            </a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+

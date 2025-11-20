@@ -1,0 +1,43 @@
+# ========================================
+# SOLUÇÃO FINAL - EXECUTE NO CONSOLE WEB DA LOCAWEB
+# ========================================
+
+# 1. PARAR TODOS OS PROCESSOS DJANGO
+pkill -f "python manage.py runserver"
+
+# 2. VERIFICAR SE PAROU
+ps aux | grep python
+
+# 3. NAVEGAR PARA O DIRETÓRIO
+cd /var/www/monpec.com.br
+
+# 4. ATIVAR AMBIENTE VIRTUAL
+source venv/bin/activate
+
+# 5. VERIFICAR SE O DJANGO ESTÁ OK
+python manage.py check
+
+# 6. INICIAR DJANGO NA PORTA 80 (SEM FORWARDING)
+python manage.py runserver 0.0.0.0:80
+
+# AGUARDE aparecer:
+# "Starting development server at http://0.0.0.0:80/"
+
+# 7. EM OUTRA ABA DO CONSOLE, VERIFICAR:
+ps aux | grep python
+ss -tlnp | grep :80
+curl http://localhost:80
+
+# 8. TESTE NO NAVEGADOR:
+# http://191.252.225.106
+
+# ========================================
+# SE AINDA NÃO FUNCIONAR, TENTE PORTA 8000:
+# ========================================
+
+# Parar processo da porta 80 (Ctrl+C)
+# Iniciar na porta 8000:
+python manage.py runserver 0.0.0.0:8000
+
+# Teste no navegador:
+# http://191.252.225.106:8000

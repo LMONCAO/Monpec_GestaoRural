@@ -1,0 +1,192 @@
+{% extends "base_modulos_unificado.html" %}
+{% load formatacao_br %}
+
+{% block title %}NF {{ nota.numero }} - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'compras_dashboard' propriedade.id %}">Compras</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'notas_fiscais_lista' propriedade.id %}">Notas Fiscais</a></li>
+            <li class="breadcrumb-item active">Detalhes</li>
+        </ol>
+    </nav>
+
+    <div class="card mb-3">
+        <div class="card-body d-flex justify-content-between align-items-start flex-wrap gap-3">
+            <div>
+                <h4 class="mb-1">NF-e nº {{ nota.numero }} / Série {{ nota.serie }}</h4>
+                <div class="text-muted">Emitida em {{ nota.data_emissao|date:"d/m/Y" }} · Tipo {{ nota.get_tipo_display }}</div>
+                <div class="text-muted small">Chave: {{ nota.chave_acesso }}</div>
+            </div>
+            <div class="text-end">
+                <span class="badge bg-{% if nota.status == 'AUTORIZADA' %}success{% elif nota.status == 'CANCELADA' %}secondary{% else %}warning text-dark{% endif %}">{{ nota.get_status_display }}</span>
+                {% if nota.data_autorizacao %}
+                <div class="small text-muted mt-1">Autorizada em {{ nota.data_autorizacao|date:"d/m/Y H:i" }}</div>
+                {% endif %}
+                {% if nota.arquivo_xml %}
+                <a href="{{ nota.arquivo_xml.url }}" class="btn btn-sm btn-outline-success mt-2" download><i class="bi bi-download me-1"></i>Baixar XML</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header bg-light"><h6 class="mb-0"><i class="bi bi-shop me-2"></i>Fornecedor</h6></div>
+                <div class="card-body">
+                    <p class="mb-1"><strong>{{ nota.fornecedor.nome }}</strong></p>
+                    {% if nota.fornecedor.cpf_cnpj %}
+                    <p class="mb-1"><small class="text-muted">{{ nota.fornecedor.cpf_cnpj }}</small></p>
+                    {% endif %}
+                    <p class="mb-1">{{ nota.fornecedor.endereco|default:"-" }}</p>
+                    <p class="mb-0">{{ nota.fornecedor.cidade|default:"-" }} / {{ nota.fornecedor.estado|default:"-" }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header bg-light"><h6 class="mb-0"><i class="bi bi-cash-stack me-2"></i>Totais da NF</h6></div>
+                <div class="card-body">
+                    <p class="mb-1"><strong>Valor dos produtos:</strong> {{ nota.valor_produtos|moeda_br }}</p>
+                    <p class="mb-1"><strong>Valor total:</strong> {{ nota.valor_total|moeda_br }}</p>
+                    <p class="mb-1"><strong>Frete:</strong> {{ nota.valor_frete|moeda_br }}</p>
+                    <p class="mb-1"><strong>Descontos:</strong> {{ nota.valor_desconto|moeda_br }}</p>
+                    <p class="mb-0"><strong>Observações:</strong> {{ nota.observacoes|default:"-" }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if ordens %}
+    <div class="card mb-3">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <h6 class="mb-0"><i class="bi bi-link-45deg me-2"></i>Ordens de compra vinculadas</h6>
+            <span class="badge bg-primary">{{ ordens|length }}</span>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Ordem</th>
+                            <th>Data</th>
+                            <th>Valor</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ordem in ordens %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'ordem_compra_detalhes' propriedade.id ordem.id %}">
+                                    {{ ordem.numero_ordem }}
+                                </a>
+                            </td>
+                            <td>{{ ordem.data_emissao|date:"d/m/Y" }}</td>
+                            <td>{{ ordem.valor_total|moeda_br }}</td>
+                            <td>
+                                <span class="badge bg-{% if ordem.status == 'RECEBIDA' %}success{% elif ordem.status == 'CANCELADA' %}secondary{% else %}warning text-dark{% endif %}">
+                                    {{ ordem.get_status_display }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if contas_pagar %}
+    <div class="card mb-4">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <h6 class="mb-0"><i class="bi bi-currency-dollar me-2"></i>Contas a pagar geradas</h6>
+            <span class="badge bg-success">{{ contas_pagar|length }}</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Descrição</th>
+                            <th>Vencimento</th>
+                            <th>Valor</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for conta in contas_pagar %}
+                        <tr>
+                            <td>
+                                {{ conta.descricao }}
+                                {% if conta.ordem_compra %}
+                                <div class="small text-muted">OC {{ conta.ordem_compra.numero_ordem }}</div>
+                                {% endif %}
+                            </td>
+                            <td>{{ conta.data_vencimento|date:"d/m/Y" }}</td>
+                            <td>{{ conta.valor|moeda_br }}</td>
+                            <td>
+                                <span class="badge bg-{% if conta.status == 'PAGA' %}success{% elif conta.status == 'VENCIDA' %}danger{% else %}warning text-dark{% endif %}">
+                                    {{ conta.get_status_display }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="card mb-4">
+        <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+            <h6 class="mb-0"><i class="bi bi-list-ul me-2"></i>Itens</h6>
+            <span>Total de itens: {{ itens|length }}</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Descrição</th>
+                            <th class="text-end">Quantidade</th>
+                            <th>Unidade</th>
+                            <th>NCM</th>
+                            <th class="text-end">Valor unitário</th>
+                            <th class="text-end">Valor total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in itens %}
+                        <tr>
+                            <td><strong>{{ item.descricao }}</strong><div class="small text-muted">Código: {{ item.codigo_produto }}</div></td>
+                            <td class="text-end">{{ item.quantidade }}</td>
+                            <td>{{ item.unidade_medida }}</td>
+                            <td>{{ item.ncm|default:"-" }}</td>
+                            <td class="text-end">{{ item.valor_unitario|moeda_br }}</td>
+                            <td class="text-end">{{ item.valor_total|moeda_br }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">Nenhum item encontrado.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2">
+        <a href="{% url 'notas_fiscais_lista' propriedade.id %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Voltar</a>
+        <a href="{% url 'estoque_suplementacao_lista' propriedade.id %}" class="btn btn-success"><i class="bi bi-box-seam me-1"></i>Atualizar estoque</a>
+    </div>
+</div>
+{% endblock %}

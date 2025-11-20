@@ -1,0 +1,167 @@
+{% extends "base_modulos_unificado.html" %}
+{% load formatacao_br %}
+
+{% block title %}Animais Individuais - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'rastreabilidade_dashboard' propriedade.id %}">Rastreabilidade</a></li>
+            <li class="breadcrumb-item active">Animais Individuais</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+        <div>
+            <h2 class="mb-0"><i class="bi bi-cow text-primary me-2"></i>Animais Individuais PNIB/SISBOV</h2>
+            <small class="text-muted">Controle completo de identificação individual exigido pelo SISBOV</small>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{% url 'animal_individual_novo' propriedade.id %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle me-1"></i>Novo Animal
+            </a>
+            <a href="{% url 'brinco_cadastrar_lote' propriedade.id %}" class="btn btn-outline-secondary">
+                <i class="bi bi-tags me-1"></i>Cadastrar Brincos
+            </a>
+            <a href="{% url 'relatorio_rastreabilidade' propriedade.id %}" class="btn btn-outline-info">
+                <i class="bi bi-file-earmark-text me-1"></i>Relatório SISBOV
+            </a>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-lg-3 col-md-6">
+                    <label for="status" class="form-label">Status SISBOV</label>
+                    <select name="status" id="status" class="form-select">
+                        <option value="">Todos</option>
+                        <option value="ATIVO" {% if status_filtro == 'ATIVO' %}selected{% endif %}>Ativo</option>
+                        <option value="VENDIDO" {% if status_filtro == 'VENDIDO' %}selected{% endif %}>Vendido</option>
+                        <option value="MORTO" {% if status_filtro == 'MORTO' %}selected{% endif %}>Morto</option>
+                        <option value="TRANSFERIDO" {% if status_filtro == 'TRANSFERIDO' %}selected{% endif %}>Transferido</option>
+                        <option value="DESAPARECIDO" {% if status_filtro == 'DESAPARECIDO' %}selected{% endif %}>Desaparecido</option>
+                    </select>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <label for="categoria" class="form-label">Categoria</label>
+                    <select name="categoria" id="categoria" class="form-select">
+                        <option value="">Todas</option>
+                        {% for categoria in categorias %}
+                        <option value="{{ categoria.id }}" {% if categoria_filtro|add:"" == categoria.id|stringformat:"s" %}selected{% endif %}>{{ categoria.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-lg-4 col-md-8">
+                    <label for="busca" class="form-label">Buscar por brinco, raça ou observação</label>
+                    <input type="text" class="form-control" id="busca" name="busca" value="{{ busca }}" placeholder="Ex: BR00012345, Angus, lote 2025">
+                </div>
+                <div class="col-lg-2 col-md-4 d-grid">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-search me-1"></i>Filtrar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Brinco / SISBOV</th>
+                            <th>Manejo SISBOV</th>
+                            <th>Categoria</th>
+                            <th>Sexo</th>
+                            <th>Data Nasc.</th>
+                            <th>Idade</th>
+                            <th>Peso (kg)</th>
+                            <th>Status</th>
+                            <th>Status Sanitário</th>
+                            <th>Lote Atual</th>
+                            <th>Origem</th>
+                            <th class="text-end">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for animal in animais %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'animal_individual_detalhes' propriedade.id animal.id %}" class="fw-semibold">
+                                    {{ animal.numero_brinco }}
+                                </a>
+                                <div class="small text-muted">{{ animal.codigo_sisbov|default:"-" }}</div>
+                                <div class="small text-muted">{{ animal.get_tipo_brinco_display }}</div>
+                            </td>
+                            <td>
+                                {% if animal.codigo_sisbov %}
+                                    <span class="fw-semibold">{{ animal.codigo_sisbov|extrair_manejo_sisbov|default:"-" }}</span>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ animal.categoria.nome }}</td>
+                            <td>
+                                <span class="badge bg-{% if animal.sexo == 'F' %}pink{% else %}info{% endif %}">
+                                    {% if animal.sexo == 'F' %}Fêmea{% else %}Macho{% endif %}
+                                </span>
+                            </td>
+                            <td>{{ animal.data_nascimento|date:"d/m/Y"|default:"-" }}</td>
+                            <td>
+                                {% if animal.idade_anos %}
+                                    {{ animal.idade_anos }} ano(s)
+                                {% elif animal.idade_meses %}
+                                    {{ animal.idade_meses }} mês(es)
+                                {% else %}-{% endif %}
+                            </td>
+                            <td>{{ animal.peso_atual_kg|numero_br:1|default:"-" }}</td>
+                            <td>
+                                <span class="badge bg-{% if animal.status == 'ATIVO' %}success{% elif animal.status == 'VENDIDO' %}warning{% elif animal.status == 'MORTO' %}danger{% elif animal.status == 'TRANSFERIDO' %}primary{% else %}secondary{% endif %}">
+                                    {{ animal.get_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-{% if animal.status_sanitario == 'APTO' %}success{% elif animal.status_sanitario == 'QUARENTENA' %}warning{% elif animal.status_sanitario == 'POSITIVO' %}danger{% else %}secondary{% endif %}">
+                                    {{ animal.get_status_sanitario_display }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if animal.lote_atual %}
+                                    {{ animal.lote_atual.nome }}
+                                    <div class="small text-muted">{{ animal.lote_atual.sessao.nome }}</div>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ animal.propriedade_origem.nome_propriedade|default:"Cadastro local" }}</td>
+                            <td class="text-end">
+                                <div class="btn-group">
+                                    <a href="{% url 'animal_individual_detalhes' propriedade.id animal.id %}" class="btn btn-sm btn-outline-primary" title="Detalhes SISBOV">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a href="{% url 'animal_individual_editar' propriedade.id animal.id %}" class="btn btn-sm btn-outline-secondary" title="Editar cadastro">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="12" class="text-center text-muted py-4">
+                                Nenhum animal encontrado para os filtros informados.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

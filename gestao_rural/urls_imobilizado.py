@@ -39,5 +39,13 @@ urlpatterns = [
     path('imobilizado/categoria/nova/', 
          views_imobilizado.categoria_nova, 
          name='categoria_imobilizado_nova'),
+    
+    path('imobilizado/categoria/<int:categoria_id>/editar/', 
+         views_imobilizado.categoria_editar, 
+         name='categoria_imobilizado_editar'),
+    
+    path('imobilizado/categoria/<int:categoria_id>/excluir/', 
+         views_imobilizado.categoria_excluir, 
+         name='categoria_imobilizado_excluir'),
 ]
 

@@ -1,0 +1,71 @@
+{% extends "base_modulos_unificado.html" %}
+{% load formatacao_br %}
+
+{% block title %}Tanques de Combustível - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'operacoes_dashboard' propriedade.id %}">Operações</a></li>
+            <li class="breadcrumb-item active">Tanques de Combustível</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+        <div>
+            <h2 class="mb-0"><i class="bi bi-fuel-pump text-warning me-2"></i>Tanques cadastrados</h2>
+            <small class="text-muted">Controle de estoque, capacidade e localização</small>
+        </div>
+        <a href="{% url 'consumo_combustivel_novo' propriedade.id %}" class="btn btn-warning">
+            <i class="bi bi-plus-circle me-1"></i>Registrar Consumo
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Tanque</th>
+                            <th>Capacidade (L)</th>
+                            <th>Estoque Atual (L)</th>
+                            <th>% Utilização</th>
+                            <th>Localização</th>
+                            <th>Observações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tanque in tanques %}
+                        {% with percentual=tanque.perc_estoque %}
+                        <tr>
+                            <td><strong>{{ tanque.nome }}</strong></td>
+                            <td>{{ tanque.capacidade_total|numero_br:2 }}</td>
+                            <td>{{ tanque.estoque_atual|numero_br:2 }}</td>
+                            <td>
+                                <div class="progress" style="height: 18px;">
+                                    <div class="progress-bar {% if percentual > 70 %}bg-success{% elif percentual > 40 %}bg-warning{% else %}bg-danger{% endif %}" role="progressbar" style="width: {{ percentual }}%;">
+                                        {{ percentual|floatformat:0 }}%
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ tanque.localizacao|default:"-" }}</td>
+                            <td>{{ tanque.observacoes|default:"-" }}</td>
+                        </tr>
+                        {% endwith %}
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">Nenhum tanque cadastrado.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

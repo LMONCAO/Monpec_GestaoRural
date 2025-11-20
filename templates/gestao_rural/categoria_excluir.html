@@ -68,9 +68,35 @@
                     </div>
                     <div class="col-md-6">
                         <h6>Verificação de Uso:</h6>
-                        <p class="text-muted">
-                            O sistema verificará se esta categoria está sendo usada em algum inventário antes de permitir a exclusão.
-                        </p>
+                        {% if pode_excluir %}
+                            <div class="alert alert-success">
+                                <i class="bi bi-check-circle"></i>
+                                <strong>Esta categoria não está sendo usada.</strong>
+                                <p class="mb-0 mt-2">Você pode excluí-la com segurança.</p>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-danger">
+                                <i class="bi bi-exclamation-triangle"></i>
+                                <strong>Esta categoria está sendo usada e não pode ser excluída!</strong>
+                                <ul class="mb-0 mt-2">
+                                    {% if inventarios_count > 0 %}
+                                        <li><strong>{{ inventarios_count }}</strong> inventário(s)</li>
+                                    {% endif %}
+                                    {% if movimentacoes_count > 0 %}
+                                        <li><strong>{{ movimentacoes_count }}</strong> movimentação(ões) projetada(s)</li>
+                                    {% endif %}
+                                    {% if politicas_count > 0 %}
+                                        <li><strong>{{ politicas_count }}</strong> política(s) de venda</li>
+                                    {% endif %}
+                                    {% if configuracoes_count > 0 %}
+                                        <li><strong>{{ configuracoes_count }}</strong> configuração(ões) de venda</li>
+                                    {% endif %}
+                                </ul>
+                                <p class="mb-0 mt-2">
+                                    <small>Para excluir esta categoria, primeiro remova ou atualize todos os registros que a utilizam.</small>
+                                </p>
+                            </div>
+                        {% endif %}
                     </div>
                 </div>
                 
@@ -80,9 +106,15 @@
                         <a href="{% url 'categorias_lista' %}" class="btn btn-secondary">
                             <i class="bi bi-x-circle"></i> Cancelar
                         </a>
-                        <button type="submit" class="btn btn-danger">
-                            <i class="bi bi-trash"></i> Confirmar Exclusão
-                        </button>
+                        {% if pode_excluir %}
+                            <button type="submit" class="btn btn-danger">
+                                <i class="bi bi-trash"></i> Confirmar Exclusão
+                            </button>
+                        {% else %}
+                            <button type="button" class="btn btn-danger" disabled title="A categoria está em uso e não pode ser excluída">
+                                <i class="bi bi-trash"></i> Não Pode Excluir
+                            </button>
+                        {% endif %}
                     </div>
                 </form>
             </div>

@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Painel Master - Tenants{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">Ambientes provisionados</h1>
+            <p class="text-muted mb-0">Selecione um tenant para entrar em modo de suporte.</p>
+        </div>
+        <a href="{% url 'logout' %}" class="btn btn-outline-danger">
+            Sair do modo master
+        </a>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Cliente</th>
+                            <th>Plano</th>
+                            <th>Status assinatura</th>
+                            <th>Workspace</th>
+                            <th>Usuários</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for workspace in workspaces %}
+                            <tr>
+                                <td>
+                                    <strong>{{ workspace.assinatura.usuario.username }}</strong><br>
+                                    <small class="text-muted">{{ workspace.assinatura.usuario.email }}</small>
+                                </td>
+                                <td>{{ workspace.assinatura.plano.nome|default:"-" }}</td>
+                                <td>
+                                    <span class="badge bg-secondary">{{ workspace.assinatura.get_status_display }}</span>
+                                </td>
+                                <td>
+                                    <div class="small text-muted">{{ workspace.alias }}</div>
+                                    <span class="badge bg-light text-dark">{{ workspace.get_status_display }}</span>
+                                </td>
+                                <td>{{ workspace.assinatura.usuarios_ativos }}</td>
+                                <td class="text-end">
+                                    <a href="{% url 'master_impersonar' workspace.assinatura.id %}" class="btn btn-primary btn-sm">
+                                        Entrar como cliente
+                                    </a>
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">
+                                    Nenhum workspace provisionado ainda.
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+
+
+
+
+

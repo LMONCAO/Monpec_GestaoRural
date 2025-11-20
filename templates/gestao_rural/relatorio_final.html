@@ -1,3 +1,27 @@
+{% extends 'gestao_rural/submenu_page_base.html' %}
+
+{% block title %}Relatório Final - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% with module_name='Relatórios' module_icon='bi-file-earmark-text' module_dashboard_url='relatorios_dashboard' page_icon='bi-file-earmark-text' page_title='Relatório Final' %}
+{% endwith %}
+
+{% block page_description %}
+Documento consolidado para análise e apresentação.
+{% endblock %}
+
+{% block page_content %}
+<div class="content-card">
+    <div class="content-card-header"><strong>Relatório Final</strong></div>
+    <div class="content-card-body">
+        <div class="empty-state">
+            <i class="bi bi-file-earmark-text empty-state-icon"></i>
+            <h3 class="empty-state-title">Em construção</h3>
+            <p class="empty-state-description">Geração do relatório final será adicionada em breve.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
 {% extends 'base.html' %}
 
 {% block title %}Relatório Final - {{ propriedade.nome_propriedade }}{% endblock %}
@@ -179,34 +203,6 @@
                     </table>
                 </div>
                 
-                {% if receita_agricola_total %}
-                <div class="row mt-3">
-                    <div class="col-md-4">
-                        <div class="card bg-success text-white">
-                            <div class="card-body text-center">
-                                <h6>Receita Total</h6>
-                                <h4>R$ {{ receita_agricola_total|floatformat:2 }}</h4>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card bg-warning text-white">
-                            <div class="card-body text-center">
-                                <h6>Custo Total</h6>
-                                <h4>R$ {{ custo_agricola_total|floatformat:2 }}</h4>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card {% if lucro_agricola_total >= 0 %}bg-success{% else %}bg-danger{% endif %} text-white">
-                            <div class="card-body text-center">
-                                <h6>Lucro Total</h6>
-                                <h4>R$ {{ lucro_agricola_total|floatformat:2 }}</h4>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                {% endif %}
             </div>
         </div>
         {% endif %}
@@ -241,9 +237,6 @@
                             {% if parametros_pecuaria %}
                                 <li><strong>Taxa de Natalidade:</strong> {{ parametros_pecuaria.taxa_natalidade_anual }}%</li>
                                 <li><strong>Periodicidade:</strong> {{ parametros_pecuaria.get_periodicidade_display }}</li>
-                            {% endif %}
-                            {% if receita_agricola_total %}
-                                <li><strong>Receita Agrícola Projetada:</strong> R$ {{ receita_agricola_total|floatformat:2 }}</li>
                             {% endif %}
                         </ul>
                     </div>

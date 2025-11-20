@@ -1,0 +1,107 @@
+{% extends "base_modulos_unificado.html" %}
+
+{% block title %}Nova Pesagem - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'pesagem_dashboard' propriedade.id %}">Pesagem</a></li>
+            <li class="breadcrumb-item active">Nova Pesagem</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
+        <div>
+            <h2 class="mb-1"><i class="bi bi-plus-circle text-primary me-2"></i>Registrar pesagem</h2>
+            <p class="text-muted mb-0">{{ propriedade.nome_propriedade }}</p>
+        </div>
+        <div>
+            <a href="{% url 'pesagem_dashboard' propriedade.id %}" class="btn btn-outline-primary">
+                <i class="bi bi-arrow-left me-1"></i> Voltar para o painel
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <form method="post" novalidate>
+                {% csrf_token %}
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Animal</label>
+                        {{ form.animal }}
+                        {% if form.animal.errors %}
+                            <div class="text-danger small">{{ form.animal.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Data da pesagem</label>
+                        {{ form.data_pesagem }}
+                        {% if form.data_pesagem.errors %}
+                            <div class="text-danger small">{{ form.data_pesagem.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Peso (kg)</label>
+                        {{ form.peso_kg }}
+                        {% if form.peso_kg.errors %}
+                            <div class="text-danger small">{{ form.peso_kg.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Local</label>
+                        {{ form.local }}
+                        {% if form.local.errors %}
+                            <div class="text-danger small">{{ form.local.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Tipo de ração</label>
+                        {{ form.tipo_racao }}
+                        {% if form.tipo_racao.errors %}
+                            <div class="text-danger small">{{ form.tipo_racao.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Consumo diário (kg)</label>
+                        {{ form.consumo_racao_kg_dia }}
+                        {% if form.consumo_racao_kg_dia.errors %}
+                            <div class="text-danger small">{{ form.consumo_racao_kg_dia.errors|join:", " }}</div>
+                        {% endif %}
+                        <small class="text-muted">Informe a quantidade média consumida por dia.</small>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Observações</label>
+                        {{ form.observacoes }}
+                        {% if form.observacoes.errors %}
+                            <div class="text-danger small">{{ form.observacoes.errors|join:", " }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 mt-4">
+                    <a href="{% url 'pesagem_dashboard' propriedade.id %}" class="btn btn-outline-secondary">Cancelar</a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle me-1"></i> Salvar pesagem
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,620 @@
+{% extends "base_modulos_unificado.html" %}
+
+{% block title %}Informações de Segurança - Sistema MONPEC{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">
+                        <i class="bi bi-shield-lock-fill text-primary"></i>
+                        Mecanismos de Segurança do Sistema MONPEC
+                    </h2>
+                    <p class="text-muted mb-0">Informações sobre medidas de segurança implementadas no sistema</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status da Segurança -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="mb-2">
+                        <i class="bi bi-exclamation-triangle-fill fs-1 {% if total_problemas > 0 %}text-danger{% else %}text-success{% endif %}"></i>
+                    </div>
+                    <h5 class="card-title">Problemas Encontrados</h5>
+                    <h3 class="{% if total_problemas > 0 %}text-danger{% else %}text-success{% endif %}">{{ total_problemas }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="mb-2">
+                        <i class="bi bi-person-badge-fill fs-1 {% if total_superusuarios > 0 %}text-warning{% else %}text-muted{% endif %}"></i>
+                    </div>
+                    <h5 class="card-title">Superusuários</h5>
+                    <h3 class="{% if total_superusuarios > 0 %}text-warning{% else %}text-muted{% endif %}">{{ total_superusuarios }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="mb-2">
+                        <i class="bi bi-key-fill fs-1 {% if total_usuarios_sem_senha > 0 %}text-danger{% else %}text-success{% endif %}"></i>
+                    </div>
+                    <h5 class="card-title">Usuários sem Senha</h5>
+                    <h3 class="{% if total_usuarios_sem_senha > 0 %}text-danger{% else %}text-success{% endif %}">{{ total_usuarios_sem_senha }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body text-center">
+                    <div class="mb-2">
+                        <i class="bi bi-person-x-fill fs-1 {% if total_usuarios_padrao > 0 %}text-danger{% else %}text-success{% endif %}"></i>
+                    </div>
+                    <h5 class="card-title">Usuários Padrão Ativos</h5>
+                    <h3 class="{% if total_usuarios_padrao > 0 %}text-danger{% else %}text-success{% endif %}">{{ total_usuarios_padrao }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Medidas de Segurança Implementadas -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-shield-check"></i>
+                        Medidas de Segurança Implementadas
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- 1. Validação de Senha Forte -->
+                    <div class="mb-4">
+                        <h6 class="text-primary">
+                            <i class="bi bi-1-circle-fill"></i>
+                            1. Validação de Senha Forte
+                        </h6>
+                        <p>O sistema exige senhas que atendam aos seguintes critérios:</p>
+                        <ul class="list-unstyled ms-3">
+                            <li class="mb-2">
+                                <i class="bi bi-check-circle-fill text-success"></i>
+                                <strong>Mínimo de 12 caracteres</strong>
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-check-circle-fill text-success"></i>
+                                <strong>Pelo menos 1 letra maiúscula</strong>
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-check-circle-fill text-success"></i>
+                                <strong>Pelo menos 1 letra minúscula</strong>
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-check-circle-fill text-success"></i>
+                                <strong>Pelo menos 1 número</strong>
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-check-circle-fill text-success"></i>
+                                <strong>Pelo menos 1 caractere especial</strong> (!@#$%^&*...)
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-check-circle-fill text-success"></i>
+                                <strong>Não pode ser uma senha comum</strong> (123456, password, admin, etc)
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-check-circle-fill text-success"></i>
+                                <strong>Não pode ter caracteres repetidos em sequência</strong> (aaaa, 1111)
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-check-circle-fill text-success"></i>
+                                <strong>Não pode conter sequências comuns</strong> (123, abc, qwe)
+                            </li>
+                        </ul>
+                        <div class="alert alert-warning mb-0">
+                            <strong>Senhas bloqueadas automaticamente:</strong><br>
+                            123456, 123456789, password, admin, senha, qwerty, etc.
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <!-- 2. Bloqueio por Tentativas de Login -->
+                    <div class="mb-4">
+                        <h6 class="text-primary">
+                            <i class="bi bi-2-circle-fill"></i>
+                            2. Bloqueio por Tentativas de Login
+                        </h6>
+                        <ul class="list-unstyled ms-3">
+                            <li class="mb-2">
+                                <i class="bi bi-exclamation-triangle-fill text-warning"></i>
+                                <strong>Limite:</strong> 5 tentativas falhas em 15 minutos
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-lock-fill text-danger"></i>
+                                <strong>Bloqueio:</strong> Usuário e IP são bloqueados por 15 minutos
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-graph-up text-info"></i>
+                                <strong>Rastreamento:</strong> Tentativas são rastreadas por usuário e por IP
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-check-circle-fill text-success"></i>
+                                <strong>Limpeza automática:</strong> Tentativas são limpas após login bem-sucedido
+                            </li>
+                        </ul>
+                    </div>
+
+                    <hr>
+
+                    <!-- 3. Proteção contra Usuários Padrão -->
+                    <div class="mb-4">
+                        <h6 class="text-primary">
+                            <i class="bi bi-3-circle-fill"></i>
+                            3. Proteção contra Usuários Padrão
+                        </h6>
+                        <p>O sistema identifica e desabilita automaticamente usuários padrão perigosos:</p>
+                        <div class="alert alert-danger">
+                            <strong>Usuários bloqueados:</strong><br>
+                            {% for usuario in usuarios_padrao_lista %}
+                                <span class="badge bg-danger me-1">{{ usuario }}</span>
+                            {% endfor %}
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>Como verificar:</strong>
+                                <pre class="bg-light p-2 rounded"><code>python manage.py verificar_seguranca</code></pre>
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Para desabilitar automaticamente:</strong>
+                                <pre class="bg-light p-2 rounded"><code>python manage.py verificar_seguranca --corrigir --desabilitar-padrao</code></pre>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <!-- 4. Rate Limiting -->
+                    <div class="mb-4">
+                        <h6 class="text-primary">
+                            <i class="bi bi-4-circle-fill"></i>
+                            4. Rate Limiting
+                        </h6>
+                        <ul class="list-unstyled ms-3">
+                            <li class="mb-2">
+                                <i class="bi bi-x-circle-fill text-danger"></i>
+                                <strong>Limite:</strong> 20 requisições por minuto por IP
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-bullseye text-info"></i>
+                                <strong>Aplicado em:</strong> Páginas de login e admin
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-clock-fill text-warning"></i>
+                                <strong>Tempo de bloqueio:</strong> 1 minuto
+                            </li>
+                        </ul>
+                    </div>
+
+                    <hr>
+
+                    <!-- 5. Headers de Segurança HTTP -->
+                    <div class="mb-4">
+                        <h6 class="text-primary">
+                            <i class="bi bi-5-circle-fill"></i>
+                            5. Headers de Segurança HTTP
+                        </h6>
+                        <p>O sistema adiciona automaticamente os seguintes headers:</p>
+                        <ul class="list-unstyled ms-3">
+                            <li class="mb-2">
+                                <code>X-Frame-Options: DENY</code> - Previne clickjacking
+                            </li>
+                            <li class="mb-2">
+                                <code>X-Content-Type-Options: nosniff</code> - Previne MIME type sniffing
+                            </li>
+                            <li class="mb-2">
+                                <code>X-XSS-Protection: 1; mode=block</code> - Proteção XSS
+                            </li>
+                            <li class="mb-2">
+                                <code>Referrer-Policy: strict-origin-when-cross-origin</code> - Controle de referrer
+                            </li>
+                        </ul>
+                    </div>
+
+                    <hr>
+
+                    <!-- 6. Logging de Segurança -->
+                    <div class="mb-4">
+                        <h6 class="text-primary">
+                            <i class="bi bi-6-circle-fill"></i>
+                            6. Logging de Segurança
+                        </h6>
+                        <p>Todas as tentativas de login são registradas:</p>
+                        <ul class="list-unstyled ms-3">
+                            <li class="mb-2">
+                                <i class="bi bi-check-circle-fill text-success"></i>
+                                Login bem-sucedido (usuário + IP)
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-exclamation-triangle-fill text-warning"></i>
+                                Tentativas falhas (usuário + IP + contador)
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-lock-fill text-danger"></i>
+                                Bloqueios por tentativas excessivas
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Comandos de Verificação -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-terminal"></i>
+                        Comandos de Verificação
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <h6>Verificar Problemas de Segurança</h6>
+                            <pre class="bg-light p-3 rounded"><code>python manage.py verificar_seguranca</code></pre>
+                            <p class="small text-muted">Este comando verifica:</p>
+                            <ul class="small">
+                                <li>Usuários padrão perigosos</li>
+                                <li>Usuários sem senha</li>
+                                <li>Superusuários</li>
+                                <li>Senhas fracas</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <h6>Corrigir Problemas Automaticamente</h6>
+                            <pre class="bg-light p-3 rounded"><code>python manage.py verificar_seguranca --corrigir --desabilitar-padrao</code></pre>
+                            <p class="small text-muted">Este comando:</p>
+                            <ul class="small">
+                                <li>Desabilita usuários padrão perigosos</li>
+                                <li>Identifica outros problemas de segurança</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ações Obrigatórias Após Deploy -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                        Ações Obrigatórias Após Deploy
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <h6>1. Remover/Desabilitar Usuários Padrão</h6>
+                        <p>Execute imediatamente após o deploy:</p>
+                        <pre class="bg-light p-3 rounded"><code>python manage.py verificar_seguranca --corrigir --desabilitar-padrao</code></pre>
+                    </div>
+
+                    <hr>
+
+                    <div class="mb-4">
+                        <h6>2. Alterar Senha do Admin (se existir)</h6>
+                        <p>Se você tiver um usuário admin, altere a senha imediatamente:</p>
+                        <pre class="bg-light p-3 rounded"><code>python manage.py changepassword admin</code></pre>
+                        <p class="mt-2">OU crie um novo superusuário seguro:</p>
+                        <pre class="bg-light p-3 rounded"><code>python manage.py createsuperuser</code></pre>
+                        <div class="alert alert-info mt-2 mb-0">
+                            <strong>Requisitos para o superusuário:</strong>
+                            <ul class="mb-0">
+                                <li>Nome de usuário único (não "admin" ou "administrator")</li>
+                                <li>Email válido</li>
+                                <li>Senha forte (mínimo 12 caracteres)</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="mb-4">
+                        <h6>3. Verificar SECRET_KEY</h6>
+                        <p>Certifique-se de que o <code>SECRET_KEY</code> no <code>settings.py</code> não é o padrão:</p>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="text-danger mb-1"><strong>❌ NUNCA USE:</strong></p>
+                                <pre class="bg-danger text-white p-2 rounded"><code>SECRET_KEY = 'django-insecure-your-secret-key-here'</code></pre>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="text-success mb-1"><strong>✅ USE variável de ambiente:</strong></p>
+                                <pre class="bg-success text-white p-2 rounded"><code>SECRET_KEY = os.getenv('SECRET_KEY', 'gere-uma-chave-segura-aqui')</code></pre>
+                            </div>
+                        </div>
+                        <p class="mt-2 mb-1"><strong>Gerar uma nova SECRET_KEY:</strong></p>
+                        <pre class="bg-light p-2 rounded"><code>from django.core.management.utils import get_random_secret_key
+print(get_random_secret_key())</code></pre>
+                    </div>
+
+                    <hr>
+
+                    <div class="mb-4">
+                        <h6>4. Configurar ALLOWED_HOSTS</h6>
+                        <p>Em produção, configure apenas os domínios permitidos:</p>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="text-danger mb-1"><strong>❌ NUNCA USE EM PRODUÇÃO:</strong></p>
+                                <pre class="bg-danger text-white p-2 rounded"><code>ALLOWED_HOSTS = ['*']</code></pre>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="text-success mb-1"><strong>✅ USE:</strong></p>
+                                <pre class="bg-success text-white p-2 rounded"><code>ALLOWED_HOSTS = [
+    'monpec.com.br',
+    'www.monpec.com.br',
+]</code></pre>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="mb-0">
+                        <h6>5. Desabilitar DEBUG em Produção</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="text-danger mb-1"><strong>❌ NUNCA EM PRODUÇÃO:</strong></p>
+                                <pre class="bg-danger text-white p-2 rounded"><code>DEBUG = True</code></pre>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="text-success mb-1"><strong>✅ EM PRODUÇÃO:</strong></p>
+                                <pre class="bg-success text-white p-2 rounded"><code>DEBUG = False</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Boas Práticas de Segurança -->
+    <div class="row mb-4">
+        <div class="col-md-6 mb-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-person-check"></i>
+                        Para Administradores
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                            <strong>Use senhas únicas e fortes</strong> para cada conta
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                            <strong>Nunca compartilhe credenciais</strong> por email ou mensagem
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                            <strong>Altere senhas regularmente</strong> (a cada 90 dias)
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                            <strong>Use autenticação de dois fatores</strong> quando disponível
+                        </li>
+                        <li class="mb-0">
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                            <strong>Monitore logs de segurança</strong> regularmente
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 mb-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-code-slash"></i>
+                        Para Desenvolvedores
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                            <strong>Nunca commite SECRET_KEY</strong> no Git
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                            <strong>Use variáveis de ambiente</strong> para dados sensíveis
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                            <strong>Mantenha Django atualizado</strong> (correções de segurança)
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                            <strong>Revise logs de segurança</strong> após cada deploy
+                        </li>
+                        <li class="mb-0">
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                            <strong>Teste medidas de segurança</strong> regularmente
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alertas e Monitoramento -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-bell-fill"></i>
+                        Alertas e Monitoramento
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p>O sistema registra automaticamente:</p>
+                    <ul class="list-unstyled ms-3">
+                        <li class="mb-2">
+                            <i class="bi bi-exclamation-triangle-fill text-warning"></i>
+                            Tentativas de login falhas
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-x-circle-fill text-danger"></i>
+                            Bloqueios por rate limiting
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-person-x-fill text-danger"></i>
+                            Tentativas de acesso a contas desabilitadas
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-eye-fill text-info"></i>
+                            Acessos de IPs suspeitos
+                        </li>
+                    </ul>
+                    <hr>
+                    <p><strong>Verificar logs:</strong></p>
+                    <pre class="bg-light p-3 rounded"><code># Logs do Django
+tail -f logs/django.log
+
+# Ou no console Python
+python manage.py shell
+>>> from django.contrib.auth.models import User
+>>> # Verificar últimos acessos</code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Problemas Encontrados (se houver) -->
+    {% if problemas %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                        Problemas de Segurança Encontrados
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% for item in problemas %}
+                    <div class="alert alert-danger">
+                        <h6>Usuário: {{ item.usuario.username }} (ID: {{ item.usuario.id }})</h6>
+                        <ul class="mb-0">
+                            {% for problema in item.problemas %}
+                            <li>{{ problema }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Superusuários -->
+    {% if superusuarios %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="bi bi-person-badge-fill"></i>
+                        Superusuários do Sistema
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Usuário</th>
+                                    <th>Email</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for su in superusuarios %}
+                                <tr>
+                                    <td>{{ su.username }}</td>
+                                    <td>{{ su.email|default:"-" }}</td>
+                                    <td>
+                                        {% if su.is_active %}
+                                        <span class="badge bg-success">Ativo</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">Inativo</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Suporte -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-headset"></i>
+                        Suporte
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p>Se você encontrar problemas de segurança ou suspeitar de acesso não autorizado:</p>
+                    <ol>
+                        <li>Execute <code>python manage.py verificar_seguranca</code></li>
+                        <li>Revise os logs do sistema</li>
+                        <li>Altere todas as senhas imediatamente</li>
+                        <li>Desabilite contas suspeitas</li>
+                        <li>Entre em contato com o administrador do sistema</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-12 text-center text-muted">
+            <small>
+                <i class="bi bi-info-circle"></i>
+                Última atualização: Dezembro 2025 | Versão: 1.0
+            </small>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+
+
+

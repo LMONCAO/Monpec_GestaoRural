@@ -1,0 +1,75 @@
+🚨 CORREÇÃO DO ERRO 502 - CONSOLE WEB LOCAWEB
+================================================================
+
+📋 PROBLEMA IDENTIFICADO: Erro de indentação no urls.py
+
+🔧 COMANDOS PARA COPIAR E COLAR NO CONSOLE WEB:
+
+1️⃣ NAVEGAR PARA O DIRETÓRIO:
+cd /var/www/monpec.com.br
+
+2️⃣ PARAR PROCESSOS:
+pkill -9 python
+
+3️⃣ CORRIGIR URLS.PY (remover linhas problemáticas):
+head -n 170 gestao_rural/urls.py > /tmp/urls_clean.py
+mv /tmp/urls_clean.py gestao_rural/urls.py
+
+4️⃣ ADICIONAR FECHAMENTO CORRETO DO URLS.PY:
+echo ']' >> gestao_rural/urls.py
+
+5️⃣ VERIFICAR SE ESTÁ CORRETO:
+source venv/bin/activate
+python manage.py check
+
+6️⃣ INICIAR DJANGO:
+python manage.py runserver 127.0.0.1:8000 > /tmp/django.log 2>&1 &
+
+7️⃣ VERIFICAR SE ESTÁ FUNCIONANDO:
+sleep 3
+ps aux | grep python | grep -v grep
+curl -s http://127.0.0.1:8000 | head -3
+
+═══════════════════════════════════════════════════════════════
+
+🎯 SE AINDA HOUVER ERRO, EXECUTE ESTES COMANDOS EXTRAS:
+
+VERIFICAR ERRO ESPECÍFICO:
+tail -20 /tmp/django.log
+
+REINICIAR NGINX SE NECESSÁRIO:
+systemctl restart nginx
+
+VERIFICAR PORTA 8000:
+ss -tlnp | grep 8000
+
+═══════════════════════════════════════════════════════════════
+
+📋 COMANDOS COMPLETOS EM SEQUÊNCIA:
+
+cd /var/www/monpec.com.br
+pkill -9 python
+head -n 170 gestao_rural/urls.py > /tmp/urls_clean.py
+mv /tmp/urls_clean.py gestao_rural/urls.py
+echo ']' >> gestao_rural/urls.py
+source venv/bin/activate
+python manage.py check
+python manage.py runserver 127.0.0.1:8000 > /tmp/django.log 2>&1 &
+sleep 3
+ps aux | grep python | grep -v grep
+
+═══════════════════════════════════════════════════════════════
+
+🔍 APÓS CORREÇÃO, TESTE:
+http://191.252.225.106
+
+🔑 LOGIN: admin / 123456
+
+═══════════════════════════════════════════════════════════════
+
+💡 O QUE ESTAVA CAUSANDO O ERRO 502:
+- Erro de indentação nas URLs adicionadas
+- Django não conseguia inicializar
+- Nginx retornava 502 Bad Gateway
+
+✅ APÓS A CORREÇÃO O SISTEMA VOLTARÁ A FUNCIONAR!

@@ -1,4 +1,5 @@
 from django.shortcuts import render, get_object_or_404
+from django.contrib.auth.decorators import login_required
 from django.db.models import Sum, Avg, Count
 from django.utils import timezone
 from decimal import Decimal
@@ -7,6 +8,7 @@ from .models import ProdutorRural, Propriedade, InventarioRebanho, CustoFixo, Cu
 from .models import BemImobilizado, CategoriaImobilizado, IndicadorFinanceiro
 
 
+@login_required
 def proprietario_dashboard(request, produtor_id):
     """Dashboard consolidado do proprietário com todas as propriedades"""
     produtor = get_object_or_404(ProdutorRural, id=produtor_id)
@@ -100,6 +102,7 @@ def consolidar_dados_proprietario(produtor, propriedades):
     return dados
 
 
+@login_required
 def proprietario_dividas_consolidadas(request, produtor_id):
     """Dívidas consolidadas de todas as propriedades"""
     produtor = get_object_or_404(ProdutorRural, id=produtor_id)
@@ -127,6 +130,7 @@ def proprietario_dividas_consolidadas(request, produtor_id):
     return render(request, 'gestao_rural/proprietario_dividas_consolidadas.html', context)
 
 
+@login_required
 def proprietario_capacidade_consolidada(request, produtor_id):
     """Capacidade de pagamento consolidada"""
     produtor = get_object_or_404(ProdutorRural, id=produtor_id)
@@ -202,6 +206,7 @@ def calcular_capacidade_consolidada(produtor, propriedades):
     return indicadores
 
 
+@login_required
 def proprietario_imobilizado_consolidado(request, produtor_id):
     """Imobilizado consolidado de todas as propriedades"""
     produtor = get_object_or_404(ProdutorRural, id=produtor_id)
@@ -229,6 +234,7 @@ def proprietario_imobilizado_consolidado(request, produtor_id):
     return render(request, 'gestao_rural/proprietario_imobilizado_consolidado.html', context)
 
 
+@login_required
 def proprietario_analise_consolidada(request, produtor_id):
     """Análise consolidada de todas as propriedades"""
     produtor = get_object_or_404(ProdutorRural, id=produtor_id)
@@ -295,6 +301,7 @@ def calcular_indicadores_consolidados(produtor, propriedades):
     return indicadores
 
 
+@login_required
 def proprietario_relatorios_consolidados(request, produtor_id):
     """Relatórios consolidados de todas as propriedades"""
     produtor = get_object_or_404(ProdutorRural, id=produtor_id)

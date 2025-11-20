@@ -1,0 +1,84 @@
+{% extends 'base_navegacao_inteligente.html' %}
+{% load formatacao_br %}
+
+{% block title %}Excluir Categoria de Imobilizado{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item">
+    <a href="{% url 'dashboard' %}">Dashboard</a>
+</li>
+<li class="breadcrumb-item">
+    <a href="{% url 'categorias_imobilizado_lista' %}">Categorias</a>
+</li>
+<li class="breadcrumb-item active">Excluir</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card-moderno">
+                <div class="card-header-moderno bg-danger text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-exclamation-triangle"></i> Confirmar Exclusão
+                    </h5>
+                </div>
+                <div class="card-body-moderno">
+                    {% if tipos_bens_vinculados > 0 %}
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <strong>Atenção!</strong> Esta categoria não pode ser excluída.
+                        Existem <strong>{{ tipos_bens_vinculados }}</strong> tipo(s) de bem vinculado(s) a esta categoria.
+                    </div>
+                    <a href="{% url 'categorias_imobilizado_lista' %}" class="btn-moderno btn-outline-secondary w-100">
+                        <i class="bi bi-arrow-left"></i> Voltar
+                    </a>
+                    {% else %}
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <strong>Atenção!</strong> Esta ação não pode ser desfeita.
+                    </div>
+                    
+                    <p class="mb-4">Tem certeza que deseja excluir esta categoria?</p>
+                    
+                    <div class="card bg-light mb-4">
+                        <div class="card-body">
+                            <h6><strong>{{ categoria.nome }}</strong></h6>
+                            <p class="mb-1"><strong>Vida Útil:</strong> {{ categoria.vida_util_anos|numero_br:0 }} anos</p>
+                            <p class="mb-0"><strong>Taxa de Depreciação:</strong> {{ categoria.taxa_depreciacao|percentual_br:2 }}</p>
+                        </div>
+                    </div>
+                    
+                    <form method="POST">
+                        {% csrf_token %}
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn-moderno btn-danger flex-fill">
+                                <i class="bi bi-trash"></i> Sim, Excluir
+                            </button>
+                            <a href="{% url 'categorias_imobilizado_lista' %}" class="btn-moderno btn-outline-secondary flex-fill">
+                                <i class="bi bi-x-circle"></i> Cancelar
+                            </a>
+                        </div>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

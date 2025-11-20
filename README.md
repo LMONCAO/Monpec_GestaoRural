@@ -1,6 +1,6 @@
-# Sistema de Gestão Rural - Projeções para Análise Bancária
+# Monpec - Projetos Bancários e Plano Orçamentário Rural
 
-Sistema completo para gestão de propriedades rurais com projeções de rebanho e produção agrícola, desenvolvido para análise de capacidade de pagamento bancária.
+Sistema completo para gestão de propriedades rurais com projeções de rebanho e produção agrícola, desenvolvido para análise de capacidade de pagamento bancária e gestão de projetos de crédito rural.
 
 ## 🚀 Funcionalidades
 
@@ -20,6 +20,18 @@ Sistema completo para gestão de propriedades rurais com projeções de rebanho 
 - **Projeção de Receitas**: Cálculo automático de receitas e custos
 - **Análise de Lucratividade**: Comparação entre receitas e custos
 
+### Módulo Dívidas Financeiras
+- **Importação SCR**: Leitura automática do SCR do Banco Central
+- **Gestão de Contratos**: Contratos individuais por fazenda
+- **Sistema de Amortização**: Cálculo automático de parcelas
+- **Distribuição por Fazenda**: Alocação inteligente de dívidas
+
+### Módulo Projetos Bancários
+- **Projetos de Crédito Rural**: Custeio, investimento e comercialização
+- **Análise de Viabilidade**: Projeções financeiras para aprovação
+- **Gestão Documental**: Upload e controle de documentos
+- **Acompanhamento de Status**: Rascunho, análise, aprovação
+
 ### Relatórios Bancários
 - **Relatório Final**: Consolidação de todas as projeções
 - **Análise de Capacidade de Pagamento**: Dados para análise bancária
@@ -36,6 +48,12 @@ Sistema completo para gestão de propriedades rurais com projeções de rebanho 
 - `MovimentacaoProjetada`: Movimentações da projeção
 - `RegraPromocaoCategoria`: Regras de promoção de categoria
 - `CicloProducaoAgricola`: Ciclos agrícolas
+- `SCRBancoCentral`: Importação do SCR
+- `DividaBanco`: Dívidas por banco
+- `ContratoDivida`: Contratos individuais
+- `AmortizacaoContrato`: Sistema de amortização
+- `ProjetoBancario`: Projetos de crédito rural
+- `DocumentoProjeto`: Documentos dos projetos
 
 ### Lógica de Projeção Pecuária
 

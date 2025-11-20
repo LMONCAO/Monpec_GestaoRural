@@ -1,5 +1,5 @@
-{% extends 'base.html' %}
-{% load static %}
+{% extends 'base_modulos_unificado.html' %}
+{% load formatacao_br %}
 
 {% block title %}Custos Fixos - {{ propriedade.nome_propriedade }}{% endblock %}
 
@@ -50,7 +50,7 @@
                     <h5 class="card-title text-warning">
                         <i class="bi bi-currency-dollar"></i> Custo Mensal Total
                     </h5>
-                    <h3 class="text-warning">R$ {{ custo_mensal_total|floatformat:2 }}</h3>
+                    <h3 class="text-warning">{{ custo_mensal_total|moeda_br }}</h3>
                     <small class="text-muted">Por mês</small>
                 </div>
             </div>
@@ -61,7 +61,7 @@
                     <h5 class="card-title text-success">
                         <i class="bi bi-calendar-year"></i> Custo Anual Total
                     </h5>
-                    <h3 class="text-success">R$ {{ custo_anual_total|floatformat:2 }}</h3>
+                    <h3 class="text-success">{{ custo_anual_total|moeda_br }}</h3>
                     <small class="text-muted">Por ano</small>
                 </div>
             </div>
@@ -104,10 +104,10 @@
                                             <span class="badge bg-info">{{ custo.get_tipo_custo_display }}</span>
                                         </td>
                                         <td>
-                                            <strong class="text-primary">R$ {{ custo.valor_mensal|floatformat:2 }}</strong>
+                                            <strong class="text-primary">{{ custo.valor_mensal|moeda_br }}</strong>
                                         </td>
                                         <td>
-                                            <strong class="text-success">R$ {{ custo.custo_anual|floatformat:2 }}</strong>
+                                            <strong class="text-success">{{ custo.custo_anual|moeda_br }}</strong>
                                         </td>
                                         <td>
                                             {% if custo.ativo %}

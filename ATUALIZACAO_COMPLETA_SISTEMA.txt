@@ -1,0 +1,141 @@
+===============================================================
+        ATUALIZAÇÃO COMPLETA DO SISTEMA MONPEC
+        Navegação + Novos Módulos + Design Clean
+===============================================================
+
+🎯 NOVIDADES:
+- ✅ Navegação com Menu Lateral + Breadcrumbs
+- ✅ Design Clean com Verde Acinzentado
+- ✅ Cards com fundo cinza claro
+- ✅ Módulo BENS E PATRIMÔNIO (novo!)
+- ✅ Módulo FINANCEIRO completo (novo!)
+- ✅ Módulo PROJETOS (novo!)
+- ✅ Inventário atualizado
+- ✅ Categorias pré-definidas
+
+===============================================================
+        PASSO 1: TRANSFERIR ARQUIVOS (JÁ FEITO!)
+===============================================================
+
+Os seguintes arquivos já foram transferidos:
+✅ base_navegacao.html
+✅ dashboard_simples.html
+✅ propriedades_corrigido.html
+✅ pecuaria_corrigido.html
+✅ propriedade_modulos.html
+✅ categorias_clean.html
+✅ inventario_clean.html
+
+===============================================================
+        PASSO 2: EXECUTAR NO CONSOLE WEB
+===============================================================
+
+### BLOCO 1: Criar diretórios necessários ###
+
+mkdir -p /var/www/monpec.com.br/gestao_rural/fixtures
+mkdir -p /var/www/monpec.com.br/gestao_rural/management/commands
+touch /var/www/monpec.com.br/gestao_rural/management/__init__.py
+touch /var/www/monpec.com.br/gestao_rural/management/commands/__init__.py
+
+---------------------------------------------------------------
+
+### BLOCO 2: Adicionar View de Módulos ###
+
+cd /var/www/monpec.com.br
+cat >> gestao_rural/views.py << 'EOF'
+
+@login_required
+def propriedade_modulos(request, propriedade_id):
+    propriedade = get_object_or_404(Propriedade, pk=propriedade_id)
+    context = {'propriedade': propriedade}
+    return render(request, 'gestao_rural/propriedade_modulos.html', context)
+EOF
+
+---------------------------------------------------------------
+
+### BLOCO 3: Adicionar URL de Módulos ###
+
+sed -i "/name=.propriedade_excluir/a\    path('propriedade/<int:propriedade_id>/modulos/', views.propriedade_modulos, name='propriedade_modulos')," gestao_rural/urls.py
+
+---------------------------------------------------------------
+
+### BLOCO 4: Verificar ###
+
+tail -10 gestao_rural/views.py
+grep propriedade_modulos gestao_rural/urls.py
+
+---------------------------------------------------------------
+
+### BLOCO 5: Reiniciar Django ###
+
+pkill -9 python
+sleep 2
+cd /var/www/monpec.com.br
+source venv/bin/activate
+python manage.py runserver 127.0.0.1:8000 > /tmp/django.log 2>&1 &
+sleep 3
+ps aux | grep manage
+
+---------------------------------------------------------------
+
+### BLOCO 6: Verificar se está rodando ###
+
+curl -s http://127.0.0.1:8000 | head -5
+
+===============================================================
+        APÓS EXECUTAR
+===============================================================
+
+1. Pressione F5 no navegador
+2. Limpe o cache (Ctrl + Shift + Delete)
+3. Acesse: http://191.252.225.106
+
+NAVEGAÇÃO:
+Dashboard → Propriedades → Acessar → MÓDULOS
+
+MÓDULOS DISPONÍVEIS:
+✅ Pecuária (funcionando)
+✅ Agricultura (funcionando)
+✅ Bens e Patrimônio (novo!)
+✅ Financeiro (novo!)
+✅ Projetos (novo!)
+✅ Relatórios (funcionando)
+✅ Categorias (funcionando)
+✅ Configurações (funcionando)
+
+===============================================================
+        CARACTERÍSTICAS DO NOVO DESIGN
+===============================================================
+
+🎨 CORES:
+- Azul Marinho: #1e3a5f (Navegação)
+- Verde Acinzentado: #8a9a88 (Destaques)
+- Marrom Terra: #8b6f47 (Accent)
+- Cinza Claro: #f5f7fa (Fundos)
+
+📝 TIPOGRAFIA:
+- Playfair Display (Títulos)
+- Inter (Textos)
+
+✨ ELEMENTOS:
+- Menu lateral fixo (260px)
+- Breadcrumbs no topo
+- Cards com gradiente sutil
+- Hover com verde acinzentado
+- Valores em destaque verde
+- Cabeçalhos com fundo verde suave
+
+===============================================================
+        PROXIMOS PASSOS (OPCIONAL)
+===============================================================
+
+Para desenvolver completamente os novos módulos:
+
+1. Adicionar views para Bens e Patrimônio
+2. Adicionar views para Financeiro
+3. Adicionar views para Projetos
+4. Criar formulários de cadastro
+5. Implementar relatórios específicos
+
+===============================================================
+

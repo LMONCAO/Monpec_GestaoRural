@@ -1,0 +1,226 @@
+{% extends "base_modulos_unificado.html" %}
+{% load humanize %}
+
+{% block title %}Relatório da Sessão - {{ sessao.nome }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+        <div>
+            <h2 class="mb-1"><i class="bi bi-journal-richtext me-2 text-danger"></i>Relatório consolidado</h2>
+            <div class="text-muted small">
+                Sessão {{ sessao.nome }} • {{ sessao.data_inicio|date:"d/m/Y H:i" }}{% if sessao.data_fim %} – {{ sessao.data_fim|date:"d/m/Y H:i" }}{% endif %}
+            </div>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{% url 'curral_sessao' propriedade.id sessao.id %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Voltar para sessão</a>
+            <button class="btn btn-danger" disabled title="Em breve">
+                <i class="bi bi-file-earmark-pdf"></i> Exportar PDF
+            </button>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-3 col-sm-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <small class="text-muted text-uppercase">Animais manejados</small>
+                    <h3 class="fw-bold mt-2">{{ resumo_animais|length }}</h3>
+                    <div class="text-muted small">identificados nesta sessão</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-sm-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <small class="text-muted text-uppercase">Eventos registrados</small>
+                    <h3 class="fw-bold mt-2">{{ eventos.count }}</h3>
+                    <div class="text-muted small">fluxo completo de curral</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-sm-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <small class="text-muted text-uppercase">Pesagens</small>
+                    <h3 class="fw-bold mt-2">{{ eventos|dictsort:"tipo_evento"|length }}</h3>
+                    <div class="text-muted small">variação calculada automaticamente</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-sm-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <small class="text-muted text-uppercase">Lotes formados</small>
+                    <h3 class="fw-bold mt-2">{{ lotes|length }}</h3>
+                    <div class="text-muted small">apartação estratégica</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-xl-6">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-bar-chart-line me-2 text-primary"></i>Distribuição de eventos</h5>
+                </div>
+                <div class="card-body">
+                    {% if eventos_por_tipo %}
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Tipo</th>
+                                    <th class="text-end">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in eventos_por_tipo %}
+                                <tr>
+                                    <td>{{ item.tipo_evento|lower|capfirst }}</td>
+                                    <td class="text-end fw-bold">{{ item.total }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-muted">Nenhum evento registrado.</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-6">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-diagram-2 me-2 text-warning"></i>Lotes criados</h5>
+                </div>
+                <div class="card-body">
+                    {% if lotes %}
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Lote</th>
+                                    <th class="text-center">Animais</th>
+                                    <th>Finalidade</th>
+                                    <th>Observações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for lote in lotes %}
+                                <tr>
+                                    <td>{{ lote.nome }}</td>
+                                    <td class="text-center">{{ lote.animais }}</td>
+                                    <td>{{ lote.get_finalidade_display }}</td>
+                                    <td>{{ lote.observacoes|default:"-" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-muted">Nenhum lote criado.</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mt-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-people me-2 text-success"></i>Resumo por animal</h5>
+        </div>
+        <div class="card-body">
+            {% if resumo_animais %}
+            <div class="table-responsive">
+                <table class="table table-striped align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Animal</th>
+                            <th class="text-center">Último evento</th>
+                            <th class="text-center">Peso atual</th>
+                            <th class="text-center">Δ Peso</th>
+                            <th class="text-center">Status reprodutivo</th>
+                            <th>Lote</th>
+                            <th class="text-center">Eventos</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in resumo_animais %}
+                        <tr>
+                            <td>
+                                <strong>{{ item.animal.numero_brinco }}</strong>
+                                <div class="small text-muted">{{ item.animal.categoria.nome }}</div>
+                            </td>
+                            <td class="text-center">
+                                {{ item.ultimo_evento.get_tipo_evento_display }}<br>
+                                <span class="text-muted small">{{ item.ultimo_evento.data_evento|date:"d/m/Y H:i" }}</span>
+                            </td>
+                            <td class="text-center">{% if item.peso_atual %}{{ item.peso_atual|floatformat:2 }} kg{% else %}-{% endif %}</td>
+                            <td class="text-center">
+                                {% if item.variacao_peso %}
+                                    <span class="fw-semibold {% if item.variacao_peso >= 0 %}text-success{% else %}text-danger{% endif %}">{{ item.variacao_peso|floatformat:2 }} kg</span>
+                                {% else %}-{% endif %}
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-info text-dark">{{ item.prenhez_status }}</span>
+                            </td>
+                            <td>{% if item.lote_atual %}{{ item.lote_atual.nome }}{% else %}-{% endif %}</td>
+                            <td class="text-center">{{ item.total_eventos }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-muted">Nenhum animal manejado nesta sessão.</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card shadow-sm mt-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-clock-history me-2 text-info"></i>Linha do tempo completa</h5>
+        </div>
+        <div class="card-body">
+            {% if eventos %}
+            <div class="timeline">
+                {% for evento in eventos %}
+                <div class="timeline-item mb-4">
+                    <div class="d-flex align-items-start">
+                        <div class="me-3 text-info"><i class="bi bi-record-fill"></i></div>
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="fw-bold">{{ evento.get_tipo_evento_display }}</div>
+                                <div class="text-muted small">{{ evento.data_evento|date:"d/m/Y H:i" }}</div>
+                            </div>
+                            {% if evento.animal %}
+                            <div class="small">Animal: <strong>{{ evento.animal.numero_brinco }}</strong> • {{ evento.animal.categoria.nome }}</div>
+                            {% endif %}
+                            {% if evento.peso_kg %}
+                            <div class="small">Peso registrado: {{ evento.peso_kg|floatformat:2 }} kg {% if evento.variacao_peso %}<span class="{% if evento.variacao_peso >= 0 %}text-success{% else %}text-danger{% endif %}">(Δ {{ evento.variacao_peso|floatformat:2 }} kg)</span>{% endif %}</div>
+                            {% endif %}
+                            {% if evento.prenhez_status and evento.prenhez_status != 'DESCONHECIDO' %}
+                            <div class="small">Status reprodutivo: {{ evento.get_prenhez_status_display }}</div>
+                            {% endif %}
+                            {% if evento.lote_destino %}
+                            <div class="small">Lote destino: {{ evento.lote_destino.nome }}</div>
+                            {% endif %}
+                            {% if evento.observacoes %}
+                            <div class="small text-muted">{{ evento.observacoes }}</div>
+                            {% endif %}
+                            <div class="small text-muted mt-1">Operador: {{ evento.responsavel.get_full_name|default:evento.responsavel.username|default:"Sistema" }}</div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-muted">Nenhum evento registrado.</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

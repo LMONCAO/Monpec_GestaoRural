@@ -1,91 +1,240 @@
-{% extends 'base.html' %}
+{% extends 'base_moderno.html' %}
+{% load static %}
 
-{% block title %}Categorias de Animais{% endblock %}
+{% block title %}Categorias SISBOV{% endblock %}
 
-{% block page_title %}Categorias de Animais{% endblock %}
+{% block page_title %}Categorias SISBOV{% endblock %}
 
-{% block content %}
-<div class="row">
-    <div class="col-12">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <h2>Categorias de Animais</h2>
-                <p class="text-muted">Gerencie as categorias de animais do sistema</p>
-            </div>
-            <div>
-                <a href="{% url 'categoria_nova' %}" class="btn btn-primary">
-                    <i class="bi bi-plus-circle"></i> Nova Categoria
-                </a>
-            </div>
+{% block extra_css %}
+<style>
+    /* Estilos do conteúdo card */
+    .content-card {
+        background: white;
+        border: 1px solid var(--gray-border, #dee2e6);
+        border-radius: 8px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
+        margin-bottom: 1rem;
+    }
+    
+    .content-card-header {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid var(--gray-border, #dee2e6);
+        background: linear-gradient(135deg, rgba(248,249,250,1) 0%, rgba(255,255,255,1) 100%);
+        border-radius: 8px 8px 0 0;
+    }
+    
+    .content-card-body {
+        padding: 1.25rem;
+    }
+    
+    /* Estilos da tabela - similar ao inventário */
+    .table {
+        margin-bottom: 0;
+        width: 100%;
+    }
+    
+    .table thead th {
+        font-weight: 700 !important;
+        font-size: 0.875rem;
+        color: #000000 !important;
+        background-color: #f8f9fa !important;
+        border-bottom: 2px solid #dee2e6;
+        padding: 0.75rem 1rem;
+        text-align: center;
+        vertical-align: middle;
+        border-top: 1px solid #dee2e6;
+        border-left: 1px solid #dee2e6;
+        border-right: 1px solid #dee2e6;
+    }
+    
+    .table thead th.text-start {
+        text-align: left !important;
+    }
+    
+    .table thead th.text-center {
+        text-align: center !important;
+    }
+    
+    .table tbody td {
+        padding: 0.875rem 1rem;
+        font-size: 0.875rem;
+        vertical-align: middle;
+        border: 1px solid #dee2e6;
+        color: #212529;
+    }
+    
+    .table tbody tr {
+        background-color: #ffffff;
+        transition: background-color 0.15s ease-in-out;
+    }
+    
+    .table tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .table tbody tr:last-child td {
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    /* Badges melhorados */
+    .badge {
+        font-weight: 600;
+        padding: 0.375rem 0.625rem;
+        font-size: 0.8125rem;
+        white-space: nowrap;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        border-radius: 6px;
+        border: 1px solid transparent;
+    }
+    
+    /* Botões de ação */
+    .btn-group-sm .btn {
+        padding: 0.375rem 0.5rem;
+        font-size: 0.875rem;
+        border-radius: 4px;
+        transition: all 0.2s ease;
+    }
+    
+    .btn-group-sm .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .table-responsive {
+        border-radius: 0 0 8px 8px;
+        overflow-x: auto;
+    }
+    
+    .table-bordered {
+        border: 1px solid #dee2e6;
+        border-radius: 0;
+    }
+    
+    .table-bordered thead th {
+        border: 1px solid #dee2e6;
+    }
+</style>
+{% endblock %}
+
+{% block content_authenticated %}
+<div class="fade-in-up">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="bi bi-tags text-primary me-2"></i> Categorias SISBOV</h2>
+            <p class="text-muted mb-0">Mapeamento das categorias oficiais do SISBOV</p>
         </div>
-        
-        {% if categorias %}
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">Lista de Categorias</h5>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-striped mb-0">
-                        <thead>
-                            <tr>
-                                <th>Nome</th>
-                                <th>Idade (meses)</th>
-                                <th>Sexo</th>
-                                <th>Descrição</th>
-                                <th>Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for categoria in categorias %}
-                            <tr>
-                                <td class="fw-bold">{{ categoria.nome }}</td>
-                                <td>
-                                    {% if categoria.idade_minima_meses is not None and categoria.idade_maxima_meses is not None %}
-                                        {{ categoria.idade_minima_meses }}-{{ categoria.idade_maxima_meses }}m
-                                    {% elif categoria.idade_minima_meses is not None %}
-                                        {{ categoria.idade_minima_meses }}+m
-                                    {% else %}
-                                        -
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <span class="badge {% if categoria.sexo == 'F' %}bg-pink{% elif categoria.sexo == 'M' %}bg-blue{% else %}bg-secondary{% endif %}">
-                                        {% if categoria.sexo == 'F' %}Fêmea
-                                        {% elif categoria.sexo == 'M' %}Macho
-                                        {% else %}Indefinido
-                                        {% endif %}
-                                    </span>
-                                </td>
-                                <td>{{ categoria.descricao|default:"-" }}</td>
-                                <td>
-                                    <div class="btn-group" role="group">
-                                        <a href="{% url 'categoria_editar' categoria.id %}" class="btn btn-sm btn-outline-primary">
-                                            <i class="bi bi-pencil"></i> Editar
-                                        </a>
-                                        <a href="{% url 'categoria_excluir' categoria.id %}" class="btn btn-sm btn-outline-danger">
-                                            <i class="bi bi-trash"></i> Excluir
-                                        </a>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+        <div class="d-flex gap-2">
+            <a href="{% url 'categoria_nova' %}" class="btn-moderno">
+                <i class="bi bi-plus-circle me-1"></i> Nova Categoria SISBOV
+            </a>
+            <a href="{% url 'dashboard' %}" class="btn-moderno btn-outline">
+                <i class="bi bi-arrow-left me-1"></i> Voltar
+            </a>
+        </div>
+    </div>
+    
+    {% if categorias %}
+    <div class="content-card">
+        <div class="content-card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="mb-0 text-dark fw-semibold">
+                        <i class="bi bi-list-ul me-2 text-primary"></i>Lista oficial SISBOV ({{ categorias|length }})
+                    </h6>
+                    <small class="text-muted">Gerencie todas as categorias de animais cadastradas no sistema</small>
                 </div>
             </div>
         </div>
+        <div class="content-card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="small fw-bold text-black text-start">Categoria SISBOV</th>
+                            <th class="small text-center fw-bold text-black">Idade (meses)</th>
+                            <th class="small text-center fw-bold text-black">Sexo</th>
+                            <th class="small text-center fw-bold text-black">Grupo racial SISBOV</th>
+                            <th class="small fw-bold text-black text-start">Descrição padrão SISBOV</th>
+                            <th class="small text-center fw-bold text-black">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for categoria in categorias %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <strong class="text-dark">{{ categoria.nome }}</strong>
+                                </div>
+                            </td>
+                            <td class="text-center">
+                                {% if categoria.idade_minima_meses is not None and categoria.idade_maxima_meses is not None %}
+                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary">
+                                        {{ categoria.idade_minima_meses }}-{{ categoria.idade_maxima_meses }}m
+                                    </span>
+                                {% elif categoria.idade_minima_meses is not None %}
+                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary">
+                                        {{ categoria.idade_minima_meses }}+m
+                                    </span>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if categoria.sexo == 'F' %}
+                                    <span class="badge bg-danger-subtle text-danger border border-danger">
+                                        <i class="bi bi-gender-female me-1"></i>Fêmea
+                                    </span>
+                                {% elif categoria.sexo == 'M' %}
+                                    <span class="badge bg-primary-subtle text-primary border border-primary">
+                                        <i class="bi bi-gender-male me-1"></i>Macho
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary">
+                                        Indefinido
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-info-subtle text-info border border-info">
+                                    {{ categoria.get_raca_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <small class="text-muted">{{ categoria.descricao|default:"Padrão SISBOV" }}</small>
+                            </td>
+                            <td class="text-center">
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="{% url 'categoria_editar' categoria.id %}" class="btn btn-outline-primary" title="Editar">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="{% url 'categoria_excluir' categoria.id %}" class="btn btn-outline-danger" title="Excluir">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
         {% else %}
-        <div class="text-center py-5">
-            <i class="bi bi-tags fs-1 text-muted"></i>
-            <h3 class="text-muted mt-3">Nenhuma categoria cadastrada</h3>
-            <p class="text-muted">Comece criando uma nova categoria de animal.</p>
-            <a href="{% url 'categoria_nova' %}" class="btn btn-primary">
-                <i class="bi bi-plus-circle"></i> Criar Primeira Categoria
+        <div class="empty-state">
+            <div class="empty-icon">
+                <i class="bi bi-tags"></i>
+            </div>
+            <h3 class="empty-title">Nenhuma categoria SISBOV cadastrada</h3>
+            <p class="empty-description">Comece criando a primeira categoria conforme o padrão SISBOV.</p>
+            <a href="{% url 'categoria_nova' %}" class="btn-moderno">
+                <i class="bi bi-plus-circle me-1"></i> Criar Primeira Categoria SISBOV
             </a>
         </div>
         {% endif %}
     </div>
 </div>
-{% endblock %}
+{% endblock content_authenticated %}
 

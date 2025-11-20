@@ -1,0 +1,318 @@
+{% extends "base_modulos_unificado.html" %}
+{% load formatacao_br %}
+
+{% block title %}Ordem {{ ordem.numero_ordem }} - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'compras_dashboard' propriedade.id %}">Compras</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'ordens_compra_lista' propriedade.id %}">Ordens</a></li>
+            <li class="breadcrumb-item active">OC {{ ordem.numero_ordem }}</li>
+        </ol>
+    </nav>
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                        <div>
+                            <h2 class="h4 mb-1">Ordem de Compra {{ ordem.numero_ordem }}</h2>
+                            <div class="small text-muted">
+                                Emitida em {{ ordem.data_emissao|date:"d/m/Y" }} por {{ ordem.criado_por.get_full_name|default:ordem.criado_por.username }}
+                            </div>
+                        </div>
+                        <span class="badge bg-{% if ordem.status == 'RECEBIDA' %}success{% elif ordem.status == 'CANCELADA' %}secondary{% elif ordem.status == 'ENVIADA' %}info{% else %}warning text-dark{% endif %}">
+                            {{ ordem.get_status_display }}
+                        </span>
+                    </div>
+                    <hr>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <small class="text-muted d-block">Fornecedor</small>
+                            <div class="fw-semibold">{{ ordem.fornecedor.nome }}</div>
+                            <div class="small text-muted">{{ ordem.fornecedor.cpf_cnpj }}</div>
+                        </div>
+                        <div class="col-md-3">
+                            <small class="text-muted d-block">Entrega prevista</small>
+                            <div class="fw-semibold">{{ ordem.data_entrega_prevista|date:"d/m/Y"|default:"-" }}</div>
+                        </div>
+                        <div class="col-md-3">
+                            <small class="text-muted d-block">Valor total</small>
+                            <div class="fw-semibold">{{ ordem.valor_total|moeda_br }}</div>
+                        </div>
+                    </div>
+                    <div class="row g-3 mt-2">
+                        <div class="col-md-4">
+                            <small class="text-muted d-block">Setor responsável</small>
+                            <div class="fw-semibold">{{ ordem.setor.nome|default:"-" }}</div>
+                        </div>
+                        <div class="col-md-4">
+                            <small class="text-muted d-block">Centro de custo</small>
+                            <div class="fw-semibold">
+                                {% if ordem.centro_custo %}
+                                    {{ ordem.centro_custo }}
+                                {% elif ordem.centro_custo_descricao %}
+                                    {{ ordem.centro_custo_descricao }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <small class="text-muted d-block">Plano de contas</small>
+                            <div class="fw-semibold">{{ ordem.plano_conta|default:"-" }}</div>
+                        </div>
+                    </div>
+                    <div class="row g-3 mt-2">
+                        <div class="col-md-4">
+                            <small class="text-muted d-block">Autorização do setor</small>
+                            <span class="badge bg-{% if ordem.autorizacao_setor_status == 'AUTORIZADA' %}success{% elif ordem.autorizacao_setor_status == 'NEGADA' %}danger{% else %}secondary{% endif %}">
+                                {{ ordem.get_autorizacao_setor_status_display }}
+                            </span>
+                        </div>
+                        <div class="col-md-4">
+                            <small class="text-muted d-block">Responsável</small>
+                            <div class="fw-semibold">
+                                {% if ordem.autorizacao_setor_usuario %}
+                                    {{ ordem.autorizacao_setor_usuario.get_full_name|default:ordem.autorizacao_setor_usuario.username }}
+                                {% else %}-{% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <small class="text-muted d-block">Data da autorização</small>
+                            <div class="fw-semibold">{{ ordem.autorizacao_setor_data|date:"d/m/Y H:i"|default:"-" }}</div>
+                        </div>
+                    </div>
+
+                    {% if ordem.condicoes_pagamento or ordem.forma_pagamento %}
+                    <div class="alert alert-light border mt-3 mb-0">
+                        <strong>Pagamento:</strong>
+                        {{ ordem.condicoes_pagamento|default:"-" }} • {{ ordem.forma_pagamento|default:"-" }}
+                    </div>
+                    {% endif %}
+
+                    {% if requisicao %}
+                    <div class="alert alert-info mt-3 mb-0">
+                        <i class="bi bi-link-45deg me-1"></i>
+                        Originada da requisição
+                        <a href="{% url 'requisicao_compra_detalhes' propriedade.id requisicao.id %}" class="fw-semibold text-info">
+                                    {{ requisicao.numero }}
+                        </a>
+                        ({{ requisicao.titulo }}).
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4 class="h6 mb-0"><i class="bi bi-list-ul text-primary me-2"></i>Itens da Ordem</h4>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Descrição</th>
+                                    <th>Quantidade</th>
+                                    <th>Valor unitário</th>
+                                    <th>Valor total</th>
+                                    <th>Validade</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in itens %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ item.descricao }}</strong>
+                                        {% with hist=item.historico %}
+                                            {% if hist %}
+                                                {% if hist.fornecedor %}
+                                                <div class="small text-muted mt-1">
+                                                    Últ. fornecedor (OC {{ hist.fornecedor.ordem }}, {{ hist.fornecedor.data|date:"d/m/Y" }}): {{ hist.fornecedor.valor_unitario|moeda_br }}
+                                                    {% if hist.dif_fornecedor_valor %}
+                                                        {% if hist.dif_fornecedor_valor > 0 %}
+                                                            <span class="badge bg-danger-subtle text-danger ms-1">
+                                                                +{{ hist.dif_fornecedor_valor|moeda_br }} (+{{ hist.dif_fornecedor_percentual|floatformat:1 }}%)
+                                                            </span>
+                                                        {% elif hist.dif_fornecedor_valor < 0 %}
+                                                            <span class="badge bg-success-subtle text-success ms-1">
+                                                                {{ hist.dif_fornecedor_valor|moeda_br }} ({{ hist.dif_fornecedor_percentual|floatformat:1 }}%)
+                                                            </span>
+                                                        {% endif %}
+                                                    {% endif %}
+                                                </div>
+                                                {% endif %}
+                                                {% if hist.geral %}
+                                                <div class="small text-muted">
+                                                    Últ. geral: {{ hist.geral.fornecedor }} • OC {{ hist.geral.ordem }} • {{ hist.geral.data|date:"d/m/Y" }} • {{ hist.geral.valor_unitario|moeda_br }}
+                                                    {% if hist.dif_geral_valor %}
+                                                        {% if hist.dif_geral_valor > 0 %}
+                                                            <span class="badge bg-danger-subtle text-danger ms-1">
+                                                                +{{ hist.dif_geral_valor|moeda_br }} (+{{ hist.dif_geral_percentual|floatformat:1 }}%)
+                                                            </span>
+                                                        {% elif hist.dif_geral_valor < 0 %}
+                                                            <span class="badge bg-success-subtle text-success ms-1">
+                                                                {{ hist.dif_geral_valor|moeda_br }} ({{ hist.dif_geral_percentual|floatformat:1 }}%)
+                                                            </span>
+                                                        {% endif %}
+                                                    {% endif %}
+                                                </div>
+                                                {% endif %}
+                                            {% endif %}
+                                        {% endwith %}
+                                    </td>
+                                    <td>{{ item.quantidade_solicitada }}</td>
+                                    <td>{{ item.valor_unitario|moeda_br }}</td>
+                                    <td>{{ item.valor_total|moeda_br }}</td>
+                                    <td>{{ item.data_validade|date:"d/m/Y"|default:"-" }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-3">Nenhum item cadastrado.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4 class="h6 mb-0"><i class="bi bi-box-seam text-primary me-2"></i>Recebimentos</h4>
+                        <a href="{% url 'recebimento_compra_novo' propriedade.id ordem.id %}" class="btn btn-sm btn-outline-primary">
+                            Registrar recebimento
+                        </a>
+                    </div>
+                    {% if recebimentos %}
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Status</th>
+                                    <th>Responsável</th>
+                                    <th>Observações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for recebimento in recebimentos %}
+                                <tr>
+                                    <td>{{ recebimento.data_recebimento|date:"d/m/Y"|default:recebimento.criado_em|date:"d/m/Y" }}</td>
+                                    <td><span class="badge bg-secondary">{{ recebimento.get_status_display }}</span></td>
+                                    <td>{{ recebimento.responsavel.get_full_name|default:recebimento.responsavel.username }}</td>
+                                    <td>{{ recebimento.observacoes|default:"-" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted mb-0">Nenhum recebimento registrado.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h4 class="h6 mb-3"><i class="bi bi-file-earmark-medical text-primary me-2"></i>Documentos</h4>
+                    {% if ordem.nota_fiscal %}
+                    <p class="mb-2">
+                        Nota Fiscal vinculada:
+                        <a href="{% url 'nota_fiscal_detalhes' propriedade.id ordem.nota_fiscal.id %}">
+                            NF {{ ordem.nota_fiscal.numero }}/{{ ordem.nota_fiscal.serie }}
+                        </a>
+                    </p>
+                    {% else %}
+                    <p class="text-muted mb-0">Sem nota fiscal vinculada.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h4 class="h6 mb-3"><i class="bi bi-cash-stack text-primary me-2"></i>Financeiro</h4>
+                    {% if conta_pagar %}
+                        <p class="mb-1"><strong>Valor:</strong> {{ conta_pagar.valor|moeda_br }}</p>
+                        <p class="mb-1"><strong>Vencimento:</strong> {{ conta_pagar.data_vencimento|date:"d/m/Y" }}</p>
+                        <p class="mb-1"><strong>Status:</strong>
+                            <span class="badge bg-{% if conta_pagar.status == 'PAGA' %}success{% elif conta_pagar.status == 'VENCIDA' %}danger{% else %}warning text-dark{% endif %}">
+                                {{ conta_pagar.get_status_display }}
+                            </span>
+                        </p>
+                        <p class="mb-0"><strong>Forma de pagamento:</strong> {{ conta_pagar.forma_pagamento|default:"-" }}</p>
+                    {% else %}
+                        <p class="text-muted mb-0">A conta a pagar será criada automaticamente após a autorização do setor.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h4 class="h6 mb-3"><i class="bi bi-shield-check text-primary me-2"></i>Autorização do setor</h4>
+                    <p class="mb-1">
+                        <span class="badge bg-{% if ordem.autorizacao_setor_status == 'AUTORIZADA' %}success{% elif ordem.autorizacao_setor_status == 'NEGADA' %}danger{% else %}secondary{% endif %}">
+                            {{ ordem.get_autorizacao_setor_status_display }}
+                        </span>
+                    </p>
+                    <p class="text-muted small mb-1">
+                        Responsável:
+                        {% if ordem.autorizacao_setor_usuario %}
+                            {{ ordem.autorizacao_setor_usuario.get_full_name|default:ordem.autorizacao_setor_usuario.username }}
+                        {% else %}
+                            Não definido
+                        {% endif %}
+                    </p>
+                    <p class="text-muted small mb-3">
+                        Data:
+                        {% if ordem.autorizacao_setor_data %}
+                            {{ ordem.autorizacao_setor_data|date:"d/m/Y H:i" }}
+                        {% else %}
+                            Pendente
+                        {% endif %}
+                    </p>
+                    {% if ordem.autorizacao_setor_observacoes %}
+                    <hr>
+                    <p class="small mb-0">{{ ordem.autorizacao_setor_observacoes|linebreaks }}</p>
+                    {% endif %}
+                    {% if pode_autorizar_setor %}
+                    <hr>
+                    <form method="post" class="mt-2">
+                        {% csrf_token %}
+                        <input type="hidden" name="acao" value="autorizacao_setor">
+                        <div class="mb-2">
+                            <label class="form-label">{{ autorizacao_form.decisao.label }}</label>
+                            {{ autorizacao_form.decisao }}
+                            {% for error in autorizacao_form.decisao.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">{{ autorizacao_form.observacoes.label }}</label>
+                            {{ autorizacao_form.observacoes }}
+                            {% for error in autorizacao_form.observacoes.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-sm btn-primary">
+                                <i class="bi bi-check-lg me-1"></i>Registrar decisão
+                            </button>
+                        </div>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

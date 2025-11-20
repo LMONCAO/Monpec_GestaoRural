@@ -1,0 +1,114 @@
+🔥 CORREÇÃO COMPLETA DO ERRO 502 - CONSOLE WEB
+================================================================
+
+🎯 PROBLEMA: Múltiplos erros de sintaxe no urls.py e views.py
+
+💡 SOLUÇÃO: Recriar arquivos limpos do zero
+
+📋 COMANDOS PARA COPIAR NO CONSOLE WEB (UM POR VEZ):
+
+1️⃣ NAVEGAR E PARAR DJANGO:
+cd /var/www/monpec.com.br
+pkill -9 python
+
+2️⃣ FAZER BACKUP DOS ARQUIVOS PROBLEMÁTICOS:
+cp gestao_rural/urls.py gestao_rural/urls.py.backup
+cp gestao_rural/views.py gestao_rural/views.py.backup
+
+3️⃣ RECRIAR URLS.PY LIMPO:
+cat > gestao_rural/urls.py << 'ENDURLS'
+from django.urls import path, include
+from . import views
+
+urlpatterns = [
+    path('', views.dashboard, name='dashboard'),
+    path('produtor/<int:produtor_id>/propriedades/', views.propriedades_lista, name='propriedades_lista'),
+    path('propriedade/<int:propriedade_id>/', views.propriedade_detalhes, name='propriedade_detalhes'),
+    path('propriedade/<int:propriedade_id>/modulos/', views.propriedade_modulos, name='propriedade_modulos'),
+    path('propriedade/<int:propriedade_id>/pecuaria/', views.pecuaria_dashboard, name='pecuaria_dashboard'),
+    path('propriedade/<int:propriedade_id>/financeiro/', views.financeiro_dashboard, name='financeiro_dashboard'),
+    path('propriedade/<int:propriedade_id>/patrimonio/', views.patrimonio_dashboard, name='patrimonio_dashboard'),
+    path('propriedade/<int:propriedade_id>/projetos/', views.projetos_dashboard, name='projetos_dashboard'),
+    path('categorias/', views.categorias_lista, name='categorias_lista'),
+]
+ENDURLS
+
+4️⃣ LIMPAR VIEWS.PY (remover linhas problemáticas):
+head -n 1790 gestao_rural/views.py > /tmp/views_clean.py
+mv /tmp/views_clean.py gestao_rural/views.py
+
+5️⃣ VERIFICAR SE ESTÁ OK:
+source venv/bin/activate
+python manage.py check
+
+6️⃣ SE DEU OK, INICIAR DJANGO:
+python manage.py runserver 127.0.0.1:8000 > /tmp/django_limpo.log 2>&1 &
+
+7️⃣ AGUARDAR E VERIFICAR:
+sleep 5
+ps aux | grep python | grep -v grep
+
+8️⃣ TESTAR RESPOSTA:
+curl -s http://127.0.0.1:8000 | head -3
+
+═══════════════════════════════════════════════════════════════
+
+🔍 SE AINDA HOUVER ERRO NO PASSO 5, EXECUTE:
+
+VERIFICAR ERRO ESPECÍFICO:
+python manage.py check --verbosity=2
+
+LIMPAR MAIS O VIEWS.PY:
+head -n 1500 gestao_rural/views.py > /tmp/views_safe.py
+mv /tmp/views_safe.py gestao_rural/views.py
+
+VERIFICAR NOVAMENTE:
+python manage.py check
+
+═══════════════════════════════════════════════════════════════
+
+📱 COMANDOS RESUMIDOS (COPIE BLOCO COMPLETO):
+
+cd /var/www/monpec.com.br && pkill -9 python && cp gestao_rural/urls.py gestao_rural/urls.py.backup && cat > gestao_rural/urls.py << 'ENDURLS'
+from django.urls import path, include
+from . import views
+
+urlpatterns = [
+    path('', views.dashboard, name='dashboard'),
+    path('produtor/<int:produtor_id>/propriedades/', views.propriedades_lista, name='propriedades_lista'),
+    path('propriedade/<int:propriedade_id>/', views.propriedade_detalhes, name='propriedade_detalhes'),
+    path('propriedade/<int:propriedade_id>/modulos/', views.propriedade_modulos, name='propriedade_modulos'),
+    path('propriedade/<int:propriedade_id>/pecuaria/', views.pecuaria_dashboard, name='pecuaria_dashboard'),
+    path('propriedade/<int:propriedade_id>/financeiro/', views.financeiro_dashboard, name='financeiro_dashboard'),
+    path('propriedade/<int:propriedade_id>/patrimonio/', views.patrimonio_dashboard, name='patrimonio_dashboard'),
+    path('propriedade/<int:propriedade_id>/projetos/', views.projetos_dashboard, name='projetos_dashboard'),
+    path('categorias/', views.categorias_lista, name='categorias_lista'),
+]
+ENDURLS
+
+DEPOIS EXECUTE SEPARADAMENTE:
+head -n 1790 gestao_rural/views.py > /tmp/views_clean.py && mv /tmp/views_clean.py gestao_rural/views.py
+
+DEPOIS:
+source venv/bin/activate && python manage.py check
+
+SE OK:
+python manage.py runserver 127.0.0.1:8000 > /tmp/django_limpo.log 2>&1 &
+
+VERIFICAR:
+sleep 5 && ps aux | grep python | grep -v grep
+
+═══════════════════════════════════════════════════════════════
+
+🎯 RESULTADO ESPERADO:
+- ✅ Django iniciará sem erros
+- ✅ Sistema básico funcionando
+- ✅ Páginas principais acessíveis
+- ✅ Navegação básica restaurada
+
+🌐 DEPOIS DE CORRIGIR TESTE:
+http://191.252.225.106
+
+🔑 LOGIN: admin / 123456
+
+✅ O SISTEMA VOLTARÁ A FUNCIONAR!

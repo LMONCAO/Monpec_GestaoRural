@@ -1,23 +1,35 @@
-{% extends 'base.html' %}
+{% extends 'base_modulos_unificado.html' %}
 {% load static %}
+{% load formatacao_br %}
 
 {% block title %}Imobilizado - {{ propriedade.nome_propriedade }}{% endblock %}
 
+{% block breadcrumb_extra %}
+    <li class="breadcrumb-item active">
+        <i class="bi bi-building"></i>
+        Bens e Patrimônio
+    </li>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid">
+    <!-- Header da Página -->
+    <div class="submenu-page-header">
+        <div class="d-flex align-items-start gap-4">
+            <div class="submenu-page-icon">
+                <i class="bi bi-building"></i>
+            </div>
+            <div class="flex-grow-1">
+                <h1 class="submenu-page-title">Bens e Patrimônio</h1>
+                <p class="submenu-page-description">
+                    Gerencie o patrimônio imobilizado da propriedade {{ propriedade.nome_propriedade }} com cálculo automático de depreciação.
+                </p>
+            </div>
+        </div>
+    </div>
+    
     <div class="row">
         <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <h2 class="text-dark mb-1">
-                        <i class="bi bi-building text-primary"></i> Módulo Imobilizado
-                    </h2>
-                    <p class="text-muted mb-0">{{ propriedade.nome_propriedade }} - {{ propriedade.municipio }}/{{ propriedade.uf }}</p>
-                </div>
-                <a href="{% url 'propriedades_lista' propriedade.produtor.id %}" class="btn btn-outline-secondary">
-                    <i class="bi bi-arrow-left"></i> Voltar às Propriedades
-                </a>
-            </div>
 
             <!-- Resumo Executivo -->
             <div class="row mb-4">
@@ -28,7 +40,7 @@
                                 <i class="bi bi-cash-stack text-primary fs-4"></i>
                             </div>
                             <h6 class="text-dark mb-1">Valor Total dos Bens</h6>
-                            <h4 class="text-primary mb-0">R$ {{ valor_total_bens|floatformat:2 }}</h4>
+                            <h4 class="text-primary mb-0">{{ valor_total_bens|moeda_br }}</h4>
                         </div>
                     </div>
                 </div>
@@ -40,7 +52,7 @@
                                 <i class="bi bi-graph-down text-warning fs-4"></i>
                             </div>
                             <h6 class="text-dark mb-1">Valor Depreciado</h6>
-                            <h4 class="text-warning mb-0">R$ {{ valor_depreciado|floatformat:2 }}</h4>
+                            <h4 class="text-warning mb-0">{{ valor_depreciado|moeda_br }}</h4>
                         </div>
                     </div>
                 </div>
@@ -52,7 +64,7 @@
                                 <i class="bi bi-graph-up text-success fs-4"></i>
                             </div>
                             <h6 class="text-dark mb-1">Valor Residual</h6>
-                            <h4 class="text-success mb-0">R$ {{ valor_residual|floatformat:2 }}</h4>
+                            <h4 class="text-success mb-0">{{ valor_residual|moeda_br }}</h4>
                         </div>
                     </div>
                 </div>
@@ -64,7 +76,7 @@
                                 <i class="bi bi-exclamation-triangle text-info fs-4"></i>
                             </div>
                             <h6 class="text-dark mb-1">Bens Vencendo</h6>
-                            <h4 class="text-info mb-0">{{ bens_vencendo }}</h4>
+                            <h4 class="text-info mb-0">{{ bens_vencendo|numero_br:0 }}</h4>
                         </div>
                     </div>
                 </div>
@@ -109,7 +121,7 @@
             <!-- Bens por Categoria -->
             {% if bens_por_categoria %}
             <div class="row mb-4">
-                {% for categoria, dados in bens_por_categoria.items %}
+                {% for categoria_key, dados in bens_por_categoria.items %}
                 <div class="col-md-6 col-lg-4 mb-3">
                     <div class="card border-0 shadow-sm h-100">
                         <div class="card-body p-4">
@@ -117,24 +129,24 @@
                                 <div class="bg-secondary bg-opacity-10 rounded-circle p-2 me-3">
                                     <i class="bi bi-building text-secondary"></i>
                                 </div>
-                                <h5 class="text-dark mb-0">{{ categoria }}</h5>
+                                <h5 class="text-dark mb-0">{{ dados.nome }}</h5>
                             </div>
                             <div class="row">
                                 <div class="col-6">
                                     <p class="text-muted small mb-1">Quantidade</p>
-                                    <h6 class="text-dark">{{ dados.quantidade }}</h6>
+                                    <h6 class="text-dark">{{ dados.quantidade|numero_br:0 }}</h6>
                                 </div>
                                 <div class="col-6">
                                     <p class="text-muted small mb-1">Valor Total</p>
-                                    <h6 class="text-dark">R$ {{ dados.valor_total|floatformat:2 }}</h6>
+                                    <h6 class="text-dark">{{ dados.valor_total|moeda_br }}</h6>
                                 </div>
                                 <div class="col-6">
                                     <p class="text-muted small mb-1">Depreciado</p>
-                                    <h6 class="text-warning">R$ {{ dados.valor_depreciado|floatformat:2 }}</h6>
+                                    <h6 class="text-warning">{{ dados.valor_depreciado|moeda_br }}</h6>
                                 </div>
                                 <div class="col-6">
                                     <p class="text-muted small mb-1">Residual</p>
-                                    <h6 class="text-success">R$ {{ dados.valor_total|add:dados.valor_depreciado|floatformat:2 }}</h6>
+                                    <h6 class="text-success">{{ dados.valor_total|add:dados.valor_depreciado|moeda_br }}</h6>
                                 </div>
                             </div>
                         </div>
@@ -170,19 +182,19 @@
                                 {% for bem in bens|slice:":10" %}
                                 <tr>
                                     <td>
-                                        <i class="bi bi-building"></i> {{ bem.nome }}
+                                        <i class="bi bi-building"></i> {{ bem.descricao }}
                                     </td>
                                     <td>
-                                        <span class="badge bg-secondary">{{ bem.categoria.nome }}</span>
+                                        <span class="badge bg-secondary">{{ bem.tipo_bem.categoria }}</span>
                                     </td>
                                     <td>
                                         <strong>R$ {{ bem.valor_aquisicao|floatformat:2 }}</strong>
                                     </td>
                                     <td>
-                                        <span class="text-warning">R$ {{ bem.valor_depreciado|floatformat:2 }}</span>
+                                        <span class="text-warning">R$ {{ bem.depreciacao_acumulada|floatformat:2 }}</span>
                                     </td>
                                     <td>
-                                        <span class="text-success">R$ {{ bem.valor_aquisicao|add:bem.valor_depreciado|floatformat:2 }}</span>
+                                        <span class="text-success">R$ {{ bem.valor_atual|floatformat:2 }}</span>
                                     </td>
                                     <td>
                                         {{ bem.data_aquisicao|date:"d/m/Y" }}

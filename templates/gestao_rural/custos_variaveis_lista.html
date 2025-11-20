@@ -1,5 +1,5 @@
-{% extends 'base.html' %}
-{% load static %}
+{% extends 'base_modulos_unificado.html' %}
+{% load formatacao_br %}
 
 {% block title %}Custos Variáveis - {{ propriedade.nome_propriedade }}{% endblock %}
 
@@ -50,7 +50,7 @@
                     <h5 class="card-title text-warning">
                         <i class="bi bi-currency-dollar"></i> Custo por Cabeça
                     </h5>
-                    <h3 class="text-warning">R$ {{ custo_por_cabeca_total|floatformat:2 }}</h3>
+                    <h3 class="text-warning">{{ custo_por_cabeca_total|moeda_br }}</h3>
                     <small class="text-muted">Por animal</small>
                 </div>
             </div>
@@ -61,8 +61,8 @@
                     <h5 class="card-title text-success">
                         <i class="bi bi-calculator"></i> Custo Total
                     </h5>
-                    <h3 class="text-success">R$ {{ custo_total_projecao|floatformat:2 }}</h3>
-                    <small class="text-muted">Para {{ total_animais }} animais</small>
+                    <h3 class="text-success">{{ custo_total_projecao|moeda_br }}</h3>
+                    <small class="text-muted">Para {{ total_animais|numero_br:0 }} animais</small>
                 </div>
             </div>
         </div>
@@ -104,11 +104,11 @@
                                             <span class="badge bg-warning text-dark">{{ custo.get_tipo_custo_display }}</span>
                                         </td>
                                         <td>
-                                            <strong class="text-primary">R$ {{ custo.valor_por_cabeca|floatformat:2 }}</strong>
+                                            <strong class="text-primary">{{ custo.valor_por_cabeca|moeda_br }}</strong>
                                         </td>
                                         <td>
-                                            <strong class="text-success">R$ {{ custo.impacto_total|floatformat:2 }}</strong>
-                                            <br><small class="text-muted">Para {{ total_animais }} animais</small>
+                                            <strong class="text-success">{{ custo.impacto_total|moeda_br }}</strong>
+                                            <br><small class="text-muted">Para {{ total_animais|numero_br:0 }} animais</small>
                                         </td>
                                         <td>
                                             {% if custo.ativo %}

@@ -39,7 +39,7 @@ class Command(BaseCommand):
                 'uf': 'SP',
                 'area_total_ha': 100.0,
                 'tipo_operacao': 'PECUARIA',
-                'tipo_ciclo_pecuario': 'CICLO_COMPLETO'
+                'tipo_ciclo_pecuario': ['CICLO_COMPLETO']
             }
         )
         

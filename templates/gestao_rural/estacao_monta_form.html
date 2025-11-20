@@ -1,0 +1,83 @@
+{% extends "base_modulos_unificado.html" %}
+{% load formatacao_br %}
+
+{% block title %}Nova Estação de Monta - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'reproducao_dashboard' propriedade.id %}">Reprodução</a></li>
+            <li class="breadcrumb-item active">Nova Estação de Monta</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1"><i class="bi bi-calendar-event text-primary me-2"></i>Nova Estação de Monta</h2>
+            <p class="text-muted mb-0">{{ propriedade.nome_propriedade }}</p>
+        </div>
+        <div>
+            <a href="{% url 'reproducao_dashboard' propriedade.id %}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left me-1"></i>Voltar
+            </a>
+        </div>
+    </div>
+
+    <form method="post" class="card shadow-sm">
+        {% csrf_token %}
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Nome da Estação</label>
+                    <input type="text" name="nome" class="form-control" placeholder="Ex: Estação Primavera 2025" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Tipo</label>
+                    <select name="tipo" class="form-select">
+                        <option value="FIXA" selected>Estação Fixa</option>
+                        <option value="CONTINUA">Monta Contínua</option>
+                        <option value="IATF">IATF Programada</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Taxa Prenhez Objetivo (%)</label>
+                    <input type="number" name="taxa_prenhez_objetivo" class="form-control" step="0.1" value="85">
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">Data Início</label>
+                    <input type="date" name="data_inicio" class="form-control" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Data Fim</label>
+                    <input type="date" name="data_fim" class="form-control" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Nº Vacas Objetivo</label>
+                    <input type="number" name="numero_vacas_objetivo" class="form-control" min="0" value="0">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Observações</label>
+                    <textarea name="observacoes" class="form-control" rows="1" placeholder="Informações adicionais"></textarea>
+                </div>
+            </div>
+        </div>
+        <div class="card-footer d-flex justify-content-end gap-2">
+            <a href="{% url 'reproducao_dashboard' propriedade.id %}" class="btn btn-outline-secondary">
+                Cancelar
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-save me-1"></i>Salvar Estação
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+
+
+
+

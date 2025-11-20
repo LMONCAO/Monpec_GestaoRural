@@ -1,0 +1,25 @@
+# === EXECUTE UM COMANDO POR VEZ ===
+# Aguarde cada comando terminar antes do próximo
+
+# 1. Mate tudo:
+pkill -9 python
+
+# 2. Espere 3 segundos e verifique:
+ps aux | grep python | grep -v grep
+
+# 3. Vá para o diretório:
+cd /var/www/monpec.com.br
+
+# 4. Ative o ambiente:
+source venv/bin/activate
+
+# 5. Teste o Django:
+python manage.py check
+
+# 6. Se deu OK, inicie:
+python manage.py runserver 127.0.0.1:8000
+
+# NOTA: O comando acima vai ficar rodando na tela
+# Se funcionar, abra outro terminal ou use Ctrl+C para parar
+# Depois inicie em background com:
+# nohup python manage.py runserver 127.0.0.1:8000 > /tmp/django.log 2>&1 &

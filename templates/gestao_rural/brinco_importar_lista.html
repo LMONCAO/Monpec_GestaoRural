@@ -1,0 +1,108 @@
+{% extends "base_modulos_unificado.html" %}
+
+{% block title %}Importar Brincos de Lista - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'brincos_lista' propriedade.id %}">Brincos</a></li>
+            <li class="breadcrumb-item active">Importar de Lista</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header bg-warning">
+                    <h5 class="mb-0"><i class="bi bi-upload me-2"></i>Importar Brincos de Lista</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data" class="row g-3">
+                        {% csrf_token %}
+                        <div class="col-md-6">
+                            <label class="form-label">Tipo de Brinco *</label>
+                            <select name="tipo_brinco" class="form-select" required>
+                                <option value="VISUAL">Visual</option>
+                                <option value="ELETRONICO">Eletrônico (RFID)</option>
+                                <option value="BOTTON">Botton</option>
+                                <option value="BOLINHA">Bolinha</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Data de Aquisição</label>
+                            <input type="date" name="data_aquisicao" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Código do Lote</label>
+                            <input type="text" name="codigo_lote" class="form-control" placeholder="Identificador do lote de brincos">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Fornecedor</label>
+                            <input type="text" name="fornecedor" class="form-control" placeholder="Empresa fornecedora">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Valor Unitário (R$)</label>
+                            <input type="number" step="0.01" name="valor_unitario" class="form-control" placeholder="Opcional">
+                        </div>
+                        <div class="col-12">
+                            <hr>
+                            <h6 class="mb-3">Opção 1: Enviar Arquivo de Texto</h6>
+                            <label class="form-label">Arquivo (.txt) com números SISBOV (um por linha)</label>
+                            <input type="file" name="arquivo" class="form-control" accept=".txt">
+                            <small class="text-muted">Arquivo deve conter um número SISBOV por linha. Asteriscos (*) serão removidos automaticamente.</small>
+                        </div>
+                        <div class="col-12">
+                            <hr>
+                            <h6 class="mb-3">Opção 2: Colar Lista de Números</h6>
+                            <label class="form-label">Cole os números SISBOV aqui (um por linha)</label>
+                            <textarea name="lista_numeros" class="form-control" rows="10" placeholder="105500376200360&#10;105500376200378&#10;105500376200386&#10;..."></textarea>
+                            <small class="text-muted">Cole os números, um por linha. Pode conter asteriscos (*) que serão removidos automaticamente.</small>
+                        </div>
+                        <div class="col-12">
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle me-2"></i>
+                                <strong>Importante:</strong>
+                                <ul class="mb-0 mt-2">
+                                    <li>Cada número deve ter exatamente 15 dígitos</li>
+                                    <li>Asteriscos (*) e outros caracteres especiais serão removidos automaticamente</li>
+                                    <li>Brincos duplicados serão ignorados</li>
+                                    <li>Números inválidos serão reportados após a importação</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-warning">
+                                <i class="bi bi-upload me-1"></i>Importar Brincos
+                            </button>
+                            <a href="{% url 'brincos_lista' propriedade.id %}" class="btn btn-outline-secondary ms-2">Cancelar</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-clipboard-check me-2"></i>Orientações</h6>
+                </div>
+                <div class="card-body small text-muted">
+                    <ul class="mb-0">
+                        <li>Use esta ferramenta para importar brincos já numerados</li>
+                        <li>O sistema remove automaticamente asteriscos (*) e caracteres especiais</li>
+                        <li>Valida se cada número tem exatamente 15 dígitos</li>
+                        <li>Ignora brincos que já existem no sistema</li>
+                        <li>Reporta números inválidos após a importação</li>
+                        <li>Ideal para importar listas do BND/SISBOV</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+

@@ -1,0 +1,319 @@
+{% extends "base_modulos_unificado.html" %}
+{% load formatacao_br %}
+
+{% block title %}Lote IATF - {{ lote.nome_lote }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'iatf_dashboard' propriedade.id %}">IATF</a></li>
+            <li class="breadcrumb-item active">{{ lote.nome_lote }}</li>
+        </ol>
+    </nav>
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1"><i class="bi bi-collection text-danger me-2"></i>{{ lote.nome_lote }}</h2>
+            <p class="text-muted mb-0">{{ propriedade.nome_propriedade }}</p>
+        </div>
+        <div>
+            <span class="badge bg-{% if lote.status == 'CONCLUIDO' %}success{% elif lote.status == 'EM_ANDAMENTO' %}warning{% else %}secondary{% endif %} fs-6">
+                {{ lote.get_status_display }}
+            </span>
+        </div>
+    </div>
+
+    <!-- Informações do Lote -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">Informações do Lote</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-4">Protocolo:</dt>
+                        <dd class="col-sm-8">{{ lote.protocolo.nome }}</dd>
+                        
+                        <dt class="col-sm-4">Data de Início:</dt>
+                        <dd class="col-sm-8">{{ lote.data_inicio|date:"d/m/Y" }}</dd>
+                        
+                        <dt class="col-sm-4">Data da IATF:</dt>
+                        <dd class="col-sm-8">{{ lote.data_iatf|date:"d/m/Y" }}</dd>
+                        
+                        <dt class="col-sm-4">Categorias:</dt>
+                        <dd class="col-sm-8">
+                            {% if lote.categoria_animais.all %}
+                                {{ lote.categoria_animais.all|join:", " }}
+                            {% else %}
+                                <span class="text-muted">Não informadas</span>
+                            {% endif %}
+                        </dd>
+                        
+                        <dt class="col-sm-4">Score Reprodutivo:</dt>
+                        <dd class="col-sm-8">
+                            {% if lote.score_reprodutivo %}
+                                {{ lote.score_reprodutivo|numero_br:1 }}%
+                            {% else %}
+                                <span class="text-muted">Não avaliado</span>
+                            {% endif %}
+                        </dd>
+                        
+                        <dt class="col-sm-4">Touro (Sêmen):</dt>
+                        <dd class="col-sm-8">{{ lote.touro_semen.nome_touro|default:"-" }}</dd>
+                        
+                        <dt class="col-sm-4">Inseminador padrão:</dt>
+                        <dd class="col-sm-8">{{ lote.inseminador_padrao.get_full_name|default:lote.inseminador_padrao.username|default:"-" }}</dd>
+                        
+                        <dt class="col-sm-4">Número de Animais:</dt>
+                        <dd class="col-sm-8">{{ lote.numero_animais }}</dd>
+                        
+                        <dt class="col-sm-4">Animais Inseminados:</dt>
+                        <dd class="col-sm-8">{{ lote.animais_inseminados }}</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Resultados</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-4">Taxa de Prenhez:</dt>
+                        <dd class="col-sm-8">
+                            <span class="badge bg-success fs-6">
+                                {{ lote.taxa_prenhez|percentual_br:1|default:"Pendente" }}
+                            </span>
+                        </dd>
+                        
+                        <dt class="col-sm-4">Número de Prenhezes:</dt>
+                        <dd class="col-sm-8">{{ lote.numero_prenhezes }}</dd>
+                        
+                        <dt class="col-sm-4">Custo Total:</dt>
+                        <dd class="col-sm-8">{{ lote.custo_total|moeda_br }}</dd>
+                        
+                        <dt class="col-sm-4">Custo por Prenhez:</dt>
+                        <dd class="col-sm-8">
+                            {% if lote.numero_prenhezes > 0 %}
+                            {{ lote.custo_total|div:lote.numero_prenhezes|moeda_br }}
+                            {% else %}
+                            -
+                            {% endif %}
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Etapas do Protocolo -->
+    <div class="card mb-4">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-flag me-2 text-danger"></i>Cronograma do Protocolo</h5>
+            <span class="badge bg-secondary">Início: {{ lote.data_inicio|date:"d/m/Y" }}</span>
+        </div>
+        <div class="card-body">
+            {% if etapas %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Etapa</th>
+                            <th>Data Prevista</th>
+                            <th>Medicamento / Procedimento</th>
+                            <th>Responsável</th>
+                            <th>Status</th>
+                            <th>Execução</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for etapa in etapas %}
+                        <tr class="{% if etapa.esta_atrasada %}table-warning{% endif %}">
+                            <td>
+                                <div class="fw-semibold">{{ etapa.nome_etapa }}</div>
+                                <small class="text-muted">Dia {{ etapa.dia_relativo }} {% if etapa.codigo_etapa %}({{ etapa.codigo_etapa }}){% endif %}</small>
+                                {% if etapa.touro_semen %}
+                                <div class="small text-muted">Touro: {{ etapa.touro_semen.nome_touro }}</div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ etapa.data_prevista|date:"d/m/Y" }}
+                                {% if etapa.hora_prevista %}
+                                <div class="small text-muted">{{ etapa.hora_prevista|time:"H:i" }}</div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ etapa.medicamento_planejado|default:"-" }}
+                                {% if etapa.descricao_planejada %}
+                                <div class="small text-muted">{{ etapa.descricao_planejada }}</div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if etapa.responsavel_planejado %}
+                                    {{ etapa.responsavel_planejado.get_full_name|default:etapa.responsavel_planejado.username }}
+                                {% else %}
+                                    <span class="text-muted">Padrão</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-{% if etapa.status == 'CONCLUIDA' %}success{% elif etapa.status == 'CANCELADA' %}danger{% elif etapa.status == 'AGENDADA' %}primary{% else %}warning{% endif %}">
+                                    {{ etapa.get_status_display }}
+                                </span>
+                                {% if etapa.esta_atrasada %}
+                                <div class="small text-danger"><i class="bi bi-exclamation-triangle me-1"></i>Atrasada</div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if etapa.data_execucao %}
+                                    {{ etapa.data_execucao|date:"d/m/Y" }}
+                                    {% if etapa.hora_execucao %}
+                                    <div class="small text-muted">{{ etapa.hora_execucao|time:"H:i" }}</div>
+                                    {% endif %}
+                                    {% if etapa.responsavel_execucao %}
+                                    <div class="small text-muted">{{ etapa.responsavel_execucao.get_full_name|default:etapa.responsavel_execucao.username }}</div>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="text-muted">Pendente</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted mb-0">Nenhuma etapa cadastrada para este lote.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- IATFs do Lote -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-list-ul me-2"></i>IATFs do Lote</h5>
+            <button type="button" class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#adicionarAnimaisModal">
+                <i class="bi bi-plus-circle me-1"></i>Adicionar Animais
+            </button>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Animal</th>
+                            <th>Data Início Protocolo</th>
+                            <th>Data IATF</th>
+                            <th>Status</th>
+                            <th>Resultado</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for iatf in iatfs %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'iatf_individual_detalhes' propriedade.id iatf.id %}">
+                                    {{ iatf.animal_individual.numero_brinco }}
+                                </a>
+                            </td>
+                            <td>{{ iatf.data_inicio_protocolo|date:"d/m/Y" }}</td>
+                            <td>{{ iatf.data_iatf|date:"d/m/Y" }}</td>
+                            <td>
+                                <span class="badge bg-{% if iatf.status == 'REALIZADA' %}success{% elif iatf.status == 'CANCELADA' %}danger{% else %}warning{% endif %}">
+                                    {{ iatf.get_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if iatf.resultado %}
+                                <span class="badge bg-{% if iatf.resultado == 'PREMIDA' %}success{% elif iatf.resultado == 'VAZIA' %}danger{% else %}secondary{% endif %}">
+                                    {{ iatf.get_resultado_display }}
+                                </span>
+                                {% else %}
+                                <span class="badge bg-secondary">Pendente</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'iatf_individual_detalhes' propriedade.id iatf.id %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted">Nenhuma IATF registrada neste lote</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Adicionar Animais -->
+<div class="modal fade" id="adicionarAnimaisModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="post" action="{% url 'lote_iatf_detalhes' propriedade.id lote.id %}">
+                {% csrf_token %}
+                <input type="hidden" name="acao" value="adicionar_animais">
+                <div class="modal-header">
+                    <h5 class="modal-title">Adicionar Animais ao Lote</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="table-responsive" style="max-height: 400px;">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th><input type="checkbox" id="selectAll"></th>
+                                    <th>Brinco</th>
+                                    <th>Categoria</th>
+                                    <th>Idade</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for animal in animais_disponiveis %}
+                                <tr>
+                                    <td>
+                                        <input type="checkbox" name="animais" value="{{ animal.id }}">
+                                    </td>
+                                    <td>{{ animal.numero_brinco }}</td>
+                                    <td>{{ animal.categoria.nome|default:"-" }}</td>
+                                    <td>{{ animal.idade_meses|default:"-" }} meses</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted">Nenhum animal disponível</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Adicionar Selecionados</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('selectAll').addEventListener('change', function() {
+    const checkboxes = document.querySelectorAll('input[name="animais"]');
+    checkboxes.forEach(cb => cb.checked = this.checked);
+});
+</script>
+{% endblock %}
+
+

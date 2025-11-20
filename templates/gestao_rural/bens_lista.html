@@ -1,0 +1,257 @@
+{% extends 'base_modulos_unificado.html' %}
+{% load static %}
+{% load formatacao_br %}
+
+{% block title %}Lista de Bens - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block breadcrumb_extra %}
+    <li class="breadcrumb-item">
+        <a href="{% url 'imobilizado_dashboard' propriedade.id %}">
+            <i class="bi bi-building"></i>
+            Bens e Patrimônio
+        </a>
+    </li>
+    <li class="breadcrumb-item active">
+        <i class="bi bi-list-ul"></i>
+        Lista de Bens
+    </li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header da Página -->
+    <div class="submenu-page-header">
+        <div class="d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-3">
+                <div class="submenu-page-icon">
+                    <i class="bi bi-list-ul"></i>
+                </div>
+                <div>
+                    <h1 class="submenu-page-title">Lista de Bens Patrimoniais</h1>
+                    <p class="submenu-page-description">
+                        Gerencie todos os bens patrimoniais da propriedade {{ propriedade.nome_propriedade }}.
+                    </p>
+                </div>
+            </div>
+            <a href="{% url 'bem_novo' propriedade.id %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle me-1"></i>Novo Bem
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="content-card mb-3">
+        <div class="content-card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label small fw-semibold text-muted">Categoria</label>
+                    <select name="categoria" class="form-select form-select-sm">
+                        <option value="">Todas as categorias</option>
+                        {% for categoria in categorias %}
+                        <option value="{{ categoria.id }}" {% if categoria_filter == categoria.id %}selected{% endif %}>
+                            {{ categoria.nome }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small fw-semibold text-muted">Status</label>
+                    <select name="status" class="form-select form-select-sm">
+                        <option value="">Todos</option>
+                        <option value="ativo" {% if status_filter == 'ativo' %}selected{% endif %}>Ativo</option>
+                        <option value="inativo" {% if status_filter == 'inativo' %}selected{% endif %}>Inativo</option>
+                    </select>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn btn-sm btn-primary me-2">
+                        <i class="bi bi-funnel me-1"></i>Filtrar
+                    </button>
+                    <a href="{% url 'bens_lista' propriedade.id %}" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-x-circle me-1"></i>Limpar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabela de Bens -->
+    <div class="content-card">
+        <div class="content-card-header">
+            <h6 class="mb-0 text-dark fw-semibold">
+                <i class="bi bi-building me-2 text-muted"></i>Bens Patrimoniais
+            </h6>
+        </div>
+        <div class="content-card-body">
+            {% if page_obj %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="small">Descrição</th>
+                            <th class="small">Categoria</th>
+                            <th class="small text-center">Valor Aquisição</th>
+                            <th class="small text-center">Valor Atual</th>
+                            <th class="small text-center">Depreciação</th>
+                            <th class="small text-center">Data Aquisição</th>
+                            <th class="small text-center">Status</th>
+                            <th class="small text-center">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for bem in page_obj %}
+                        <tr>
+                            <td>
+                                <strong>{{ bem.descricao }}</strong>
+                                {% if bem.observacoes %}
+                                <br><small class="text-muted">{{ bem.observacoes|truncatewords:10 }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary">{{ bem.tipo_bem.categoria }}</span>
+                            </td>
+                            <td class="text-center">
+                                <strong class="text-primary">{{ bem.valor_aquisicao|moeda_br }}</strong>
+                            </td>
+                            <td class="text-center">
+                                <span class="text-success">{{ bem.valor_atual|moeda_br }}</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="text-warning">{{ bem.depreciacao_acumulada|moeda_br }}</span>
+                                <br><small class="text-muted">{{ bem.percentual_depreciacao|percentual_br:1 }}</small>
+                            </td>
+                            <td class="text-center">
+                                {{ bem.data_aquisicao|date:"d/m/Y" }}
+                            </td>
+                            <td class="text-center">
+                                {% if bem.ativo %}
+                                <span class="badge bg-success">Ativo</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Inativo</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'bem_editar' propriedade.id bem.id %}" class="btn btn-outline-primary" title="Editar">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="{% url 'bem_excluir' propriedade.id bem.id %}" class="btn btn-outline-danger" title="Excluir">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-light">
+                        <tr>
+                            <th colspan="2" class="text-end">Total:</th>
+                            <th class="text-center">{{ valor_total|default:0|moeda_br }}</th>
+                            <th class="text-center">{{ valor_atual_total|default:0|moeda_br }}</th>
+                            <th class="text-center">{{ depreciacao_total|default:0|moeda_br }}</th>
+                            <th colspan="3"></th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <!-- Paginação -->
+            {% if page_obj.has_other_pages %}
+            <nav aria-label="Paginação">
+                <ul class="pagination justify-content-center mb-0">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if categoria_filter %}&categoria={{ categoria_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">Anterior</a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                    {% else %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}{% if categoria_filter %}&categoria={{ categoria_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">{{ num }}</a>
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if categoria_filter %}&categoria={{ categoria_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">Próxima</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+            {% else %}
+            <div class="alert alert-warning text-center">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                Nenhum bem encontrado. <a href="{% url 'bem_novo' propriedade.id %}">Cadastre o primeiro bem</a>.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .submenu-page-header {
+        background: linear-gradient(135deg, rgba(30, 58, 95, 0.05) 0%, rgba(45, 80, 130, 0.08) 100%);
+        padding: 1.25rem 1.5rem;
+        border-radius: 12px;
+        margin-bottom: 1.5rem;
+        border: 1px solid rgba(0,0,0,0.05);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    
+    .submenu-page-icon {
+        width: 50px;
+        height: 50px;
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0.25) 100%);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+    }
+    
+    .submenu-page-icon i {
+        font-size: 1.5rem;
+        color: var(--navy);
+    }
+    
+    .submenu-page-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--text-dark);
+        margin-bottom: 0.25rem;
+    }
+    
+    .submenu-page-description {
+        color: var(--text-light);
+        font-size: 0.9rem;
+        margin-bottom: 0;
+    }
+    
+    .content-card {
+        background: white;
+        border: 1px solid var(--gray-border);
+        border-radius: 8px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+        margin-bottom: 1rem;
+    }
+    
+    .content-card-header {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid var(--gray-border);
+        background: linear-gradient(135deg, rgba(248,249,250,1) 0%, rgba(255,255,255,1) 100%);
+        border-radius: 8px 8px 0 0;
+    }
+    
+    .content-card-body {
+        padding: 1.25rem;
+    }
+</style>
+{% endblock %}

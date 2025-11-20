@@ -1,0 +1,55 @@
+﻿{% extends 'gestao_rural/base.html' %}
+
+{% block title %}Módulos - {{ propriedade.nome }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Módulos - {{ propriedade.nome }}</h1>
+    <p>Proprietário: {{ propriedade.proprietario.nome }}</p>
+</div>
+
+<div class="card">
+    <h2 style="margin-bottom: 1rem;">Ações</h2>
+    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+        <a href="{% url 'propriedades_lista' %}" class="btn btn-secondary">Voltar às Propriedades</a>
+        <a href="{% url 'inventario_lista' propriedade.id %}" class="btn btn-primary">Ver Inventário</a>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
+    <div class="card" style="text-align: center;">
+        <div style="width: 60px; height: 60px; background: #004a99; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; font-size: 1.5rem; color: white;">🐄</div>
+        <h3 style="margin-bottom: 0.5rem;">Pecuária</h3>
+        <p style="color: #666; margin-bottom: 1rem;">Gestão de rebanhos e sanidade</p>
+        <a href="{% url 'pecuaria_dashboard' propriedade.id %}" class="btn btn-primary" style="width: 100%;">Acessar</a>
+    </div>
+    
+    <div class="card" style="text-align: center;">
+        <div style="width: 60px; height: 60px; background: #004a99; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; font-size: 1.5rem; color: white;">🌱</div>
+        <h3 style="margin-bottom: 0.5rem;">Agricultura</h3>
+        <p style="color: #666; margin-bottom: 1rem;">Gestão de cultivos e ciclos</p>
+        <a href="{% url 'agricultura_dashboard' propriedade.id %}" class="btn btn-primary" style="width: 100%;">Acessar</a>
+    </div>
+    
+    <div class="card" style="text-align: center;">
+        <div style="width: 60px; height: 60px; background: #004a99; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; font-size: 1.5rem; color: white;">💰</div>
+        <h3 style="margin-bottom: 0.5rem;">Financeiro</h3>
+        <p style="color: #666; margin-bottom: 1rem;">Controle financeiro</p>
+        <a href="{% url 'financeiro_dashboard' propriedade.id %}" class="btn btn-primary" style="width: 100%;">Acessar</a>
+    </div>
+    
+    <div class="card" style="text-align: center;">
+        <div style="width: 60px; height: 60px; background: #004a99; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; font-size: 1.5rem; color: white;">🏠</div>
+        <h3 style="margin-bottom: 0.5rem;">Patrimônio</h3>
+        <p style="color: #666; margin-bottom: 1rem;">Gestão de bens</p>
+        <a href="{% url 'patrimonio_dashboard' propriedade.id %}" class="btn btn-primary" style="width: 100%;">Acessar</a>
+    </div>
+    
+    <div class="card" style="text-align: center;">
+        <div style="width: 60px; height: 60px; background: #004a99; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; font-size: 1.5rem; color: white;">📊</div>
+        <h3 style="margin-bottom: 0.5rem;">Projetos</h3>
+        <p style="color: #666; margin-bottom: 1rem;">Planejamento de projetos</p>
+        <a href="{% url 'projetos_dashboard' propriedade.id %}" class="btn btn-primary" style="width: 100%;">Acessar</a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,288 @@
+{% extends "base_modulos_unificado.html" %}
+{% load formatacao_br %}
+
+{% block title %}Editar Animal {{ animal.numero_brinco }} - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'rastreabilidade_dashboard' propriedade.id %}">Rastreabilidade</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'animal_individual_detalhes' propriedade.id animal.id %}">{{ animal.numero_brinco }}</a></li>
+            <li class="breadcrumb-item active">Editar</li>
+        </ol>
+    </nav>
+
+    <div class="card">
+        <div class="card-header bg-secondary text-white">
+            <h5 class="mb-0"><i class="bi bi-pencil-square me-2"></i>Atualizar Dados do Animal</h5>
+        </div>
+        <div class="card-body">
+            <form method="post" class="row g-3" enctype="multipart/form-data">
+                {% csrf_token %}
+
+                <div class="col-md-4">
+                    <label class="form-label">Número do Brinco</label>
+                    <input type="text" class="form-control" value="{{ animal.numero_brinco }}" disabled>
+                    <small class="text-muted">Alteração do brinco só é permitida via movimentação oficial</small>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">Apelido / Nome curto</label>
+                    <input type="text" name="apelido" class="form-control" value="{{ animal.apelido }}">
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">Foto do animal</label>
+                    {% if animal.foto %}
+                        <div class="mb-2">
+                            <img src="{{ animal.foto.url }}" class="img-thumbnail" alt="Foto do animal" style="max-width: 160px;">
+                        </div>
+                    {% endif %}
+                    <input type="file" name="foto" class="form-control" accept="image/*">
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Código SISBOV</label>
+                    <input type="text" name="codigo_sisbov" class="form-control" value="{{ animal.codigo_sisbov }}">
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Código Eletrônico (RFID)</label>
+                    <input type="text" name="codigo_eletronico" class="form-control" value="{{ animal.codigo_eletronico }}">
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Categoria SISBOV *</label>
+                    <select name="categoria" class="form-select" required>
+                        {% for categoria in categorias %}
+                        <option value="{{ categoria.id }}" {% if animal.categoria_id == categoria.id %}selected{% endif %}>{{ categoria.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Data de Nascimento</label>
+                    <input type="date" name="data_nascimento" class="form-control" value="{{ animal.data_nascimento|date:'Y-m-d' }}">
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Data de Identificação</label>
+                    <input type="date" name="data_identificacao" class="form-control" value="{{ animal.data_identificacao|date:'Y-m-d' }}">
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Propriedade de Origem</label>
+                    <select name="propriedade_origem" class="form-select">
+                        <option value="">Selecione...</option>
+                        {% for prop in propriedades %}
+                        <option value="{{ prop.id }}" {% if animal.propriedade_origem_id == prop.id %}selected{% endif %}>{{ prop.nome_propriedade }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Raça</label>
+                    <input type="text" name="raca" class="form-control" value="{{ animal.raca }}">
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Classificação zootécnica</label>
+                    <input type="text" name="classificacao_zootecnica" class="form-control" value="{{ animal.classificacao_zootecnica }}">
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Grupo / linha de produção</label>
+                    <input type="text" name="grupo_producao" class="form-control" value="{{ animal.grupo_producao }}">
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Peso Atual (kg)</label>
+                    <input type="number" step="0.01" name="peso_atual_kg" class="form-control" value="{{ animal.peso_atual_kg|default:"" }}">
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Produção diária de leite (L)</label>
+                    <input type="number" step="0.01" name="produtividade_leite_dia" class="form-control" value="{{ animal.produtividade_leite_dia|default:"" }}">
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Sistema de criação</label>
+                    <select name="sistema_criacao" class="form-select">
+                        <option value="">Selecione...</option>
+                        {% for valor, rotulo in sistema_criacao_choices %}
+                        <option value="{{ valor }}" {% if animal.sistema_criacao == valor %}selected{% endif %}>{{ rotulo }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Nível de confinamento</label>
+                    <select name="nivel_confinamento" class="form-select">
+                        <option value="">Selecione...</option>
+                        {% for valor, rotulo in nivel_confinamento_choices %}
+                        <option value="{{ valor }}" {% if animal.nivel_confinamento == valor %}selected{% endif %}>{{ rotulo }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Mãe</label>
+                    <select name="mae" class="form-select">
+                        <option value="">Não informar</option>
+                        {% for matriz in animais_maes %}
+                            <option value="{{ matriz.id }}" {% if animal.mae_id == matriz.id %}selected{% endif %}>
+                                {{ matriz.numero_brinco }} - {{ matriz.apelido|default:"Sem apelido" }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Pai</label>
+                    <select name="pai" class="form-select">
+                        <option value="">Não informar</option>
+                        {% for reprodutor in animais_pais %}
+                            <option value="{{ reprodutor.id }}" {% if animal.pai_id == reprodutor.id %}selected{% endif %}>
+                                {{ reprodutor.numero_brinco }} - {{ reprodutor.apelido|default:"Sem apelido" }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Origem genética / reprodutor</label>
+                    <input type="text" name="reprodutor_origem" class="form-control" value="{{ animal.reprodutor_origem }}">
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Status</label>
+                    <select name="status" class="form-select">
+                        {% for valor, rotulo in status_choices %}
+                        <option value="{{ valor }}" {% if animal.status == valor %}selected{% endif %}>{{ rotulo }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Status Sanitário</label>
+                    <select name="status_sanitario" class="form-select">
+                        {% for valor, rotulo in status_sanitario_choices %}
+                        <option value="{{ valor }}" {% if animal.status_sanitario == valor %}selected{% endif %}>{{ rotulo }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Status Reprodutivo</label>
+                    <select name="status_reprodutivo" class="form-select">
+                        {% for valor, rotulo in status_reprodutivo_choices %}
+                        <option value="{{ valor }}" {% if animal.status_reprodutivo == valor %}selected{% endif %}>{{ rotulo }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Data da última cobertura / IATF</label>
+                    <input type="date" name="data_ultima_cobertura" class="form-control" value="{{ animal.data_ultima_cobertura|date:'Y-m-d' }}">
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Data prevista de parto</label>
+                    <input type="date" name="data_prevista_parto" class="form-control" value="{{ animal.data_prevista_parto|date:'Y-m-d' }}">
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Lote Atual</label>
+                    <select name="lote_atual" class="form-select">
+                        <option value="">Sem lote vinculado</option>
+                        {% for lote in lotes %}
+                        <option value="{{ lote.id }}" {% if animal.lote_atual_id == lote.id %}selected{% endif %}>
+                            {{ lote.nome }} - Sessão {{ lote.sessao.nome }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Tipo de origem</label>
+                    <select name="tipo_origem" class="form-select">
+                        {% for valor, rotulo in tipo_origem_choices %}
+                        <option value="{{ valor }}" {% if animal.tipo_origem == valor %}selected{% endif %}>{{ rotulo }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Data da última movimentação</label>
+                    <input type="date" name="data_ultima_movimentacao" class="form-control" value="{{ animal.data_ultima_movimentacao|date:'Y-m-d' }}">
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Custo de aquisição (R$)</label>
+                    <input type="number" step="0.01" name="custo_aquisicao" class="form-control" value="{{ animal.custo_aquisicao|default:"" }}">
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Data de aquisição</label>
+                    <input type="date" name="data_aquisicao" class="form-control" value="{{ animal.data_aquisicao|date:'Y-m-d' }}">
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Valor estimado atual (R$)</label>
+                    <input type="number" step="0.01" name="valor_atual_estimado" class="form-control" value="{{ animal.valor_atual_estimado|default:"" }}">
+                </div>
+
+                <div class="col-md-6 d-flex align-items-end">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="on" id="registro_vacinal_em_dia" name="registro_vacinal_em_dia" {% if animal.registro_vacinal_em_dia %}checked{% endif %}>
+                        <label class="form-check-label" for="registro_vacinal_em_dia">
+                            Registro vacinal em dia
+                        </label>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Próxima vacinação obrigatória</label>
+                    <input type="date" name="proxima_vacinacao_obrigatoria" class="form-control" value="{{ animal.proxima_vacinacao_obrigatoria|date:'Y-m-d' }}">
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Carência de produtos até</label>
+                    <input type="date" name="carencia_produtos_ate" class="form-control" value="{{ animal.carencia_produtos_ate|date:'Y-m-d' }}">
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">Data de Saída</label>
+                    <input type="date" name="data_saida" class="form-control" value="{{ animal.data_saida|date:'Y-m-d' }}">
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">Motivo da Saída</label>
+                    <input type="text" name="motivo_saida" class="form-control" value="{{ animal.motivo_saida }}">
+                </div>
+
+                <div class="col-md-5">
+                    <label class="form-label">Documento de saída</label>
+                    <input type="text" name="documento_saida" class="form-control" value="{{ animal.documento_saida }}">
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label">Observações Internas</label>
+                    <textarea name="observacoes" rows="3" class="form-control">{{ animal.observacoes }}</textarea>
+                </div>
+
+                <div class="col-12 d-flex gap-2">
+                    <button type="submit" class="btn btn-secondary">
+                        <i class="bi bi-save me-1"></i>Salvar Alterações
+                    </button>
+                    <a href="{% url 'animal_individual_detalhes' propriedade.id animal.id %}" class="btn btn-outline-secondary">Cancelar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

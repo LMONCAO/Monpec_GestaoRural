@@ -1,24 +1,44 @@
-{% extends 'base.html' %}
-
-{% block title %}Editar Propriedade - Sistema Rural{% endblock %}
-
-{% block page_title %}Editar Propriedade{% endblock %}
-
-{% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="bi bi-pencil"></i> Editar Propriedade: {{ propriedade.nome_propriedade }}
-                </h5>
-                <small class="text-muted">Produtor: {{ propriedade.produtor.nome }}</small>
-            </div>
-            <div class="card-body">
-                <form method="post">
-                    {% csrf_token %}
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editar Propriedade - Sistema Rural</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding: 2rem 0;
+        }
+        .container-form {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .card {
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            border: 1px solid rgba(0, 0, 0, 0.125);
+        }
+        .form-label {
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="container-form">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-pencil"></i> Editar Propriedade: {{ propriedade.nome_propriedade }}
+                    </h5>
+                    <small class="text-muted">Produtor: {{ propriedade.produtor.nome }}</small>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
                             <label for="{{ form.nome_propriedade.id_for_label }}" class="form-label">{{ form.nome_propriedade.label }}</label>
                             {{ form.nome_propriedade }}
                             {% if form.nome_propriedade.errors %}
@@ -34,16 +54,23 @@
                         </div>
                         <div class="col-md-3 mb-3">
                             <label for="{{ form.tipo_ciclo_pecuario.id_for_label }}" class="form-label">{{ form.tipo_ciclo_pecuario.label }}</label>
-                            {{ form.tipo_ciclo_pecuario }}
+                            <div class="d-flex flex-wrap gap-3">
+                                {% for checkbox in form.tipo_ciclo_pecuario %}
+                                <div class="form-check form-check-inline">
+                                    {{ checkbox.tag }}
+                                    <label class="form-check-label" for="{{ checkbox.id_for_label }}">{{ checkbox.choice_label }}</label>
+                                </div>
+                                {% endfor %}
+                            </div>
                             {% if form.tipo_ciclo_pecuario.errors %}
                                 <div class="text-danger">{{ form.tipo_ciclo_pecuario.errors }}</div>
                             {% endif %}
-                            <small class="form-text text-muted">Apenas para pecuária</small>
+                            <small class="form-text text-muted">Marque todos os ciclos pecuários presentes na propriedade.</small>
                         </div>
                     </div>
                     
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
                             <label for="{{ form.municipio.id_for_label }}" class="form-label">{{ form.municipio.label }}</label>
                             {{ form.municipio }}
                             {% if form.municipio.errors %}
@@ -66,9 +93,9 @@
                         </div>
                     </div>
                     
-                    <!-- Tipo de Propriedade -->
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
+                        <!-- Tipo de Propriedade -->
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
                             <label for="{{ form.tipo_propriedade.id_for_label }}" class="form-label">{{ form.tipo_propriedade.label }} <span class="text-danger">*</span></label>
                             {{ form.tipo_propriedade }}
                             {% if form.tipo_propriedade.errors %}
@@ -77,9 +104,9 @@
                         </div>
                     </div>
                     
-                    <!-- Campos condicionais para propriedade própria -->
-                    <div id="propriedade-propria" style="display: none;">
-                        <div class="row">
+                        <!-- Campos condicionais para propriedade própria -->
+                        <div id="propriedade-propria" style="display: none;">
+                            <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label for="{{ form.valor_hectare_proprio.id_for_label }}" class="form-label">{{ form.valor_hectare_proprio.label }}</label>
                                 {{ form.valor_hectare_proprio }}
@@ -96,9 +123,9 @@
                         </div>
                     </div>
                     
-                    <!-- Campos condicionais para arrendamento -->
-                    <div id="propriedade-arrendamento" style="display: none;">
-                        <div class="row">
+                        <!-- Campos condicionais para arrendamento -->
+                        <div id="propriedade-arrendamento" style="display: none;">
+                            <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label for="{{ form.valor_mensal_hectare_arrendamento.id_for_label }}" class="form-label">{{ form.valor_mensal_hectare_arrendamento.label }}</label>
                                 {{ form.valor_mensal_hectare_arrendamento }}
@@ -115,9 +142,9 @@
                         </div>
                     </div>
                     
-                    <!-- Documentação -->
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
+                        <!-- Documentação -->
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
                             <label for="{{ form.nirf.id_for_label }}" class="form-label">{{ form.nirf.label }}</label>
                             {{ form.nirf }}
                             {% if form.nirf.errors %}
@@ -140,22 +167,21 @@
                         </div>
                     </div>
                     
-                    <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-check"></i> Salvar
-                        </button>
-                        <a href="{% url 'propriedades_lista' propriedade.produtor.id %}" class="btn btn-secondary">
-                            <i class="bi bi-arrow-left"></i> Voltar
-                        </a>
-                    </div>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check"></i> Salvar
+                            </button>
+                            <a href="{% url 'propriedades_lista' propriedade.produtor.id %}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Voltar
+                            </a>
+                        </div>
                 </form>
+                </div>
             </div>
         </div>
     </div>
-</div>
-{% endblock %}
 
-{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const tipoPropriedadeSelect = document.getElementById('id_tipo_propriedade');
@@ -187,7 +213,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const valorHectare = parseFloat(valorHectareProprio.value) || 0;
         const total = area * valorHectare;
         
-        if (total > 0) {
+        if (total > 0 && window.formatarMoedaBR) {
+            valorTotalPropriedade.innerHTML = `<strong>${window.formatarMoedaBR(total)}</strong>`;
+        } else if (total > 0) {
             valorTotalPropriedade.innerHTML = `<strong>R$ ${total.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</strong>`;
         } else {
             valorTotalPropriedade.innerHTML = '<span class="text-muted">Será calculado automaticamente</span>';
@@ -199,7 +227,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const valorMensal = parseFloat(valorMensalHectare.value) || 0;
         const total = area * valorMensal;
         
-        if (total > 0) {
+        if (total > 0 && window.formatarMoedaBR) {
+            valorMensalTotal.innerHTML = `<strong>${window.formatarMoedaBR(total)}</strong>`;
+        } else if (total > 0) {
             valorMensalTotal.innerHTML = `<strong>R$ ${total.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</strong>`;
         } else {
             valorMensalTotal.innerHTML = '<span class="text-muted">Será calculado automaticamente</span>';
@@ -221,4 +251,5 @@ document.addEventListener('DOMContentLoaded', function() {
     calcularValorMensalTotal();
 });
 </script>
-{% endblock %}
+</body>
+</html>

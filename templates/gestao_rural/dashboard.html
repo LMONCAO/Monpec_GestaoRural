@@ -1,100 +1,1136 @@
-{% extends 'base.html' %}
+{% extends 'base_moderno.html' %}
 
-{% block title %}Dashboard - Sistema Rural{% endblock %}
+{% block title %}Dashboard - Monpec Agro{% endblock %}
 
-{% block page_title %}Dashboard{% endblock %}
-
-{% block content %}
-<div class="row">
-    <div class="col-12">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2>Produtores Rurais</h2>
-            <a href="{% url 'produtor_novo' %}" class="btn btn-primary">
-                <i class="bi bi-person-plus"></i> Adicionar Novo Produtor
+{% block content_authenticated %}
+<div class="fade-in-up dashboard-container">
+    <!-- Cabeçalho da Página -->
+    <div class="page-header-section mb-5">
+        <div class="d-flex flex-wrap gap-3 justify-content-between align-items-center">
+            <div>
+                <h1 class="page-title-main">Dashboard</h1>
+                <p class="page-subtitle-main">Gestão Completa de Produtores Rurais</p>
+            </div>
+            <a href="{% url 'produtor_novo' %}" class="btn-add-produtor">
+                <i class="bi bi-plus-circle-fill"></i>
+                <span>Novo Produtor</span>
             </a>
         </div>
-        
-        {% if produtores %}
-        <div class="row">
-            {% for produtor in produtores %}
-            <div class="col-md-6 col-lg-4 mb-4">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <h5 class="card-title">
-                            <i class="bi bi-person-circle"></i> {{ produtor.nome }}
-                        </h5>
-                        <p class="card-text">
-                            <strong>CPF/CNPJ:</strong> {{ produtor.cpf_cnpj }}<br>
-                            {% if produtor.documento_identidade %}
-                                <strong>RG:</strong> {{ produtor.documento_identidade }}<br>
-                            {% endif %}
-                            {% if produtor.data_nascimento %}
-                                <strong>Idade:</strong> {{ produtor.idade }} anos<br>
-                            {% endif %}
-                            {% if produtor.anos_experiencia %}
-                                <strong>Experiência:</strong> {{ produtor.anos_experiencia }} anos<br>
-                            {% endif %}
-                            <strong>Telefone:</strong> {{ produtor.telefone|default:"Não informado" }}<br>
-                            <strong>E-mail:</strong> {{ produtor.email|default:"Não informado" }}
-                        </p>
-                        <div class="d-flex gap-2">
-                            <a href="{% url 'propriedades_lista' produtor.id %}" class="btn btn-outline-primary btn-sm">
-                                <i class="bi bi-house"></i> Propriedades
-                            </a>
-                            <a href="{% url 'produtor_editar' produtor.id %}" class="btn btn-outline-secondary btn-sm">
-                                <i class="bi bi-pencil"></i> Editar
-                            </a>
-                            <a href="{% url 'produtor_excluir' produtor.id %}" class="btn btn-outline-danger btn-sm">
-                                <i class="bi bi-trash"></i> Excluir
-                            </a>
-                        </div>
+    </div>
+
+    <!-- Cards de Estatísticas -->
+    <div class="row g-4 stats-grid mb-5">
+        <div class="col-xxl-3 col-lg-6 col-md-6">
+            <div class="stat-card stat-card-blue">
+                <div class="stat-card-header">
+                    <div class="stat-icon-wrapper blue">
+                        <i class="bi bi-people-fill"></i>
+                    </div>
+                    <div class="stat-card-content">
+                        <div class="stat-label">Total de Produtores</div>
+                        <div class="stat-value">{{ total_produtores }}</div>
+                        <div class="stat-description">Produtores cadastrados</div>
                     </div>
                 </div>
+                <div class="stat-card-footer">
+                    <i class="bi bi-arrow-up-right"></i>
+                    <span>Ativos no sistema</span>
+                </div>
             </div>
-            {% endfor %}
         </div>
-        {% else %}
-        <div class="text-center py-5">
-            <i class="bi bi-person-x display-1 text-muted"></i>
-            <h3 class="mt-3 text-muted">Nenhum produtor cadastrado</h3>
-            <p class="text-muted">Comece adicionando um novo produtor rural ao sistema.</p>
-            <a href="{% url 'produtor_novo' %}" class="btn btn-primary">
-                <i class="bi bi-person-plus"></i> Adicionar Primeiro Produtor
+
+        <div class="col-xxl-3 col-lg-6 col-md-6">
+            <div class="stat-card stat-card-green">
+                <div class="stat-card-header">
+                    <div class="stat-icon-wrapper green">
+                        <i class="bi bi-building-fill"></i>
+                    </div>
+                    <div class="stat-card-content">
+                        <div class="stat-label">Propriedades</div>
+                        <div class="stat-value">{{ total_propriedades|default:0 }}</div>
+                        <div class="stat-description">Propriedades rurais</div>
+                    </div>
+                </div>
+                <div class="stat-card-footer">
+                    <i class="bi bi-arrow-up-right"></i>
+                    <span>Ativas</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xxl-3 col-lg-6 col-md-6">
+            <div class="stat-card stat-card-orange">
+                <div class="stat-card-header">
+                    <div class="stat-icon-wrapper orange">
+                        <i class="bi bi-heart-pulse-fill"></i>
+                    </div>
+                    <div class="stat-card-content">
+                        <div class="stat-label">Total de Animais</div>
+                        <div class="stat-value">{{ total_animais|default:0 }}</div>
+                        <div class="stat-description">Animais no rebanho</div>
+                    </div>
+                </div>
+                <div class="stat-card-footer">
+                    <i class="bi bi-arrow-up-right"></i>
+                    <span>Rastreáveis</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xxl-3 col-lg-6 col-md-6">
+            <div class="stat-card stat-card-purple">
+                <div class="stat-card-header">
+                    <div class="stat-icon-wrapper purple">
+                        <i class="bi bi-file-earmark-text-fill"></i>
+                    </div>
+                    <div class="stat-card-content">
+                        <div class="stat-label">Nesta Página</div>
+                        <div class="stat-value">{{ produtores|length }}</div>
+                        <div class="stat-description">Produtores exibidos</div>
+                    </div>
+                </div>
+                <div class="stat-card-footer">
+                    <i class="bi bi-arrow-up-right"></i>
+                    <span>Visualizando</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Barra de Busca e Filtros -->
+    <div class="search-filter-section mb-4">
+        <div class="search-filter-card">
+            <form method="GET" class="search-form">
+                <div class="row g-3">
+                    <div class="col-lg-5 col-md-12">
+                        <div class="search-input-wrapper">
+                            <i class="bi bi-search search-icon"></i>
+                            <input type="text" 
+                                   class="search-input" 
+                                   name="busca" 
+                                   value="{{ busca }}" 
+                                   placeholder="Buscar por nome, CPF/CNPJ, cidade, estado, telefone ou email...">
+                            {% if busca %}
+                            <a href="{% url 'dashboard' %}" class="clear-search" title="Limpar busca">
+                                <i class="bi bi-x-circle-fill"></i>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <select name="ordenar" class="filter-select">
+                            <option value="nome" {% if ordenar_por == 'nome' %}selected{% endif %}>Ordenar por Nome</option>
+                            <option value="cidade" {% if ordenar_por == 'cidade' %}selected{% endif %}>Ordenar por Cidade</option>
+                            <option value="estado" {% if ordenar_por == 'estado' %}selected{% endif %}>Ordenar por Estado</option>
+                            <option value="propriedades" {% if ordenar_por == 'propriedades' %}selected{% endif %}>Ordenar por Propriedades</option>
+                            <option value="animais" {% if ordenar_por == 'animais' %}selected{% endif %}>Ordenar por Animais</option>
+                            <option value="data_cadastro" {% if ordenar_por == 'data_cadastro' %}selected{% endif %}>Ordenar por Data</option>
+                        </select>
+                    </div>
+                    <div class="col-lg-2 col-md-3">
+                        <select name="direcao" class="filter-select">
+                            <option value="asc" {% if direcao == 'asc' %}selected{% endif %}>Crescente</option>
+                            <option value="desc" {% if direcao == 'desc' %}selected{% endif %}>Decrescente</option>
+                        </select>
+                    </div>
+                    <div class="col-lg-2 col-md-3">
+                        <button type="submit" class="btn-search">
+                            <i class="bi bi-search"></i>
+                            <span>Buscar</span>
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Resultados da Busca -->
+    {% if busca %}
+    <div class="alert-search-results mb-4">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-info-circle-fill"></i>
+                <div>
+                    <strong>Resultados da busca:</strong> 
+                    {{ total_produtores }} produtor(es) encontrado(s) para "<strong>{{ busca }}</strong>"
+                </div>
+            </div>
+            <a href="{% url 'dashboard' %}" class="btn-clear-search">
+                <i class="bi bi-x-circle-fill"></i>
+                Limpar Busca
             </a>
         </div>
-        {% endif %}
     </div>
-    
+    {% endif %}
+
+    <!-- Lista de Produtores -->
+    {% if produtores %}
+    <div class="table-section">
+        <div class="table-card">
+            <div class="table-responsive">
+                <table class="table-produtores">
+                    <thead>
+                        <tr>
+                            <th class="col-produtor">Produtor</th>
+                            <th class="col-cpf text-center">CPF/CNPJ</th>
+                            <th class="col-contato text-center">Contato</th>
+                            <th class="col-props text-center">Propriedades</th>
+                            <th class="col-animais text-center">Animais</th>
+                            <th class="col-location">Localização</th>
+                            <th class="col-actions text-end">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for produtor in produtores %}
+                        <tr>
+                            <td class="col-produtor">
+                                <div class="produtor-info">
+                                    <div class="produtor-avatar">
+                                        <i class="bi bi-person-fill"></i>
+                                    </div>
+                                    <div class="produtor-details">
+                                        <div class="produtor-name">{{ produtor.nome }}</div>
+                                        <div class="produtor-date">
+                                            <i class="bi bi-calendar3"></i>
+                                            Cadastrado em {{ produtor.data_cadastro|date:"d/m/Y" }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="col-cpf text-center">
+                                <span class="badge-cpf">{{ produtor.cpf_cnpj }}</span>
+                            </td>
+                            <td class="col-contato text-center">
+                                <div class="contact-details">
+                                    {% if produtor.telefone %}
+                                    <div class="contact-item">
+                                        <i class="bi bi-telephone-fill"></i>
+                                        <span>{{ produtor.telefone }}</span>
+                                    </div>
+                                    {% endif %}
+                                    {% if produtor.email %}
+                                    <div class="contact-item">
+                                        <i class="bi bi-envelope-fill"></i>
+                                        <span>{{ produtor.email }}</span>
+                                    </div>
+                                    {% endif %}
+                                    {% if not produtor.telefone and not produtor.email %}
+                                    <span class="text-muted">—</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td class="col-props text-center">
+                                <span class="badge-number">{{ produtor.total_propriedades|default:0 }}</span>
+                            </td>
+                            <td class="col-animais text-center">
+                                <span class="badge-number badge-animals">{{ produtor.total_animais_produtor|default:0 }}</span>
+                            </td>
+                            <td class="col-location">
+                                {% if produtor.cidade_principal %}
+                                <div class="location-details">
+                                    <i class="bi bi-geo-alt-fill"></i>
+                                    <span>
+                                        {{ produtor.cidade_principal }}
+                                        {% if produtor.estado_principal %}/ {{ produtor.estado_principal }}{% endif %}
+                                    </span>
+                                </div>
+                                {% else %}
+                                <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td class="col-actions text-end">
+                                <div class="action-buttons">
+                                    <a href="{% url 'propriedades_lista' produtor.id %}" class="btn-action btn-access">
+                                        <i class="bi bi-house-door-fill"></i>
+                                        <span>Acessar</span>
+                                    </a>
+                                    <a href="{% url 'produtor_editar' produtor.id %}" class="btn-action btn-edit" title="Editar">
+                                        <i class="bi bi-pencil-fill"></i>
+                                    </a>
+                                    <a href="{% url 'produtor_excluir' produtor.id %}" class="btn-action btn-delete" title="Excluir">
+                                        <i class="bi bi-trash-fill"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Paginação -->
+    {% if page_obj.has_other_pages %}
+    <div class="pagination-section mt-4">
+        <nav aria-label="Paginação de produtores">
+            <ul class="pagination-custom">
+                {% if page_obj.has_previous %}
+                    <li class="page-item-custom">
+                        <a class="page-link-custom" href="?page=1{% if busca %}&busca={{ busca }}{% endif %}{% if ordenar_por %}&ordenar={{ ordenar_por }}{% endif %}{% if direcao %}&direcao={{ direcao }}{% endif %}" title="Primeira página">
+                            <i class="bi bi-chevron-double-left"></i>
+                        </a>
+                    </li>
+                    <li class="page-item-custom">
+                        <a class="page-link-custom" href="?page={{ page_obj.previous_page_number }}{% if busca %}&busca={{ busca }}{% endif %}{% if ordenar_por %}&ordenar={{ ordenar_por }}{% endif %}{% if direcao %}&direcao={{ direcao }}{% endif %}" title="Página anterior">
+                            <i class="bi bi-chevron-left"></i>
+                        </a>
+                    </li>
+                {% endif %}
+
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <li class="page-item-custom active">
+                            <span class="page-link-custom">{{ num }}</span>
+                        </li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item-custom">
+                            <a class="page-link-custom" href="?page={{ num }}{% if busca %}&busca={{ busca }}{% endif %}{% if ordenar_por %}&ordenar={{ ordenar_por }}{% endif %}{% if direcao %}&direcao={{ direcao }}{% endif %}">{{ num }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                    <li class="page-item-custom">
+                        <a class="page-link-custom" href="?page={{ page_obj.next_page_number }}{% if busca %}&busca={{ busca }}{% endif %}{% if ordenar_por %}&ordenar={{ ordenar_por }}{% endif %}{% if direcao %}&direcao={{ direcao }}{% endif %}" title="Próxima página">
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </li>
+                    <li class="page-item-custom">
+                        <a class="page-link-custom" href="?page={{ page_obj.paginator.num_pages }}{% if busca %}&busca={{ busca }}{% endif %}{% if ordenar_por %}&ordenar={{ ordenar_por }}{% endif %}{% if direcao %}&direcao={{ direcao }}{% endif %}" title="Última página">
+                            <i class="bi bi-chevron-double-right"></i>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+            
+            <div class="pagination-info">
+                <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+                <span class="divider">•</span>
+                <span>{{ total_produtores }} produtor(es) no total</span>
+            </div>
+        </nav>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <!-- Estado Vazio -->
+    <div class="empty-state-section">
+        <div class="empty-state-card">
+            <div class="empty-icon-wrapper">
+                <i class="bi bi-people-fill"></i>
+            </div>
+            <h3 class="empty-title">
+                {% if busca %}
+                    Nenhum produtor encontrado
+                {% else %}
+                    Nenhum produtor cadastrado
+                {% endif %}
+            </h3>
+            <p class="empty-description">
+                {% if busca %}
+                    Não encontramos resultados para sua busca. Tente ajustar os termos ou 
+                    <a href="{% url 'dashboard' %}">limpar os filtros</a>.
+                {% else %}
+                    Comece cadastrando seu primeiro produtor rural para gerenciar suas propriedades e animais.
+                {% endif %}
+            </p>
+            {% if not busca %}
+            <a href="{% url 'produtor_novo' %}" class="btn-add-first">
+                <i class="bi bi-person-plus-fill"></i>
+                <span>Cadastrar Primeiro Produtor</span>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
 </div>
 
 <style>
-.card {
-    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+/* Importar fonte Inter */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+/* Reset e configurações globais */
+.dashboard-container {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
-.card:hover {
+.dashboard-container * {
+    font-family: 'Inter', sans-serif !important;
+}
+
+/* Cabeçalho da Página */
+.page-header-section {
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.page-title-main {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0 0 0.5rem 0;
+    letter-spacing: -0.02em;
+}
+
+.page-subtitle-main {
+    font-size: 1rem;
+    font-weight: 500;
+    color: #64748b;
+    margin: 0;
+}
+
+.btn-add-produtor {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.btn-add-produtor:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.1) !important;
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+    color: white;
 }
 
-.bg-opacity-10 {
-    background-color: rgba(var(--bs-primary-rgb), 0.1) !important;
+.btn-add-produtor i {
+    font-size: 1.125rem;
 }
 
-.bg-primary.bg-opacity-10 {
-    background-color: rgba(13, 110, 253, 0.1) !important;
+/* Cards de Estatísticas */
+.stats-grid {
+    margin-bottom: 2rem;
 }
 
-.bg-success.bg-opacity-10 {
-    background-color: rgba(25, 135, 84, 0.1) !important;
+.stat-card {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    border: 1px solid #e2e8f0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
 }
 
-.bg-warning.bg-opacity-10 {
-    background-color: rgba(255, 193, 7, 0.1) !important;
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, transparent, currentColor, transparent);
+    opacity: 0;
+    transition: opacity 0.3s ease;
 }
 
-.bg-info.bg-opacity-10 {
-    background-color: rgba(13, 202, 240, 0.1) !important;
+.stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+}
+
+.stat-card:hover::before {
+    opacity: 1;
+}
+
+.stat-card-blue {
+    border-top: 4px solid #3b82f6;
+}
+
+.stat-card-blue:hover {
+    border-color: #3b82f6;
+}
+
+.stat-card-green {
+    border-top: 4px solid #10b981;
+}
+
+.stat-card-green:hover {
+    border-color: #10b981;
+}
+
+.stat-card-orange {
+    border-top: 4px solid #f59e0b;
+}
+
+.stat-card-orange:hover {
+    border-color: #f59e0b;
+}
+
+.stat-card-purple {
+    border-top: 4px solid #8b5cf6;
+}
+
+.stat-card-purple:hover {
+    border-color: #8b5cf6;
+}
+
+.stat-card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.stat-icon-wrapper {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.stat-icon-wrapper.blue {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    color: #2563eb;
+}
+
+.stat-icon-wrapper.green {
+    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+    color: #059669;
+}
+
+.stat-icon-wrapper.orange {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    color: #d97706;
+}
+
+.stat-icon-wrapper.purple {
+    background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
+    color: #7c3aed;
+}
+
+.stat-card-content {
+    flex: 1;
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+    margin-bottom: 0.5rem;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.2;
+    margin-bottom: 0.25rem;
+    letter-spacing: -0.02em;
+}
+
+.stat-description {
+    font-size: 0.875rem;
+    color: #94a3b8;
+    font-weight: 400;
+}
+
+.stat-card-footer {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: auto;
+    padding-top: 1rem;
+    border-top: 1px solid #f1f5f9;
+    font-size: 0.8125rem;
+    color: #64748b;
+}
+
+.stat-card-footer i {
+    font-size: 1rem;
+}
+
+/* Barra de Busca */
+.search-filter-section {
+    margin-bottom: 1.5rem;
+}
+
+.search-filter-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e2e8f0;
+}
+
+.search-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-icon {
+    position: absolute;
+    left: 1rem;
+    color: #64748b;
+    font-size: 1.125rem;
+    z-index: 1;
+}
+
+.search-input {
+    width: 100%;
+    padding: 0.75rem 1rem 0.75rem 3rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 0.9375rem;
+    transition: all 0.2s ease;
+    background: #f8fafc;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    background: white;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.clear-search {
+    position: absolute;
+    right: 1rem;
+    color: #94a3b8;
+    font-size: 1.125rem;
+    transition: color 0.2s ease;
+    z-index: 1;
+}
+
+.clear-search:hover {
+    color: #64748b;
+}
+
+.filter-select {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 0.9375rem;
+    background: white;
+    color: #0f172a;
+    transition: all 0.2s ease;
+}
+
+.filter-select:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.btn-search {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.btn-search:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+/* Alerta de Resultados */
+.alert-search-results {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    border: 1px solid #93c5fd;
+    border-radius: 12px;
+    padding: 1rem 1.5rem;
+    color: #1e40af;
+}
+
+.alert-search-results i {
+    font-size: 1.25rem;
+}
+
+.btn-clear-search {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: white;
+    color: #1e40af;
+    border: 1px solid #93c5fd;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.btn-clear-search:hover {
+    background: #eff6ff;
+    color: #1e40af;
+}
+
+/* Tabela */
+.table-section {
+    margin-bottom: 2rem;
+}
+
+.table-card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+.table-produtores {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9375rem;
+}
+
+.table-produtores thead {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+.table-produtores th {
+    padding: 1rem 1.25rem;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #475569;
+    border-bottom: 2px solid #e2e8f0;
+    white-space: nowrap;
+}
+
+.table-produtores tbody tr {
+    border-bottom: 1px solid #f1f5f9;
+    transition: all 0.2s ease;
+}
+
+.table-produtores tbody tr:hover {
+    background: #f8fafc;
+}
+
+.table-produtores td {
+    padding: 1.25rem;
+    vertical-align: middle;
+}
+
+.produtor-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.produtor-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    color: #2563eb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.produtor-details {
+    flex: 1;
+    min-width: 0;
+}
+
+.produtor-name {
+    font-weight: 600;
+    font-size: 0.9375rem;
+    color: #0f172a;
+    margin-bottom: 0.25rem;
+}
+
+.produtor-date {
+    font-size: 0.8125rem;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.produtor-date i {
+    font-size: 0.75rem;
+}
+
+.badge-cpf {
+    display: inline-block;
+    padding: 0.375rem 0.75rem;
+    background: #f1f5f9;
+    color: #0f172a;
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 0.8125rem;
+    border: 1px solid #e2e8f0;
+}
+
+.contact-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    align-items: center;
+}
+
+.contact-item {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.8125rem;
+    color: #0f172a;
+}
+
+.contact-item i {
+    font-size: 0.75rem;
+    color: #64748b;
+}
+
+.badge-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 40px;
+    padding: 0.5rem 0.75rem;
+    background: #f1f5f9;
+    color: #0f172a;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    border: 1px solid #e2e8f0;
+}
+
+.badge-animals {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    color: #92400e;
+    border-color: #fcd34d;
+}
+
+.location-details {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: #0f172a;
+}
+
+.location-details i {
+    color: #ef4444;
+    font-size: 1rem;
+}
+
+.action-buttons {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    justify-content: flex-end;
+}
+
+.btn-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    padding: 0.5rem 0.875rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.8125rem;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    border: none;
+    white-space: nowrap;
+}
+
+.btn-access {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.btn-access:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+    color: white;
+}
+
+.btn-edit {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+    padding: 0.5rem;
+    min-width: 36px;
+}
+
+.btn-edit:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+}
+
+.btn-delete {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+    padding: 0.5rem;
+    min-width: 36px;
+}
+
+.btn-delete:hover {
+    background: #fee2e2;
+    color: #dc2626;
+    border-color: #fecaca;
+}
+
+/* Paginação */
+.pagination-section {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.pagination-custom {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.page-item-custom {
+    display: flex;
+}
+
+.page-link-custom {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 40px;
+    height: 40px;
+    padding: 0 0.75rem;
+    background: white;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
+}
+
+.page-link-custom:hover {
+    background: #f8fafc;
+    border-color: #3b82f6;
+    color: #3b82f6;
+}
+
+.page-item-custom.active .page-link-custom {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    border-color: #2563eb;
+}
+
+.pagination-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: #64748b;
+}
+
+.divider {
+    color: #cbd5e1;
+}
+
+/* Estado Vazio */
+.empty-state-section {
+    margin: 3rem 0;
+}
+
+.empty-state-card {
+    background: white;
+    border-radius: 16px;
+    padding: 4rem 2rem;
+    text-align: center;
+    border: 2px dashed #e2e8f0;
+}
+
+.empty-icon-wrapper {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 1.5rem;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    color: #94a3b8;
+}
+
+.empty-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 0.75rem;
+}
+
+.empty-description {
+    font-size: 1rem;
+    color: #64748b;
+    margin-bottom: 1.5rem;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.empty-description a {
+    color: #3b82f6;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.empty-description a:hover {
+    text-decoration: underline;
+}
+
+.btn-add-first {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.btn-add-first:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+    color: white;
+}
+
+/* Responsividade */
+@media (max-width: 1200px) {
+    .stat-value {
+        font-size: 1.75rem;
+    }
+}
+
+@media (max-width: 992px) {
+    .page-title-main {
+        font-size: 1.75rem;
+    }
+
+    .table-produtores {
+        font-size: 0.875rem;
+    }
+
+    .table-produtores th,
+    .table-produtores td {
+        padding: 0.875rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .page-title-main {
+        font-size: 1.5rem;
+    }
+
+    .stat-card {
+        padding: 1.25rem;
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
+    }
+
+    .table-produtores thead {
+        display: none;
+    }
+
+    .table-produtores tbody tr {
+        display: block;
+        margin-bottom: 1rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 1rem;
+    }
+
+    .table-produtores tbody td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 0;
+        border: none;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .table-produtores tbody td:last-child {
+        border-bottom: none;
+    }
+
+    .table-produtores tbody td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: #64748b;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        margin-right: 1rem;
+    }
+
+    .produtor-info {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    .action-buttons {
+        flex-wrap: wrap;
+        justify-content: flex-start;
+    }
+}
+
+.text-muted {
+    color: #94a3b8 !important;
 }
 </style>
-{% endblock %}
+{% endblock content_authenticated %}

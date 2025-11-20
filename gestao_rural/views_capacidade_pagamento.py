@@ -1,4 +1,5 @@
 from django.shortcuts import render, get_object_or_404
+from django.contrib.auth.decorators import login_required
 from django.db.models import Sum, Avg
 from django.utils import timezone
 from decimal import Decimal
@@ -7,6 +8,7 @@ from .models import Propriedade, InventarioRebanho, CustoFixo, CustoVariavel, Fi
 from .models import IndicadorFinanceiro
 
 
+@login_required
 def capacidade_pagamento_dashboard(request, propriedade_id):
     """Dashboard do módulo de capacidade de pagamento"""
     propriedade = get_object_or_404(Propriedade, id=propriedade_id)
@@ -41,11 +43,16 @@ def calcular_capacidade_pagamento(propriedade):
     try:
         # 1. RECEITAS
         inventario = InventarioRebanho.objects.filter(propriedade=propriedade)
-        valor_rebanho = sum(item.valor_total for item in inventario if item.valor_total)
+        
+        # Calcular valor_rebanho manualmente (não é campo do banco)
+        valor_rebanho = sum(
+            Decimal(str(item.quantidade)) * Decimal(str(item.valor_por_cabeca))
+            for item in inventario
+        )
         
         # Receita estimada (15% do valor do rebanho ao ano)
         receita_anual_estimada = valor_rebanho * Decimal('0.15')
-        receita_mensal_estimada = receita_anual_estimada / 12
+        receita_mensal_estimada = receita_anual_estimada / Decimal('12')
         
         # 2. CUSTOS
         custos_fixos = CustoFixo.objects.filter(propriedade=propriedade, ativo=True)
@@ -118,18 +125,23 @@ def analisar_fluxo_caixa(propriedade):
     try:
         # Busca dados básicos
         inventario = InventarioRebanho.objects.filter(propriedade=propriedade)
-        valor_rebanho = sum(item.valor_total for item in inventario if item.valor_total)
+        
+        # Calcular valor_rebanho manualmente (não é campo do banco)
+        valor_rebanho = sum(
+            Decimal(str(item.quantidade)) * Decimal(str(item.valor_por_cabeca))
+            for item in inventario
+        )
         
         custos_fixos = CustoFixo.objects.filter(propriedade=propriedade, ativo=True)
-        custo_fixo_mensal = sum(custo.valor_mensal for custo in custos_fixos if custo.valor_mensal)
+        custo_fixo_mensal = sum(Decimal(str(custo.valor_mensal)) for custo in custos_fixos if custo.valor_mensal)
         
         financiamentos = Financiamento.objects.filter(propriedade=propriedade, ativo=True)
-        parcelas_mensais = sum(f.valor_parcela for f in financiamentos)
+        parcelas_mensais = sum(Decimal(str(f.valor_parcela)) for f in financiamentos)
         
-        # Receita mensal estimada
-        receita_mensal = (valor_rebanho * Decimal('0.15')) / 12
+        # Receita mensal estimada (convertendo para Decimal)
+        receita_mensal = (valor_rebanho * Decimal('0.15')) / Decimal('12')
         
-        # Fluxo mensal
+        # Fluxo mensal (convertendo para Decimal)
         fluxo_mensal = receita_mensal - custo_fixo_mensal - parcelas_mensais
         
         # Projeção para 12 meses
@@ -179,12 +191,16 @@ def gerar_cenarios_stress(propriedade):
             {'nome': 'Cenário Crítico', 'fator_receita': 0.7, 'fator_custos': 1.3}
         ]
         
+        # Verificar se indicadores_base tem as chaves necessárias
+        receita_mensal = indicadores_base.get('receita_mensal', Decimal('0'))
+        custos_mensais = indicadores_base.get('custos_mensais', Decimal('0'))
+        
         for cenario in cenarios_stress:
-            receita_ajustada = indicadores_base['receita_mensal'] * cenario['fator_receita']
-            custos_ajustados = indicadores_base['custos_mensais'] * cenario['fator_custos']
+            receita_ajustada = receita_mensal * Decimal(str(cenario['fator_receita']))
+            custos_ajustados = custos_mensais * Decimal(str(cenario['fator_custos']))
             
             margem = receita_ajustada - custos_ajustados
-            indice = (receita_ajustada / custos_ajustados) * 100 if custos_ajustados > 0 else 0
+            indice = float(receita_ajustada / custos_ajustados) * 100 if custos_ajustados > 0 else 0
             
             # Classificação do cenário
             if indice >= 120:
@@ -219,8 +235,13 @@ def gerar_recomendacoes(propriedade, indicadores):
     recomendacoes = []
     
     try:
+        # Validar que as chaves existem no dicionário
+        indice_capacidade = indicadores.get('indice_capacidade_pagamento', 0)
+        indice_endividamento = indicadores.get('indice_endividamento', 0)
+        margem_seguranca = indicadores.get('margem_seguranca_mensal', 0)
+        
         # Recomendações baseadas no índice de capacidade
-        if indicadores['indice_capacidade_pagamento'] < 100:
+        if indice_capacidade < 100:
             recomendacoes.append({
                 'tipo': 'Crítica',
                 'titulo': 'Capacidade de Pagamento Insuficiente',
@@ -229,7 +250,7 @@ def gerar_recomendacoes(propriedade, indicadores):
                 'cor': 'danger'
             })
         
-        if indicadores['indice_endividamento'] > 30:
+        if indice_endividamento > 30:
             recomendacoes.append({
                 'tipo': 'Endividamento',
                 'titulo': 'Alto Nível de Endividamento',
@@ -238,7 +259,7 @@ def gerar_recomendacoes(propriedade, indicadores):
                 'cor': 'warning'
             })
         
-        if indicadores['margem_seguranca_mensal'] < 0:
+        if margem_seguranca < 0:
             recomendacoes.append({
                 'tipo': 'Fluxo de Caixa',
                 'titulo': 'Fluxo de Caixa Negativo',
@@ -247,7 +268,7 @@ def gerar_recomendacoes(propriedade, indicadores):
                 'cor': 'danger'
             })
         
-        if indicadores['indice_capacidade_pagamento'] > 150:
+        if indice_capacidade > 150:
             recomendacoes.append({
                 'tipo': 'Oportunidade',
                 'titulo': 'Excelente Capacidade de Pagamento',

@@ -1,4 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Sum, Q
 from django.utils import timezone
@@ -7,6 +8,7 @@ from .models import Propriedade, TipoFinanciamento, Financiamento
 from .forms_endividamento import FinanciamentoForm, TipoFinanciamentoForm
 
 
+@login_required
 def dividas_financeiras_dashboard(request, propriedade_id):
     """Dashboard do módulo de dívidas financeiras"""
     propriedade = get_object_or_404(Propriedade, id=propriedade_id)
@@ -45,6 +47,7 @@ def dividas_financeiras_dashboard(request, propriedade_id):
     return render(request, 'gestao_rural/endividamento_dashboard.html', context)
 
 
+@login_required
 def financiamentos_lista(request, propriedade_id):
     """Lista todos os financiamentos da propriedade"""
     propriedade = get_object_or_404(Propriedade, id=propriedade_id)
@@ -61,6 +64,7 @@ def financiamentos_lista(request, propriedade_id):
     return render(request, 'gestao_rural/financiamentos_lista.html', context)
 
 
+@login_required
 def financiamento_novo(request, propriedade_id):
     """Adiciona novo financiamento"""
     propriedade = get_object_or_404(Propriedade, id=propriedade_id)
@@ -85,6 +89,7 @@ def financiamento_novo(request, propriedade_id):
     return render(request, 'gestao_rural/financiamento_novo.html', context)
 
 
+@login_required
 def financiamento_editar(request, propriedade_id, financiamento_id):
     """Edita financiamento existente"""
     propriedade = get_object_or_404(Propriedade, id=propriedade_id)
@@ -108,6 +113,7 @@ def financiamento_editar(request, propriedade_id, financiamento_id):
     return render(request, 'gestao_rural/financiamento_editar.html', context)
 
 
+@login_required
 def financiamento_excluir(request, propriedade_id, financiamento_id):
     """Exclui financiamento"""
     propriedade = get_object_or_404(Propriedade, id=propriedade_id)
@@ -127,6 +133,7 @@ def financiamento_excluir(request, propriedade_id, financiamento_id):
     return render(request, 'gestao_rural/financiamento_excluir.html', context)
 
 
+@login_required
 def tipos_financiamento_lista(request):
     """Lista tipos de financiamento"""
     tipos = TipoFinanciamento.objects.all().order_by('nome')
@@ -138,6 +145,7 @@ def tipos_financiamento_lista(request):
     return render(request, 'gestao_rural/tipos_financiamento_lista.html', context)
 
 
+@login_required
 def tipo_financiamento_novo(request):
     """Adiciona novo tipo de financiamento"""
     if request.method == 'POST':
@@ -156,6 +164,7 @@ def tipo_financiamento_novo(request):
     return render(request, 'gestao_rural/tipo_financiamento_novo.html', context)
 
 
+@login_required
 def calcular_amortizacao(request, financiamento_id):
     """Calcula tabela de amortização do financiamento"""
     financiamento = get_object_or_404(Financiamento, id=financiamento_id)

@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="MONPEC Curral">
+    <meta name="theme-color" content="#2e7d32">
+    <title>Tela Única Curral · {{ propriedade.nome_propriedade }}</title>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Bootstrap 5 (apenas para alguns componentes) -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Chart.js para gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
+    {% load static %}
+    {% load humanize %}
+    <link rel="stylesheet" href="{% static 'gestao_rural/css/curral_tela_unica.css' %}?v=2.2">
+    <link rel="stylesheet" href="{% static 'gestao_rural/css/curral_animations.css' %}">
+    <link rel="manifest" href="{% static 'gestao_rural/manifest.json' %}">
+    <style>
+        /* FORÇAR VISIBILIDADE DOS CARDS DE PROCESSOS */
+        .processos-container {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            position: relative !important;
+            z-index: 10 !important;
+            width: 100% !important;
+            min-height: 200px !important;
+        }
+        
+        .tabs-container {
+            display: none !important;
+        }
+        
+        /* Garantir que o conteúdo das tabs apareça quando um card for clicado */
+        .tab-content-wrapper {
+            margin-top: 2rem;
+        }
+        
+        /* Melhorar visibilidade dos cards */
+        .processo-categoria {
+            margin-bottom: 2rem !important;
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+        
+        .processo-card {
+            display: flex !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+        
+        /* Garantir que métricas apareçam */
+        .metrics-dashboard {
+            display: grid !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+        
+        /* Garantir que sessão ativa apareça */
+        .sessao-ativa-card {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+        
+        /* Override de qualquer estilo que possa estar escondendo */
+        body.curral-tela-unica .processos-container,
+        body.curral-tela-unica .processo-categoria,
+        body.curral-tela-unica .processo-card {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+        
+        
+        /* Garantir que não há conflitos com template base */
+        body.curral-tela-unica {
+            background: linear-gradient(135deg, #f0f4f8 0%, #e8f5e9 30%, #f1f8f4 60%, #f5f7fa 100%) !important;
+        }
+        
+        /* Forçar visibilidade de todos os elementos novos */
+        #metricsDashboard,
+        #sessaoAtivaCard,
+        #processosContainer,
+        #alertasContainer {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+    </style>
+</head>
+<body class="curral-tela-unica">
+<div class="tela-unica-container" id="telaUnicaContainer">
+    <!-- Header Fixo -->
+    <header class="tela-unica-header">
+        <div class="header-top">
+            <div class="header-left">
+                <h1 class="header-title">
+                    <i class="fas fa-cow"></i>
+                    <span>MONPEC Curral</span>
+                </h1>
+                <div class="header-subtitle">{{ propriedade.nome_propriedade }}</div>
+            </div>
+            <div class="header-right">
+                <div class="status-indicator" id="statusIndicator">
+                    <i class="fas fa-wifi" id="statusIcon"></i>
+                    <span id="statusText">Online</span>
+                </div>
+                <button class="btn-sync" id="btnSync" title="Sincronizar">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+                <button class="btn-install-app" id="btnInstallApp" title="Instalar App" style="display: none;">
+                    <i class="fas fa-download"></i>
+                </button>
+                <button class="btn-menu" id="btnMenu">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Scanner Rápido -->
+        <div class="scanner-rapido">
+            <div class="scanner-input-wrapper">
+                <i class="fas fa-qrcode scanner-icon"></i>
+                <input 
+                    type="text" 
+                    class="scanner-input" 
+                    id="scannerInput"
+                    placeholder="Digite ou leia o brinco/SISBOV..."
+                    autocomplete="off"
+                >
+                <button class="btn-scan-camera" id="btnScanCamera" title="Ler com câmera">
+                    <i class="fas fa-camera"></i>
+                </button>
+                <button class="btn-scan-voice" id="btnScanVoice" title="Ler por voz">
+                    <i class="fas fa-microphone"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Dashboard de Métricas em Tempo Real -->
+        <div class="metrics-dashboard" id="metricsDashboard">
+            <div class="metric-card">
+                <div class="metric-icon">
+                    <i class="fas fa-cow"></i>
+                </div>
+                <div class="metric-content">
+                    <div class="metric-value" id="metricAnimais">0</div>
+                    <div class="metric-label">Animais Hoje</div>
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon">
+                    <i class="fas fa-weight"></i>
+                </div>
+                <div class="metric-content">
+                    <div class="metric-value" id="metricPesagens">0</div>
+                    <div class="metric-label">Pesagens</div>
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon">
+                    <i class="fas fa-syringe"></i>
+                </div>
+                <div class="metric-content">
+                    <div class="metric-value" id="metricTratamentos">0</div>
+                    <div class="metric-label">Tratamentos</div>
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <div class="metric-content">
+                    <div class="metric-value" id="metricGanhoMedio">0 kg</div>
+                    <div class="metric-label">Ganho Médio</div>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <!-- Sessão Ativa -->
+    <div class="sessao-ativa-card" id="sessaoAtivaCard">
+        <div class="sessao-header">
+            <div class="sessao-info">
+                <h3 class="sessao-title">
+                    <i class="fas fa-clock"></i>
+                    Sessão Ativa
+                </h3>
+                <div class="sessao-details">
+                    <span id="sessaoData">—</span>
+                    <span class="sessao-status online">
+                        <i class="fas fa-circle"></i> Online
+                    </span>
+                </div>
+            </div>
+            <button class="btn-sessao-close" id="btnFecharSessao">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="sessao-stats">
+            <div class="sessao-stat">
+                <div class="stat-value" id="sessaoEventos">0</div>
+                <div class="stat-label">Eventos</div>
+            </div>
+            <div class="sessao-stat">
+                <div class="stat-value" id="sessaoAnimais">0</div>
+                <div class="stat-label">Animais</div>
+            </div>
+            <div class="sessao-stat">
+                <div class="stat-value" id="sessaoPesagens">0</div>
+                <div class="stat-label">Pesagens</div>
+            </div>
+        </div>
+        <div class="sessao-actions">
+            <button class="btn-sessao-action" id="btnVerSessao">
+                <i class="fas fa-eye"></i> Ver Detalhes
+            </button>
+            <button class="btn-sessao-action btn-danger" id="btnEncerrarSessao">
+                <i class="fas fa-stop"></i> Encerrar
+            </button>
+        </div>
+    </div>
+    
+    <!-- Alertas Inteligentes -->
+    <div class="alertas-container" id="alertasContainer"></div>
+    
+    <!-- Processos Organizados por Categorias -->
+    <div class="processos-container" id="processosContainer">
+        <!-- Categoria: Operações do Dia -->
+        <div class="processo-categoria">
+            <div class="categoria-header">
+                <h3 class="categoria-title">
+                    <i class="fas fa-tasks"></i>
+                    Operações do Dia
+                </h3>
+                <p class="categoria-descricao">Processos mais utilizados no curral</p>
+            </div>
+            <div class="processos-grid">
+                <button class="processo-card processo-card-primary active" data-tab="pesagem">
+                    <div class="processo-icon">
+                        <i class="fas fa-weight"></i>
+                    </div>
+                    <div class="processo-content">
+                        <h4 class="processo-title">Pesagem</h4>
+                        <p class="processo-descricao">Registrar peso do animal</p>
+                    </div>
+                    <div class="processo-badge">Mais usado</div>
+                </button>
+                
+                <button class="processo-card processo-card-success" data-tab="sanidade">
+                    <div class="processo-icon">
+                        <i class="fas fa-syringe"></i>
+                    </div>
+                    <div class="processo-content">
+                        <h4 class="processo-title">Sanidade</h4>
+                        <p class="processo-descricao">Vacinas e tratamentos</p>
+                    </div>
+                </button>
+                
+                <button class="processo-card processo-card-info" data-tab="conferencia">
+                    <div class="processo-icon">
+                        <i class="fas fa-clipboard-check"></i>
+                    </div>
+                    <div class="processo-content">
+                        <h4 class="processo-title">Conferência</h4>
+                        <p class="processo-descricao">Verificar animais do lote</p>
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        <!-- Categoria: Gestão de Animais -->
+        <div class="processo-categoria">
+            <div class="categoria-header">
+                <h3 class="categoria-title">
+                    <i class="fas fa-cow"></i>
+                    Gestão de Animais
+                </h3>
+                <p class="categoria-descricao">Cadastros e movimentações</p>
+            </div>
+            <div class="processos-grid">
+                <button class="processo-card processo-card-secondary" data-tab="cadastro">
+                    <div class="processo-icon">
+                        <i class="fas fa-plus-circle"></i>
+                    </div>
+                    <div class="processo-content">
+                        <h4 class="processo-title">Cadastro</h4>
+                        <p class="processo-descricao">Novo animal no sistema</p>
+                    </div>
+                </button>
+                
+                <button class="processo-card processo-card-secondary" data-tab="movimentacao">
+                    <div class="processo-icon">
+                        <i class="fas fa-exchange-alt"></i>
+                    </div>
+                    <div class="processo-content">
+                        <h4 class="processo-title">Movimentação</h4>
+                        <p class="processo-descricao">Transferir entre lotes</p>
+                    </div>
+                </button>
+                
+                <button class="processo-card processo-card-secondary" data-tab="reprodutivo">
+                    <div class="processo-icon">
+                        <i class="fas fa-baby-carriage"></i>
+                    </div>
+                    <div class="processo-content">
+                        <h4 class="processo-title">Reprodutivo</h4>
+                        <p class="processo-descricao">IATF e diagnósticos</p>
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        <!-- Categoria: Consultas e Relatórios -->
+        <div class="processo-categoria">
+            <div class="categoria-header">
+                <h3 class="categoria-title">
+                    <i class="fas fa-chart-line"></i>
+                    Consultas e Relatórios
+                </h3>
+                <p class="categoria-descricao">Histórico e análises</p>
+            </div>
+            <div class="processos-grid">
+                <button class="processo-card processo-card-outline" data-tab="historico">
+                    <div class="processo-icon">
+                        <i class="fas fa-chart-area"></i>
+                    </div>
+                    <div class="processo-content">
+                        <h4 class="processo-title">Histórico</h4>
+                        <p class="processo-descricao">Evolução e gráficos</p>
+                    </div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Informações do Animal Atual -->
+    <div class="animal-card" id="animalCard" style="display: none;">
+        <div class="animal-card-header">
+            <div class="animal-identificacao">
+                <span class="animal-brinco" id="animalBrinco">—</span>
+                <span class="animal-status-badge" id="animalStatus">Ativo</span>
+            </div>
+            <div class="animal-quick-actions">
+                <button class="btn-quick-action" id="btnQuickPesagem" title="Pesagem Rápida">
+                    <i class="fas fa-weight"></i>
+                </button>
+                <button class="btn-quick-action" id="btnQuickSanidade" title="Sanidade">
+                    <i class="fas fa-syringe"></i>
+                </button>
+                <button class="btn-quick-action" id="btnQuickHistorico" title="Histórico">
+                    <i class="fas fa-history"></i>
+                </button>
+            </div>
+            <button class="btn-close-animal" id="btnCloseAnimal">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="animal-card-body">
+            <div class="animal-info-grid">
+                <div class="info-item">
+                    <span class="info-label">Raça</span>
+                    <span class="info-value" id="animalRaca">—</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Sexo</span>
+                    <span class="info-value" id="animalSexo">—</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Idade</span>
+                    <span class="info-value" id="animalIdade">—</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Último Peso</span>
+                    <span class="info-value" id="animalUltimoPeso">—</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Lote</span>
+                    <span class="info-value" id="animalLote">—</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Categoria</span>
+                    <span class="info-value" id="animalCategoria">—</span>
+                </div>
+            </div>
+            
+            <!-- Comparação com Lote -->
+            <div class="animal-comparison" id="animalComparison" style="display: none;">
+                <h4 class="comparison-title">
+                    <i class="fas fa-chart-bar"></i> Comparação com Lote
+                </h4>
+                <div class="comparison-grid">
+                    <div class="comparison-item">
+                        <span class="comparison-label">Peso vs Média do Lote</span>
+                        <div class="comparison-bar">
+                            <div class="comparison-fill" id="comparisonPeso" style="width: 0%"></div>
+                        </div>
+                        <span class="comparison-value" id="comparisonPesoValue">—</span>
+                    </div>
+                    <div class="comparison-item">
+                        <span class="comparison-label">Ganho Diário vs Lote</span>
+                        <div class="comparison-bar">
+                            <div class="comparison-fill" id="comparisonGanho" style="width: 0%"></div>
+                        </div>
+                        <span class="comparison-value" id="comparisonGanhoValue">—</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Histórico Visual -->
+            <div class="animal-history" id="animalHistory" style="display: none;">
+                <h4 class="history-title">
+                    <i class="fas fa-chart-line"></i> Evolução de Peso
+                </h4>
+                <div class="history-chart-container">
+                    <canvas id="pesoChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Conteúdo das Tabs -->
+    <div class="tab-content-wrapper">
+        <!-- TAB: PESAGEM -->
+        <div class="tab-content active" id="tab-pesagem">
+            <div class="pesagem-container">
+                <div class="peso-display-large">
+                    <div class="peso-value-display" id="pesoDisplay">
+                        <span class="peso-numero" id="pesoNumero">0</span>
+                        <span class="peso-unidade">kg</span>
+                    </div>
+                    <div class="peso-status" id="pesoStatus">
+                        <i class="fas fa-plug"></i> Balança conectada
+                    </div>
+                </div>
+                
+                <div class="pesagem-controls">
+                    <button class="btn-peso btn-simular" id="btnSimularPeso">
+                        <i class="fas fa-bolt"></i> Simular
+                    </button>
+                    <button class="btn-peso btn-manual" id="btnPesoManual">
+                        <i class="fas fa-keyboard"></i> Manual
+                    </button>
+                    <button class="btn-peso btn-voz" id="btnPesoVoz">
+                        <i class="fas fa-microphone"></i> Voz
+                    </button>
+                    <button class="btn-peso btn-limpar" id="btnLimparPeso">
+                        <i class="fas fa-eraser"></i> Limpar
+                    </button>
+                </div>
+
+                <div class="pesagem-info">
+                    <div class="info-row">
+                        <span class="info-label">Ganho desde última:</span>
+                        <span class="info-value" id="ganhoUltima">0 kg</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Ganho diário médio:</span>
+                        <span class="info-value" id="ganhoDiario">0 kg/dia</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Dias desde última pesagem:</span>
+                        <span class="info-value" id="diasUltimaPesagem">—</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Classificação:</span>
+                        <span class="info-value aparte-badge" id="aparteClassificacao">—</span>
+                    </div>
+                </div>
+                
+                <!-- Indicadores Visuais Avançados -->
+                <div class="pesagem-indicators" id="pesagemIndicators">
+                    <div class="indicator-card">
+                        <div class="indicator-icon">
+                            <i class="fas fa-arrow-up"></i>
+                        </div>
+                        <div class="indicator-content">
+                            <div class="indicator-label">Tendência</div>
+                            <div class="indicator-value" id="indicadorTendencia">—</div>
+                        </div>
+                    </div>
+                    <div class="indicator-card">
+                        <div class="indicator-icon">
+                            <i class="fas fa-bullseye"></i>
+                        </div>
+                        <div class="indicator-content">
+                            <div class="indicator-label">Meta do Lote</div>
+                            <div class="indicator-value" id="indicadorMeta">—</div>
+                        </div>
+                    </div>
+                    <div class="indicator-card">
+                        <div class="indicator-icon">
+                            <i class="fas fa-star"></i>
+                        </div>
+                        <div class="indicator-content">
+                            <div class="indicator-label">Performance</div>
+                            <div class="indicator-value" id="indicadorPerformance">—</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pesagem-actions">
+                    <button class="btn-action btn-save" id="btnSalvarPesagem">
+                        <i class="fas fa-save"></i> Salvar Pesagem
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: CADASTRO -->
+        <div class="tab-content" id="tab-cadastro">
+            <div class="cadastro-container">
+                <form class="cadastro-form" id="formCadastro">
+                    <div class="form-section">
+                        <h3 class="section-title">
+                            <i class="fas fa-id-card"></i> Identificação
+                        </h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Brinco *</label>
+                                <input type="text" class="form-control" id="cadastroBrinco" required>
+                            </div>
+                            <div class="form-group">
+                                <label>SISBOV</label>
+                                <input type="text" class="form-control" id="cadastroSisbov">
+                            </div>
+                            <div class="form-group">
+                                <label>Número de Manejo</label>
+                                <input type="text" class="form-control" id="cadastroNumeroManejo">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3 class="section-title">
+                            <i class="fas fa-info-circle"></i> Informações Básicas
+                        </h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Raça *</label>
+                                <select class="form-control" id="cadastroRaca" required>
+                                    <option value="">Selecione...</option>
+                                    <option value="Nelore">Nelore</option>
+                                    <option value="Angus">Angus</option>
+                                    <option value="Brahman">Brahman</option>
+                                    <option value="Brangus">Brangus</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Sexo *</label>
+                                <select class="form-control" id="cadastroSexo" required>
+                                    <option value="">Selecione...</option>
+                                    <option value="M">Macho</option>
+                                    <option value="F">Fêmea</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Data de Nascimento *</label>
+                                <input type="date" class="form-control" id="cadastroNascimento" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Peso ao Nascer (kg)</label>
+                                <input type="number" class="form-control" id="cadastroPesoNascer" step="0.1">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3 class="section-title">
+                            <i class="fas fa-map-marker-alt"></i> Localização
+                        </h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Lote *</label>
+                                <select class="form-control" id="cadastroLote" required>
+                                    <option value="">Selecione...</option>
+                                    {% for lote in lotes %}
+                                    <option value="{{ lote.id }}">{{ lote.nome }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Pasto</label>
+                                <input type="text" class="form-control" id="cadastroPasto">
+                            </div>
+                            <div class="form-group">
+                                <label>Categoria</label>
+                                <select class="form-control" id="cadastroCategoria">
+                                    <option value="">Selecione...</option>
+                                    {% for categoria in categorias %}
+                                    <option value="{{ categoria.id }}">{{ categoria.nome }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-action btn-save">
+                            <i class="fas fa-save"></i> Salvar Animal
+                        </button>
+                        <button type="button" class="btn-action btn-cancel" id="btnCancelarCadastro">
+                            <i class="fas fa-times"></i> Cancelar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- TAB: SANIDADE -->
+        <div class="tab-content" id="tab-sanidade">
+            <div class="sanidade-container">
+                <form class="sanidade-form" id="formSanidade">
+                    <div class="form-section">
+                        <h3 class="section-title">
+                            <i class="fas fa-syringe"></i> Tipo de Tratamento
+                        </h3>
+                        <div class="treatment-type-selector">
+                            <button type="button" class="treatment-type-btn active" data-type="vacina">
+                                <i class="fas fa-syringe"></i> Vacinação
+                            </button>
+                            <button type="button" class="treatment-type-btn" data-type="vermifugo">
+                                <i class="fas fa-pills"></i> Vermifugação
+                            </button>
+                            <button type="button" class="treatment-type-btn" data-type="antibiotico">
+                                <i class="fas fa-prescription-bottle"></i> Antibiótico
+                            </button>
+                            <button type="button" class="treatment-type-btn" data-type="outro">
+                                <i class="fas fa-flask"></i> Outro
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3 class="section-title">
+                            <i class="fas fa-info-circle"></i> Detalhes do Tratamento
+                        </h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Produto *</label>
+                                <input type="text" class="form-control" id="sanidadeProduto" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Dose (ml) *</label>
+                                <input type="number" class="form-control" id="sanidadeDose" step="0.1" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Lote do Produto</label>
+                                <input type="text" class="form-control" id="sanidadeLote">
+                            </div>
+                            <div class="form-group">
+                                <label>Data de Aplicação *</label>
+                                <input type="datetime-local" class="form-control" id="sanidadeData" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Responsável</label>
+                                <input type="text" class="form-control" id="sanidadeResponsavel">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <div class="form-group">
+                            <label>Observações</label>
+                            <textarea class="form-control" id="sanidadeObservacoes" rows="3"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-action btn-save">
+                            <i class="fas fa-save"></i> Salvar Tratamento
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- TAB: REPRODUTIVO -->
+        <div class="tab-content" id="tab-reprodutivo">
+            <div class="reprodutivo-container">
+                <form class="reprodutivo-form" id="formReprodutivo">
+                    <div class="form-section">
+                        <h3 class="section-title">
+                            <i class="fas fa-baby-carriage"></i> Tipo de Procedimento
+                        </h3>
+                        <div class="procedure-type-selector">
+                            <button type="button" class="procedure-type-btn active" data-type="iatf">
+                                <i class="fas fa-syringe"></i> IATF
+                            </button>
+                            <button type="button" class="procedure-type-btn" data-type="diagnostico">
+                                <i class="fas fa-stethoscope"></i> Diagnóstico
+                            </button>
+                            <button type="button" class="procedure-type-btn" data-type="parto">
+                                <i class="fas fa-baby"></i> Parto
+                            </button>
+                            <button type="button" class="procedure-type-btn" data-type="cio">
+                                <i class="fas fa-heart"></i> Cio
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-section" id="sectionIATF">
+                        <h3 class="section-title">
+                            <i class="fas fa-syringe"></i> IATF - Inseminação Artificial
+                        </h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Data da IATF *</label>
+                                <input type="datetime-local" class="form-control" id="iatfData" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Protocolo</label>
+                                <select class="form-control" id="iatfProtocolo">
+                                    <option value="">Selecione...</option>
+                                    {% for protocolo in protocolos_iatf %}
+                                    <option value="{{ protocolo.id }}">{{ protocolo.nome }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Touro (Sêmen)</label>
+                                <select class="form-control" id="iatfTouro">
+                                    <option value="">Selecione...</option>
+                                    {% for touro in touros_iatf %}
+                                    <option value="{{ touro.id }}">{{ touro.nome }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Número da Palheta</label>
+                                <input type="text" class="form-control" id="iatfPalheta">
+                            </div>
+                            <div class="form-group">
+                                <label>Inseminador</label>
+                                <select class="form-control" id="iatfInseminador">
+                                    <option value="">Selecione...</option>
+                                    {% for inseminador in inseminadores_iatf %}
+                                    <option value="{{ inseminador.id }}">{{ inseminador.nome }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section" id="sectionDiagnostico" style="display: none;">
+                        <h3 class="section-title">
+                            <i class="fas fa-stethoscope"></i> Diagnóstico de Prenhez
+                        </h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Data do Diagnóstico *</label>
+                                <input type="date" class="form-control" id="diagnosticoData" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Resultado *</label>
+                                <select class="form-control" id="diagnosticoResultado" required>
+                                    <option value="">Selecione...</option>
+                                    <option value="PRENHA">Prenha</option>
+                                    <option value="VAZIA">Vazia</option>
+                                    <option value="NAO_AVALIADA">Não Avaliada</option>
+                                    <option value="DESCARTE">Descarte</option>
+                                    <option value="REPETIR_CIO">Repetir Cio</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Método</label>
+                                <select class="form-control" id="diagnosticoMetodo">
+                                    <option value="PALPACAO">Palpação Retal</option>
+                                    <option value="ULTRASSOM">Ultrassom</option>
+                                    <option value="EXAME_SANGUE">Exame de Sangue</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Responsável</label>
+                                <input type="text" class="form-control" id="diagnosticoResponsavel">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-action btn-save">
+                            <i class="fas fa-save"></i> Salvar Procedimento
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- TAB: MOVIMENTAÇÃO -->
+        <div class="tab-content" id="tab-movimentacao">
+            <div class="movimentacao-container">
+                <form class="movimentacao-form" id="formMovimentacao">
+                    <div class="form-section">
+                        <h3 class="section-title">
+                            <i class="fas fa-exchange-alt"></i> Movimentação do Animal
+                        </h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Data da Movimentação *</label>
+                                <input type="datetime-local" class="form-control" id="movimentacaoData" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Tipo de Movimentação *</label>
+                                <select class="form-control" id="movimentacaoTipo" required>
+                                    <option value="">Selecione...</option>
+                                    <option value="ENTRADA">Entrada</option>
+                                    <option value="SAIDA">Saída</option>
+                                    <option value="TRANSFERENCIA">Transferência</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3 class="section-title">
+                            <i class="fas fa-map-marker-alt"></i> Origem e Destino
+                        </h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Lote de Origem</label>
+                                <select class="form-control" id="movimentacaoLoteOrigem">
+                                    <option value="">Selecione...</option>
+                                    {% for lote in lotes %}
+                                    <option value="{{ lote.id }}">{{ lote.nome }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Lote de Destino *</label>
+                                <select class="form-control" id="movimentacaoLoteDestino" required>
+                                    <option value="">Selecione...</option>
+                                    {% for lote in lotes %}
+                                    <option value="{{ lote.id }}">{{ lote.nome }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Pasto de Origem</label>
+                                <input type="text" class="form-control" id="movimentacaoPastoOrigem">
+                            </div>
+                            <div class="form-group">
+                                <label>Pasto de Destino</label>
+                                <input type="text" class="form-control" id="movimentacaoPastoDestino">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <div class="form-group">
+                            <label>Motivo</label>
+                            <textarea class="form-control" id="movimentacaoMotivo" rows="3"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-action btn-save">
+                            <i class="fas fa-save"></i> Salvar Movimentação
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- TAB: CONFERÊNCIA -->
+        <div class="tab-content" id="tab-conferencia">
+            <div class="conferencia-container">
+                <div class="conferencia-header">
+                    <h3 class="section-title">
+                        <i class="fas fa-clipboard-check"></i> Conferência de Animais
+                    </h3>
+                    <button class="btn-action btn-secondary" id="btnNovaConferencia">
+                        <i class="fas fa-plus"></i> Nova Conferência
+                    </button>
+                </div>
+
+                <div class="conferencia-filters">
+                    <div class="form-group">
+                        <label>Filtrar por Lote</label>
+                        <select class="form-control" id="conferenciaFiltroLote">
+                            <option value="">Todos os lotes</option>
+                            {% for lote in lotes %}
+                            <option value="{{ lote.id }}">{{ lote.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Filtrar por Categoria</label>
+                        <select class="form-control" id="conferenciaFiltroCategoria">
+                            <option value="">Todas as categorias</option>
+                            {% for categoria in categorias %}
+                            <option value="{{ categoria.id }}">{{ categoria.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="conferencia-list" id="conferenciaList">
+                    <!-- Lista de animais será preenchida via JavaScript -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- TAB: HISTÓRICO -->
+        <div class="tab-content" id="tab-historico">
+            <div class="historico-container">
+                <div class="historico-header">
+                    <h3 class="section-title">
+                        <i class="fas fa-chart-area"></i> Histórico Completo do Animal
+                    </h3>
+                    <div class="historico-filters">
+                        <select class="form-control" id="historicoPeriodo">
+                            <option value="30">Últimos 30 dias</option>
+                            <option value="90">Últimos 90 dias</option>
+                            <option value="180">Últimos 6 meses</option>
+                            <option value="365">Último ano</option>
+                            <option value="all">Todo o histórico</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="historico-charts">
+                    <div class="chart-card">
+                        <h4 class="chart-title">Evolução de Peso</h4>
+                        <div class="chart-container">
+                            <canvas id="historicoPesoChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <h4 class="chart-title">Ganho de Peso Diário</h4>
+                        <div class="chart-container">
+                            <canvas id="historicoGanhoChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="historico-timeline" id="historicoTimeline">
+                    <!-- Timeline será preenchida via JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmação -->
+<div class="modal-overlay" id="modalOverlay" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="modalTitle">Confirmar</h3>
+            <button class="modal-close" id="modalClose">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body" id="modalBody">
+            <!-- Conteúdo do modal -->
+        </div>
+        <div class="modal-footer">
+            <button class="btn-action btn-cancel" id="modalCancel">Cancelar</button>
+            <button class="btn-action btn-save" id="modalConfirm">Confirmar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{% static 'gestao_rural/js/offline-db.js' %}"></script>
+<script src="{% static 'gestao_rural/js/offline-sync.js' %}"></script>
+<script src="{% static 'gestao_rural/js/pwa-install.js' %}"></script>
+<script src="{% static 'gestao_rural/js/curral_tela_unica.js' %}"></script>
+
+<!-- Registrar Service Worker -->
+<script>
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('{% static "gestao_rural/js/service-worker.js" %}')
+            .then((registration) => {
+                console.log('Service Worker registrado:', registration);
+            })
+            .catch((error) => {
+                console.error('Erro ao registrar Service Worker:', error);
+            });
+    });
+}
+
+// Previne zoom duplo toque no iOS
+let lastTouchEnd = 0;
+document.addEventListener('touchend', function (event) {
+    const now = (new Date()).getTime();
+    if (now - lastTouchEnd <= 300) {
+        event.preventDefault();
+    }
+    lastTouchEnd = now;
+}, false);
+</script>
+</body>
+</html>
+

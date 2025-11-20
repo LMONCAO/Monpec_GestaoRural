@@ -1,0 +1,341 @@
+{% extends 'base_navegacao_inteligente.html' %}
+
+{% block title %}Módulos - {{ propriedade.nome }} - MONPEC{% endblock %}
+
+{% block breadcrumb_extra %}
+<li class="breadcrumb-item active">Módulos</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Cabeçalho com Status da Propriedade -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card card-modulo card-pecuaria">
+                <div class="card-header-colorido card-header">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h2 class="mb-0">
+                                <i class="bi bi-house-door-fill"></i> {{ propriedade.nome }}
+                            </h2>
+                            <p class="mb-0 mt-2">
+                                <i class="bi bi-geo-alt"></i> {{ propriedade.localizacao|default:"Localização não informada" }} • 
+                                <i class="bi bi-grid"></i> {{ propriedade.area_total|default:"0" }} hectares • 
+                                <i class="bi bi-speedometer"></i> Menu lateral ATIVADO
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <div class="badge bg-success fs-6 p-2">
+                                <i class="bi bi-check-circle"></i> Módulos Habilitados
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Grid de Módulos Coloridos -->
+    <div class="row">
+        <!-- PECUÁRIA - Verde -->
+        <div class="col-lg-6 col-xl-4 mb-4">
+            <div class="card card-modulo card-pecuaria h-100">
+                <div class="card-header-colorido card-header text-center" style="background: linear-gradient(135deg, #28a745, #20c997);">
+                    <i class="bi bi-cow display-4 text-white mb-2"></i>
+                    <h5 class="text-white mb-0">PECUÁRIA</h5>
+                    <small class="text-light">Gestão do Rebanho</small>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-3">
+                        <li><i class="bi bi-check text-success me-2"></i>Inventário de Rebanho</li>
+                        <li><i class="bi bi-check text-success me-2"></i>Categorias (10 disponíveis)</li>
+                        <li><i class="bi bi-check text-success me-2"></i>IA Automática</li>
+                        <li><i class="bi bi-check text-success me-2"></i>Projeções Inteligentes</li>
+                        <li><i class="bi bi-check text-success me-2"></i>Relatórios Detalhados</li>
+                    </ul>
+                    <div class="text-center mb-3">
+                        <div class="badge bg-success">{{ propriedade.total_animais|default:"0" }} animais</div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <a href="{% url 'pecuaria_dashboard' propriedade.id %}" class="btn btn-modulo-pecuaria w-100">
+                        <i class="bi bi-play-circle"></i> ACESSAR PECUÁRIA
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- AGRICULTURA - Amarelo -->
+        <div class="col-lg-6 col-xl-4 mb-4">
+            <div class="card card-modulo card-agricultura h-100">
+                <div class="card-header-colorido card-header text-center" style="background: linear-gradient(135deg, #ffc107, #fd7e14);">
+                    <i class="bi bi-tree display-4 text-dark mb-2"></i>
+                    <h5 class="text-dark mb-0">AGRICULTURA</h5>
+                    <small class="text-dark">Plantio e Colheita</small>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-3">
+                        <li><i class="bi bi-clock text-warning me-2"></i>Calendário Agrícola</li>
+                        <li><i class="bi bi-clock text-warning me-2"></i>Controle de Safras</li>
+                        <li><i class="bi bi-clock text-warning me-2"></i>Análise de Solo</li>
+                        <li><i class="bi bi-clock text-warning me-2"></i>Insumos e Defensivos</li>
+                        <li><i class="bi bi-clock text-warning me-2"></i>Produtividade</li>
+                    </ul>
+                    <div class="text-center mb-3">
+                        <div class="badge bg-warning text-dark">Em Desenvolvimento</div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <button class="btn btn-modulo-agricultura w-100" disabled>
+                        <i class="bi bi-hourglass-split"></i> EM BREVE
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- BENS E PATRIMÔNIO - Azul -->
+        <div class="col-lg-6 col-xl-4 mb-4">
+            <div class="card card-modulo card-patrimonio h-100">
+                <div class="card-header-colorido card-header text-center" style="background: linear-gradient(135deg, #17a2b8, #007bff);">
+                    <i class="bi bi-building display-4 text-white mb-2"></i>
+                    <h5 class="text-white mb-0">BENS E PATRIMÔNIO</h5>
+                    <small class="text-light">Ativos e Depreciação</small>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-3">
+                        <li><i class="bi bi-check text-info me-2"></i>Cadastro de Bens</li>
+                        <li><i class="bi bi-check text-info me-2"></i>Máquinas e Veículos</li>
+                        <li><i class="bi bi-check text-info me-2"></i>Instalações</li>
+                        <li><i class="bi bi-check text-info me-2"></i>Terras e Imóveis</li>
+                        <li><i class="bi bi-check text-info me-2"></i>Relatório de Depreciação</li>
+                    </ul>
+                    <div class="text-center mb-3">
+                        <div class="badge bg-info">Funcional</div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <a href="{% url 'patrimonio_dashboard' propriedade.id %}" class="btn btn-modulo-patrimonio w-100">
+                        <i class="bi bi-plus-circle"></i> GERENCIAR BENS
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- FINANCEIRO - Vermelho -->
+        <div class="col-lg-6 col-xl-4 mb-4">
+            <div class="card card-modulo card-financeiro h-100">
+                <div class="card-header-colorido card-header text-center" style="background: linear-gradient(135deg, #dc3545, #e74c3c);">
+                    <i class="bi bi-cash-coin display-4 text-white mb-2"></i>
+                    <h5 class="text-white mb-0">FINANCEIRO</h5>
+                    <small class="text-light">Fluxo de Caixa</small>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-3">
+                        <li><i class="bi bi-check text-danger me-2"></i>Fluxo de Caixa</li>
+                        <li><i class="bi bi-check text-danger me-2"></i>Contas a Pagar</li>
+                        <li><i class="bi bi-check text-danger me-2"></i>Contas a Receber</li>
+                        <li><i class="bi bi-check text-danger me-2"></i>Contas Bancárias</li>
+                        <li><i class="bi bi-check text-danger me-2"></i>Relatórios Financeiros</li>
+                    </ul>
+                    <div class="text-center mb-3">
+                        <div class="badge bg-danger">R$ {{ propriedade.valor_total|default:"0" }}</div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <a href="{% url 'financeiro_dashboard' propriedade.id %}" class="btn btn-modulo-financeiro w-100">
+                        <i class="bi bi-calculator"></i> CONTROLE FINANCEIRO
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- PROJETOS - Roxo -->
+        <div class="col-lg-6 col-xl-4 mb-4">
+            <div class="card card-modulo card-projetos h-100">
+                <div class="card-header-colorido card-header text-center" style="background: linear-gradient(135deg, #6f42c1, #9b59b6);">
+                    <i class="bi bi-clipboard-data display-4 text-white mb-2"></i>
+                    <h5 class="text-white mb-0">PROJETOS</h5>
+                    <small class="text-light">Planejamento Estratégico</small>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-3">
+                        <li><i class="bi bi-check text-purple me-2"></i>Novos Projetos</li>
+                        <li><i class="bi bi-check text-purple me-2"></i>Cronograma</li>
+                        <li><i class="bi bi-check text-purple me-2"></i>Orçamento</li>
+                        <li><i class="bi bi-check text-purple me-2"></i>Acompanhamento</li>
+                        <li><i class="bi bi-check text-purple me-2"></i>ROI e Viabilidade</li>
+                    </ul>
+                    <div class="text-center mb-3">
+                        <div class="badge bg-purple">Funcional</div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <a href="{% url 'projetos_dashboard' propriedade.id %}" class="btn btn-modulo-projetos w-100">
+                        <i class="bi bi-rocket-takeoff"></i> CRIAR PROJETO
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- RELATÓRIOS - Laranja -->
+        <div class="col-lg-6 col-xl-4 mb-4">
+            <div class="card card-modulo card-relatorios h-100">
+                <div class="card-header-colorido card-header text-center" style="background: linear-gradient(135deg, #fd7e14, #f39c12);">
+                    <i class="bi bi-file-earmark-text display-4 text-white mb-2"></i>
+                    <h5 class="text-white mb-0">RELATÓRIOS</h5>
+                    <small class="text-light">Análises e Dashboards</small>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-3">
+                        <li><i class="bi bi-clock text-warning me-2"></i>Relatórios Gerenciais</li>
+                        <li><i class="bi bi-clock text-warning me-2"></i>Análise de Performance</li>
+                        <li><i class="bi bi-clock text-warning me-2"></i>Dashboards Interativos</li>
+                        <li><i class="bi bi-clock text-warning me-2"></i>Exportação PDF</li>
+                        <li><i class="bi bi-clock text-warning me-2"></i>Histórico Temporal</li>
+                    </ul>
+                    <div class="text-center mb-3">
+                        <div class="badge bg-warning text-dark">Em Desenvolvimento</div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <button class="btn btn-modulo-relatorios w-100" disabled>
+                        <i class="bi bi-hourglass-split"></i> EM BREVE
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Módulos de Configuração -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <h4 class="mb-3">
+                <i class="bi bi-gear"></i> Configurações e Utilidades
+            </h4>
+        </div>
+        
+        <!-- CATEGORIAS -->
+        <div class="col-md-6 mb-4">
+            <div class="card card-modulo card-categorias h-100">
+                <div class="card-header-colorido card-header" style="background: linear-gradient(135deg, #20c997, #17a2b8);">
+                    <div class="row align-items-center text-white">
+                        <div class="col-8">
+                            <h6 class="mb-0">
+                                <i class="bi bi-tags"></i> CATEGORIAS
+                            </h6>
+                            <small>Gestão de Categorias de Animais</small>
+                        </div>
+                        <div class="col-4 text-end">
+                            <div class="badge bg-light text-dark">10 Ativas</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <p class="small mb-3">Gerencie as categorias de animais para classificação automática do rebanho.</p>
+                    <a href="{% url 'categorias_lista' %}" class="btn btn-modulo-categorias w-100">
+                        <i class="bi bi-list-ul"></i> GERENCIAR CATEGORIAS
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONFIGURAÇÕES -->
+        <div class="col-md-6 mb-4">
+            <div class="card card-modulo card-configuracoes h-100">
+                <div class="card-header-colorido card-header" style="background: linear-gradient(135deg, #6c757d, #495057);">
+                    <div class="row align-items-center text-white">
+                        <div class="col-8">
+                            <h6 class="mb-0">
+                                <i class="bi bi-gear"></i> CONFIGURAÇÕES
+                            </h6>
+                            <small>Ajustes do Sistema</small>
+                        </div>
+                        <div class="col-4 text-end">
+                            <div class="badge bg-light text-dark">Admin</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <p class="small mb-3">Acesse o painel administrativo para configurações avançadas do sistema.</p>
+                    <a href="{% url 'admin:index' %}" class="btn btn-modulo-configuracoes w-100">
+                        <i class="bi bi-sliders"></i> PAINEL ADMIN
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Instruções de Navegação -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="alert alert-success d-flex align-items-center">
+                <i class="bi bi-lightbulb me-3 fs-4"></i>
+                <div>
+                    <strong>Navegação Inteligente Ativada!</strong><br>
+                    <small>
+                        • Use o <strong>menu lateral</strong> para navegar rapidamente entre os módulos<br>
+                        • Cada módulo tem sua <strong>cor específica</strong> para fácil identificação<br>
+                        • O menu será <strong>desabilitado automaticamente</strong> quando você sair da propriedade
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .text-purple { color: #6f42c1 !important; }
+    .bg-purple { background-color: #6f42c1 !important; }
+    
+    /* Animação nos cards */
+    .card-modulo {
+        transition: all 0.3s ease;
+        animation: slideInUp 0.6s ease-out;
+    }
+    
+    @keyframes slideInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    /* Hover effects especiais */
+    .card-pecuaria:hover { box-shadow: 0 10px 30px rgba(40, 167, 69, 0.3); }
+    .card-agricultura:hover { box-shadow: 0 10px 30px rgba(255, 193, 7, 0.3); }
+    .card-patrimonio:hover { box-shadow: 0 10px 30px rgba(23, 162, 184, 0.3); }
+    .card-financeiro:hover { box-shadow: 0 10px 30px rgba(220, 53, 69, 0.3); }
+    .card-projetos:hover { box-shadow: 0 10px 30px rgba(111, 66, 193, 0.3); }
+    .card-relatorios:hover { box-shadow: 0 10px 30px rgba(253, 126, 20, 0.3); }
+    .card-categorias:hover { box-shadow: 0 10px 30px rgba(32, 201, 151, 0.3); }
+    .card-configuracoes:hover { box-shadow: 0 10px 30px rgba(108, 117, 125, 0.3); }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Animação escalonada dos cards
+    const cards = document.querySelectorAll('.card-modulo');
+    cards.forEach((card, index) => {
+        card.style.animationDelay = `${index * 0.1}s`;
+    });
+    
+    // Efeito de pulsação nos badges funcionais
+    setInterval(() => {
+        document.querySelectorAll('.badge:not(:contains("Em Desenvolvimento"))').forEach(badge => {
+            badge.style.transform = 'scale(1.05)';
+            setTimeout(() => {
+                badge.style.transform = 'scale(1)';
+            }, 200);
+        });
+    }, 3000);
+});
+</script>
+{% endblock %}

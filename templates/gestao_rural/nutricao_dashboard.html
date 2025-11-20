@@ -1,0 +1,290 @@
+{% extends "base_modulos_unificado.html" %}
+{% load formatacao_br %}
+
+{% block title %}Nutrição - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item active">Nutrição</li>
+        </ol>
+    </nav>
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1"><i class="bi bi-basket text-success me-2"></i>Nutrição e Alimentação</h2>
+            <p class="text-muted mb-0">{{ propriedade.nome_propriedade }}</p>
+        </div>
+        <div>
+            <a href="{% url 'compra_suplementacao_nova' propriedade.id %}" class="btn btn-success btn-sm">
+                <i class="bi bi-cart-plus me-1"></i>Nova Compra
+            </a>
+            <a href="{% url 'distribuicao_suplementacao_nova' propriedade.id %}" class="btn btn-outline-success btn-sm">
+                <i class="bi bi-arrow-down-circle me-1"></i>Distribuir
+            </a>
+        </div>
+    </div>
+
+    <!-- Cards de Estatísticas -->
+    <div class="row mb-4">
+        <!-- Estoque Total -->
+        <div class="col-md-3 mb-3">
+            <div class="card border h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Valor do Estoque</h6>
+                            <h3 class="mb-0">{{ valor_total_estoque|moeda_br }}</h3>
+                        </div>
+                        <div class="text-success">
+                            <i class="bi bi-box-seam fs-1"></i>
+                        </div>
+                    </div>
+                    <p class="text-muted small mb-0 mt-2">Estoques: {{ estoques|length }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Distribuído no Mês -->
+        <div class="col-md-3 mb-3">
+            <div class="card border h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Distribuído (Mês)</h6>
+                            <h3 class="mb-0">{{ total_distribuido_mes|numero_br:2 }}</h3>
+                        </div>
+                        <div class="text-info">
+                            <i class="bi bi-arrow-down-circle fs-1"></i>
+                        </div>
+                    </div>
+                    <p class="text-muted small mb-0 mt-2">Valor: {{ valor_distribuido_mes|moeda_br }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Compras do Mês -->
+        <div class="col-md-3 mb-3">
+            <div class="card border h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Compras (Mês)</h6>
+                            <h3 class="mb-0">{{ valor_compras_mes|moeda_br }}</h3>
+                        </div>
+                        <div class="text-warning">
+                            <i class="bi bi-cart-check fs-1"></i>
+                        </div>
+                    </div>
+                    <p class="text-muted small mb-0 mt-2">Investimento</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alertas -->
+        <div class="col-md-3 mb-3">
+            <div class="card border h-100 {% if estoques_baixo %}border-warning{% endif %}">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Estoques Baixos</h6>
+                            <h3 class="mb-0 {% if estoques_baixo %}text-warning{% endif %}">{{ estoques_baixo|length|numero_br }}</h3>
+                        </div>
+                        <div class="{% if estoques_baixo %}text-warning{% else %}text-success{% endif %}">
+                            <i class="bi bi-exclamation-triangle fs-1"></i>
+                        </div>
+                    </div>
+                    <p class="text-muted small mb-0 mt-2">Atenção necessária</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Seções -->
+    <div class="row">
+        <!-- Estoques -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-box-seam me-2"></i>Estoques de Suplementação</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Tipo</th>
+                                    <th class="text-end">Estoque</th>
+                                    <th class="text-end">Mínimo</th>
+                                    <th class="text-end">Valor</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for estoque in estoques %}
+                                <tr class="{% if estoque.quantidade_atual <= estoque.quantidade_minima %}table-warning{% endif %}">
+                                    <td>
+                                        <a href="{% url 'estoque_suplementacao_lista' propriedade.id %}">
+                                            {{ estoque.tipo_suplemento }}
+                                        </a>
+                                    </td>
+                                    <td class="text-end">{{ estoque.quantidade_atual|numero_br:2 }} {{ estoque.unidade_medida }}</td>
+                                    <td class="text-end">{{ estoque.quantidade_minima|numero_br:2 }} {{ estoque.unidade_medida }}</td>
+                                    <td class="text-end">{{ estoque.valor_total_estoque|moeda_br }}</td>
+                                    <td>
+                                        {% if estoque.quantidade_atual <= estoque.quantidade_minima %}
+                                        <span class="badge bg-warning">Baixo</span>
+                                        {% else %}
+                                        <span class="badge bg-success">OK</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted">Nenhum estoque cadastrado</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-3">
+                        <a href="{% url 'estoque_suplementacao_lista' propriedade.id %}" class="btn btn-success btn-sm">
+                            <i class="bi bi-list-ul me-1"></i>Ver Todos
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cochos -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="bi bi-bucket me-2"></i>Controles de Cochos Recentes</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Cocho</th>
+                                    <th>Data</th>
+                                    <th class="text-end">Consumido</th>
+                                    <th class="text-end">Por Animal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for controle in controles_recentes %}
+                                <tr>
+                                    <td>{{ controle.cocho.nome }}</td>
+                                    <td>{{ controle.data|date:"d/m/Y" }}</td>
+                                    <td class="text-end">{{ controle.quantidade_consumida|numero_br:2 }} kg</td>
+                                    <td class="text-end">{{ controle.consumo_por_animal|numero_br:3 }} kg</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted">Nenhum controle registrado</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-3">
+                        <a href="{% url 'cochos_lista' propriedade.id %}" class="btn btn-info btn-sm">
+                            <i class="bi bi-list-ul me-1"></i>Ver Cochos
+                        </a>
+                        <a href="{% url 'controle_cocho_novo' propriedade.id %}" class="btn btn-outline-info btn-sm">
+                            <i class="bi bi-plus-circle me-1"></i>Novo Controle
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Distribuições Recentes -->
+        <div class="col-md-12 mb-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-arrow-down-circle me-2"></i>Distribuições Recentes</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Tipo</th>
+                                    <th>Pastagem</th>
+                                    <th class="text-end">Quantidade</th>
+                                    <th class="text-end">Animais</th>
+                                    <th class="text-end">Por Animal</th>
+                                    <th class="text-end">Valor</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for dist in distribuicoes_pasto %}
+                                <tr>
+                                    <td>{{ dist.data_distribuicao|date:"d/m/Y" }}</td>
+                                    <td>{{ dist.tipo_distribuicao.nome }}</td>
+                                    <td>{{ dist.pastagem.nome }}</td>
+                                    <td class="text-end">{{ dist.quantidade|numero_br:2 }} {{ dist.tipo_distribuicao.unidade_medida }}</td>
+                                    <td class="text-end">{{ dist.numero_animais|numero_br }}</td>
+                                    <td class="text-end">{{ dist.quantidade_por_animal|numero_br:3 }} {{ dist.tipo_distribuicao.unidade_medida }}</td>
+                                    <td class="text-end">{{ dist.valor_total|moeda_br }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted">Nenhuma distribuição registrada</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ações Rápidas -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-lightning-charge me-2"></i>Ações Rápidas</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-2">
+                            <a href="{% url 'compra_suplementacao_nova' propriedade.id %}" class="btn btn-success w-100">
+                                <i class="bi bi-cart-plus me-1"></i>Nova Compra
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <a href="{% url 'distribuicao_suplementacao_nova' propriedade.id %}" class="btn btn-outline-success w-100">
+                                <i class="bi bi-arrow-down-circle me-1"></i>Distribuir
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <a href="{% url 'controle_cocho_novo' propriedade.id %}" class="btn btn-outline-info w-100">
+                                <i class="bi bi-bucket me-1"></i>Controle Cocho
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <a href="{% url 'estoque_suplementacao_lista' propriedade.id %}" class="btn btn-outline-primary w-100">
+                                <i class="bi bi-list-ul me-1"></i>Ver Estoques
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
