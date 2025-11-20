@@ -1,0 +1,64 @@
+{% extends "base_modulos_unificado.html" %}
+<!-- Super Tela Curral - Versão 2.2 REFATORADA - Usando Includes -->
+<!-- Esta é uma versão refatorada que usa includes. O template original continua funcionando. -->
+
+{% block title %}Curral Inteligente · {{ propriedade.nome_propriedade }} · V2{% endblock %}
+
+{% block extra_css %}
+{% load static %}
+<!-- 
+NOTA: Este é um template REFATORADO usando includes.
+O CSS e JavaScript do template original (curral_dashboard_v2.html) ainda precisam ser extraídos.
+Por enquanto, este template mantém a estrutura mas usa includes para o HTML.
+Para usar este template, copie o bloco extra_css e extra_js do template original.
+-->
+<!-- TODO: Extrair CSS para includes/css.html na Fase 1 continuação -->
+<!-- TODO: Extrair JavaScript para arquivos externos na Fase 2 -->
+<!-- Por enquanto, este template requer que o template original (curral_dashboard_v2.html) ainda exista -->
+
+{% block body_attrs %} class="curral-v2"{% endblock %}
+
+{% block content %}
+<!-- Header -->
+{% include "gestao_rural/curral/includes/header.html" %}
+
+<!-- Cards Indicadores de Manejo Ativo (Discretos) -->
+<div class="manejo-indicadores-container" id="manejoIndicadoresContainer">
+  <!-- Será preenchido dinamicamente pelo JavaScript -->
+</div>
+
+<!-- Card Principal: Identificação e Pesagem -->
+<div class="card-curral">
+  <div class="card-curral-header">
+    <h2><i class="fas fa-qrcode"></i> Identificação e Pesagem</h2>
+    <span style="font-size:0.78rem; color:#78909c;">Balança conectada (simulação)</span>
+  </div>
+  <div class="card-curral-body">
+    <div class="row g-3">
+      <!-- Scanner -->
+      {% include "gestao_rural/curral/includes/scanner.html" %}
+      
+      <!-- Pesagem -->
+      {% include "gestao_rural/curral/includes/pesagem.html" %}
+      
+      <!-- Estatísticas -->
+      {% include "gestao_rural/curral/includes/estatisticas.html" %}
+    </div>
+  </div>
+</div>
+
+<!-- Tabela de Animais -->
+{% include "gestao_rural/curral/includes/tabela_animais.html" %}
+
+<!-- Modais -->
+{% include "gestao_rural/curral/includes/modals.html" %}
+
+<!-- Nota: Os modais restantes (diagnóstico, estoque, IATF, etc.) e scripts JavaScript
+     continuam no template original e serão extraídos na Fase 2 -->
+{% endblock %}
+
+{% block extra_js %}
+{% load static %}
+<!-- Scripts JavaScript do template original - serão extraídos na Fase 2 -->
+<!-- Por enquanto, incluindo o bloco extra_js do template original -->
+{% endblock %}

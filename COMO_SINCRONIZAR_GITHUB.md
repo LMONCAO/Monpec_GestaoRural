@@ -134,3 +134,4 @@ Após o primeiro push, para manter sincronizado:
    - Certifique-se de que todos os commits foram enviados (Push)
    - Verifique se não há alterações pendentes
 
+

@@ -420,6 +420,179 @@ def exportar_movimentacao_animais_pdf(request, propriedade_id):
     return response
 
 
+@login_required
+def exportar_saidas_sisbov_pdf(request, propriedade_id):
+    """Exporta Comunicado de Saídas de Animais em PDF - Documento Oficial conforme IN 51/MAPA"""
+    propriedade = get_object_or_404(Propriedade, pk=propriedade_id)
+    
+    data_inicio = request.GET.get('data_inicio')
+    data_fim = request.GET.get('data_fim')
+    busca = request.GET.get('busca', '')
+    tipo_movimentacao = request.GET.get('tipo_movimentacao', '').upper()
+    
+    # Buscar saídas
+    tipos_disponiveis = ['VENDA', 'TRANSFERENCIA_SAIDA', 'MORTE']
+    if tipo_movimentacao in tipos_disponiveis:
+        tipos = [tipo_movimentacao]
+    else:
+        tipos = tipos_disponiveis
+        tipo_movimentacao = ''
+    
+    saidas = MovimentacaoIndividual.objects.filter(
+        animal__propriedade=propriedade,
+        tipo_movimentacao__in=tipos
+    ).select_related(
+        'animal', 'animal__categoria',
+        'propriedade_origem', 'propriedade_destino'
+    )
+    
+    if data_inicio:
+        saidas = saidas.filter(data_movimentacao__gte=data_inicio)
+    if data_fim:
+        saidas = saidas.filter(data_movimentacao__lte=data_fim)
+    if busca:
+        saidas = saidas.filter(animal__numero_brinco__icontains=busca)
+    
+    saidas = saidas.order_by('-data_movimentacao', 'animal__numero_brinco')
+    
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = (
+        f'attachment; filename="Comunicado_Saidas_Animais_'
+        f'{propriedade.nome_propriedade}_{datetime.now().strftime("%Y%m%d")}.pdf"'
+    )
+    
+    doc = SimpleDocTemplate(response, pagesize=A4, landscape=True)
+    story = []
+    styles = getSampleStyleSheet()
+    
+    # Título principal - Exatamente como na imagem
+    title_style = ParagraphStyle(
+        'TituloOficial',
+        parent=styles['Heading1'],
+        fontSize=16,
+        spaceAfter=6,
+        alignment=TA_CENTER,
+        fontName='Helvetica-Bold',
+        textColor=colors.black,
+        leading=20
+    )
+    
+    story.append(Paragraph("COMUNICADO DE SAÍDAS DE ANIMAIS", title_style))
+    
+    # Subtítulo - Exatamente como na imagem
+    subtitle_style = ParagraphStyle(
+        'SubtituloOficial',
+        parent=styles['Normal'],
+        fontSize=10,
+        spaceAfter=15,
+        alignment=TA_CENTER,
+        fontName='Helvetica',
+        textColor=colors.black
+    )
+    story.append(Paragraph("IN 51/MAPA - SISBOV", subtitle_style))
+    story.append(Spacer(1, 12))
+    
+    # Informações da propriedade - Tabela idêntica à imagem
+    info_data = [
+        ['Propriedade:', propriedade.nome_propriedade],
+        ['Data de Emissão:', date.today().strftime('%d/%m/%Y')],
+        ['Total de Saídas:', str(saidas.count())],
+    ]
+    if data_inicio:
+        info_data.append(['Data Inicial:', data_inicio])
+    if data_fim:
+        info_data.append(['Data Final:', data_fim])
+    if tipo_movimentacao:
+        tipo_display = dict(MovimentacaoIndividual.TIPO_MOVIMENTACAO_CHOICES).get(tipo_movimentacao, tipo_movimentacao)
+        info_data.append(['Tipo de Movimentação:', tipo_display])
+    if busca:
+        info_data.append(['Brinco:', busca])
+    
+    info_table = Table(info_data, colWidths=[4.5*cm, 20.5*cm])
+    info_table.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+        ('FONTNAME', (1, 0), (1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 8),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+        ('TOPPADDING', (0, 0), (-1, -1), 8),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+    ]))
+    story.append(info_table)
+    story.append(Spacer(1, 18))
+    
+    # Tabela principal de saídas - IDÊNTICA à imagem mostrada
+    if saidas.exists():
+        saidas_data = [[
+            'Data', 'Brinco', 'Categoria', 'Peso', 'Destino', 'Documento', 'Observações'
+        ]]
+        
+        for mov in saidas:
+            # Formatar peso com vírgula (formato brasileiro: 350,0)
+            peso_formatado = f"{mov.peso_kg:.1f}".replace('.', ',') if mov.peso_kg else '-'
+            
+            saidas_data.append([
+                mov.data_movimentacao.strftime('%d/%m/%Y'),
+                mov.animal.numero_brinco or mov.animal.codigo_sisbov or '-',
+                mov.animal.categoria.nome if mov.animal.categoria else '-',
+                peso_formatado,
+                mov.propriedade_destino.nome_propriedade if mov.propriedade_destino else 'Abate / Baixa',
+                mov.numero_documento or '-',
+                mov.observacoes or '-'
+            ])
+        
+        # Larguras das colunas - Ajustadas para corresponder exatamente à imagem
+        # Total: 25cm (paisagem A4 = 29.7cm, deixando margens)
+        saidas_table = Table(
+            saidas_data,
+            colWidths=[2.5*cm, 3.5*cm, 3.5*cm, 2*cm, 4*cm, 3*cm, 5.5*cm],
+            repeatRows=1
+        )
+        saidas_table.setStyle(TableStyle([
+            # Cabeçalho - Azul como na imagem
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1e88e5')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 9),
+            ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+            ('TOPPADDING', (0, 0), (-1, 0), 10),
+            # Corpo da tabela
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 8),
+            ('ALIGN', (0, 1), (3, -1), 'CENTER'),  # Data, Brinco, Categoria, Peso centralizados
+            ('ALIGN', (4, 1), (4, -1), 'LEFT'),  # Destino alinhado à esquerda
+            ('ALIGN', (5, 1), (5, -1), 'CENTER'),  # Documento centralizado
+            ('ALIGN', (6, 1), (6, -1), 'LEFT'),  # Observações alinhado à esquerda
+            # Bordas pretas como na imagem
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+            # Linhas alternadas (branco e cinza claro)
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f5f5f5')]),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 5),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+            ('TOPPADDING', (0, 1), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 1), (-1, -1), 6),
+        ]))
+        story.append(saidas_table)
+    else:
+        story.append(Spacer(1, 10))
+        story.append(Paragraph("Nenhuma saída encontrada para os filtros informados.", styles['Normal']))
+    
+    story.append(Spacer(1, 20))
+    
+    # Rodapé - Formato oficial
+    story.append(Paragraph(
+        f"<i>Documento gerado em {date.today().strftime('%d/%m/%Y')} - Conforme Instrução Normativa Nº 51/MAPA</i>",
+        styles['Normal']
+    ))
+    
+    doc.build(story)
+    return response
+
+
 # ===== EXPORTAÇÃO PDF DOS ANEXOS IN 51 =====
 
 @login_required

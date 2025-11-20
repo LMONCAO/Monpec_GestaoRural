@@ -236,3 +236,4 @@ def pesagem_nova(request, propriedade_id):
 
 
 
+

@@ -52,3 +52,4 @@ echo "✅ Configuração inicial concluída! Agora siga o COMECE_AGORA.md"
 
 
 
+

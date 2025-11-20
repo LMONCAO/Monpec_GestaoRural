@@ -282,3 +282,4 @@ def calcular_indicadores_completos(propriedade, periodo_dias=365):
 
 
 
+

@@ -318,6 +318,7 @@ urlpatterns = [
     path('propriedade/<int:propriedade_id>/rastreabilidade/relatorio/movimentacoes/', views_rastreabilidade.relatorio_movimentacoes_sisbov, name='relatorio_movimentacoes_sisbov'),
     path('propriedade/<int:propriedade_id>/rastreabilidade/relatorio/entradas/', views_rastreabilidade.relatorio_entradas_sisbov, name='relatorio_entradas_sisbov'),
     path('propriedade/<int:propriedade_id>/rastreabilidade/relatorio/saidas/', views_rastreabilidade.relatorio_saidas_sisbov, name='relatorio_saidas_sisbov'),
+    path('propriedade/<int:propriedade_id>/rastreabilidade/relatorio/saidas/pdf/', views_relatorios_rastreabilidade.exportar_saidas_sisbov_pdf, name='exportar_saidas_sisbov_pdf'),
     path('propriedade/<int:propriedade_id>/rastreabilidade/relatorio/sanitario/', views_rastreabilidade.relatorio_sanitario_sisbov, name='relatorio_sanitario_sisbov'),
     path('propriedade/<int:propriedade_id>/rastreabilidade/api/proximo-brinco/', views_rastreabilidade.api_gerar_numero_brinco, name='api_gerar_numero_brinco'),
     

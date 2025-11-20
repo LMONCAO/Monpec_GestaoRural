@@ -139,3 +139,4 @@ No celular, tente fazer ping no IP do servidor (se o app de ping permitir).
 
 
 
+

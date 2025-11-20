@@ -43,7 +43,11 @@
             {% if tipo_movimentacao %}
                 <span class="badge bg-danger-subtle text-danger fw-semibold text-uppercase">{{ tipo_movimentacao|title }}</span>
             {% endif %}
-            <button class="btn btn-outline-secondary" onclick="window.print()"><i class="bi bi-printer me-1"></i>Imprimir / PDF</button>
+            <a href="{% url 'exportar_saidas_sisbov_pdf' propriedade.id %}?{% if data_inicio %}data_inicio={{ data_inicio|date:'Y-m-d' }}&{% endif %}{% if data_fim %}data_fim={{ data_fim|date:'Y-m-d' }}&{% endif %}{% if busca %}busca={{ busca }}&{% endif %}{% if tipo_movimentacao %}tipo_movimentacao={{ tipo_movimentacao }}{% endif %}" 
+               class="btn btn-danger">
+                <i class="bi bi-file-earmark-pdf me-1"></i>Exportar PDF
+            </a>
+            <button class="btn btn-outline-secondary" onclick="window.print()"><i class="bi bi-printer me-1"></i>Imprimir</button>
         </div>
     </div>
 

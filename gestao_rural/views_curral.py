@@ -2174,6 +2174,94 @@ def curral_registrar_evento(request, propriedade_id, sessao_id):
     return redirect('curral_sessao', propriedade_id=propriedade.id, sessao_id=sessao.id)
 
 
+def _criar_movimentacoes_venda_frigorifico(sessao: CurralSessao, usuario):
+    """
+    Cria movimentações de venda para todos os animais trabalhados na sessão de vendas para frigorífico.
+    Retorna o número de movimentações criadas.
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    if sessao.tipo_trabalho != 'VENDA_FRIGORIFICO':
+        logger.info(f'Sessão {sessao.id} não é de venda para frigorífico (tipo: {sessao.tipo_trabalho})')
+        return 0
+    
+    logger.info(f'Processando sessão de venda para frigorífico: {sessao.id} - {sessao.nome}')
+    
+    # Buscar todos os animais únicos que foram trabalhados na sessão
+    eventos = CurralEvento.objects.filter(
+        sessao=sessao,
+        animal__isnull=False
+    ).select_related('animal', 'animal__categoria')
+    
+    logger.info(f'Encontrados {eventos.count()} eventos com animais na sessão {sessao.id}')
+    
+    animais_processados = set()
+    movimentacoes_criadas = 0
+    movimentacoes_ignoradas = 0
+    data_venda = sessao.data_fim.date() if sessao.data_fim else timezone.now().date()
+    
+    for evento in eventos:
+        animal = evento.animal
+        if not animal or animal.id in animais_processados:
+            continue
+        
+        animais_processados.add(animal.id)
+        
+        # Verificar se já existe movimentação de venda para este animal nesta data
+        movimentacao_existente = MovimentacaoIndividual.objects.filter(
+            animal=animal,
+            tipo_movimentacao='VENDA',
+            data_movimentacao=data_venda
+        ).first()
+        
+        if movimentacao_existente:
+            logger.info(f'Movimentação de venda já existe para animal {animal.id} ({animal.numero_brinco}) na data {data_venda}')
+            movimentacoes_ignoradas += 1
+            continue
+        
+        # Obter peso do evento ou do animal
+        peso_kg = None
+        if evento.peso_kg:
+            peso_kg = evento.peso_kg
+        elif animal.peso_atual_kg:
+            peso_kg = animal.peso_atual_kg
+        
+        # Criar movimentação de venda
+        try:
+            movimentacao = MovimentacaoIndividual.objects.create(
+                animal=animal,
+                tipo_movimentacao='VENDA',
+                data_movimentacao=data_venda,
+                propriedade_origem=sessao.propriedade,
+                categoria_anterior=animal.categoria,
+                peso_kg=peso_kg,
+                observacoes=f'Venda para frigorífico - Sessão: {sessao.nome}',
+                responsavel=usuario,
+                quantidade_animais=1,
+                documento_tipo='OUTROS',
+            )
+            
+            # Atualizar status do animal para VENDIDO
+            animal.status = 'VENDIDO'
+            animal.save(update_fields=['status'])
+            
+            logger.info(f'Movimentação de venda criada: ID {movimentacao.id} para animal {animal.id} ({animal.numero_brinco})')
+            movimentacoes_criadas += 1
+        except Exception as e:
+            # Log do erro mas continua processando outros animais
+            logger.error(f'Erro ao criar movimentação de venda para animal {animal.id}: {str(e)}', exc_info=True)
+            continue
+    
+    logger.info(
+        f'Sessão {sessao.id}: {movimentacoes_criadas} movimentações criadas, '
+        f'{movimentacoes_ignoradas} ignoradas (já existiam), '
+        f'{len(animais_processados)} animais únicos processados'
+    )
+    
+    return movimentacoes_criadas
+
+
 @login_required
 def curral_encerrar_sessao(request, propriedade_id, sessao_id):
     propriedade = get_object_or_404(Propriedade, id=propriedade_id)
@@ -2187,7 +2275,20 @@ def curral_encerrar_sessao(request, propriedade_id, sessao_id):
     sessao.data_fim = datetime.now()
     sessao.save(update_fields=['status', 'data_fim'])
 
-    messages.success(request, 'Sessão encerrada! Relatório consolidado disponível.')
+    # Se for venda para frigorífico, criar movimentações de venda automaticamente
+    if sessao.tipo_trabalho == 'VENDA_FRIGORIFICO':
+        movimentacoes_criadas = _criar_movimentacoes_venda_frigorifico(sessao, request.user)
+        if movimentacoes_criadas > 0:
+            messages.success(
+                request, 
+                f'Sessão encerrada! {movimentacoes_criadas} movimentação(ões) de venda criada(s). '
+                f'<a href="/propriedade/{propriedade.id}/rastreabilidade/relatorio/saidas/" class="alert-link">Ver relatório de saídas</a>'
+            )
+        else:
+            messages.warning(request, 'Sessão encerrada, mas nenhum animal foi encontrado para criar movimentação de venda.')
+    else:
+        messages.success(request, 'Sessão encerrada! Relatório consolidado disponível.')
+    
     return redirect('curral_relatorio', propriedade_id=propriedade.id, sessao_id=sessao.id)
 
 
@@ -2764,19 +2865,35 @@ def curral_encerrar_sessao_api(request, propriedade_id):
             sessao.data_fim = timezone.now()
             sessao.save()
             
+            # Se for venda para frigorífico, criar movimentações de venda automaticamente
             # Estatísticas finais
             eventos = CurralEvento.objects.filter(sessao=sessao)
             animais_unicos = eventos.values('animal').distinct().count()
             
-            return JsonResponse({
+            resposta = {
                 'status': 'ok',
                 'mensagem': 'Sessão encerrada com sucesso.',
                 'estatisticas': {
                     'total_eventos': eventos.count(),
                     'animais_processados': animais_unicos,
                     'duracao_minutos': int((sessao.data_fim - sessao.data_inicio).total_seconds() / 60) if sessao.data_fim else 0,
-                }
-            })
+                },
+                'tipo_trabalho': sessao.tipo_trabalho,
+            }
+            
+            # Se for venda para frigorífico, criar movimentações de venda automaticamente
+            if sessao.tipo_trabalho == 'VENDA_FRIGORIFICO':
+                movimentacoes_criadas = _criar_movimentacoes_venda_frigorifico(sessao, request.user)
+                resposta['movimentacoes_criadas'] = movimentacoes_criadas
+                if movimentacoes_criadas > 0:
+                    resposta['mensagem'] += f' {movimentacoes_criadas} movimentação(ões) de venda criada(s). Relatório de saídas disponível.'
+                    resposta['relatorio_saidas_url'] = f'/propriedade/{propriedade_id}/rastreabilidade/relatorio/saidas/'
+                else:
+                    resposta['mensagem'] += ' Nenhum animal encontrado para criar movimentação de venda.'
+            else:
+                resposta['movimentacoes_criadas'] = 0
+            
+            return JsonResponse(resposta)
     except Exception as e:
         return JsonResponse({'status': 'erro', 'mensagem': f'Erro ao encerrar sessão: {str(e)}'}, status=500)
 

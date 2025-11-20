@@ -46,3 +46,4 @@ gcloud run deploy monpec --image gcr.io/monpec-sistema-rural/monpec --platform m
 
 
 
+
