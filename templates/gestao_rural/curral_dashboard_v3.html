@@ -1,0 +1,1912 @@
+{% extends "base_modulos_unificado.html" %}
+<!-- Curral Inteligente 3.0 - Design Premium Baseado na Referência -->
+<!-- Criado em {{ "now"|date:"Y-m-d H:i:s" }} -->
+
+{% block title %}Curral Inteligente 3.0 · {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ========== DESIGN PREMIUM CURRAL 3.0 - BASEADO NA REFERÊNCIA ========== */
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+  
+  :root {
+    --primary: #1e88e5;
+    --primary-dark: #1565c0;
+    --primary-light: #42a5f5;
+    --secondary: #8b5cf6;
+    --accent: #ec4899;
+    --success: #43a047;
+    --warning: #fb8c00;
+    --danger: #e53935;
+    --info: #3b82f6;
+    
+    --bg-primary: #0f172a;
+    --bg-secondary: #1e293b;
+    --bg-card: #ffffff;
+    --bg-light: #f5f7fa;
+    --bg-header: #1976d2;
+    
+    --text-primary: #212121;
+    --text-secondary: #757575;
+    --text-light: #94a3b8;
+    --text-white: #ffffff;
+    
+    --shadow-sm: 0 2px 4px rgba(0,0,0,0.1);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.15);
+    --shadow-lg: 0 8px 24px rgba(0,0,0,0.2);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    
+    --radius: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body.curral-v3 {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg-light);
+    color: var(--text-primary);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .curral-v3-wrapper {
+    max-width: 1920px;
+    margin: 0 auto;
+    padding: 0;
+  }
+
+  /* ========== HEADER SUPERIOR ========== */
+  .curral-v3-header {
+    background: var(--bg-header);
+    color: var(--text-white);
+    padding: 16px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: var(--shadow-md);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+  }
+
+  .curral-v3-header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .curral-v3-header-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0;
+  }
+
+  .curral-v3-header-fazenda {
+    font-size: 0.875rem;
+    opacity: 0.9;
+    font-weight: 500;
+  }
+
+  .curral-v3-header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .status-conexao {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius);
+    font-size: 0.875rem;
+  }
+
+  .status-conexao-badge {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--success);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  .sessao-ativa-box {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    padding: 12px 16px;
+    border-radius: var(--radius);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    min-width: 200px;
+  }
+
+  .sessao-ativa-titulo {
+    font-size: 0.75rem;
+    opacity: 0.9;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .sessao-ativa-nome {
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  .sessao-ativa-stats {
+    display: flex;
+    gap: 12px;
+    font-size: 0.75rem;
+  }
+
+  .sessao-stat-item {
+    text-align: center;
+  }
+
+  .sessao-stat-valor {
+    font-size: 1rem;
+    font-weight: 700;
+    display: block;
+  }
+
+  .sessao-stat-label {
+    font-size: 0.7rem;
+    opacity: 0.8;
+  }
+
+  .btn-relatorios {
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: var(--text-white);
+    padding: 8px 16px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.2s;
+  }
+
+  .btn-relatorios:hover {
+    background: rgba(255, 255, 255, 0.25);
+  }
+
+  .btn-encerrar {
+    background: var(--danger);
+    border: none;
+    color: var(--text-white);
+    padding: 6px 12px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-top: 8px;
+    transition: all 0.2s;
+  }
+
+  .btn-encerrar:hover {
+    background: #c62828;
+    transform: translateY(-1px);
+  }
+
+  /* ========== CONTEÚDO PRINCIPAL ========== */
+  .curral-v3-content {
+    padding: 24px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 24px;
+    grid-template-rows: auto auto 1fr;
+  }
+
+  /* ========== CARD IDENTIFICAÇÃO E PESAGEM ========== */
+  .card-curral {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+  }
+
+  .card-curral-header {
+    background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
+    padding: 16px 20px;
+    border-bottom: 2px solid rgba(0, 0, 0, 0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .card-curral-header h2 {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card-curral-body {
+    padding: 20px;
+  }
+
+  .scanner-brinco-input {
+    margin-bottom: 20px;
+  }
+
+  .scanner-brinco-input label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 8px;
+  }
+
+  .scanner-brinco-input-wrapper {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .scanner-brinco-input input {
+    flex: 1;
+    padding: 12px 16px;
+    border: 2px solid rgba(0, 0, 0, 0.1);
+    border-radius: var(--radius);
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    transition: all 0.2s;
+  }
+
+  .scanner-brinco-input input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(30, 136, 229, 0.1);
+  }
+
+  .btn-buscar {
+    background: var(--primary);
+    color: var(--text-white);
+    border: none;
+    padding: 12px 24px;
+    border-radius: var(--radius);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .btn-buscar:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+  }
+
+  .scanner-animal-resumo {
+    margin-top: 20px;
+    padding: 16px;
+    background: var(--bg-light);
+    border-radius: var(--radius);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .resumo-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .resumo-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  .resumo-value {
+    font-size: 0.9375rem;
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+
+  /* ========== CARD PESAGEM ========== */
+  .peso-display-v2 {
+    text-align: center;
+  }
+
+  .peso-display-v2-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 12px;
+  }
+
+  .peso-display-v2-input-wrapper {
+    position: relative;
+    margin-bottom: 20px;
+  }
+
+  .peso-display-v2-input {
+    width: 100%;
+    padding: 24px;
+    font-size: 3rem;
+    font-weight: 800;
+    text-align: center;
+    border: 3px solid rgba(0, 0, 0, 0.1);
+    border-radius: var(--radius-lg);
+    background: var(--bg-light);
+    transition: all 0.2s;
+    letter-spacing: 0.05em;
+  }
+
+  .peso-display-v2-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(30, 136, 229, 0.1);
+    background: var(--bg-card);
+  }
+
+  .peso-display-v2-unit {
+    position: absolute;
+    right: 24px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+
+  .peso-display-v2-buttons {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .btn-gravar {
+    flex: 1;
+    background: var(--success);
+    color: var(--text-white);
+    border: none;
+    padding: 12px;
+    border-radius: var(--radius);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-gravar:hover {
+    background: #388e3c;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+  }
+
+  .btn-limpar {
+    background: var(--danger);
+    color: var(--text-white);
+    border: none;
+    padding: 12px 20px;
+    border-radius: var(--radius);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-limpar:hover {
+    background: #c62828;
+  }
+
+  .btn-finalizar {
+    width: 100%;
+    background: linear-gradient(135deg, #43a047 0%, #388e3c 100%);
+    color: var(--text-white);
+    border: none;
+    padding: 12px;
+    border-radius: var(--radius);
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-finalizar:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+  }
+
+  .peso-display-v2-info {
+    text-align: left;
+    padding-top: 16px;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+  }
+
+  .peso-info-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    font-size: 0.875rem;
+  }
+
+  .peso-info-label {
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+
+  .peso-info-value {
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+
+  /* ========== CARDS DE ESTATÍSTICAS ========== */
+  .stats-grid-v3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .stat-card-v3 {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+    box-shadow: var(--shadow-md);
+    text-align: center;
+    border-top: 4px solid;
+    transition: all 0.3s;
+  }
+
+  .stat-card-v3:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .stat-card-v3.purple { border-top-color: #8b5cf6; }
+  .stat-card-v3.pink { border-top-color: #ec4899; }
+  .stat-card-v3.blue { border-top-color: #3b82f6; }
+  .stat-card-v3.green { border-top-color: #43a047; }
+
+  .stat-card-v3-icon {
+    font-size: 2rem;
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  .stat-card-v3-value {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+  }
+
+  .stat-card-v3-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  /* ========== CARD MANEJOS ========== */
+  .manejos-selecionados {
+    min-height: 200px;
+    grid-column: 1 / -1; /* Ocupa toda a largura */
+  }
+  
+  .manejos-lista {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+  }
+  
+  .manejo-item-card {
+    background: var(--bg-light);
+    border: 2px solid rgba(0, 0, 0, 0.1);
+    border-radius: var(--radius);
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: all 0.2s;
+    position: relative;
+  }
+  
+  .manejo-item-card:hover {
+    border-color: var(--primary);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+  }
+  
+  .manejo-item-card.pesagem { border-left: 4px solid #43a047; }
+  .manejo-item-card.vacinacao { border-left: 4px solid #3b82f6; }
+  .manejo-item-card.tratamento { border-left: 4px solid #f59e0b; }
+  .manejo-item-card.reproducao { border-left: 4px solid #ec4899; }
+  .manejo-item-card.diagnostico { border-left: 4px solid #8b5cf6; }
+  
+  .manejo-item-info {
+    flex: 1;
+  }
+  
+  .manejo-item-titulo {
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+    font-size: 0.9375rem;
+  }
+  
+  .manejo-item-desc {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+  }
+  
+  .manejo-item-remove {
+    background: var(--danger);
+    color: var(--text-white);
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  
+  .manejo-item-remove:hover {
+    background: #c62828;
+    transform: scale(1.1);
+  }
+  
+  .manejos-acoes {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+  }
+  
+  .btn-manejo-tipo {
+    padding: 10px 16px;
+    border: 2px solid rgba(0, 0, 0, 0.1);
+    border-radius: var(--radius);
+    background: var(--bg-card);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 600;
+    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .btn-manejo-tipo:hover {
+    border-color: var(--primary);
+    background: rgba(30, 136, 229, 0.05);
+    transform: translateY(-2px);
+  }
+  
+  .btn-manejo-tipo.pesagem { border-color: #43a047; color: #43a047; }
+  .btn-manejo-tipo.vacinacao { border-color: #3b82f6; color: #3b82f6; }
+  .btn-manejo-tipo.tratamento { border-color: #f59e0b; color: #f59e0b; }
+  .btn-manejo-tipo.reproducao { border-color: #ec4899; color: #ec4899; }
+  .btn-manejo-tipo.diagnostico { border-color: #8b5cf6; color: #8b5cf6; }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-secondary);
+  }
+
+  .empty-state-icon {
+    font-size: 3rem;
+    margin-bottom: 16px;
+    opacity: 0.5;
+  }
+
+  .empty-state-text {
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 8px;
+  }
+
+  .empty-state-hint {
+    font-size: 0.75rem;
+    color: var(--text-light);
+  }
+
+  /* ========== TABELA ANIMAIS ========== */
+  .animais-registrados {
+    grid-column: 1 / -1;
+  }
+
+  .table-wrapper {
+    overflow-x: auto;
+  }
+
+  .table-animais {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+  }
+
+  .table-animais thead {
+    background: var(--bg-light);
+    border-bottom: 2px solid rgba(0, 0, 0, 0.1);
+  }
+
+  .table-animais th {
+    padding: 12px;
+    text-align: left;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+  }
+
+  .table-animais td {
+    padding: 12px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  }
+
+  .table-animais tbody tr:hover {
+    background: var(--bg-light);
+  }
+
+  /* ========== MODAL ========== */
+  .modal-v3-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 10000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .modal-v3-overlay.show {
+    display: flex;
+    opacity: 1;
+  }
+
+  .modal-v3 {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xl);
+    max-width: 600px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    transform: scale(0.9);
+    transition: transform 0.3s;
+  }
+
+  .modal-v3-overlay.show .modal-v3 {
+    transform: scale(1);
+  }
+
+  .modal-v3-header {
+    padding: 20px 24px;
+    background: var(--primary);
+    color: var(--text-white);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .modal-v3-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0;
+  }
+
+  .modal-v3-close {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: var(--text-white);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+
+  .modal-v3-close:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: rotate(90deg);
+  }
+
+  .modal-v3-body {
+    padding: 24px;
+  }
+
+  .modal-v3-footer {
+    padding: 16px 24px;
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+  }
+
+  .form-group-v3 {
+    margin-bottom: 20px;
+  }
+
+  .form-label-v3 {
+    display: block;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    font-size: 0.875rem;
+  }
+
+  .form-input-v3 {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid rgba(0, 0, 0, 0.1);
+    border-radius: var(--radius);
+    font-size: 1rem;
+    transition: all 0.2s;
+  }
+
+  .form-input-v3:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(30, 136, 229, 0.1);
+  }
+
+  .btn-v3 {
+    padding: 12px 24px;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .btn-v3-primary {
+    background: var(--primary);
+    color: var(--text-white);
+  }
+
+  .btn-v3-primary:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+  }
+
+  .btn-v3-secondary {
+    background: var(--bg-light);
+    color: var(--text-primary);
+    border: 2px solid rgba(0, 0, 0, 0.1);
+  }
+
+  .btn-v3-secondary:hover {
+    background: rgba(0, 0, 0, 0.05);
+  }
+
+  /* ========== TOAST ========== */
+  .toast-v3 {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    background: var(--bg-card);
+    padding: 16px 20px;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xl);
+    min-width: 300px;
+    z-index: 10001;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transform: translateX(400px);
+    transition: transform 0.3s;
+    border-left: 4px solid var(--primary);
+  }
+
+  .toast-v3.show {
+    transform: translateX(0);
+  }
+
+  .toast-v3-success { border-left-color: var(--success); }
+  .toast-v3-error { border-left-color: var(--danger); }
+  .toast-v3-warning { border-left-color: var(--warning); }
+
+  /* ========== LOADING ========== */
+  .loading-v3 {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    z-index: 10002;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .loading-v3.show {
+    display: flex;
+  }
+
+  .spinner-v3 {
+    width: 48px;
+    height: 48px;
+    border: 4px solid rgba(255, 255, 255, 0.2);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* ========== RESPONSIVO ========== */
+  @media (max-width: 1400px) {
+    .curral-v3-content {
+      grid-template-columns: 1fr 1fr;
+    }
+    
+    .animais-registrados {
+      grid-column: 1 / -1;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .curral-v3-content {
+      grid-template-columns: 1fr;
+      padding: 16px;
+    }
+    
+    .curral-v3-header {
+      flex-direction: column;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    
+    .curral-v3-header-right {
+      width: 100%;
+      flex-wrap: wrap;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block body_attrs %} class="curral-v3"{% endblock %}
+
+{% block content %}
+<!-- Loading Overlay -->
+<div class="loading-v3" id="loadingV3">
+  <div class="spinner-v3"></div>
+  <div style="color: white; font-weight: 600;">Processando...</div>
+</div>
+
+<!-- Toast Container -->
+<div id="toastContainerV3"></div>
+
+<div class="curral-v3-wrapper">
+  <!-- Header Superior -->
+  <div class="curral-v3-header">
+    <div class="curral-v3-header-left">
+      <h1 class="curral-v3-header-title">Super Tela</h1>
+      <div class="curral-v3-header-fazenda">MONPEC CURRAL - {{ propriedade.nome_propriedade }}</div>
+    </div>
+    <div class="curral-v3-header-right">
+      <button class="btn-relatorios">
+        <i class="fas fa-file-alt"></i> Relatórios
+      </button>
+      <div class="status-conexao">
+        <span class="status-conexao-badge"></span>
+        <span id="statusConexaoTextoV3">Online</span>
+      </div>
+      <div class="sessao-ativa-box">
+        <div class="sessao-ativa-titulo">
+          <i class="fas fa-circle" style="font-size: 0.4rem; color: #4caf50;"></i>
+          Sessão Ativa
+        </div>
+        <div class="sessao-ativa-nome" id="sessaoAtivaNomeV3">
+          {% if sessao_ativa %}{{ sessao_ativa.nome }} {{ super_tela.sessao_data|default:"" }}{% else %}Nenhuma sessão ativa{% endif %}
+        </div>
+        <div class="sessao-ativa-stats" id="sessaoAtivaStatsV3" style="display: {% if sessao_ativa %}flex{% else %}none{% endif %};">
+          <div class="sessao-stat-item">
+            <span class="sessao-stat-valor" id="sessaoStatEventosV3">{{ stats_sessao.total_eventos|default:0 }}</span>
+            <span class="sessao-stat-label">Eventos</span>
+          </div>
+          <div class="sessao-stat-item">
+            <span class="sessao-stat-valor" id="sessaoStatAnimaisV3">{{ stats_sessao.animais_processados|default:0 }}</span>
+            <span class="sessao-stat-label">Animais</span>
+          </div>
+          <div class="sessao-stat-item">
+            <span class="sessao-stat-valor" id="sessaoStatPesagensV3">{{ stats_sessao.pesagens|default:0 }}</span>
+            <span class="sessao-stat-label">Pesagens</span>
+          </div>
+        </div>
+        {% if sessao_ativa %}
+        <button class="btn-encerrar" onclick="encerrarSessaoV3()">
+          <i class="fas fa-stop"></i> Encerrar
+        </button>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Conteúdo Principal -->
+  <div class="curral-v3-content">
+    <!-- Card Identificação e Pesagem -->
+    <div class="card-curral">
+      <div class="card-curral-header">
+        <h2><i class="fas fa-qrcode"></i> Identificação e Pesagem</h2>
+        <span style="font-size: 0.75rem; color: var(--text-secondary);">Balança conectada (simulação)</span>
+      </div>
+      <div class="card-curral-body">
+        <div class="scanner-brinco-input">
+          <label>IDENTIFICAÇÃO DO ANIMAL</label>
+          <div class="scanner-brinco-input-wrapper">
+            <input type="text" id="brincoInputV3" 
+                   placeholder="Número de Manejo, SISBOV ou RFID"
+                   onkeypress="if(event.key === 'Enter') buscarBrincoV3()">
+            <button class="btn-buscar" onclick="buscarBrincoV3()">
+              <i class="fas fa-search"></i> Buscar
+            </button>
+          </div>
+          <small style="display: block; margin-top: 8px; color: var(--text-secondary); font-size: 0.75rem;">
+            Busque por: <strong>Número de Manejo</strong>, <strong>SISBOV</strong> ou <strong>RFID</strong> (código eletrônico)
+          </small>
+        </div>
+        
+        <div class="scanner-animal-resumo" id="scannerAnimalResumoV3" style="display: none;">
+          <div class="resumo-item">
+            <span class="resumo-label">Código Eletrônico:</span>
+            <span class="resumo-value" id="scannerCodigoEletronicoV3">—</span>
+          </div>
+          <div class="resumo-item">
+            <span class="resumo-label">SISBOV:</span>
+            <span class="resumo-value" id="scannerSisbovV3">—</span>
+          </div>
+          <div class="resumo-item">
+            <span class="resumo-label">Número de Manejo:</span>
+            <span class="resumo-value" id="scannerNumeroManejoV3">—</span>
+          </div>
+          <div class="resumo-item">
+            <span class="resumo-label">Raça / Sexo:</span>
+            <span class="resumo-value" id="scannerRacaSexoV3">—</span>
+          </div>
+          <div class="resumo-item">
+            <span class="resumo-label">Nascimento:</span>
+            <span class="resumo-value" id="scannerDataNascV3">—</span>
+          </div>
+          <div class="resumo-item">
+            <span class="resumo-label">Último peso:</span>
+            <span class="resumo-value" id="scannerUltimoPesoV3">—</span>
+          </div>
+          <div class="resumo-item">
+            <span class="resumo-label">Categoria:</span>
+            <span class="resumo-value" id="scannerCategoriaV3">—</span>
+          </div>
+          <div class="resumo-item">
+            <span class="resumo-label">Pasto/Lote:</span>
+            <span class="resumo-value" id="scannerPastoLoteV3">—</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card Registro de Pesagem -->
+    <div class="card-curral">
+      <div class="card-curral-header">
+        <h2><i class="fas fa-weight"></i> Registro de Pesagem</h2>
+      </div>
+      <div class="card-curral-body">
+        <div class="peso-display-v2">
+          <div class="peso-display-v2-label">REGISTRO DE PESAGEM</div>
+          <div class="peso-display-v2-input-wrapper">
+            <input type="text" id="pesoValorV3" 
+                   class="peso-display-v2-input" 
+                   placeholder="0,0"
+                   inputmode="decimal"
+                   disabled>
+            <span class="peso-display-v2-unit">kg</span>
+          </div>
+          <div class="peso-display-v2-buttons">
+            <button class="btn-gravar" id="pesoGravarBtnV3" onclick="gravarPesagemV3()" disabled>
+              <i class="fas fa-save"></i> Gravar
+            </button>
+            <button class="btn-limpar" onclick="limparPesoV3()">
+              <i class="fas fa-eraser"></i> Limpar
+            </button>
+          </div>
+          <button class="btn-finalizar" id="btnFinalizarGravarV3" onclick="finalizarEGravarV3()" disabled>
+            <i class="fas fa-check-double"></i> Finalizar e Gravar
+          </button>
+          <div class="peso-display-v2-info">
+            <div class="peso-info-item">
+              <span class="peso-info-label">Peso Registrado:</span>
+              <span class="peso-info-value" id="pesoRegistradoV3">—</span>
+            </div>
+            <div class="peso-info-item">
+              <span class="peso-info-label">Data última pesagem:</span>
+              <span class="peso-info-value" id="pesoUltimoDataV3">—</span>
+            </div>
+            <div class="peso-info-item">
+              <span class="peso-info-label">Dias desde a última:</span>
+              <span class="peso-info-value" id="pesoDiasV3">—</span>
+            </div>
+            <div class="peso-info-item">
+              <span class="peso-info-label">Ganho total:</span>
+              <span class="peso-info-value" id="pesoGanhoTotalV3">—</span>
+            </div>
+            <div class="peso-info-item">
+              <span class="peso-info-label">Ganho diário médio:</span>
+              <span class="peso-info-value" id="pesoGanhoDiaV3">—</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cards de Estatísticas -->
+    <div class="stats-grid-v3">
+      <div class="stat-card-v3 purple">
+        <div class="stat-card-v3-icon">🐄</div>
+        <div class="stat-card-v3-value" id="statTotalAnimais">0</div>
+        <div class="stat-card-v3-label">Total</div>
+      </div>
+      <div class="stat-card-v3 pink">
+        <div class="stat-card-v3-icon">🔍</div>
+        <div class="stat-card-v3-value" id="statIdentificados">0</div>
+        <div class="stat-card-v3-label">Identificados</div>
+      </div>
+      <div class="stat-card-v3 blue">
+        <div class="stat-card-v3-icon">📝</div>
+        <div class="stat-card-v3-value" id="statCadastrados">0</div>
+        <div class="stat-card-v3-label">Cadastrados</div>
+      </div>
+      <div class="stat-card-v3 green">
+        <div class="stat-card-v3-icon">✅</div>
+        <div class="stat-card-v3-value" id="statProcessados">0</div>
+        <div class="stat-card-v3-label">Processados</div>
+      </div>
+    </div>
+
+    <!-- Card Manejos Selecionados -->
+    <div class="card-curral manejos-selecionados">
+      <div class="card-curral-header">
+        <h2><i class="fas fa-list"></i> Manejos Selecionados</h2>
+        <button onclick="limparTodosManejosV3()" style="background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1.125rem;" title="Limpar todos os manejos">
+          <i class="fas fa-trash"></i>
+        </button>
+      </div>
+      <div class="card-curral-body">
+        <div id="emptyStateManejosV3" class="empty-state">
+          <div class="empty-state-icon">📋</div>
+          <div class="empty-state-text">Nenhum manejo selecionado</div>
+          <div class="empty-state-hint">Selecione os manejos abaixo para aplicar ao animal</div>
+        </div>
+        <div id="listaManejosV3" class="manejos-lista" style="display: none;"></div>
+        <div class="manejos-acoes">
+          <button class="btn-manejo-tipo pesagem" onclick="adicionarManejoV3('PESAGEM', 'Pesagem', 'Registrar peso do animal')">
+            <span>⚖️</span>
+            <span>Pesagem</span>
+          </button>
+          <button class="btn-manejo-tipo vacinacao" onclick="adicionarManejoV3('VACINACAO', 'Vacinação', 'Aplicar vacina no animal')">
+            <span>💉</span>
+            <span>Vacinação</span>
+          </button>
+          <button class="btn-manejo-tipo tratamento" onclick="adicionarManejoV3('TRATAMENTO', 'Tratamento', 'Tratamento sanitário')">
+            <span>💊</span>
+            <span>Tratamento</span>
+          </button>
+          <button class="btn-manejo-tipo reproducao" onclick="adicionarManejoV3('REPRODUCAO', 'Reprodução', 'Protocolo reprodutivo/IATF')">
+            <span>🤰</span>
+            <span>Reprodução</span>
+          </button>
+          <button class="btn-manejo-tipo diagnostico" onclick="adicionarManejoV3('DIAGNOSTICO', 'Diagnóstico', 'Diagnóstico de prenhez')">
+            <span>🔬</span>
+            <span>Diagnóstico</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabela Animais Registrados -->
+    <div class="card-curral animais-registrados">
+      <div class="card-curral-header">
+        <h2><i class="fas fa-table"></i> Animais Registrados</h2>
+        <button style="background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1.125rem;">
+          <i class="fas fa-trash"></i>
+        </button>
+      </div>
+      <div class="card-curral-body">
+        <div class="table-wrapper">
+          <table class="table-animais">
+            <thead>
+              <tr>
+                <th>Código Eletrônico</th>
+                <th>SISBOV</th>
+                <th>Número de Manejo</th>
+                <th>Raça/Sexo</th>
+                <th>Nascimento</th>
+                <th>Categoria</th>
+                <th>Pasto/Lote</th>
+                <th>Status BND Sisbov</th>
+              </tr>
+            </thead>
+            <tbody id="tabelaAnimaisV3">
+              <tr>
+                <td colspan="8" style="text-align: center; padding: 40px;">
+                  <div class="empty-state">
+                    <div class="empty-state-icon">🐄</div>
+                    <div class="empty-state-text">Nenhum animal registrado ainda</div>
+                    <div class="empty-state-hint">Os animais processados aparecerão aqui</div>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== MODAL DE CADASTRO DE ESTOQUE ========== -->
+<div class="modal-v3-overlay" id="modalCadastroEstoque">
+  <div class="modal-v3">
+    <div class="modal-v3-header">
+      <h2 class="modal-v3-title">➕ Cadastrar Animal do Estoque</h2>
+      <button class="modal-v3-close" onclick="fecharModal('modalCadastroEstoque')">&times;</button>
+    </div>
+    <div class="modal-v3-body">
+      <div style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); padding: 20px; border-radius: var(--radius-lg); margin-bottom: 24px; text-align: center; border: 2px solid var(--primary);">
+        <div style="font-size: 0.875rem; color: var(--primary-dark); margin-bottom: 8px; font-weight: 700; text-transform: uppercase;">BRINCO NO ESTOQUE</div>
+        <div id="cadastroBrincoV3" style="font-size: 2.5rem; font-weight: 900; color: var(--primary-dark); letter-spacing: 4px;">—</div>
+      </div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <div class="form-group-v3">
+          <label class="form-label-v3">Raça *</label>
+          <input type="text" id="cadastroRacaV3" class="form-input-v3" placeholder="Ex.: Nelore">
+        </div>
+        <div class="form-group-v3">
+          <label class="form-label-v3">Sexo *</label>
+          <select id="cadastroSexoV3" class="form-input-v3">
+            <option value="">Selecione</option>
+            <option value="F">Fêmea</option>
+            <option value="M">Macho</option>
+          </select>
+        </div>
+        <div class="form-group-v3">
+          <label class="form-label-v3">Idade (meses)</label>
+          <input type="number" id="cadastroIdadeV3" class="form-input-v3" placeholder="Ex.: 8" min="0" step="1">
+        </div>
+        <div class="form-group-v3">
+          <label class="form-label-v3">Data Nascimento</label>
+          <input type="date" id="cadastroDataNascV3" class="form-input-v3">
+        </div>
+      </div>
+      
+      <div style="background: #fff3e0; padding: 16px; border-radius: var(--radius-lg); border-left: 4px solid var(--warning); margin-top: 20px;">
+        <div style="font-size: 0.875rem; color: #e65100; font-weight: 600;">
+          <strong>💡 Dica:</strong> Informe a idade em meses OU a data de nascimento.<br>
+          O sistema calcula automaticamente o campo que faltar.
+        </div>
+      </div>
+    </div>
+    <div class="modal-v3-footer">
+      <button class="btn-v3 btn-v3-secondary" onclick="fecharModal('modalCadastroEstoque')">Cancelar</button>
+      <button class="btn-v3 btn-v3-primary" id="btnConfirmarCadastroV3" onclick="confirmarCadastroEstoqueV3()" disabled>Confirmar Cadastro</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ========== CURRAL INTELIGENTE 3.0 - SCRIPT COMPLETO ==========
+(function() {
+  'use strict';
+
+  const csrfToken = '{{ csrf_token }}';
+  const propriedadeId = {{ propriedade.id }};
+  const identificarUrl = '{{ identificar_url }}';
+  const registrarUrl = '{{ registrar_url }}';
+  const statsUrl = '{{ stats_url }}';
+  
+  let animalAtualV3 = null;
+  let brincoAtualV3 = null;
+  let animaisRegistrados = [];
+  let manejosSelecionadosV3 = [];
+
+  // ========== FUNÇÕES DE UTILIDADE ==========
+  function mostrarToast(mensagem, tipo = 'info') {
+    const container = document.getElementById('toastContainerV3');
+    const toast = document.createElement('div');
+    toast.className = `toast-v3 toast-v3-${tipo}`;
+    
+    const icon = {
+      success: '✅',
+      error: '❌',
+      warning: '⚠️',
+      info: 'ℹ️'
+    }[tipo] || 'ℹ️';
+    
+    toast.innerHTML = `<span style="font-size: 1.5rem;">${icon}</span><span>${mensagem}</span>`;
+    container.appendChild(toast);
+    setTimeout(() => toast.classList.add('show'), 100);
+    setTimeout(() => {
+      toast.classList.remove('show');
+      setTimeout(() => container.removeChild(toast), 300);
+    }, 4000);
+  }
+
+  function mostrarLoading(mostrar) {
+    const loading = document.getElementById('loadingV3');
+    if (mostrar) {
+      loading.classList.add('show');
+    } else {
+      loading.classList.remove('show');
+    }
+  }
+
+  function fecharModal(modalId) {
+    document.getElementById(modalId).classList.remove('show');
+  }
+
+  // ========== BUSCAR BRINCO ========== */
+  window.buscarBrincoV3 = async function() {
+    const brinco = document.getElementById('brincoInputV3').value.trim();
+    
+    if (!brinco) {
+      mostrarToast('Digite o número de manejo, SISBOV ou RFID', 'warning');
+      return;
+    }
+
+    mostrarLoading(true);
+    
+    try {
+      const response = await fetch(identificarUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken,
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({ codigo: brinco })
+      });
+
+      const data = await response.json();
+      mostrarLoading(false);
+      
+      console.log('Resposta da API:', data);
+      console.log('Status:', data.status);
+      console.log('Dados:', data.dados);
+
+      // A view retorna status: 'animal' com dados em 'dados'
+      if (data.status === 'animal' && data.dados) {
+        try {
+          animalAtualV3 = data.dados;
+          brincoAtualV3 = brinco;
+          
+          console.log('Animal encontrado:', data.dados);
+          
+          // Preencher resumo
+          const codigoEletronico = document.getElementById('scannerCodigoEletronicoV3');
+          const sisbov = document.getElementById('scannerSisbovV3');
+          const racaSexo = document.getElementById('scannerRacaSexoV3');
+          const ultimoPeso = document.getElementById('scannerUltimoPesoV3');
+          
+          if (codigoEletronico) codigoEletronico.textContent = data.dados.numero_brinco || '—';
+          if (sisbov) sisbov.textContent = data.dados.codigo_sisbov || '—';
+          
+          // Tratar sexo (pode vir como código F/M ou display)
+          let sexoDisplay = data.dados.sexo || '';
+          if (sexoDisplay === 'F') sexoDisplay = 'Fêmea';
+          if (sexoDisplay === 'M') sexoDisplay = 'Macho';
+          if (racaSexo) racaSexo.textContent = `${data.dados.raca || '—'} - ${sexoDisplay}`;
+          
+          if (ultimoPeso) {
+            ultimoPeso.textContent = data.dados.peso_atual ? `${data.dados.peso_atual} kg` : '—';
+          }
+          
+          const resumo = document.getElementById('scannerAnimalResumoV3');
+          if (resumo) resumo.style.display = 'grid';
+          
+          // Habilitar campo de peso - CRÍTICO: sempre habilitar quando animal é encontrado
+          const pesoInput = document.getElementById('pesoValorV3');
+          const pesoBtn = document.getElementById('pesoGravarBtnV3');
+          const finalizarBtn = document.getElementById('btnFinalizarGravarV3');
+          
+          console.log('Habilitando campos de peso...');
+          console.log('pesoInput encontrado:', !!pesoInput);
+          console.log('pesoBtn encontrado:', !!pesoBtn);
+          console.log('finalizarBtn encontrado:', !!finalizarBtn);
+          
+          if (pesoInput) {
+            pesoInput.disabled = false;
+            pesoInput.removeAttribute('disabled');
+            pesoInput.focus();
+            console.log('Campo de peso habilitado');
+          } else {
+            console.error('Campo pesoValorV3 não encontrado!');
+          }
+          
+          if (pesoBtn) {
+            pesoBtn.disabled = false;
+            pesoBtn.removeAttribute('disabled');
+            console.log('Botão gravar habilitado');
+          } else {
+            console.error('Botão pesoGravarBtnV3 não encontrado!');
+          }
+          
+          // Habilitar botão finalizar se houver manejos ou peso
+          if (finalizarBtn) {
+            // Sempre habilitar quando animal é encontrado (pode adicionar peso ou manejos)
+            finalizarBtn.disabled = false;
+            finalizarBtn.removeAttribute('disabled');
+            console.log('Botão finalizar habilitado');
+          } else {
+            console.error('Botão btnFinalizarGravarV3 não encontrado!');
+          }
+          
+          // Atualizar estatísticas
+          const statIdentificados = document.getElementById('statIdentificados');
+          if (statIdentificados) {
+            const identificados = parseInt(statIdentificados.textContent) || 0;
+            statIdentificados.textContent = identificados + 1;
+          }
+          
+          mostrarToast('Animal identificado com sucesso!', 'success');
+        } catch (error) {
+          console.error('Erro ao processar animal encontrado:', error);
+          mostrarToast('Erro ao processar dados do animal. Verifique o console.', 'error');
+        }
+      } else if (data.status === 'estoque') {
+        // Brinco no estoque - abrir modal de cadastro
+        abrirModalCadastroEstoque(brinco);
+        mostrarToast('Brinco encontrado no estoque. Complete o cadastro.', 'info');
+      } else {
+        mostrarToast(data.mensagem || 'Animal não encontrado', 'error');
+      }
+    } catch (error) {
+      mostrarLoading(false);
+      console.error('Erro ao buscar brinco:', error);
+      mostrarToast('Erro ao buscar brinco. Tente novamente.', 'error');
+    }
+  };
+
+  // ========== GRAVAR PESAGEM ========== */
+  window.gravarPesagemV3 = async function() {
+    const peso = document.getElementById('pesoValorV3').value.trim().replace(',', '.');
+    
+    if (!peso || parseFloat(peso) <= 0) {
+      mostrarToast('Informe um peso válido', 'warning');
+      return;
+    }
+
+    if (!brincoAtualV3) {
+      mostrarToast('Identifique um animal primeiro', 'warning');
+      return;
+    }
+
+    mostrarLoading(true);
+    
+    const payload = {
+      tipo_fluxo: animalAtualV3 ? 'animal' : 'estoque',
+      manejo: 'PESAGEM',
+      codigo: brincoAtualV3,
+      animal_id: animalAtualV3?.id || null,
+      dados: {
+        peso_kg: parseFloat(peso)
+      }
+    };
+
+    try {
+      const response = await fetch(registrarUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken,
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await response.json();
+      mostrarLoading(false);
+
+      if (data.status === 'ok') {
+        mostrarToast(data.mensagem || 'Pesagem registrada com sucesso!', 'success');
+        
+        // Atualizar campos de peso registrado
+        const pesoRegistrado = document.getElementById('pesoRegistradoV3');
+        const pesoUltimoData = document.getElementById('pesoUltimoDataV3');
+        const pesoDiasUltimo = document.getElementById('pesoDiasUltimoV3');
+        const pesoGanhoTotal = document.getElementById('pesoGanhoTotalV3');
+        const pesoGanhoDiario = document.getElementById('pesoGanhoDiarioV3');
+        
+        if (pesoRegistrado) pesoRegistrado.textContent = `${peso.replace('.', ',')} kg`;
+        if (pesoUltimoData && data.data) {
+          const dataPesagem = new Date(data.data);
+          pesoUltimoData.textContent = dataPesagem.toLocaleDateString('pt-BR');
+        }
+        
+        // Calcular dias desde última pesagem
+        if (pesoDiasUltimo && data.data) {
+          const dataPesagem = new Date(data.data);
+          const hoje = new Date();
+          const diffTime = Math.abs(hoje - dataPesagem);
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          pesoDiasUltimo.textContent = `${diffDays} dias`;
+        }
+        
+        // Calcular ganho se houver peso anterior
+        if (animalAtualV3 && animalAtualV3.peso_atual && pesoGanhoTotal) {
+          const pesoAnterior = parseFloat(animalAtualV3.peso_atual) || 0;
+          const pesoAtual = parseFloat(peso);
+          const ganho = pesoAtual - pesoAnterior;
+          pesoGanhoTotal.textContent = `${ganho > 0 ? '+' : ''}${ganho.toFixed(2).replace('.', ',')} kg`;
+        }
+        
+        document.getElementById('pesoValorV3').value = '';
+        
+        // Adicionar à tabela
+        adicionarAnimalTabela(animalAtualV3, peso);
+        
+        // Habilitar botão finalizar
+        document.getElementById('btnFinalizarGravarV3').disabled = false;
+        
+        // Atualizar estatísticas
+        atualizarEstatisticas();
+      } else {
+        console.error('Erro ao registrar pesagem:', data);
+        mostrarToast(data.mensagem || 'Erro ao registrar pesagem', 'error');
+      }
+    } catch (error) {
+      mostrarLoading(false);
+      console.error('Erro ao gravar pesagem:', error);
+      mostrarToast('Erro ao gravar pesagem. Tente novamente.', 'error');
+    }
+  };
+
+  // ========== LIMPAR PESO ========== */
+  window.limparPesoV3 = function() {
+    document.getElementById('pesoValorV3').value = '';
+    document.getElementById('pesoValorV3').focus();
+  };
+
+  // ========== FINALIZAR E GRAVAR ========== */
+  window.finalizarEGravarV3 = async function() {
+    if (!brincoAtualV3) {
+      mostrarToast('Identifique um animal primeiro', 'warning');
+      return;
+    }
+
+    if (!document.getElementById('pesoValorV3').value && manejosSelecionadosV3.length === 0) {
+      mostrarToast('Registre uma pesagem ou selecione manejos', 'warning');
+      return;
+    }
+
+    mostrarLoading(true);
+    
+    try {
+      // Gravar pesagem se houver
+      if (document.getElementById('pesoValorV3').value) {
+        await gravarPesagemV3();
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+
+      // Gravar manejos selecionados
+      if (manejosSelecionadosV3.length > 0) {
+        for (const manejo of manejosSelecionadosV3) {
+          const payload = {
+            tipo_fluxo: animalAtualV3 ? 'animal' : 'estoque',
+            manejo: manejo.tipo,
+            codigo: brincoAtualV3,
+            animal_id: animalAtualV3?.id || null,
+            dados: manejo.dados || {}
+          };
+
+          const response = await fetch(registrarUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': csrfToken,
+              'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify(payload)
+          });
+
+          if (!response.ok) {
+            console.error('Erro ao registrar manejo:', manejo.tipo);
+          }
+        }
+      }
+
+      mostrarLoading(false);
+      mostrarToast('Processo finalizado com sucesso!', 'success');
+      
+      // Limpar campos
+      document.getElementById('brincoInputV3').value = '';
+      document.getElementById('pesoValorV3').value = '';
+      document.getElementById('pesoValorV3').disabled = true;
+      document.getElementById('pesoGravarBtnV3').disabled = true;
+      document.getElementById('btnFinalizarGravarV3').disabled = true;
+      document.getElementById('scannerAnimalResumoV3').style.display = 'none';
+      limparTodosManejosV3();
+      animalAtualV3 = null;
+      brincoAtualV3 = null;
+      
+      // Atualizar estatísticas
+      atualizarEstatisticas();
+    } catch (error) {
+      mostrarLoading(false);
+      console.error('Erro ao finalizar:', error);
+      mostrarToast('Erro ao finalizar processo', 'error');
+    }
+  };
+
+  // ========== CADASTRO DE ESTOQUE ========== */
+  window.abrirModalCadastroEstoque = function(brinco) {
+    const brincoSpan = document.getElementById('cadastroBrincoV3');
+    if (brinco) {
+      brincoAtualV3 = brinco;
+      if (brincoSpan) brincoSpan.textContent = brinco;
+    }
+    document.getElementById('cadastroRacaV3').value = '';
+    document.getElementById('cadastroSexoV3').value = '';
+    document.getElementById('cadastroIdadeV3').value = '';
+    document.getElementById('cadastroDataNascV3').value = '';
+    document.getElementById('btnConfirmarCadastroV3').disabled = true;
+    document.getElementById('modalCadastroEstoque').classList.add('show');
+  };
+
+  document.getElementById('cadastroSexoV3')?.addEventListener('change', function() {
+    const sexo = this.value;
+    const idade = document.getElementById('cadastroIdadeV3').value;
+    const dataNasc = document.getElementById('cadastroDataNascV3').value;
+    document.getElementById('btnConfirmarCadastroV3').disabled = !(sexo && (idade || dataNasc));
+  });
+
+  document.getElementById('cadastroIdadeV3')?.addEventListener('input', function() {
+    const idade = parseInt(this.value);
+    if (idade && idade > 0) {
+      const hoje = new Date();
+      const dataNasc = new Date(hoje.getFullYear(), hoje.getMonth() - idade, hoje.getDate());
+      document.getElementById('cadastroDataNascV3').value = dataNasc.toISOString().split('T')[0];
+    }
+    document.getElementById('cadastroSexoV3').dispatchEvent(new Event('change'));
+  });
+
+  document.getElementById('cadastroDataNascV3')?.addEventListener('change', function() {
+    const dataNasc = new Date(this.value);
+    if (dataNasc && !isNaN(dataNasc.getTime())) {
+      const hoje = new Date();
+      const diffAnos = hoje.getFullYear() - dataNasc.getFullYear();
+      const diffMeses = hoje.getMonth() - dataNasc.getMonth();
+      const diffDias = hoje.getDate() - dataNasc.getDate();
+      let totalMeses = diffAnos * 12 + diffMeses;
+      if (diffDias < 0) totalMeses--;
+      if (totalMeses >= 0) {
+        document.getElementById('cadastroIdadeV3').value = totalMeses;
+      }
+    }
+    document.getElementById('cadastroSexoV3').dispatchEvent(new Event('change'));
+  });
+
+  window.confirmarCadastroEstoqueV3 = async function() {
+    const brinco = brincoAtualV3;
+    const raca = document.getElementById('cadastroRacaV3').value.trim();
+    const sexo = document.getElementById('cadastroSexoV3').value;
+    const idade = document.getElementById('cadastroIdadeV3').value.trim();
+    const dataNasc = document.getElementById('cadastroDataNascV3').value;
+
+    if (!sexo || (!idade && !dataNasc)) {
+      mostrarToast('Preencha todos os campos obrigatórios', 'warning');
+      return;
+    }
+
+    mostrarLoading(true);
+
+    const payload = {
+      tipo_fluxo: 'estoque',
+      manejo: 'CADASTRO_INICIAL',
+      codigo: brinco,
+      numero_sisbov: brinco,
+      sexo: sexo,
+      raca: raca,
+      idade: idade,
+      data_nascimento: dataNasc,
+      origem_cadastro: 'NASCIMENTO'
+    };
+
+    try {
+      const response = await fetch(registrarUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken,
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await response.json();
+      mostrarLoading(false);
+
+      if (data.status === 'ok') {
+        mostrarToast('Animal cadastrado com sucesso!', 'success');
+        fecharModal('modalCadastroEstoque');
+        atualizarEstatisticas();
+      } else {
+        mostrarToast(data.mensagem || 'Erro ao cadastrar animal', 'error');
+      }
+    } catch (error) {
+      mostrarLoading(false);
+      console.error('Erro ao cadastrar animal:', error);
+      mostrarToast('Erro ao cadastrar animal. Tente novamente.', 'error');
+    }
+  };
+
+  // ========== SISTEMA DE MANEJOS ========== */
+  window.adicionarManejoV3 = function(tipo, titulo, descricao) {
+    // Verificar se já existe
+    if (manejosSelecionadosV3.find(m => m.tipo === tipo)) {
+      mostrarToast('Este manejo já foi selecionado', 'warning');
+      return;
+    }
+
+    const manejo = {
+      tipo: tipo,
+      titulo: titulo,
+      descricao: descricao,
+      dados: {}
+    };
+
+    manejosSelecionadosV3.push(manejo);
+    atualizarListaManejosV3();
+    mostrarToast(`${titulo} adicionado aos manejos`, 'success');
+  };
+
+  window.removerManejoV3 = function(tipo) {
+    manejosSelecionadosV3 = manejosSelecionadosV3.filter(m => m.tipo !== tipo);
+    atualizarListaManejosV3();
+    mostrarToast('Manejo removido', 'info');
+  };
+
+  window.limparTodosManejosV3 = function() {
+    if (manejosSelecionadosV3.length === 0) return;
+    
+    if (confirm('Deseja remover todos os manejos selecionados?')) {
+      manejosSelecionadosV3 = [];
+      atualizarListaManejosV3();
+      mostrarToast('Todos os manejos foram removidos', 'info');
+    }
+  };
+
+  function atualizarListaManejosV3() {
+    const listaContainer = document.getElementById('listaManejosV3');
+    const emptyState = document.getElementById('emptyStateManejosV3');
+
+    if (manejosSelecionadosV3.length === 0) {
+      listaContainer.style.display = 'none';
+      emptyState.style.display = 'block';
+      document.getElementById('btnFinalizarGravarV3').disabled = !brincoAtualV3;
+      return;
+    }
+
+    emptyState.style.display = 'none';
+    listaContainer.style.display = 'grid';
+    listaContainer.innerHTML = '';
+
+    manejosSelecionadosV3.forEach((manejo) => {
+      const card = document.createElement('div');
+      const classeCss = manejo.tipo.toLowerCase();
+      card.className = `manejo-item-card ${classeCss}`;
+      card.innerHTML = `
+        <div class="manejo-item-info">
+          <div class="manejo-item-titulo">${manejo.titulo}</div>
+          <div class="manejo-item-desc">${manejo.descricao}</div>
+        </div>
+        <button class="manejo-item-remove" onclick="removerManejoV3('${manejo.tipo}')" title="Remover manejo">
+          <i class="fas fa-times"></i>
+        </button>
+      `;
+      listaContainer.appendChild(card);
+    });
+
+    // Habilitar botão finalizar se houver animal e manejos
+    if (brincoAtualV3 && (manejosSelecionadosV3.length > 0 || document.getElementById('pesoValorV3').value)) {
+      document.getElementById('btnFinalizarGravarV3').disabled = false;
+    }
+  }
+
+  // ========== ADICIONAR À TABELA ========== */
+  function adicionarAnimalTabela(animal, peso) {
+    const tbody = document.getElementById('tabelaAnimaisV3');
+    
+    // Remover mensagem vazia
+    if (tbody.querySelector('td[colspan]')) {
+      tbody.innerHTML = '';
+    }
+    
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${animal.numero_brinco || '—'}</td>
+      <td>${animal.codigo_sisbov || '—'}</td>
+      <td>—</td>
+      <td>${animal.raca || '—'} / ${animal.sexo || '—'}</td>
+      <td>${animal.data_nascimento || '—'}</td>
+      <td>${animal.categoria || '—'}</td>
+      <td>${animal.pasto_lote || '—'}</td>
+      <td>—</td>
+    `;
+    tbody.appendChild(tr);
+    
+    animaisRegistrados.push({ animal, peso });
+    
+    // Atualizar estatísticas
+    document.getElementById('statProcessados').textContent = animaisRegistrados.length;
+    document.getElementById('statCadastrados').textContent = animaisRegistrados.length;
+  }
+
+  // ========== SISTEMA DE MANEJOS ========== */
+  window.adicionarManejoV3 = function(tipo, titulo, descricao) {
+    // Verificar se já existe
+    if (manejosSelecionadosV3.find(m => m.tipo === tipo)) {
+      mostrarToast('Este manejo já foi selecionado', 'warning');
+      return;
+    }
+
+    const manejo = {
+      tipo: tipo,
+      titulo: titulo,
+      descricao: descricao,
+      dados: {}
+    };
+
+    manejosSelecionadosV3.push(manejo);
+    atualizarListaManejosV3();
+    mostrarToast(`${titulo} adicionado aos manejos`, 'success');
+  };
+
+  window.removerManejoV3 = function(tipo) {
+    manejosSelecionadosV3 = manejosSelecionadosV3.filter(m => m.tipo !== tipo);
+    atualizarListaManejosV3();
+    mostrarToast('Manejo removido', 'info');
+  };
+
+  window.limparTodosManejosV3 = function() {
+    if (manejosSelecionadosV3.length === 0) return;
+    
+    if (confirm('Deseja remover todos os manejos selecionados?')) {
+      manejosSelecionadosV3 = [];
+      atualizarListaManejosV3();
+      mostrarToast('Todos os manejos foram removidos', 'info');
+    }
+  };
+
+  function atualizarListaManejosV3() {
+    const listaContainer = document.getElementById('listaManejosV3');
+    const emptyState = document.getElementById('emptyStateManejosV3');
+
+    if (manejosSelecionadosV3.length === 0) {
+      listaContainer.style.display = 'none';
+      emptyState.style.display = 'block';
+      if (!brincoAtualV3) {
+        document.getElementById('btnFinalizarGravarV3').disabled = true;
+      }
+      return;
+    }
+
+    emptyState.style.display = 'none';
+    listaContainer.style.display = 'grid';
+    listaContainer.innerHTML = '';
+
+    manejosSelecionadosV3.forEach((manejo) => {
+      const card = document.createElement('div');
+      const classeCss = manejo.tipo.toLowerCase();
+      card.className = `manejo-item-card ${classeCss}`;
+      card.innerHTML = `
+        <div class="manejo-item-info">
+          <div class="manejo-item-titulo">${manejo.titulo}</div>
+          <div class="manejo-item-desc">${manejo.descricao}</div>
+        </div>
+        <button class="manejo-item-remove" onclick="removerManejoV3('${manejo.tipo}')" title="Remover manejo">
+          <i class="fas fa-times"></i>
+        </button>
+      `;
+      listaContainer.appendChild(card);
+    });
+
+    // Habilitar botão finalizar se houver animal e manejos
+    if (brincoAtualV3 && (manejosSelecionadosV3.length > 0 || document.getElementById('pesoValorV3').value)) {
+      document.getElementById('btnFinalizarGravarV3').disabled = false;
+    }
+  }
+
+  // ========== ESTATÍSTICAS ========== */
+  async function atualizarEstatisticas() {
+    try {
+      const response = await fetch(statsUrl, {
+        headers: { 
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRFToken': csrfToken
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.status === 'ok') {
+          document.getElementById('statTotalAnimais').textContent = data.total_animais || 0;
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar estatísticas:', error);
+    }
+  }
+
+  // ========== ENCERRAR SESSÃO ========== */
+  window.encerrarSessaoV3 = function() {
+    if (confirm('Deseja realmente encerrar a sessão?')) {
+      mostrarToast('Sessão encerrada', 'info');
+      // Implementar lógica de encerramento
+    }
+  };
+
+  // Fechar modal ao clicar fora
+  document.querySelectorAll('.modal-v3-overlay').forEach(overlay => {
+    overlay.addEventListener('click', function(e) {
+      if (e.target === overlay) {
+        overlay.classList.remove('show');
+      }
+    });
+  });
+
+  // Inicializar
+  document.addEventListener('DOMContentLoaded', function() {
+    atualizarEstatisticas();
+    setInterval(atualizarEstatisticas, 30000);
+  });
+
+  window.fecharModal = fecharModal;
+  window.mostrarToast = mostrarToast;
+  window.mostrarLoading = mostrarLoading;
+
+  console.log('✅ Curral Inteligente 3.0 carregado!');
+})();
+</script>
+{% endblock %}

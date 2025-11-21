@@ -567,6 +567,90 @@ def curral_painel(request, propriedade_id):
 
 
 @login_required
+def curral_dashboard_v3(request, propriedade_id):
+    """Curral Inteligente 3.0 - Versão Moderna e Completa"""
+    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+
+    # Buscar sessão ativa
+    sessao_ativa = (
+        CurralSessao.objects.filter(propriedade=propriedade, status='ABERTA')
+        .order_by('-data_inicio')
+        .first()
+    )
+
+    # Estatísticas gerais
+    total_animais = AnimalIndividual.objects.filter(
+        propriedade=propriedade,
+        status='ATIVO'
+    ).count()
+
+    hoje = timezone.now().date()
+    pesagens_hoje = AnimalPesagem.objects.filter(
+        animal__propriedade=propriedade,
+        data_pesagem=hoje
+    ).count() if AnimalPesagem else 0
+
+    manejos_hoje = Manejo.objects.filter(
+        propriedade=propriedade,
+        data_conclusao__date=hoje
+    ).count() if Manejo else 0
+
+    # Buscar sessão ativa para estatísticas
+    stats_sessao = {}
+    if sessao_ativa:
+        eventos = CurralEvento.objects.filter(sessao=sessao_ativa)
+        animais_unicos = eventos.values('animal').distinct().count()
+        stats_sessao = {
+            'id': sessao_ativa.id,
+            'nome': sessao_ativa.nome,
+            'data_inicio': localtime(sessao_ativa.data_inicio).strftime('%d/%m/%Y %H:%M'),
+            'sessao_data': localtime(sessao_ativa.data_inicio).strftime('%d/%m/%Y %H:%M'),
+            'sessao_ativa': True,
+            'total_eventos': eventos.count(),
+            'animais_processados': animais_unicos,
+            'pesagens': eventos.filter(tipo_evento='PESAGEM').count(),
+            'reproducao': eventos.filter(tipo_evento='REPRODUCAO').count(),
+            'sanidade': eventos.filter(tipo_evento__in=['VACINACAO', 'TRATAMENTO']).count(),
+        }
+    else:
+        stats_sessao = {
+            'sessao_ativa': False,
+            'total_eventos': 0,
+            'animais_processados': 0,
+            'pesagens': 0,
+        }
+
+    # Catálogo de manejos
+    catalogo_manejos = _montar_catalogo_manejos(propriedade)
+
+    context = {
+        'propriedade': propriedade,
+        'identificar_url': reverse('curral_identificar_codigo', args=[propriedade_id]),
+        'registrar_url': reverse('curral_registrar_manejo', args=[propriedade_id]),
+        'stats_url': reverse('curral_stats_api', args=[propriedade_id]),
+        'sessao_ativa': sessao_ativa,
+        'stats_sessao': stats_sessao,
+        'super_tela': {
+            'sessao_data': stats_sessao.get('sessao_data', ''),
+        },
+        'total_animais': total_animais,
+        'pesagens_hoje': pesagens_hoje,
+        'manejos_hoje': manejos_hoje,
+        'catalogo_manejos': catalogo_manejos,
+        'tipos_manejo': [
+            {'valor': 'PESAGEM', 'rotulo': 'Pesagem'},
+            {'valor': 'VACINACAO', 'rotulo': 'Vacinação'},
+            {'valor': 'TRATAMENTO', 'rotulo': 'Tratamento Sanitário'},
+            {'valor': 'REPRODUCAO', 'rotulo': 'Reprodução'},
+            {'valor': 'APARTACAO', 'rotulo': 'Apartação/Loteamento'},
+            {'valor': 'OUTRO', 'rotulo': 'Outro'},
+        ],
+    }
+
+    return render(request, 'gestao_rural/curral_dashboard_v3.html', context)
+
+
+@login_required
 def curral_dashboard(request, propriedade_id):
     # Redireciona diretamente para o painel principal do Curral Inteligente.
     return redirect('curral_painel', propriedade_id=propriedade_id)
@@ -678,11 +762,22 @@ def _avaliar_situacao_bnd(consta_bnd: bool, presente_no_sistema: bool) -> str:
 def curral_identificar_codigo(request, propriedade_id):
     """Verifica se o código pertence a um animal existente ou ao estoque de brincos."""
 
-    if request.method != 'GET':
+    # Aceita tanto GET quanto POST
+    if request.method not in ['GET', 'POST']:
         return JsonResponse({'status': 'erro', 'mensagem': 'Método não permitido.'}, status=405)
 
     propriedade = get_object_or_404(Propriedade, id=propriedade_id)
-    codigo_bruto = request.GET.get('codigo', '').strip()
+    
+    # Aceita código tanto de GET quanto de POST
+    if request.method == 'POST':
+        try:
+            import json
+            data = json.loads(request.body)
+            codigo_bruto = data.get('codigo', '').strip()
+        except (json.JSONDecodeError, AttributeError):
+            codigo_bruto = request.POST.get('codigo', '').strip()
+    else:
+        codigo_bruto = request.GET.get('codigo', '').strip()
     
     if not codigo_bruto:
         return JsonResponse(
@@ -700,10 +795,12 @@ def curral_identificar_codigo(request, propriedade_id):
         )
 
     # Filtros para busca de animais - mais abrangente
+    # Busca por: número de manejo, SISBOV, RFID (código eletrônico) e número do brinco
     filtros_animais = (
         Q(codigo_sisbov=codigo) | 
         Q(numero_brinco=codigo) | 
-        Q(codigo_eletronico=codigo)
+        Q(codigo_eletronico=codigo) |
+        Q(numero_manejo=codigo)
     )
     
     # Para códigos maiores, também busca por substring
@@ -711,7 +808,8 @@ def curral_identificar_codigo(request, propriedade_id):
         filtros_animais |= (
             Q(codigo_sisbov__contains=codigo) |
             Q(numero_brinco__contains=codigo) |
-            Q(codigo_eletronico__contains=codigo)
+            Q(codigo_eletronico__contains=codigo) |
+            Q(numero_manejo__contains=codigo)
         )
     
     # Para códigos SISBOV completos, também busca pelos últimos dígitos
@@ -719,7 +817,8 @@ def curral_identificar_codigo(request, propriedade_id):
         codigo_final = codigo[-7:]
         filtros_animais |= (
             Q(codigo_sisbov__endswith=codigo_final) |
-            Q(numero_brinco__endswith=codigo_final)
+            Q(numero_brinco__endswith=codigo_final) |
+            Q(numero_manejo=codigo_final)
         )
     
     # Filtros para busca no estoque de brincos - mais abrangente
@@ -762,22 +861,28 @@ def curral_identificar_codigo(request, propriedade_id):
             sisbov_normalizado = _normalizar_codigo(animal_candidato.codigo_sisbov or '')
             brinco_normalizado = _normalizar_codigo(animal_candidato.numero_brinco or '')
             eletronico_normalizado = _normalizar_codigo(animal_candidato.codigo_eletronico or '')
+            manejo_normalizado = _normalizar_codigo(animal_candidato.numero_manejo or '')
             
             # Compara o código normalizado
             if (sisbov_normalizado == codigo or 
                 brinco_normalizado == codigo or 
-                eletronico_normalizado == codigo):
+                eletronico_normalizado == codigo or
+                manejo_normalizado == codigo):
                 animal = animal_candidato
                 break
             
             # Para códigos SISBOV completos, também tenta comparar os últimos dígitos
             if len(codigo) == 15:
+                codigo_final = codigo[-7:]
                 if (sisbov_normalizado and len(sisbov_normalizado) == 15 and 
-                    codigo[-7:] == sisbov_normalizado[-7:]):
+                    codigo_final == sisbov_normalizado[-7:]):
                     animal = animal_candidato
                     break
                 if (brinco_normalizado and len(brinco_normalizado) == 15 and 
-                    codigo[-7:] == brinco_normalizado[-7:]):
+                    codigo_final == brinco_normalizado[-7:]):
+                    animal = animal_candidato
+                    break
+                if manejo_normalizado == codigo_final:
                     animal = animal_candidato
                     break
 
@@ -1293,6 +1398,94 @@ def curral_registrar_manejo(request, propriedade_id):
                 if resultado.get('manejo_id'):
                     resposta['manejo_id'] = resultado['manejo_id']
                 return JsonResponse(resposta)
+
+            # Tratar PESAGEM
+            if manejo == 'PESAGEM':
+                dados = payload.get('dados', {})
+                peso_kg = dados.get('peso_kg')
+                
+                if not peso_kg:
+                    return JsonResponse(
+                        {'status': 'erro', 'mensagem': 'Peso não informado.'},
+                        status=400,
+                    )
+                
+                try:
+                    peso_decimal = Decimal(str(peso_kg).replace(',', '.'))
+                    if peso_decimal <= 0:
+                        return JsonResponse(
+                            {'status': 'erro', 'mensagem': 'Peso deve ser maior que zero.'},
+                            status=400,
+                        )
+                except (ValueError, InvalidOperation):
+                    return JsonResponse(
+                        {'status': 'erro', 'mensagem': 'Peso inválido.'},
+                        status=400,
+                    )
+                
+                # Buscar animal
+                animal = None
+                animal_id = payload.get('animal_id')
+                if animal_id:
+                    animal = AnimalIndividual.objects.filter(id=animal_id, propriedade=propriedade).first()
+                
+                if not animal:
+                    codigo_limpo = _normalizar_codigo(codigo)
+                    animal = (
+                        AnimalIndividual.objects.filter(propriedade=propriedade)
+                        .filter(
+                            Q(codigo_sisbov=codigo_limpo) | 
+                            Q(numero_brinco=codigo_limpo) | 
+                            Q(codigo_eletronico=codigo_limpo) |
+                            Q(numero_manejo=codigo_limpo)
+                        )
+                        .first()
+                    )
+                
+                if not animal:
+                    return JsonResponse(
+                        {'status': 'erro', 'mensagem': 'Animal não encontrado.'},
+                        status=404,
+                    )
+                
+                # Obtém ou cria sessão ativa
+                sessao_atual = _obter_sessao_ativa(propriedade)
+                if not sessao_atual.criado_por:
+                    sessao_atual.criado_por = request.user
+                    sessao_atual.save()
+                
+                # Cria evento de pesagem
+                evento = CurralEvento.objects.create(
+                    sessao=sessao_atual,
+                    animal=animal,
+                    tipo_evento='PESAGEM',
+                    peso_kg=peso_decimal,
+                    data_evento=timezone.now(),
+                    responsavel=request.user,
+                    observacoes=dados.get('observacoes', '')
+                )
+                
+                # Atualiza peso atual do animal
+                animal.peso_atual_kg = peso_decimal
+                animal.data_atualizacao = timezone.now()
+                animal.save(update_fields=['peso_atual_kg', 'data_atualizacao'])
+                
+                # Cria registro de pesagem (se o modelo existir)
+                if AnimalPesagem:
+                    AnimalPesagem.objects.create(
+                        animal=animal,
+                        data_pesagem=timezone.now().date(),
+                        peso_kg=peso_decimal,
+                        responsavel=request.user
+                    )
+                
+                return JsonResponse({
+                    'status': 'ok',
+                    'mensagem': f'Pesagem de {peso_decimal} kg registrada com sucesso!',
+                    'evento_id': evento.id,
+                    'peso': float(peso_decimal),
+                    'data': timezone.now().date().isoformat(),
+                })
 
     except ValueError as exc:
         mensagem_erro = str(exc)
@@ -2944,6 +3137,50 @@ def curral_stats_sessao_api(request, propriedade_id):
     return JsonResponse({
         'status': 'ok',
         'stats': stats
+    })
+
+
+@login_required
+def curral_stats_api(request, propriedade_id):
+    """API: Retorna estatísticas gerais do curral para a versão 3.0"""
+    if request.method != 'GET':
+        return JsonResponse({'status': 'erro', 'mensagem': 'Método não permitido.'}, status=405)
+    
+    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    
+    # Total de animais ativos
+    total_animais = AnimalIndividual.objects.filter(
+        propriedade=propriedade,
+        status='ATIVO'
+    ).count()
+    
+    # Pesagens hoje
+    hoje = timezone.now().date()
+    pesagens_hoje = AnimalPesagem.objects.filter(
+        animal__propriedade=propriedade,
+        data_pesagem=hoje
+    ).count() if AnimalPesagem else 0
+    
+    # Manejos hoje (concluídos hoje)
+    manejos_hoje = Manejo.objects.filter(
+        propriedade=propriedade,
+        data_conclusao__date=hoje
+    ).count() if Manejo else 0
+    
+    # Sessão ativa
+    sessao_ativa = (
+        CurralSessao.objects.filter(propriedade=propriedade, status='ABERTA')
+        .order_by('-data_inicio')
+        .first()
+    )
+    
+    return JsonResponse({
+        'status': 'ok',
+        'total_animais': total_animais,
+        'pesagens_hoje': pesagens_hoje,
+        'manejos_hoje': manejos_hoje,
+        'sessao_ativa': sessao_ativa is not None,
+        'sessao_nome': sessao_ativa.nome if sessao_ativa else None,
     })
 
 

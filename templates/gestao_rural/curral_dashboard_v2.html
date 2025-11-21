@@ -43,6 +43,9 @@ if (typeof window.atualizarTabelaAnimaisRegistrados === 'undefined') {
   };
 }
 
+// ========== FUNÇÃO DE CADASTRO DE ESTOQUE - VERSÃO LIMPA ==========
+// Função será definida completamente mais abaixo no código
+
 window.gravarPesagemDireto = async function() {
   console.log('🔘🔘🔘 [ONCLICK DIRETO] BOTÃO GRAVAR CLICADO! 🔘🔘🔘');
   
@@ -1421,63 +1424,48 @@ console.log('✅ Funções de controle do campo de peso definidas!');
                       e.preventDefault();
                       e.stopPropagation();
                       console.log('🖱️ Botão de cadastro clicado!');
-                      console.log('🔍 Verificando função...');
                       
-                      // Buscar a função dinamicamente (pode ter sido definida depois)
-                      let funcaoRegistrar = null;
+                      // CHAMAR FUNÇÃO DIRETAMENTE - VERSÃO SIMPLIFICADA
+                      console.log('🔍 Verificando função window.registrarCadastroEstoqueV2...');
                       
-                      // Tentar múltiplas formas de encontrar a função
-                      if (typeof registrarCadastroEstoqueV2 === 'function') {
-                        funcaoRegistrar = registrarCadastroEstoqueV2;
-                        console.log('✅ Função encontrada localmente');
-                      } else if (typeof window !== 'undefined' && typeof window.registrarCadastroEstoqueV2 === 'function') {
-                        funcaoRegistrar = window.registrarCadastroEstoqueV2;
-                        console.log('✅ Função encontrada em window');
-                      }
-                      
-                      // Se não encontrou, tentar novamente após um pequeno delay (função pode estar carregando)
-                      if (!funcaoRegistrar) {
-                        console.log('⏳ Função não encontrada imediatamente, tentando novamente...');
-                        setTimeout(function() {
-                          if (typeof window !== 'undefined' && typeof window.registrarCadastroEstoqueV2 === 'function') {
-                            console.log('✅ Função encontrada após delay - chamando...');
-                            try {
-                              window.registrarCadastroEstoqueV2();
-                            } catch (err) {
-                              console.error('❌ Erro ao executar função:', err);
-                              alert('Erro ao processar cadastro: ' + err.message);
+                      if (typeof window.registrarCadastroEstoqueV2 === 'function') {
+                        const fnStr = window.registrarCadastroEstoqueV2.toString();
+                        const isStub = fnStr.indexOf('[STUB]') !== -1 || fnStr.length < 500 || window.registrarCadastroEstoqueV2._isStub === true;
+                        
+                        console.log('  - Tamanho:', fnStr.length, 'caracteres');
+                        console.log('  - Contém [STUB]?', fnStr.indexOf('[STUB]') !== -1);
+                        console.log('  - Flag _isStub:', window.registrarCadastroEstoqueV2._isStub);
+                        console.log('  - É stub?', isStub ? 'SIM ❌' : 'NÃO ✅');
+                        
+                        if (!isStub) {
+                          console.log('✅ Chamando window.registrarCadastroEstoqueV2()...');
+                          try {
+                            window.registrarCadastroEstoqueV2();
+                          } catch (err) {
+                            console.error('❌ Erro ao executar função:', err);
+                            const mensagemErro = err.message || 'Erro desconhecido';
+                            if (typeof mostrarToast === 'function') {
+                              mostrarToast('Erro ao processar cadastro: ' + mensagemErro, 'error');
+                            } else {
+                              alert('Erro ao processar cadastro: ' + mensagemErro);
                             }
-                          } else {
-                            // Tentar mais algumas vezes com delays progressivos
-                            console.log('⏳ Tentando novamente com delay maior...');
-                            setTimeout(function() {
-                              if (typeof window !== 'undefined' && typeof window.registrarCadastroEstoqueV2 === 'function') {
-                                console.log('✅ Função encontrada após delay adicional - chamando...');
-                                try {
-                                  window.registrarCadastroEstoqueV2();
-                                } catch (err) {
-                                  console.error('❌ Erro ao executar função:', err);
-                                  alert('Erro ao processar cadastro: ' + err.message);
-                                }
-                              } else {
-                                console.error('❌ Função registrarCadastroEstoqueV2 não encontrada após delay!');
-                                console.error('Funções disponíveis com "registrar":', Object.keys(window).filter(k => k.toLowerCase().includes('registrar')));
-                                console.error('Funções disponíveis com "estoque":', Object.keys(window).filter(k => k.toLowerCase().includes('estoque')));
-                                alert('Erro: função de registro não encontrada.\n\nRecarregue a página com Ctrl+Shift+R (limpar cache).\n\nVerifique o console (F12) para mais detalhes.');
-                              }
-                            }, 500);
                           }
-                        }, 200);
-                        return;
-                      }
-                      
-                      if (funcaoRegistrar && typeof funcaoRegistrar === 'function') {
-                        console.log('✅ Chamando função registrarCadastroEstoqueV2...');
-                        try {
-                          funcaoRegistrar();
-                        } catch (err) {
-                          console.error('❌ Erro ao executar função:', err);
-                          alert('Erro ao processar cadastro: ' + err.message);
+                        } else {
+                          console.error('❌ Função encontrada mas é apenas o stub!');
+                          const mensagem = 'Erro: função de registro ainda não foi carregada completamente. Aguarde alguns segundos e tente novamente.';
+                          if (typeof mostrarToast === 'function') {
+                            mostrarToast(mensagem, 'error');
+                          } else {
+                            alert(mensagem);
+                          }
+                        }
+                      } else {
+                        console.error('❌ Função window.registrarCadastroEstoqueV2 não encontrada!');
+                        const mensagem = 'Erro: função de registro não encontrada. Recarregue a página com Ctrl+Shift+R (limpar cache).';
+                        if (typeof mostrarToast === 'function') {
+                          mostrarToast(mensagem, 'error');
+                        } else {
+                          alert(mensagem + '\n\nVerifique o console (F12) para mais detalhes.');
                         }
                       }
                     });
@@ -5113,6 +5101,116 @@ console.log('✅ Funções de controle do campo de peso definidas!');
       justify-content: center;
     }
   }
+  /* ========== JANELA MODAL DO MENU LATERAL EM TELA CHEIA ========== */
+  .menu-lateral-fullscreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 10000;
+    display: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  
+  .menu-lateral-fullscreen.show {
+    display: flex;
+    opacity: 1;
+  }
+  
+  .menu-lateral-window {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: white;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s ease;
+  }
+  
+  .menu-lateral-window.minimized {
+    width: 400px;
+    height: 500px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  
+  .menu-lateral-window.maximized {
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    transform: none;
+    border-radius: 0;
+  }
+  
+  .menu-lateral-window-header {
+    background: linear-gradient(135deg, #1e3a5f 0%, #2c5282 100%);
+    color: white;
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: move;
+    user-select: none;
+  }
+  
+  .menu-lateral-window-title {
+    font-weight: 600;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .menu-lateral-window-controls {
+    display: flex;
+    gap: 8px;
+  }
+  
+  .menu-lateral-window-btn {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    font-size: 0.9rem;
+  }
+  
+  .menu-lateral-window-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1);
+  }
+  
+  .menu-lateral-window-btn.close:hover {
+    background: #e53e3e;
+  }
+  
+  .menu-lateral-window-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0;
+  }
+  
+  .menu-lateral-window-content .sidebar {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transform: none;
+    box-shadow: none;
+  }
 </style>
 {% endblock %}
 
@@ -5701,49 +5799,97 @@ console.log('✅ Funções de controle do campo de peso definidas!');
   </div>
 </div>
 
-<!-- Popup de cadastro rápido a partir de brinco de estoque -->
-<div class="curral-modal-overlay" id="estoqueCadastroOverlayV2" style="display: none;">
-  <div class="curral-modal" style="max-width: 500px;">
-    <div class="curral-modal-title">
-      <i class="fas fa-tag"></i> Usar brinco de estoque para novo animal
+<!-- ========== MODAL DE CADASTRO DE ESTOQUE - VERSÃO LIMPA E FUNCIONAL ========== -->
+<div class="curral-modal-overlay" id="estoqueCadastroOverlayV2" style="display: none; z-index: 2500;">
+  <div class="curral-modal" style="max-width: 550px; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+    <div class="curral-modal-title" style="background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%); color: white; padding: 16px 20px;">
+      <i class="fas fa-tag" style="margin-right: 8px;"></i> 
+      <span>Cadastrar Animal do Estoque</span>
+      <button type="button" id="estoqueCadastroCloseBtnV2" style="float: right; background: none; border: none; color: white; font-size: 20px; cursor: pointer; padding: 0; width: 30px; height: 30px; line-height: 30px;">&times;</button>
     </div>
-    <div class="curral-modal-body">
-      <p style="margin-bottom: 12px; padding: 8px; background: #e3f2fd; border-radius: 6px; border-left: 4px solid #2196f3;">
-        <strong>Brinco no estoque:</strong> <span id="estoqueCadastroBrincoV2" style="color: #1565c0; font-weight: 600;">—</span>
-      </p>
-      <div class="estoque-form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+    <div class="curral-modal-body" style="padding: 20px;">
+      <!-- Badge do Brinco -->
+      <div style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); padding: 12px; border-radius: 8px; margin-bottom: 20px; text-align: center; border: 2px solid #2196f3;">
+        <div style="font-size: 0.85rem; color: #1565c0; margin-bottom: 4px; font-weight: 600;">BRINCO NO ESTOQUE</div>
+        <div id="estoqueCadastroBrincoV2" style="font-size: 24px; font-weight: 700; color: #0d47a1; letter-spacing: 2px;">—</div>
+      </div>
+      
+      <!-- Formulário em Grid Moderno -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
         <div>
-          <label for="estoqueCadastroRacaV2" style="display: block; margin-bottom: 4px; font-weight: 600; color: #455a64;">Raça</label>
-          <input type="text" id="estoqueCadastroRacaV2" class="form-control" placeholder="Ex.: Nelore" style="width: 100%; padding: 8px; border: 1px solid #bdbdbd; border-radius: 4px;">
+          <label for="estoqueCadastroRacaV2" style="display: block; margin-bottom: 6px; font-weight: 600; color: #37474f; font-size: 0.9rem;">
+            <i class="fas fa-cow" style="margin-right: 4px; color: #1976d2;"></i>Raça *
+          </label>
+          <input type="text" id="estoqueCadastroRacaV2" class="form-control" placeholder="Ex.: Nelore" 
+                 style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; font-size: 0.95rem;">
         </div>
         <div>
-          <label for="estoqueCadastroSexoV2" style="display: block; margin-bottom: 4px; font-weight: 600; color: #455a64;">Sexo</label>
-          <select id="estoqueCadastroSexoV2" class="form-control" style="width: 100%; padding: 8px; border: 1px solid #bdbdbd; border-radius: 4px;">
+          <label for="estoqueCadastroSexoV2" style="display: block; margin-bottom: 6px; font-weight: 600; color: #37474f; font-size: 0.9rem;">
+            <i class="fas fa-venus-mars" style="margin-right: 4px; color: #e91e63;"></i>Sexo *
+          </label>
+          <select id="estoqueCadastroSexoV2" class="form-control" 
+                  style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; font-size: 0.95rem; background: white; cursor: pointer;">
             <option value="">Selecione</option>
             <option value="F">Fêmea</option>
             <option value="M">Macho</option>
           </select>
         </div>
         <div>
-          <label for="estoqueCadastroIdadeMesesV2" style="display: block; margin-bottom: 4px; font-weight: 600; color: #455a64;">Idade (meses)</label>
-          <input type="number" id="estoqueCadastroIdadeMesesV2" min="0" step="1" class="form-control" placeholder="Ex.: 18" style="width: 100%; padding: 8px; border: 1px solid #bdbdbd; border-radius: 4px;">
-          <small style="font-size: 0.75rem; color: #757575; display: block; margin-top: 4px;">Ou preencha a data abaixo</small>
+          <label for="estoqueCadastroIdadeMesesV2" style="display: block; margin-bottom: 6px; font-weight: 600; color: #37474f; font-size: 0.9rem;">
+            <i class="fas fa-calendar-alt" style="margin-right: 4px; color: #ff9800;"></i>Idade (meses)
+          </label>
+          <input type="number" id="estoqueCadastroIdadeMesesV2" min="0" step="1" class="form-control" placeholder="Ex.: 8" 
+                 style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; font-size: 0.95rem;">
+          <small style="font-size: 0.75rem; color: #757575; display: block; margin-top: 4px; font-style: italic;">Ou preencha a data abaixo</small>
         </div>
         <div>
-          <label for="estoqueCadastroDataNascV2" style="display: block; margin-bottom: 4px; font-weight: 600; color: #455a64;">Data nascimento</label>
-          <input type="date" id="estoqueCadastroDataNascV2" class="form-control" style="width: 100%; padding: 8px; border: 1px solid #bdbdbd; border-radius: 4px;">
-          <small style="font-size: 0.75rem; color: #757575; display: block; margin-top: 4px;">Ou preencha a idade acima</small>
+          <label for="estoqueCadastroDataNascV2" style="display: block; margin-bottom: 6px; font-weight: 600; color: #37474f; font-size: 0.9rem;">
+            <i class="fas fa-birthday-cake" style="margin-right: 4px; color: #4caf50;"></i>Data nascimento
+          </label>
+          <input type="date" id="estoqueCadastroDataNascV2" class="form-control" 
+                 style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; font-size: 0.95rem;">
+          <small style="font-size: 0.75rem; color: #757575; display: block; margin-top: 4px; font-style: italic;">Ou preencha a idade acima</small>
         </div>
       </div>
-      <p style="margin-top: 8px; font-size: 0.85rem; color: #607d8b; padding: 8px; background: #fff3e0; border-radius: 4px; border-left: 4px solid #ff9800;">
-        <i class="fas fa-info-circle"></i> Informe a <strong>idade em meses</strong> OU a <strong>data de nascimento</strong>. O sistema calcula automaticamente o campo que faltar.
-      </p>
+      
+      <!-- Alerta Informativo Moderno -->
+      <div style="background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%); padding: 12px; border-radius: 8px; border-left: 4px solid #ff9800; margin-top: 8px;">
+        <div style="display: flex; align-items: start;">
+          <i class="fas fa-info-circle" style="color: #f57c00; font-size: 18px; margin-right: 10px; margin-top: 2px;"></i>
+          <div style="font-size: 0.85rem; color: #e65100; line-height: 1.4;">
+            <strong>Informe a idade em meses OU a data de nascimento.</strong><br>
+            O sistema calcula automaticamente o campo que faltar.
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="curral-modal-footer" style="display: flex; justify-content: flex-end; gap: 8px; padding: 12px; border-top: 1px solid #e0e0e0;">
-      <button type="button" class="btn btn-sm btn-outline-secondary" id="estoqueCadastroCancelarBtnV2" style="min-width: 100px;">
+    <div class="curral-modal-footer" style="display: flex; justify-content: flex-end; gap: 12px; padding: 16px 20px; background: #f5f5f5; border-top: 1px solid #e0e0e0;">
+      <button type="button" class="btn btn-sm btn-outline-secondary" id="estoqueCadastroCancelarBtnV2" 
+              style="min-width: 120px; padding: 10px 20px; border-radius: 6px; font-weight: 600;">
         <i class="fas fa-times"></i> Cancelar
       </button>
-      <button type="button" class="btn btn-sm btn-primary" id="estoqueCadastroOkBtnV2" style="min-width: 140px;" disabled>
+      <button type="button" class="btn btn-sm btn-primary" id="estoqueCadastroOkBtnV2" 
+              style="min-width: 160px; padding: 10px 20px; border-radius: 6px; font-weight: 600; background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%); border: none;"
+              onclick="(async function() { 
+                const btn = this; 
+                if (btn.disabled) { 
+                  alert('Preencha todos os campos obrigatórios'); 
+                  return; 
+                } 
+                console.log('🖱️ Botão clicado via onclick'); 
+                if (typeof window.registrarCadastroEstoqueV2 === 'function') { 
+                  try { 
+                    await window.registrarCadastroEstoqueV2(); 
+                  } catch(e) { 
+                    console.error('Erro:', e); 
+                    alert('Erro: ' + (e.message || 'Erro desconhecido')); 
+                  } 
+                } else { 
+                  console.error('Função não encontrada!'); 
+                  alert('Erro: função não encontrada. Recarregue a página com Ctrl+Shift+R'); 
+                } 
+              }).call(this); return false;"
+              disabled>
         <i class="fas fa-check"></i> Confirmar cadastro
       </button>
     </div>
@@ -9471,11 +9617,11 @@ document.addEventListener('DOMContentLoaded', async function () {
   // Função global para encerrar sessão
   if (typeof window.encerrarSessaoV2 === 'undefined') {
     window.encerrarSessaoV2 = async function() {
-    if (!confirm('Deseja realmente encerrar a sessão atual?')) {
-      return;
-    }
-    
-    const btnEncerrar = document.querySelector('.sessao-btn-encerrar');
+      if (!confirm('Deseja realmente encerrar a sessão atual?')) {
+        return;
+      }
+      
+      const btnEncerrar = document.querySelector('.sessao-btn-encerrar');
     if (btnEncerrar) {
       btnEncerrar.disabled = true;
       btnEncerrar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Encerrando...';
@@ -10070,63 +10216,48 @@ document.addEventListener('DOMContentLoaded', async function () {
                       e.preventDefault();
                       e.stopPropagation();
                       console.log('🖱️ Botão de cadastro clicado!');
-                      console.log('🔍 Verificando função...');
                       
-                      // Buscar a função dinamicamente (pode ter sido definida depois)
-                      let funcaoRegistrar = null;
+                      // CHAMAR FUNÇÃO DIRETAMENTE - VERSÃO SIMPLIFICADA
+                      console.log('🔍 Verificando função window.registrarCadastroEstoqueV2...');
                       
-                      // Tentar múltiplas formas de encontrar a função
-                      if (typeof registrarCadastroEstoqueV2 === 'function') {
-                        funcaoRegistrar = registrarCadastroEstoqueV2;
-                        console.log('✅ Função encontrada localmente');
-                      } else if (typeof window !== 'undefined' && typeof window.registrarCadastroEstoqueV2 === 'function') {
-                        funcaoRegistrar = window.registrarCadastroEstoqueV2;
-                        console.log('✅ Função encontrada em window');
-                      }
-                      
-                      // Se não encontrou, tentar novamente após um pequeno delay (função pode estar carregando)
-                      if (!funcaoRegistrar) {
-                        console.log('⏳ Função não encontrada imediatamente, tentando novamente...');
-                        setTimeout(function() {
-                          if (typeof window !== 'undefined' && typeof window.registrarCadastroEstoqueV2 === 'function') {
-                            console.log('✅ Função encontrada após delay - chamando...');
-                            try {
-                              window.registrarCadastroEstoqueV2();
-                            } catch (err) {
-                              console.error('❌ Erro ao executar função:', err);
-                              alert('Erro ao processar cadastro: ' + err.message);
+                      if (typeof window.registrarCadastroEstoqueV2 === 'function') {
+                        const fnStr = window.registrarCadastroEstoqueV2.toString();
+                        const isStub = fnStr.indexOf('[STUB]') !== -1 || fnStr.length < 500 || window.registrarCadastroEstoqueV2._isStub === true;
+                        
+                        console.log('  - Tamanho:', fnStr.length, 'caracteres');
+                        console.log('  - Contém [STUB]?', fnStr.indexOf('[STUB]') !== -1);
+                        console.log('  - Flag _isStub:', window.registrarCadastroEstoqueV2._isStub);
+                        console.log('  - É stub?', isStub ? 'SIM ❌' : 'NÃO ✅');
+                        
+                        if (!isStub) {
+                          console.log('✅ Chamando window.registrarCadastroEstoqueV2()...');
+                          try {
+                            window.registrarCadastroEstoqueV2();
+                          } catch (err) {
+                            console.error('❌ Erro ao executar função:', err);
+                            const mensagemErro = err.message || 'Erro desconhecido';
+                            if (typeof mostrarToast === 'function') {
+                              mostrarToast('Erro ao processar cadastro: ' + mensagemErro, 'error');
+                            } else {
+                              alert('Erro ao processar cadastro: ' + mensagemErro);
                             }
-                          } else {
-                            // Tentar mais algumas vezes com delays progressivos
-                            console.log('⏳ Tentando novamente com delay maior...');
-                            setTimeout(function() {
-                              if (typeof window !== 'undefined' && typeof window.registrarCadastroEstoqueV2 === 'function') {
-                                console.log('✅ Função encontrada após delay adicional - chamando...');
-                                try {
-                                  window.registrarCadastroEstoqueV2();
-                                } catch (err) {
-                                  console.error('❌ Erro ao executar função:', err);
-                                  alert('Erro ao processar cadastro: ' + err.message);
-                                }
-                              } else {
-                                console.error('❌ Função registrarCadastroEstoqueV2 não encontrada após delay!');
-                                console.error('Funções disponíveis com "registrar":', Object.keys(window).filter(k => k.toLowerCase().includes('registrar')));
-                                console.error('Funções disponíveis com "estoque":', Object.keys(window).filter(k => k.toLowerCase().includes('estoque')));
-                                alert('Erro: função de registro não encontrada.\n\nRecarregue a página com Ctrl+Shift+R (limpar cache).\n\nVerifique o console (F12) para mais detalhes.');
-                              }
-                            }, 500);
                           }
-                        }, 200);
-                        return;
-                      }
-                      
-                      if (funcaoRegistrar && typeof funcaoRegistrar === 'function') {
-                        console.log('✅ Chamando função registrarCadastroEstoqueV2...');
-                        try {
-                          funcaoRegistrar();
-                        } catch (err) {
-                          console.error('❌ Erro ao executar função:', err);
-                          alert('Erro ao processar cadastro: ' + err.message);
+                        } else {
+                          console.error('❌ Função encontrada mas é apenas o stub!');
+                          const mensagem = 'Erro: função de registro ainda não foi carregada completamente. Aguarde alguns segundos e tente novamente.';
+                          if (typeof mostrarToast === 'function') {
+                            mostrarToast(mensagem, 'error');
+                          } else {
+                            alert(mensagem);
+                          }
+                        }
+                      } else {
+                        console.error('❌ Função window.registrarCadastroEstoqueV2 não encontrada!');
+                        const mensagem = 'Erro: função de registro não encontrada. Recarregue a página com Ctrl+Shift+R (limpar cache).';
+                        if (typeof mostrarToast === 'function') {
+                          mostrarToast(mensagem, 'error');
+                        } else {
+                          alert(mensagem + '\n\nVerifique o console (F12) para mais detalhes.');
                         }
                       }
                     });
@@ -11056,10 +11187,234 @@ document.addEventListener('DOMContentLoaded', async function () {
   // Tornar a função disponível globalmente
   window.calcularDataNascimentoPorIdadeMeses = calcularDataNascimentoPorIdadeMeses;
 
+  // ========== FUNÇÃO MODERNA E SIMPLES PARA CADASTRO DE ESTOQUE ==========
+  // Versão nova, limpa e funcional - sem complexidade desnecessária
+  // FORÇAR SUBSTITUIÇÃO DO STUB PELA FUNÇÃO COMPLETA
+  // Deletar o stub primeiro para garantir substituição completa
+  if (typeof window !== 'undefined') {
+    if (window.registrarCadastroEstoqueV2) {
+      console.log('🔄 Removendo stub antigo antes de definir função completa...');
+      const fnStr = window.registrarCadastroEstoqueV2.toString();
+      console.log('📋 Stub atual tem', fnStr.length, 'caracteres');
+      delete window.registrarCadastroEstoqueV2;
+    }
+  }
+  
+  // Definir a função completa - ESTA É A FUNÇÃO REAL QUE DEVE SER USADA
+  window.registrarCadastroEstoqueV2 = async function() {
+    console.log('🚀 Iniciando registro de cadastro de estoque...');
+    
+    // Buscar código do brinco de múltiplas fontes
+    let codigoBrinco = estoqueCadastroCodigoAtual;
+    if (!codigoBrinco && typeof window !== 'undefined') {
+      codigoBrinco = window.estoqueCadastroCodigoAtual;
+    }
+    if (!codigoBrinco) {
+      const brincoSpan = document.getElementById('estoqueCadastroBrincoV2');
+      if (brincoSpan) {
+        codigoBrinco = brincoSpan.textContent.trim();
+      }
+    }
+    
+    console.log('🔍 Código do brinco encontrado:', codigoBrinco);
+    
+    if (!codigoBrinco || codigoBrinco === '—' || codigoBrinco === '') {
+      mostrarToast('Código do brinco em estoque não identificado.', 'warning');
+      console.error('❌ Código do brinco não encontrado!');
+      return;
+    }
+    
+    // Buscar elementos diretamente
+    const sexoInput = document.getElementById('estoqueCadastroSexoV2');
+    const racaInput = document.getElementById('estoqueCadastroRacaV2');
+    const idadeInput = document.getElementById('estoqueCadastroIdadeMesesV2');
+    const dataNascInput = document.getElementById('estoqueCadastroDataNascV2');
+    
+    const sexo = (sexoInput && sexoInput.value) || (estoqueCadastroSexo && estoqueCadastroSexo.value) || '';
+    const raca = (racaInput && racaInput.value) || (estoqueCadastroRaca && estoqueCadastroRaca.value) || '';
+    const idadeMeses = (idadeInput && idadeInput.value.trim()) || (estoqueCadastroIdadeMeses && estoqueCadastroIdadeMeses.value.trim()) || '';
+    const dataNasc = (dataNascInput && dataNascInput.value) || (estoqueCadastroDataNasc && estoqueCadastroDataNasc.value) || '';
+
+    console.log('📋 Dados coletados:', { sexo, raca, idadeMeses, dataNasc });
+
+    if (!sexo) {
+      mostrarToast('Selecione o sexo do animal.', 'warning');
+      return;
+    }
+    
+    // Calcular idade ou data conforme o que foi preenchido
+    let idadeFinal = idadeMeses;
+    let dataNascFinal = dataNasc;
+    
+    if (dataNasc && !idadeMeses) {
+      idadeFinal = calcularIdadeMesesDeData(dataNasc);
+      console.log('📅 Idade calculada da data:', idadeFinal);
+      if (idadeInput) idadeInput.value = idadeFinal;
+    } else if (idadeMeses && !dataNasc) {
+      let dataCalc = '';
+      if (typeof window !== 'undefined' && typeof window.calcularDataNascimentoPorIdadeMeses === 'function') {
+        dataCalc = window.calcularDataNascimentoPorIdadeMeses(idadeMeses);
+      } else if (typeof calcularDataNascimentoPorIdadeMeses === 'function') {
+        dataCalc = calcularDataNascimentoPorIdadeMeses(idadeMeses);
+      }
+      dataNascFinal = dataCalc;
+      console.log('📅 Data calculada da idade:', dataNascFinal);
+      if (dataNascInput) dataNascInput.value = dataCalc;
+    }
+    
+    if (!idadeFinal || !dataNascFinal) {
+      mostrarToast('Informe a idade em meses OU a data de nascimento.', 'warning');
+      return;
+    }
+
+    const payload = {
+      tipo_fluxo: 'estoque',
+      manejo: 'CADASTRO_INICIAL',
+      codigo: codigoBrinco,
+      numero_sisbov: codigoBrinco,
+      sexo,
+      raca,
+      idade: idadeFinal,
+      data_nascimento: dataNascFinal,
+      origem_cadastro: 'NASCIMENTO',
+    };
+    
+    console.log('📤 Payload para envio:', payload);
+    
+    if (typeof estoqueCadastroCodigoAtual !== 'undefined') {
+      estoqueCadastroCodigoAtual = codigoBrinco;
+    }
+    if (typeof window !== 'undefined') {
+      window.estoqueCadastroCodigoAtual = codigoBrinco;
+    }
+
+    mostrarLoading(true);
+    try {
+      let urlRegistrar = registrarUrl;
+      if (!urlRegistrar && typeof window !== 'undefined') {
+        const pathMatch = window.location.pathname.match(/\/propriedade\/(\d+)\/curral/);
+        if (pathMatch) {
+          urlRegistrar = `/propriedade/${pathMatch[1]}/curral/api/registrar/`;
+        }
+      }
+      
+      if (!urlRegistrar) {
+        throw new Error('URL de registro não encontrada');
+      }
+      
+      console.log('🌐 URL de registro:', urlRegistrar);
+      
+      let resultado;
+      if (typeof curralSync !== 'undefined' && typeof curralSync.adicionarParaSincronizacao === 'function') {
+        console.log('📡 Usando sistema de sincronização offline');
+        resultado = await curralSync.adicionarParaSincronizacao(
+          'cadastro_estoque',
+          urlRegistrar,
+          'POST',
+          payload,
+          {
+            'X-CSRFToken': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest',
+          }
+        );
+      } else {
+        console.log('📡 Fazendo requisição direta (curralSync não disponível)');
+        const response = await fetch(urlRegistrar, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+          body: JSON.stringify(payload)
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ mensagem: `Erro ${response.status}` }));
+          throw new Error(errorData.mensagem || `Erro ${response.status}`);
+        }
+        
+        const data = await response.json();
+        resultado = {
+          synced: true,
+          data: data,
+          queued: false
+        };
+        console.log('📥 Resposta recebida:', resultado);
+      }
+      
+      mostrarLoading(false);
+      
+      if (resultado.synced && resultado.data) {
+        const data = resultado.data;
+        if (data.status === 'conflito_manejo' && data.conflitos && Array.isArray(data.conflitos)) {
+          conflitoManejoDados = {
+            codigo: codigoBrinco,
+            sexo,
+            raca,
+            idade: idadeFinal,
+            data_nascimento: dataNascFinal,
+            origem_cadastro: 'NASCIMENTO'
+          };
+          abrirConflitoManejoV2(data.conflitos);
+          return;
+        }
+        if (data.status !== 'ok') {
+          const msg = data.mensagem || 'Não foi possível concluir o cadastro a partir do estoque.';
+          mostrarToast(msg, 'error');
+          if (msg.includes('Já existe um animal cadastrado com este brinco')) {
+            fecharCadastroEstoqueV2();
+            identificarBrinco(codigoBrinco);
+          }
+          return;
+        }
+        console.log('✅ Animal cadastrado com sucesso!');
+        mostrarToast(data.mensagem || 'Animal cadastrado com sucesso a partir do estoque!', 'success');
+        ultimoCadastroEstoqueV2 = { raca, sexo, idade: idadeFinal };
+        fecharCadastroEstoqueV2();
+        identificarBrinco(codigoBrinco);
+      } else if (resultado.queued) {
+        mostrarToast('Cadastro salvo localmente. Será sincronizado quando a conexão for restaurada.', 'info');
+        ultimoCadastroEstoqueV2 = { raca, sexo, idade: idadeFinal };
+        fecharCadastroEstoqueV2();
+      } else {
+        mostrarToast('Cadastro salvo localmente.', 'info');
+      }
+    } catch (e) {
+      console.error('❌ Erro ao cadastrar animal a partir do estoque:', e);
+      mostrarLoading(false);
+      const mensagemErro = e.message || 'Erro desconhecido ao cadastrar animal.';
+      mostrarToast(`Erro ao cadastrar: ${mensagemErro}`, 'error');
+      
+      if (typeof curralSync !== 'undefined' && typeof curralSync.adicionarParaSincronizacao === 'function') {
+        try {
+          let urlRegistrar = registrarUrl;
+          if (!urlRegistrar) {
+            const pathMatch = window.location.pathname.match(/\/propriedade\/(\d+)\/curral/);
+            if (pathMatch) {
+              urlRegistrar = `/propriedade/${pathMatch[1]}/curral/api/registrar/`;
+            }
+          }
+          if (urlRegistrar) {
+            await curralSync.adicionarParaSincronizacao('cadastro_estoque', urlRegistrar, 'POST', payload, {
+              'X-CSRFToken': csrfToken,
+              'X-Requested-With': 'XMLHttpRequest',
+            });
+            mostrarToast('Cadastro salvo localmente devido a erro de conexão.', 'warning');
+          }
+        } catch (err) {
+          console.error('Erro ao salvar localmente:', err);
+        }
+      }
+    }
+  };
+  
+  // ========== FIM DA FUNÇÃO registrarCadastroEstoqueV2 ==========
+  console.log('✅ Função registrarCadastroEstoqueV2 definida e disponível globalmente');
+
   // Função para inicializar event listeners do modal de estoque
   function inicializarModalEstoque() {
-    console.log('🔧 Inicializando modal de estoque... [VERSÃO: 2025-11-19-23:15]');
-    console.log('📅 Timestamp:', new Date().toISOString());
+    console.log('🔧 Inicializando modal de estoque...');
     
     // Buscar elementos
     const idadeInput = document.getElementById('estoqueCadastroIdadeMesesV2');
@@ -11083,11 +11438,11 @@ document.addEventListener('DOMContentLoaded', async function () {
           dataCalc = calcularDataNascimentoPorIdadeMeses(idadeMeses);
         }
         
-          if (dataNascInput && dataCalc) {
-            // Input type="date" precisa do formato YYYY-MM-DD
-            dataNascInput.value = dataCalc;
-            console.log('✅ Data calculada:', dataCalc);
-          }
+        if (dataNascInput && dataCalc) {
+          // Input type="date" precisa do formato YYYY-MM-DD
+          dataNascInput.value = dataCalc;
+          console.log('✅ Data calculada:', dataCalc);
+        }
         
         // Validar e habilitar botão
         validarBotaoEstoque();
@@ -11168,74 +11523,31 @@ document.addEventListener('DOMContentLoaded', async function () {
       }
     }
     
-    // Event listener para botão Confirmar
+    // Event listener para botão Confirmar - VERSÃO SIMPLIFICADA
     if (okBtn) {
-      // Remover listeners anteriores
-      const novoOkBtn = okBtn.cloneNode(true);
-      okBtn.parentNode.replaceChild(novoOkBtn, okBtn);
-      const okBtnAtual = document.getElementById('estoqueCadastroOkBtnV2');
-      
-      if (okBtnAtual) {
-        // Remover qualquer listener anterior
-        const novoBtn = okBtnAtual.cloneNode(true);
-        okBtnAtual.parentNode.replaceChild(novoBtn, okBtnAtual);
-        const btnFinal = document.getElementById('estoqueCadastroOkBtnV2');
+      okBtn.addEventListener('click', async function(e) {
+        e.preventDefault();
+        e.stopPropagation();
         
-        if (btnFinal) {
-          btnFinal.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            console.log('🖱️ Botão Confirmar clicado! [VERSÃO: 2025-11-19-23:15]');
-            console.log('📋 Estado do botão:', {
-              disabled: this.disabled,
-              value: this.value,
-              text: this.textContent
-            });
-            
-            if (this.disabled) {
-              console.log('⚠️ Botão desabilitado, ignorando clique');
-              mostrarToast('Preencha todos os campos obrigatórios (idade ou data + sexo)', 'warning');
-              return;
-            }
-            
-            console.log('🚀 Chamando função de registro... [VERSÃO: 2025-11-19-23:20]');
-            console.log('🔍 Verificando funções disponíveis...');
-            console.log('  - registrarCadastroEstoqueV2 (local):', typeof registrarCadastroEstoqueV2);
-            console.log('  - window.registrarCadastroEstoqueV2:', typeof window?.registrarCadastroEstoqueV2);
-            
-            // Tentar múltiplas formas de chamar a função
-            let funcaoEncontrada = false;
-            
-            if (typeof registrarCadastroEstoqueV2 === 'function') {
-              console.log('✅ Função encontrada localmente - chamando...');
-              try {
-                registrarCadastroEstoqueV2();
-                funcaoEncontrada = true;
-              } catch (err) {
-                console.error('❌ Erro ao chamar função local:', err);
-              }
-            }
-            
-            if (!funcaoEncontrada && typeof window !== 'undefined' && typeof window.registrarCadastroEstoqueV2 === 'function') {
-              console.log('✅ Função encontrada em window - chamando...');
-              try {
-                window.registrarCadastroEstoqueV2();
-                funcaoEncontrada = true;
-              } catch (err) {
-                console.error('❌ Erro ao chamar função window:', err);
-              }
-            }
-            
-            if (!funcaoEncontrada) {
-              console.error('❌ Função registrarCadastroEstoqueV2 não encontrada!');
-              console.error('Funções disponíveis com "registrar":', Object.keys(window).filter(k => k.toLowerCase().includes('registrar')));
-              console.error('Funções disponíveis com "estoque":', Object.keys(window).filter(k => k.toLowerCase().includes('estoque')));
-              alert('Erro: função de registro não encontrada.\n\nRecarregue a página com Ctrl+Shift+R (limpar cache).\n\nVerifique o console (F12) para mais detalhes.');
-            }
-          }, { once: false });
-          console.log('✅ Event listener do botão Confirmar anexado [VERSÃO: 2025-11-19-23:15]');
+        if (this.disabled) {
+          mostrarToast('Preencha todos os campos obrigatórios (idade ou data + sexo)', 'warning');
+          return;
         }
-      }
+        
+        console.log('🖱️ Botão Confirmar cadastro clicado!');
+        
+        if (typeof window.registrarCadastroEstoqueV2 === 'function') {
+          try {
+            await window.registrarCadastroEstoqueV2();
+          } catch (err) {
+            console.error('❌ Erro ao cadastrar:', err);
+            mostrarToast('Erro ao cadastrar: ' + (err.message || 'Erro desconhecido'), 'error');
+          }
+        } else {
+          console.error('❌ Função registrarCadastroEstoqueV2 não encontrada!');
+          mostrarToast('Erro: função de registro não encontrada. Recarregue a página.', 'error');
+        }
+      });
     }
     
     // Event listener para botão Cancelar
@@ -11312,32 +11624,9 @@ document.addEventListener('DOMContentLoaded', async function () {
     overlay.style.display = 'flex';
     overlay.classList.add('show');
     
-    // Inicializar event listeners após um pequeno delay
+    // Inicializar modal após um pequeno delay
     setTimeout(() => {
       inicializarModalEstoque();
-      // Validar botão após inicializar (caso campos já estejam preenchidos)
-      setTimeout(() => {
-        const idadeInput = document.getElementById('estoqueCadastroIdadeMesesV2');
-        const dataNascInput = document.getElementById('estoqueCadastroDataNascV2');
-        const sexoInput = document.getElementById('estoqueCadastroSexoV2');
-        const okBtn = document.getElementById('estoqueCadastroOkBtnV2');
-        
-        if (okBtn && idadeInput && sexoInput) {
-          const idade = idadeInput.value.trim();
-          const dataNasc = dataNascInput ? dataNascInput.value.trim() : '';
-          const sexo = sexoInput.value.trim();
-          const temIdadeOuData = idade || dataNasc;
-          
-          if (temIdadeOuData && sexo) {
-            console.log('✅ Habilitando botão após abrir modal (campos já preenchidos)');
-            okBtn.disabled = false;
-            okBtn.removeAttribute('disabled');
-            okBtn.style.opacity = '1';
-            okBtn.style.cursor = 'pointer';
-            okBtn.classList.remove('disabled');
-          }
-        }
-      }, 200);
     }, 100);
   }
 
@@ -11670,14 +11959,99 @@ document.addEventListener('DOMContentLoaded', async function () {
       e.preventDefault();
       e.stopPropagation();
       console.log('🖱️ Botão de cadastro clicado (event listener inicial)!');
-      if (typeof registrarCadastroEstoqueV2 === 'function') {
-        registrarCadastroEstoqueV2();
-      } else if (typeof window !== 'undefined' && typeof window.registrarCadastroEstoqueV2 === 'function') {
-        window.registrarCadastroEstoqueV2();
-      } else {
-        console.error('❌ Função registrarCadastroEstoqueV2 não encontrada!');
-        alert('Erro: função de registro não encontrada. Recarregue a página.');
+      
+      // Função auxiliar para verificar se é a versão completa (não stub)
+      function isFuncaoCompleta(fn) {
+        if (!fn || typeof fn !== 'function') return false;
+        if (fn._isStub) return false;
+        const fnStr = fn.toString();
+        if (fnStr.indexOf('[STUB]') !== -1) return false;
+        if (fnStr.length < 500) return false;
+        if (fnStr.indexOf('Iniciando registro de cadastro de estoque') !== -1) return true;
+        if (fnStr.indexOf('Código do brinco encontrado') !== -1) return true;
+        if (fnStr.indexOf('adicionarParaSincronizacao') !== -1) return true;
+        return fnStr.length > 1000;
       }
+      
+      // Função auxiliar para encontrar e chamar registrarCadastroEstoqueV2
+      function chamarRegistrarCadastro() {
+        let funcaoRegistrar = null;
+        
+        // 1. Tentar no escopo local
+        if (typeof registrarCadastroEstoqueV2 === 'function' && isFuncaoCompleta(registrarCadastroEstoqueV2)) {
+          funcaoRegistrar = registrarCadastroEstoqueV2;
+          console.log('✅ Função encontrada no escopo local (versão completa)');
+        }
+        // 2. Tentar no window
+        else if (typeof window !== 'undefined' && typeof window.registrarCadastroEstoqueV2 === 'function') {
+          if (isFuncaoCompleta(window.registrarCadastroEstoqueV2)) {
+            funcaoRegistrar = window.registrarCadastroEstoqueV2;
+            console.log('✅ Função encontrada em window (versão completa)');
+          } else {
+            console.log('⚠️ Função encontrada em window mas é apenas o stub, aguardando versão completa...');
+          }
+        }
+        
+        if (funcaoRegistrar && typeof funcaoRegistrar === 'function') {
+          console.log('✅ Chamando função registrarCadastroEstoqueV2 (versão completa)...');
+          try {
+            funcaoRegistrar();
+            return true;
+          } catch (err) {
+            console.error('❌ Erro ao executar função:', err);
+            const mensagemErro = err.message || 'Erro desconhecido';
+            if (typeof mostrarToast === 'function') {
+              mostrarToast('Erro ao processar cadastro: ' + mensagemErro, 'error');
+            } else {
+              alert('Erro ao processar cadastro: ' + mensagemErro);
+            }
+            return false;
+          }
+        }
+        
+        return false;
+      }
+      
+      // Tentar chamar imediatamente
+      if (chamarRegistrarCadastro()) {
+        return;
+      }
+      
+      // Se não encontrou, tentar após pequenos delays
+      console.log('⏳ Função completa não encontrada imediatamente, aguardando carregamento...');
+      let tentativas = 0;
+      const maxTentativas = 10;
+      const intervalos = [50, 100, 150, 200, 300, 400, 500, 750, 1000, 1500];
+      
+      function tentarNovamente() {
+        tentativas++;
+        
+        if (chamarRegistrarCadastro()) {
+          console.log('✅ Função completa encontrada e chamada com sucesso!');
+          return;
+        }
+        
+        if (tentativas > maxTentativas) {
+          console.error('❌ Função registrarCadastroEstoqueV2 (versão completa) não encontrada após', maxTentativas, 'tentativas!');
+          console.error('Funções disponíveis com "registrar":', Object.keys(window).filter(k => k.toLowerCase().includes('registrar')));
+          console.error('Funções disponíveis com "estoque":', Object.keys(window).filter(k => k.toLowerCase().includes('estoque')));
+          console.error('Verificando se é stub:', window.registrarCadastroEstoqueV2?._isStub);
+          console.error('Conteúdo da função:', window.registrarCadastroEstoqueV2?.toString().substring(0, 200));
+          const mensagem = 'Erro: função de registro não encontrada. Recarregue a página com Ctrl+Shift+R (limpar cache).';
+          if (typeof mostrarToast === 'function') {
+            mostrarToast(mensagem, 'error');
+          } else {
+            alert(mensagem + '\n\nVerifique o console (F12) para mais detalhes.');
+          }
+          return;
+        }
+        
+        const delay = intervalos[Math.min(tentativas - 1, intervalos.length - 1)];
+        console.log(`⏳ Tentativa ${tentativas}/${maxTentativas} - Aguardando ${delay}ms...`);
+        setTimeout(tentarNovamente, delay);
+      }
+      
+      setTimeout(tentarNovamente, 50);
     });
   }
   
@@ -12554,274 +12928,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     return totalMeses >= 0 ? totalMeses.toString() : '';
   }
 
-  // Definir função ANTES de qualquer coisa para garantir disponibilidade
-  async function registrarCadastroEstoqueV2() {
-    console.log('🚀 Iniciando registro de cadastro de estoque... [VERSÃO: 2025-11-19-23:20-FINAL]');
-    console.log('📅 Timestamp:', new Date().toISOString());
-    console.trace('Stack trace da chamada');
-    
-    // Buscar código do brinco de múltiplas fontes
-    let codigoBrinco = estoqueCadastroCodigoAtual;
-    if (!codigoBrinco && typeof window !== 'undefined') {
-      codigoBrinco = window.estoqueCadastroCodigoAtual;
-    }
-    if (!codigoBrinco) {
-      // Tentar buscar do span do brinco
-      const brincoSpan = document.getElementById('estoqueCadastroBrincoV2');
-      if (brincoSpan) {
-        codigoBrinco = brincoSpan.textContent.trim();
-      }
-    }
-    
-    console.log('🔍 Código do brinco encontrado:', codigoBrinco);
-    
-    if (!codigoBrinco || codigoBrinco === '—' || codigoBrinco === '') {
-      mostrarToast('Código do brinco em estoque não identificado.', 'warning');
-      console.error('❌ Código do brinco não encontrado!');
-      return;
-    }
-    
-    // Buscar elementos diretamente
-    const sexoInput = document.getElementById('estoqueCadastroSexoV2');
-    const racaInput = document.getElementById('estoqueCadastroRacaV2');
-    const idadeInput = document.getElementById('estoqueCadastroIdadeMesesV2');
-    const dataNascInput = document.getElementById('estoqueCadastroDataNascV2');
-    
-    const sexo = (sexoInput && sexoInput.value) || (estoqueCadastroSexo && estoqueCadastroSexo.value) || '';
-    const raca = (racaInput && racaInput.value) || (estoqueCadastroRaca && estoqueCadastroRaca.value) || '';
-    const idadeMeses = (idadeInput && idadeInput.value.trim()) || (estoqueCadastroIdadeMeses && estoqueCadastroIdadeMeses.value.trim()) || '';
-    const dataNasc = (dataNascInput && dataNascInput.value) || (estoqueCadastroDataNasc && estoqueCadastroDataNasc.value) || '';
-
-    console.log('📋 Dados coletados:', { sexo, raca, idadeMeses, dataNasc });
-
-    if (!sexo) {
-      mostrarToast('Selecione o sexo do animal.', 'warning');
-      return;
-    }
-    
-    // Calcular idade ou data conforme o que foi preenchido
-    let idadeFinal = idadeMeses;
-    let dataNascFinal = dataNasc;
-    
-    if (dataNasc && !idadeMeses) {
-      // Se tem data mas não tem idade, calcular idade
-      idadeFinal = calcularIdadeMesesDeData(dataNasc);
-      console.log('📅 Idade calculada da data:', idadeFinal);
-      if (idadeInput) idadeInput.value = idadeFinal;
-    } else if (idadeMeses && !dataNasc) {
-      // Se tem idade mas não tem data, calcular data
-      let dataCalc = '';
-      if (typeof window !== 'undefined' && typeof window.calcularDataNascimentoPorIdadeMeses === 'function') {
-        dataCalc = window.calcularDataNascimentoPorIdadeMeses(idadeMeses);
-      } else if (typeof calcularDataNascimentoPorIdadeMeses === 'function') {
-        dataCalc = calcularDataNascimentoPorIdadeMeses(idadeMeses);
-      }
-      dataNascFinal = dataCalc;
-      console.log('📅 Data calculada da idade:', dataNascFinal);
-      if (dataNascInput) dataNascInput.value = dataCalc;
-    }
-    
-    if (!idadeFinal || !dataNascFinal) {
-      mostrarToast('Informe a idade em meses OU a data de nascimento.', 'warning');
-      return;
-    }
-
-    const payload = {
-      tipo_fluxo: 'estoque',
-      manejo: 'CADASTRO_INICIAL',
-      codigo: codigoBrinco,
-      numero_sisbov: codigoBrinco,
-      sexo,
-      raca,
-      idade: idadeFinal,
-      data_nascimento: dataNascFinal,
-      origem_cadastro: 'NASCIMENTO',
-    };
-    
-    console.log('📤 Payload para envio:', payload);
-    
-    // Atualizar variável global
-    if (typeof estoqueCadastroCodigoAtual !== 'undefined') {
-      estoqueCadastroCodigoAtual = codigoBrinco;
-    }
-    if (typeof window !== 'undefined') {
-      window.estoqueCadastroCodigoAtual = codigoBrinco;
-    }
-
-    mostrarLoading(true);
-    try {
-      // Verificar se registrarUrl está disponível
-      let urlRegistrar = registrarUrl;
-      if (!urlRegistrar && typeof window !== 'undefined') {
-        // Tentar construir a URL a partir da URL atual
-        const pathMatch = window.location.pathname.match(/\/propriedade\/(\d+)\/curral/);
-        if (pathMatch) {
-          urlRegistrar = `/propriedade/${pathMatch[1]}/curral/api/registrar/`;
-        }
-      }
-      
-      if (!urlRegistrar) {
-        throw new Error('URL de registro não encontrada');
-      }
-      
-      console.log('🌐 URL de registro:', urlRegistrar);
-      
-      // Usar sistema de sincronização offline se disponível, senão fazer requisição direta
-      let resultado;
-      if (typeof curralSync !== 'undefined' && typeof curralSync.adicionarParaSincronizacao === 'function') {
-        console.log('📡 Usando sistema de sincronização offline');
-        resultado = await curralSync.adicionarParaSincronizacao(
-          'cadastro_estoque',
-          urlRegistrar,
-          'POST',
-          payload,
-          {
-            'X-CSRFToken': csrfToken,
-            'X-Requested-With': 'XMLHttpRequest',
-          }
-        );
-      } else {
-        console.log('📡 Fazendo requisição direta (curralSync não disponível)');
-        // Fazer requisição direta
-        const response = await fetch(urlRegistrar, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken,
-            'X-Requested-With': 'XMLHttpRequest',
-          },
-          body: JSON.stringify(payload)
-        });
-        
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ mensagem: `Erro ${response.status}` }));
-          throw new Error(errorData.mensagem || `Erro ${response.status}`);
-        }
-        
-        const data = await response.json();
-        resultado = {
-          synced: true,
-          data: data,
-          queued: false
-        };
-        console.log('📥 Resposta recebida:', resultado);
-      }
-      
-      mostrarLoading(false);
-      
-      if (resultado.synced && resultado.data) {
-        const data = resultado.data;
-        // Detecta conflito de número de manejo
-        if (data.status === 'conflito_manejo' && data.conflitos && Array.isArray(data.conflitos)) {
-          conflitoManejoDados = {
-            codigo: codigoBrinco,
-            sexo,
-            raca,
-            idade: idadeFinal,
-            data_nascimento: dataNascFinal,
-            origem_cadastro: 'NASCIMENTO'
-          };
-          abrirConflitoManejoV2(data.conflitos);
-          return;
-        }
-        if (data.status !== 'ok') {
-          const msg = data.mensagem || 'Não foi possível concluir o cadastro a partir do estoque.';
-          mostrarToast(msg, 'error');
-          if (msg.includes('Já existe um animal cadastrado com este brinco')) {
-            fecharCadastroEstoqueV2();
-            identificarBrinco(codigoBrinco);
-          }
-          return;
-        }
-        console.log('✅ Animal cadastrado com sucesso!');
-        mostrarToast(data.mensagem || 'Animal cadastrado com sucesso a partir do estoque!', 'success');
-        ultimoCadastroEstoqueV2 = { raca, sexo, idade: idadeFinal };
-        fecharCadastroEstoqueV2();
-        identificarBrinco(codigoBrinco);
-      } else if (resultado.queued) {
-        mostrarToast('Cadastro salvo localmente. Será sincronizado quando a conexão for restaurada.', 'info');
-        ultimoCadastroEstoqueV2 = { raca, sexo, idade: idadeFinal };
-        fecharCadastroEstoqueV2();
-      } else {
-        mostrarToast('Cadastro salvo localmente.', 'info');
-      }
-    } catch (e) {
-      console.error('❌ Erro ao cadastrar animal a partir do estoque:', e);
-      console.error('Stack trace:', e.stack);
-      mostrarLoading(false);
-      
-      // Mostrar mensagem de erro detalhada
-      const mensagemErro = e.message || 'Erro desconhecido ao cadastrar animal.';
-      console.error('Detalhes do erro:', {
-        mensagem: mensagemErro,
-        payload: payload,
-        codigoBrinco: codigoBrinco
-      });
-      mostrarToast(`Erro ao cadastrar: ${mensagemErro}`, 'error');
-      
-      // Tenta salvar localmente mesmo em caso de erro (se curralSync estiver disponível)
-      if (typeof curralSync !== 'undefined' && typeof curralSync.adicionarParaSincronizacao === 'function') {
-        try {
-          let urlRegistrar = registrarUrl;
-          if (!urlRegistrar) {
-            const pathMatch = window.location.pathname.match(/\/propriedade\/(\d+)\/curral/);
-            if (pathMatch) {
-              urlRegistrar = `/propriedade/${pathMatch[1]}/curral/api/registrar/`;
-            }
-          }
-          
-          if (urlRegistrar) {
-            console.log('💾 Tentando salvar localmente...');
-            await curralSync.adicionarParaSincronizacao(
-              'cadastro_estoque',
-              urlRegistrar,
-              'POST',
-              payload,
-              {
-                'X-CSRFToken': csrfToken,
-                'X-Requested-With': 'XMLHttpRequest',
-              }
-            );
-            mostrarToast('Cadastro salvo localmente devido a erro de conexão.', 'warning');
-          }
-        } catch (err) {
-          console.error('Erro ao salvar localmente:', err);
-          mostrarToast('Erro ao salvar cadastro. Verifique o console (F12) para mais detalhes.', 'error');
-        }
-      } else {
-        mostrarToast('Erro ao cadastrar. Abra o console (F12) para ver detalhes do erro.', 'error');
-      }
-    }
-  }
-  
-  // Garantir que a função esteja disponível globalmente IMEDIATAMENTE após definição
-  if (typeof window !== 'undefined') {
-    // Atribuir a função ao window de múltiplas formas para garantir disponibilidade
-    window.registrarCadastroEstoqueV2 = registrarCadastroEstoqueV2;
-    // Também definir como propriedade global direta
-    if (typeof globalThis !== 'undefined') {
-      globalThis.registrarCadastroEstoqueV2 = registrarCadastroEstoqueV2;
-    }
-    console.log('✅ Função registrarCadastroEstoqueV2 definida globalmente [VERSÃO: 2025-11-19-23:20-FINAL]');
-    console.log('📋 Tipo da função:', typeof window.registrarCadastroEstoqueV2);
-    console.log('📋 Função é função?', typeof window.registrarCadastroEstoqueV2 === 'function');
-    console.log('📋 Função pode ser chamada?', typeof window.registrarCadastroEstoqueV2 === 'function' ? 'SIM ✅' : 'NÃO ❌');
-    
-    // Verificar se a função está realmente disponível
-    if (typeof window.registrarCadastroEstoqueV2 !== 'function') {
-      console.error('❌ ERRO CRÍTICO: Função não foi atribuída corretamente ao window!');
-    } else {
-      console.log('✅ CONFIRMADO: Função está disponível e pode ser chamada!');
-      // Forçar disponibilidade também no escopo global
-      try {
-        eval('window.registrarCadastroEstoqueV2 = registrarCadastroEstoqueV2');
-      } catch (e) {
-        console.warn('Aviso ao definir função via eval:', e);
-      }
-    }
-  } else {
-    console.error('❌ window não está disponível!');
-  }
+  // Função duplicada removida - a função correta está na linha 11204
 
   // Substituir alert por toast em outras funções
   const originalAlert = window.alert;
@@ -16100,8 +16207,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
   // Inicializar todas as abas quando DOM estiver pronto
   function inicializarTudo() {
-    console.log('🚀 ========== INICIANDO TODAS AS INICIALIZAÇÕES [VERSÃO: 2025-01-20-00:00] ==========');
-    console.log('📅 Timestamp de inicialização:', new Date().toISOString());
+    console.log('🚀 Iniciando todas as inicializações...');
     
       inicializarSanidadeV2();
       inicializarReprodutivoV2();
@@ -17839,6 +17945,206 @@ window.testarPesagem = function() {
   window.addEventListener('resize', debounce(() => {
     // Recalcular layouts apenas após resize completo
   }, 250));
+  
+  // ========== FUNCIONALIDADE DE MENU LATERAL EM TELA CHEIA ==========
+  (function() {
+    'use strict';
+    
+    const sidebar = document.querySelector('.sidebar');
+    const fullscreenModal = document.getElementById('menuLateralFullscreen');
+    const windowElement = document.getElementById('menuLateralWindow');
+    const windowContent = document.getElementById('menuLateralWindowContent');
+    const minimizeBtn = document.getElementById('menuLateralMinimize');
+    const maximizeBtn = document.getElementById('menuLateralMaximize');
+    const closeBtn = document.getElementById('menuLateralClose');
+    const windowHeader = document.getElementById('menuLateralWindowHeader');
+    
+    let isMinimized = false;
+    let isMaximized = true;
+    let isDragging = false;
+    let dragOffset = { x: 0, y: 0 };
+    
+    // Função para abrir o menu em tela cheia
+    function abrirMenuLateralFullscreen() {
+      if (!sidebar || !fullscreenModal || !windowContent) return;
+      
+      // Copiar conteúdo do sidebar para a janela
+      const sidebarClone = sidebar.cloneNode(true);
+      sidebarClone.style.position = 'relative';
+      sidebarClone.style.width = '100%';
+      sidebarClone.style.height = '100%';
+      sidebarClone.style.transform = 'none';
+      sidebarClone.style.boxShadow = 'none';
+      
+      // Limpar conteúdo anterior
+      windowContent.innerHTML = '';
+      windowContent.appendChild(sidebarClone);
+      
+      // Mostrar modal
+      fullscreenModal.classList.add('show');
+      isMaximized = true;
+      isMinimized = false;
+      windowElement.classList.remove('minimized');
+      windowElement.classList.add('maximized');
+      
+      // Atualizar ícone do botão maximizar
+      if (maximizeBtn) {
+        maximizeBtn.innerHTML = '<i class="bi bi-fullscreen-exit"></i>';
+        maximizeBtn.title = 'Restaurar';
+      }
+    }
+    
+    // Função para fechar
+    function fecharMenuLateralFullscreen() {
+      if (fullscreenModal) {
+        fullscreenModal.classList.remove('show');
+        isMinimized = false;
+        isMaximized = false;
+        windowElement.classList.remove('minimized', 'maximized');
+      }
+    }
+    
+    // Função para minimizar
+    function minimizarMenuLateral() {
+      if (isMinimized) {
+        // Restaurar
+        windowElement.classList.remove('minimized');
+        windowElement.classList.add('maximized');
+        isMinimized = false;
+        isMaximized = true;
+        if (maximizeBtn) {
+          maximizeBtn.innerHTML = '<i class="bi bi-fullscreen-exit"></i>';
+          maximizeBtn.title = 'Restaurar';
+        }
+      } else {
+        // Minimizar
+        windowElement.classList.remove('maximized');
+        windowElement.classList.add('minimized');
+        isMinimized = true;
+        isMaximized = false;
+        if (maximizeBtn) {
+          maximizeBtn.innerHTML = '<i class="bi bi-square"></i>';
+          maximizeBtn.title = 'Maximizar';
+        }
+      }
+    }
+    
+    // Função para maximizar/restaurar
+    function toggleMaximizarMenuLateral() {
+      if (isMaximized) {
+        // Restaurar (tamanho médio)
+        windowElement.classList.remove('maximized');
+        windowElement.classList.add('minimized');
+        isMaximized = false;
+        isMinimized = true;
+        if (maximizeBtn) {
+          maximizeBtn.innerHTML = '<i class="bi bi-square"></i>';
+          maximizeBtn.title = 'Maximizar';
+        }
+      } else {
+        // Maximizar
+        windowElement.classList.remove('minimized');
+        windowElement.classList.add('maximized');
+        isMaximized = true;
+        isMinimized = false;
+        if (maximizeBtn) {
+          maximizeBtn.innerHTML = '<i class="bi bi-fullscreen-exit"></i>';
+          maximizeBtn.title = 'Restaurar';
+        }
+      }
+    }
+    
+    // Event listeners
+    if (minimizeBtn) {
+      minimizeBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        minimizarMenuLateral();
+      });
+    }
+    
+    if (maximizeBtn) {
+      maximizeBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        toggleMaximizarMenuLateral();
+      });
+    }
+    
+    if (closeBtn) {
+      closeBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        fecharMenuLateralFullscreen();
+      });
+    }
+    
+    // Fechar ao clicar fora da janela
+    if (fullscreenModal) {
+      fullscreenModal.addEventListener('click', function(e) {
+        if (e.target === fullscreenModal) {
+          fecharMenuLateralFullscreen();
+        }
+      });
+    }
+    
+    // Arrastar janela (quando minimizada)
+    if (windowHeader && windowElement) {
+      windowHeader.addEventListener('mousedown', function(e) {
+        if (isMinimized) {
+          isDragging = true;
+          const rect = windowElement.getBoundingClientRect();
+          dragOffset.x = e.clientX - rect.left;
+          dragOffset.y = e.clientY - rect.top;
+          windowElement.style.cursor = 'grabbing';
+        }
+      });
+      
+      document.addEventListener('mousemove', function(e) {
+        if (isDragging && isMinimized) {
+          windowElement.style.left = (e.clientX - dragOffset.x) + 'px';
+          windowElement.style.top = (e.clientY - dragOffset.y) + 'px';
+          windowElement.style.transform = 'none';
+        }
+      });
+      
+      document.addEventListener('mouseup', function() {
+        if (isDragging) {
+          isDragging = false;
+          windowElement.style.cursor = 'default';
+        }
+      });
+    }
+    
+    // Adicionar evento de clique no sidebar para abrir em tela cheia
+    if (sidebar) {
+      // Criar um botão ou área clicável no sidebar
+      const sidebarHeader = sidebar.querySelector('.sidebar-header');
+      if (sidebarHeader) {
+        sidebarHeader.style.cursor = 'pointer';
+        sidebarHeader.style.position = 'relative';
+        sidebarHeader.addEventListener('click', function(e) {
+          // Não abrir se clicar em um link dentro
+          if (e.target.tagName === 'A' || e.target.closest('a')) {
+            return;
+          }
+          abrirMenuLateralFullscreen();
+        });
+        
+        // Adicionar ícone de fullscreen
+        const fullscreenIcon = document.createElement('i');
+        fullscreenIcon.className = 'bi bi-arrows-fullscreen';
+        fullscreenIcon.style.cssText = 'position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 0.9rem; opacity: 0.7; cursor: pointer;';
+        fullscreenIcon.title = 'Abrir em tela cheia';
+        fullscreenIcon.addEventListener('click', function(e) {
+          e.stopPropagation();
+          abrirMenuLateralFullscreen();
+        });
+        sidebarHeader.appendChild(fullscreenIcon);
+      }
+    }
+    
+    // Tornar função global
+    window.abrirMenuLateralFullscreen = abrirMenuLateralFullscreen;
+    window.fecharMenuLateralFullscreen = fecharMenuLateralFullscreen;
+  })();
   
   // Otimização: Preconnect para recursos externos
   const preconnect = document.createElement('link');
