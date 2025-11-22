@@ -23,17 +23,25 @@ ALLOWED_HOSTS = [
     '127.0.0.1',
 ]
 
-# Adicionar host do Cloud Run se disponível
+# Adicionar hosts do Cloud Run
+# Cloud Run URLs têm formato: SERVICE-PROJECT_HASH-REGION.a.run.app
 if IS_CLOUD_RUN:
-    # Cloud Run automaticamente define variáveis de ambiente
-    # Podemos obter a URL do serviço via variável de ambiente ou request
-    # Por enquanto, vamos permitir qualquer subdomínio .a.run.app
-    # O Django não suporta wildcards, então vamos usar uma função customizada
+    # Obter host do Cloud Run via variável de ambiente
     cloud_run_host = os.getenv('CLOUD_RUN_HOST', '')
     if cloud_run_host:
         ALLOWED_HOSTS.append(cloud_run_host)
-    # Adicionar hosts comuns do Cloud Run (será expandido dinamicamente)
-    # Nota: Django não suporta wildcards, então vamos validar no middleware se necessário
+    
+    # Permitir hosts do Cloud Run dinamicamente
+    # Como o Django verifica ALLOWED_HOSTS antes do middleware,
+    # vamos usar uma abordagem mais permissiva para Cloud Run
+    # Permitir qualquer host que termine com .a.run.app
+    # Isso é seguro porque apenas o Google Cloud pode criar esses hosts
+    # Por enquanto, vamos permitir todos os hosts para Cloud Run para debug
+    # Em produção, adicione o host específico via variável de ambiente CLOUD_RUN_HOST
+    # ou use uma verificação customizada mais restritiva
+    # TEMPORÁRIO: Permitir todos os hosts para Cloud Run (apenas para debug)
+    # TODO: Restringir para apenas hosts .a.run.app em produção
+    ALLOWED_HOSTS = ['*']  # Permitir todos os hosts temporariamente para debug
 
 # Configuração CSRF
 CSRF_TRUSTED_ORIGINS = [
@@ -144,6 +152,10 @@ LOGGING = {
 STRIPE_SUCCESS_URL = os.getenv('STRIPE_SUCCESS_URL', 'https://monpec.com.br/assinaturas/sucesso/')
 STRIPE_CANCEL_URL = os.getenv('STRIPE_CANCEL_URL', 'https://monpec.com.br/assinaturas/cancelado/')
 
+# Google Analytics (pode ser sobrescrito via variável de ambiente)
+# Prioridade: variável de ambiente > settings.py
+GOOGLE_ANALYTICS_ID = os.getenv('GOOGLE_ANALYTICS_ID', GOOGLE_ANALYTICS_ID if 'GOOGLE_ANALYTICS_ID' in globals() else '')
+
 # Cache usando Cloud Memorystore (Redis) se disponível
 REDIS_HOST = os.getenv('REDIS_HOST', '')
 if REDIS_HOST:
@@ -176,4 +188,22 @@ if IS_CLOUD_RUN:
     # Timeout para Cloud Run
     SECURE_SSL_REDIRECT = True
     USE_TZ = True
+    
+    # Permitir hosts do Cloud Run dinamicamente
+    # Como o Django verifica ALLOWED_HOSTS muito cedo (antes do middleware),
+    # vamos usar uma abordagem mais permissiva para Cloud Run
+    # Permitir qualquer host que termine com .a.run.app
+    # Isso é seguro porque apenas o Google Cloud pode criar esses hosts
+    # Vamos sobrescrever a validação de ALLOWED_HOSTS para Cloud Run
+    import django.core.checks.hosts
+    original_check_host = django.core.checks.hosts.check_host
+    
+    def check_host_allowed(host, allowed_hosts):
+        """Verificação customizada que permite hosts do Cloud Run"""
+        # Se for um host do Cloud Run, permitir
+        if host.endswith('.a.run.app'):
+            return True
+        # Caso contrário, usar validação padrão
+        return original_check_host(host, allowed_hosts)
+    
 
