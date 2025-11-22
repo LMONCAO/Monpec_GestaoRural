@@ -114,10 +114,11 @@ urlpatterns = [
     path('propriedade/<int:propriedade_id>/iatf/lotes-semen/', views_iatf_completo.lotes_semen_lista, name='lotes_semen_lista'),
 
     # Super Tela de Curral / Manejo
-    path('propriedade/<int:propriedade_id>/curral/', views_curral.curral_dashboard, name='curral_dashboard'),
-    path('propriedade/<int:propriedade_id>/curral/painel/', views_curral.curral_painel, name='curral_painel'),
+    # Rotas específicas devem vir ANTES da rota genérica
     path('propriedade/<int:propriedade_id>/curral/v3/', views_curral.curral_dashboard_v3, name='curral_dashboard_v3'),
+    path('propriedade/<int:propriedade_id>/curral/painel/', views_curral.curral_painel, name='curral_painel'),
     path('propriedade/<int:propriedade_id>/curral/tela-unica/', views_curral.curral_tela_unica, name='curral_tela_unica'),
+    path('propriedade/<int:propriedade_id>/curral/', views_curral.curral_dashboard, name='curral_dashboard'),
     path('propriedade/<int:propriedade_id>/curral/sessao/<int:sessao_id>/', views_curral.curral_sessao, name='curral_sessao'),
     path('propriedade/<int:propriedade_id>/curral/sessao/<int:sessao_id>/evento/', views_curral.curral_registrar_evento, name='curral_registrar_evento'),
     path('propriedade/<int:propriedade_id>/curral/sessao/<int:sessao_id>/lote/', views_curral.curral_criar_lote, name='curral_criar_lote'),

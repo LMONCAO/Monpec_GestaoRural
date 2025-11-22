@@ -207,3 +207,9 @@ DEMO_LINK_PAGAMENTO = os.getenv('DEMO_LINK_PAGAMENTO', 'http://localhost:8000/as
 # ID de medição do Google Analytics (ex: G-XXXXXXXXXX)
 GOOGLE_ANALYTICS_ID = os.getenv('GOOGLE_ANALYTICS_ID', '')
 
+# ========================================
+# CONFIGURAÇÕES DE PAGAMENTO
+# ========================================
+# URL da Hotmart para pagamento
+HOTMART_CHECKOUT_URL = os.getenv('HOTMART_CHECKOUT_URL', 'https://pay.hotmart.com/O102944551F')
+

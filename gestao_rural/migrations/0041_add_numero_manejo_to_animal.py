@@ -4,6 +4,31 @@ from django.db import migrations, models
 import django.db.models.deletion
 
 
+def deletar_modelos_se_existirem(apps, schema_editor):
+    """Deleta modelos apenas se as tabelas existirem no banco."""
+    connection = schema_editor.connection
+    
+    with connection.cursor() as cursor:
+        if 'sqlite' in connection.vendor:
+            # Lista de tabelas que devem ser deletadas
+            tabelas_para_deletar = [
+                'gestao_rural_centrocustofinanceiro',
+                'gestao_rural_fechamentomensal',
+                'gestao_rural_parcelatitulo',
+                'gestao_rural_titulofinanceiro',
+                'gestao_rural_transferenciafinanceira',
+            ]
+            
+            for tabela in tabelas_para_deletar:
+                # Verificar se a tabela existe
+                sql_check = "SELECT name FROM sqlite_master WHERE type='table' AND name='" + tabela + "'"
+                cursor.execute(sql_check)
+                if cursor.fetchone():
+                    # Deletar a tabela se existir
+                    sql_drop = f"DROP TABLE IF EXISTS {tabela}"
+                    cursor.execute(sql_drop)
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -11,74 +36,13 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AlterUniqueTogether(
-            name='centrocustofinanceiro',
-            unique_together=None,
-        ),
-        migrations.RemoveField(
-            model_name='centrocustofinanceiro',
-            name='propriedade',
-        ),
-        migrations.RemoveField(
-            model_name='fechamentomensal',
-            name='conta',
-        ),
-        migrations.RemoveField(
-            model_name='fechamentomensal',
-            name='propriedade',
-        ),
-        migrations.RemoveField(
-            model_name='parcelatitulo',
-            name='conta_liquidacao',
-        ),
-        migrations.RemoveField(
-            model_name='parcelatitulo',
-            name='titulo',
-        ),
-        migrations.RemoveField(
-            model_name='titulofinanceiro',
-            name='centro_custo',
-        ),
-        migrations.RemoveField(
-            model_name='titulofinanceiro',
-            name='conta_preferencial',
-        ),
-        migrations.RemoveField(
-            model_name='titulofinanceiro',
-            name='criado_por',
-        ),
-        migrations.RemoveField(
-            model_name='titulofinanceiro',
-            name='plano_conta',
-        ),
-        migrations.RemoveField(
-            model_name='titulofinanceiro',
-            name='propriedade',
-        ),
-        migrations.RemoveField(
-            model_name='transferenciafinanceira',
-            name='conta_destino',
-        ),
-        migrations.RemoveField(
-            model_name='transferenciafinanceira',
-            name='conta_origem',
-        ),
-        migrations.RemoveField(
-            model_name='transferenciafinanceira',
-            name='criado_por',
-        ),
-        migrations.RemoveField(
-            model_name='transferenciafinanceira',
-            name='movimento_destino',
-        ),
-        migrations.RemoveField(
-            model_name='transferenciafinanceira',
-            name='movimento_origem',
-        ),
-        migrations.RemoveField(
-            model_name='transferenciafinanceira',
-            name='propriedade',
-        ),
+        # Não precisamos remover campos ou unique_together dos modelos abaixo
+        # pois eles serão deletados completamente logo em seguida nesta migração:
+        # - CentroCustoFinanceiro
+        # - FechamentoMensal
+        # - ParcelaTitulo
+        # - TituloFinanceiro
+        # - TransferenciaFinanceira
         migrations.AlterModelOptions(
             name='centrocusto',
             options={'ordering': ['nome'], 'verbose_name': 'Centro de Custo', 'verbose_name_plural': 'Centros de Custo'},
@@ -231,20 +195,31 @@ class Migration(migrations.Migration):
             model_name='animalvacinaaplicada',
             index=models.Index(fields=['vacina'], name='gestao_rura_vacina_4d661f_idx'),
         ),
-        migrations.DeleteModel(
-            name='CentroCustoFinanceiro',
-        ),
-        migrations.DeleteModel(
-            name='FechamentoMensal',
-        ),
-        migrations.DeleteModel(
-            name='ParcelaTitulo',
-        ),
-        migrations.DeleteModel(
-            name='TituloFinanceiro',
-        ),
-        migrations.DeleteModel(
-            name='TransferenciaFinanceira',
+        # Deletar modelos apenas se existirem no banco
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunPython(
+                    deletar_modelos_se_existirem,
+                    migrations.RunPython.noop,
+                ),
+            ],
+            state_operations=[
+                migrations.DeleteModel(
+                    name='CentroCustoFinanceiro',
+                ),
+                migrations.DeleteModel(
+                    name='FechamentoMensal',
+                ),
+                migrations.DeleteModel(
+                    name='ParcelaTitulo',
+                ),
+                migrations.DeleteModel(
+                    name='TituloFinanceiro',
+                ),
+                migrations.DeleteModel(
+                    name='TransferenciaFinanceira',
+                ),
+            ],
         ),
         migrations.RemoveField(
             model_name='centrocusto',

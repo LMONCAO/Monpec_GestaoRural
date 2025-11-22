@@ -1,25 +1,53 @@
 @echo off
+REM Script para iniciar o sistema Django
+REM Este arquivo inicia o sistema a partir da pasta sincronizada
+
 echo ========================================
-echo    SISTEMA MONPEC - GESTAO RURAL
+echo   Iniciando Sistema Monpec Gestao Rural
 echo ========================================
-echo.
-echo Iniciando o servidor...
 echo.
 
-REM Ativar ambiente virtual se existir
-if exist venv\Scripts\activate.bat (
-    call venv\Scripts\activate.bat
+REM Verificar se Python está instalado
+python --version >nul 2>&1
+if errorlevel 1 (
+    echo ERRO: Python nao esta instalado!
+    echo Instale Python 3.8 ou superior: https://www.python.org/downloads/
+    pause
+    exit /b 1
 )
 
-REM Iniciar servidor Django (aceita conexões da rede - celular)
+REM Verificar se estamos na pasta correta
+if not exist "manage.py" (
+    echo ERRO: Arquivo manage.py nao encontrado!
+    echo Execute este script na pasta raiz do projeto
+    pause
+    exit /b 1
+)
+
+REM Verificar se o banco de dados existe
+if not exist "db.sqlite3" (
+    echo Criando banco de dados...
+    python manage.py migrate
+    if errorlevel 1 (
+        echo ERRO: Falha ao criar banco de dados
+        pause
+        exit /b 1
+    )
+)
+
 echo.
 echo ========================================
-echo   ACESSO PELO CELULAR:
-echo   http://192.168.100.4:8000
+echo   Iniciando servidor Django...
 echo ========================================
 echo.
-echo Certifique-se de que o celular está na mesma rede Wi-Fi!
+echo O sistema estara disponivel em:
+echo   http://127.0.0.1:8000/
+echo   http://localhost:8000/
 echo.
-python manage.py runserver 0.0.0.0:8000
+echo Para parar o servidor, pressione Ctrl+C
+echo.
+
+REM Iniciar servidor
+python manage.py runserver
 
 pause

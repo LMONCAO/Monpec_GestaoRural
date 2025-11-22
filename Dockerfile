@@ -31,8 +31,9 @@ COPY . .
 # Definir SECRET_KEY temporário para collectstatic (será sobrescrito em runtime)
 ENV SECRET_KEY=temp-key-for-collectstatic
 
-# Coletar arquivos estáticos
-RUN python manage.py collectstatic --noinput --settings=sistema_rural.settings || true
+# Coletar arquivos estáticos usando settings_gcp
+# Isso garante que STATICFILES_DIRS seja usado e todos os arquivos sejam coletados
+RUN python manage.py collectstatic --noinput --settings=sistema_rural.settings_gcp || true
 
 # Criar usuário não-root
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app

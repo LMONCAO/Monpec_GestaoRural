@@ -19,6 +19,7 @@ ALLOWED_HOSTS = [
     'monpec.com.br',
     'www.monpec.com.br',
     'monpec-sistema-rural.uc.r.appspot.com',  # App Engine
+    'monpec-29862706245.us-central1.run.app',  # Cloud Run - host específico
     'localhost',
     '127.0.0.1',
 ]
@@ -31,17 +32,23 @@ if IS_CLOUD_RUN:
     if cloud_run_host:
         ALLOWED_HOSTS.append(cloud_run_host)
     
-    # Permitir hosts do Cloud Run dinamicamente
-    # Como o Django verifica ALLOWED_HOSTS antes do middleware,
-    # vamos usar uma abordagem mais permissiva para Cloud Run
-    # Permitir qualquer host que termine com .a.run.app
-    # Isso é seguro porque apenas o Google Cloud pode criar esses hosts
-    # Por enquanto, vamos permitir todos os hosts para Cloud Run para debug
-    # Em produção, adicione o host específico via variável de ambiente CLOUD_RUN_HOST
-    # ou use uma verificação customizada mais restritiva
-    # TEMPORÁRIO: Permitir todos os hosts para Cloud Run (apenas para debug)
-    # TODO: Restringir para apenas hosts .a.run.app em produção
-    ALLOWED_HOSTS = ['*']  # Permitir todos os hosts temporariamente para debug
+    # Tentar construir o host padrão do Cloud Run
+    # Formatos possíveis: 
+    # - SERVICE-PROJECT_ID.REGION.run.app
+    # - SERVICE-PROJECT_ID.REGION.a.run.app
+    project_id = os.getenv('GOOGLE_CLOUD_PROJECT', os.getenv('GCP_PROJECT', ''))
+    service_name = os.getenv('K_SERVICE', 'monpec')
+    region = os.getenv('REGION', 'us-central1')
+    
+    if project_id and service_name:
+        # Adicionar ambos os formatos possíveis do Cloud Run
+        default_cloud_run_host1 = f'{service_name}-{project_id}.{region}.run.app'
+        default_cloud_run_host2 = f'{service_name}-{project_id}.{region}.a.run.app'
+        
+        if default_cloud_run_host1 not in ALLOWED_HOSTS:
+            ALLOWED_HOSTS.append(default_cloud_run_host1)
+        if default_cloud_run_host2 not in ALLOWED_HOSTS:
+            ALLOWED_HOSTS.append(default_cloud_run_host2)
 
 # Configuração CSRF
 CSRF_TRUSTED_ORIGINS = [
@@ -56,19 +63,33 @@ if IS_CLOUD_RUN:
     if cloud_run_host:
         CSRF_TRUSTED_ORIGINS.append(f'https://{cloud_run_host}')
 
-# Banco de dados - Cloud SQL via Unix Socket (App Engine/Cloud Run)
-if IS_GAE or IS_CLOUD_RUN:
-    # Cloud SQL via Unix Socket
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.getenv('DB_NAME', 'monpec_db'),
-            'USER': os.getenv('DB_USER', 'monpec_user'),
-            'PASSWORD': os.getenv('DB_PASSWORD', ''),
-            'HOST': f'/cloudsql/{os.getenv("CLOUD_SQL_CONNECTION_NAME", "")}',
-            'PORT': '',
+# Banco de dados - Cloud SQL via Unix Socket (App Engine/Cloud Run/Cloud Run Jobs)
+CLOUD_SQL_CONNECTION_NAME = os.getenv('CLOUD_SQL_CONNECTION_NAME', '')
+if IS_GAE or IS_CLOUD_RUN or CLOUD_SQL_CONNECTION_NAME:
+    # Cloud SQL via Unix Socket (se CLOUD_SQL_CONNECTION_NAME estiver definido)
+    if CLOUD_SQL_CONNECTION_NAME:
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.postgresql',
+                'NAME': os.getenv('DB_NAME', 'monpec_db'),
+                'USER': os.getenv('DB_USER', 'monpec_user'),
+                'PASSWORD': os.getenv('DB_PASSWORD', ''),
+                'HOST': f'/cloudsql/{CLOUD_SQL_CONNECTION_NAME}',
+                'PORT': '',
+            }
         }
-    }
+    else:
+        # Fallback para configuração padrão
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.postgresql',
+                'NAME': os.getenv('DB_NAME', 'monpec_db'),
+                'USER': os.getenv('DB_USER', 'monpec_user'),
+                'PASSWORD': os.getenv('DB_PASSWORD', ''),
+                'HOST': os.getenv('DB_HOST', '127.0.0.1'),
+                'PORT': os.getenv('DB_PORT', '5432'),
+            }
+        }
 else:
     # Cloud SQL via IP (Compute Engine ou local)
     DATABASES = {
@@ -106,13 +127,24 @@ else:
     # Usar sistema de arquivos local
     STATIC_URL = '/static/'
     STATIC_ROOT = '/app/staticfiles'
+    # STATICFILES_DIRS já está herdado de settings.py via 'from .settings import *'
+    # Ele aponta para BASE_DIR / 'static' onde estão os arquivos originais (vídeos, imagens, etc.)
+    # O collectstatic copia esses arquivos para STATIC_ROOT (/app/staticfiles)
+    # O WhiteNoise então serve os arquivos de STATIC_ROOT automaticamente
     MEDIA_URL = '/media/'
     MEDIA_ROOT = '/app/media'
     
     # Adicionar WhiteNoise para servir arquivos estáticos
     # WhiteNoise já está no requirements_producao.txt
     MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
-    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+    # Usar CompressedStaticFilesStorage em vez de CompressedManifestStaticFilesStorage
+    # para evitar erros de manifest missing em produção
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
+    
+    # Configurações adicionais do WhiteNoise
+    # WhiteNoise serve arquivos de STATIC_ROOT automaticamente
+    # Isso inclui vídeos (.mp4), imagens (.jpeg, .png), ícones e outros arquivos estáticos coletados pelo collectstatic
+    # WhiteNoise por padrão serve arquivos até 2GB, o que é suficiente para vídeos
     
     # Adicionar middleware para permitir hosts do Cloud Run dinamicamente
     MIDDLEWARE.insert(0, 'sistema_rural.middleware.CloudRunHostMiddleware')

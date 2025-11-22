@@ -5896,6 +5896,45 @@ console.log('✅ Funções de controle do campo de peso definidas!');
   </div>
 </div>
 
+<!-- ========== MODAL DE SELEÇÃO DE MÚLTIPLOS BRINCOS ========== -->
+<div class="curral-modal-overlay" id="selecaoBrincoMultiploOverlay" style="display: none; z-index: 2600;">
+  <div class="curral-modal" style="max-width: 700px; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+    <div class="curral-modal-title" style="background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); color: white; padding: 16px 20px;">
+      <i class="fas fa-list" style="margin-right: 8px;"></i> 
+      <span>Selecione o Brinco SISBOV</span>
+      <button type="button" id="selecaoBrincoMultiploCloseBtn" style="float: right; background: none; border: none; color: white; font-size: 20px; cursor: pointer; padding: 0; width: 30px; height: 30px; line-height: 30px;">&times;</button>
+    </div>
+    <div class="curral-modal-body" style="padding: 20px;">
+      <div style="background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%); padding: 12px; border-radius: 8px; border-left: 4px solid #ff9800; margin-bottom: 20px;">
+        <div style="display: flex; align-items: start;">
+          <i class="fas fa-info-circle" style="color: #f57c00; font-size: 18px; margin-right: 10px; margin-top: 2px;"></i>
+          <div style="font-size: 0.9rem; color: #e65100; line-height: 1.4;">
+            <strong>Múltiplos brincos encontrados!</strong><br>
+            Foram encontrados brincos com o mesmo manejo/RFID, mas com SISBOV diferentes.<br>
+            Selecione o brinco SISBOV correto abaixo:
+          </div>
+        </div>
+      </div>
+      
+      <div style="margin-bottom: 16px;">
+        <div style="font-size: 0.85rem; color: #1565c0; margin-bottom: 8px; font-weight: 600;">
+          <i class="fas fa-barcode" style="margin-right: 4px;"></i>Código lido: <span id="selecaoBrincoCodigoLido" style="font-weight: 700; color: #0d47a1;"></span>
+        </div>
+      </div>
+      
+      <div id="selecaoBrincoMultiploLista" style="max-height: 400px; overflow-y: auto;">
+        <!-- Lista de brincos será preenchida aqui -->
+      </div>
+    </div>
+    <div class="curral-modal-footer" style="display: flex; justify-content: flex-end; gap: 12px; padding: 16px 20px; background: #f5f5f5; border-top: 1px solid #e0e0e0;">
+      <button type="button" class="btn btn-sm btn-outline-secondary" id="selecaoBrincoMultiploCancelarBtn" 
+              style="min-width: 120px; padding: 10px 20px; border-radius: 6px; font-weight: 600;">
+        <i class="fas fa-times"></i> Cancelar
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast notifications -->
 <div class="toast-container" id="toastContainer"></div>
 
@@ -6767,6 +6806,10 @@ if (typeof window.buscarBrincoSimples === 'undefined') {
           overlay.classList.add('show');
         }
       }
+    } else if (data.status === 'estoque_multiplos') {
+      console.log('📦 Múltiplos brincos encontrados - mostrando lista para escolha');
+      // Mostrar modal de seleção de brinco
+      mostrarSelecaoBrincoMultiplo(data.brincos || [], data.codigo_lido || valor);
     } else if (data.status === 'animal_externo') {
       console.log('⚠️ Animal em outra propriedade');
       // Fechar popup se estiver aberto
@@ -9965,6 +10008,7 @@ document.addEventListener('DOMContentLoaded', async function () {
   const estoqueCadastroOkBtn = document.getElementById('estoqueCadastroOkBtnV2');
   const estoqueCadastroCancelarBtn = document.getElementById('estoqueCadastroCancelarBtnV2');
   let estoqueCadastroCodigoAtual = null;
+  let estoqueCadastroBrincoId = null; // ID do brinco selecionado quando há múltiplos
   let ultimoCadastroEstoqueV2 = null; // para reaproveitar raça/sexo/idade entre animais do mesmo lote
   
   // Tornar função global para acesso na simulação
@@ -11279,6 +11323,12 @@ document.addEventListener('DOMContentLoaded', async function () {
       origem_cadastro: 'NASCIMENTO',
     };
     
+    // Se foi selecionado um brinco específico (múltiplos brincos), incluir o ID
+    if (estoqueCadastroBrincoId || (typeof window !== 'undefined' && window.estoqueCadastroBrincoId)) {
+      payload.brinco_id = estoqueCadastroBrincoId || window.estoqueCadastroBrincoId;
+      console.log('📌 Incluindo brinco_id no payload:', payload.brinco_id);
+    }
+    
     console.log('📤 Payload para envio:', payload);
     
     if (typeof estoqueCadastroCodigoAtual !== 'undefined') {
@@ -11572,6 +11622,196 @@ document.addEventListener('DOMContentLoaded', async function () {
     validarBotaoEstoque();
   }
 
+  // Função para mostrar seleção de múltiplos brincos
+  function mostrarSelecaoBrincoMultiplo(brincos, codigoLido) {
+    console.log('📋 Mostrando seleção de múltiplos brincos:', brincos);
+    
+    const overlay = document.getElementById('selecaoBrincoMultiploOverlay');
+    const lista = document.getElementById('selecaoBrincoMultiploLista');
+    const codigoLidoSpan = document.getElementById('selecaoBrincoCodigoLido');
+    
+    if (!overlay || !lista) {
+      console.error('❌ Modal de seleção de brincos não encontrado!');
+      mostrarToast('Erro: modal de seleção não encontrado.', 'error');
+      return;
+    }
+    
+    // Preencher código lido
+    if (codigoLidoSpan) {
+      codigoLidoSpan.textContent = codigoLido || '—';
+    }
+    
+    // Limpar lista anterior
+    lista.innerHTML = '';
+    
+    // Criar cards para cada brinco
+    brincos.forEach((brinco, index) => {
+      const card = document.createElement('div');
+      card.style.cssText = 'border: 2px solid #e0e0e0; border-radius: 8px; padding: 16px; margin-bottom: 12px; cursor: pointer; transition: all 0.2s; background: white;';
+      card.onmouseover = function() {
+        this.style.borderColor = '#1976d2';
+        this.style.boxShadow = '0 2px 8px rgba(25, 118, 210, 0.2)';
+        this.style.transform = 'translateY(-2px)';
+      };
+      card.onmouseout = function() {
+        this.style.borderColor = '#e0e0e0';
+        this.style.boxShadow = 'none';
+        this.style.transform = 'translateY(0)';
+      };
+      card.onclick = function() {
+        selecionarBrincoMultiplo(brinco, codigoLido);
+      };
+      
+      card.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+          <div>
+            <div style="font-size: 1.1rem; font-weight: 700; color: #1976d2; margin-bottom: 4px;">
+              <i class="fas fa-tag" style="margin-right: 6px;"></i>${brinco.numero_brinco || '—'}
+            </div>
+            <div style="font-size: 0.85rem; color: #757575;">
+              <i class="fas fa-barcode" style="margin-right: 4px;"></i>Manejo: ${brinco.numero_manejo || '—'}
+            </div>
+          </div>
+          <div style="text-align: right;">
+            <span style="background: #e3f2fd; color: #1976d2; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">
+              ${brinco.tipo_brinco || 'Visual'}
+            </span>
+          </div>
+        </div>
+        ${brinco.codigo_rfid ? `
+          <div style="font-size: 0.85rem; color: #757575; margin-top: 8px;">
+            <i class="fas fa-wifi" style="margin-right: 4px;"></i>RFID: ${brinco.codigo_rfid}
+          </div>
+        ` : ''}
+        ${brinco.codigo_lote ? `
+          <div style="font-size: 0.85rem; color: #757575; margin-top: 4px;">
+            <i class="fas fa-box" style="margin-right: 4px;"></i>Lote: ${brinco.codigo_lote}
+          </div>
+        ` : ''}
+        ${brinco.fornecedor ? `
+          <div style="font-size: 0.85rem; color: #757575; margin-top: 4px;">
+            <i class="fas fa-truck" style="margin-right: 4px;"></i>Fornecedor: ${brinco.fornecedor}
+          </div>
+        ` : ''}
+        ${brinco.data_aquisicao ? `
+          <div style="font-size: 0.85rem; color: #757575; margin-top: 4px;">
+            <i class="fas fa-calendar" style="margin-right: 4px;"></i>Aquisição: ${brinco.data_aquisicao}
+          </div>
+        ` : ''}
+        <div style="margin-top: 12px; text-align: center;">
+          <button type="button" class="btn btn-sm btn-primary btn-selecionar-brinco" 
+                  style="min-width: 120px; padding: 8px 16px; border-radius: 6px; font-weight: 600;"
+                  data-brinco-id="${brinco.id}"
+                  data-brinco-numero="${brinco.numero_brinco || ''}"
+                  data-brinco-rfid="${brinco.codigo_rfid || ''}"
+                  data-brinco-tipo="${brinco.tipo_brinco || ''}"
+                  data-brinco-manejo="${brinco.numero_manejo || ''}"
+                  data-brinco-lote="${brinco.codigo_lote || ''}"
+                  data-brinco-fornecedor="${brinco.fornecedor || ''}"
+                  data-codigo-lido="${codigoLido || ''}">
+            <i class="fas fa-check"></i> Selecionar
+          </button>
+        </div>
+      `;
+      
+      lista.appendChild(card);
+    });
+    
+    // Adicionar event listeners aos botões de seleção
+    const botoesSelecionar = lista.querySelectorAll('.btn-selecionar-brinco');
+    botoesSelecionar.forEach(btn => {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const brinco = {
+          id: parseInt(this.getAttribute('data-brinco-id')),
+          numero_brinco: this.getAttribute('data-brinco-numero'),
+          codigo_rfid: this.getAttribute('data-brinco-rfid'),
+          tipo_brinco: this.getAttribute('data-brinco-tipo'),
+          numero_manejo: this.getAttribute('data-brinco-manejo'),
+          codigo_lote: this.getAttribute('data-brinco-lote'),
+          fornecedor: this.getAttribute('data-brinco-fornecedor'),
+        };
+        const codigoLido = this.getAttribute('data-codigo-lido');
+        selecionarBrincoMultiplo(brinco, codigoLido);
+      });
+    });
+    
+    // Mostrar modal
+    overlay.style.display = 'flex';
+    overlay.classList.add('show');
+    
+    // Configurar botão de fechar
+    const closeBtn = document.getElementById('selecaoBrincoMultiploCloseBtn');
+    const cancelarBtn = document.getElementById('selecaoBrincoMultiploCancelarBtn');
+    
+    if (closeBtn) {
+      closeBtn.onclick = function() {
+        overlay.style.display = 'none';
+        overlay.classList.remove('show');
+      };
+    }
+    
+    if (cancelarBtn) {
+      cancelarBtn.onclick = function() {
+        overlay.style.display = 'none';
+        overlay.classList.remove('show');
+      };
+    }
+    
+    // Fechar ao clicar fora
+    overlay.onclick = function(e) {
+      if (e.target === overlay) {
+        overlay.style.display = 'none';
+        overlay.classList.remove('show');
+      }
+    };
+  }
+  
+  // Função para selecionar um brinco da lista
+  function selecionarBrincoMultiplo(brinco, codigoLido) {
+    console.log('✅ Brinco selecionado:', brinco);
+    
+    // Armazenar o ID do brinco selecionado
+    estoqueCadastroBrincoId = brinco.id;
+    if (typeof window !== 'undefined') {
+      window.estoqueCadastroBrincoId = brinco.id;
+    }
+    
+    // Fechar modal de seleção
+    const overlay = document.getElementById('selecaoBrincoMultiploOverlay');
+    if (overlay) {
+      overlay.style.display = 'none';
+      overlay.classList.remove('show');
+    }
+    
+    // Abrir modal de cadastro com o brinco selecionado
+    if (typeof abrirCadastroEstoqueV2 === 'function') {
+      abrirCadastroEstoqueV2({
+        id: brinco.id,
+        numero_brinco: brinco.numero_brinco,
+        codigo_rfid: brinco.codigo_rfid || '',
+        tipo_brinco: brinco.tipo_brinco,
+        numero_manejo: brinco.numero_manejo,
+        codigo_lote: brinco.codigo_lote || '',
+        fornecedor: brinco.fornecedor || '',
+      }, codigoLido || brinco.numero_brinco);
+    } else if (typeof window.abrirCadastroEstoqueV2 === 'function') {
+      window.abrirCadastroEstoqueV2({
+        id: brinco.id,
+        numero_brinco: brinco.numero_brinco,
+        codigo_rfid: brinco.codigo_rfid || '',
+        tipo_brinco: brinco.tipo_brinco,
+        numero_manejo: brinco.numero_manejo,
+        codigo_lote: brinco.codigo_lote || '',
+        fornecedor: brinco.fornecedor || '',
+      }, codigoLido || brinco.numero_brinco);
+    }
+  }
+  
+  // Tornar função global
+  window.mostrarSelecaoBrincoMultiplo = mostrarSelecaoBrincoMultiplo;
+  window.selecionarBrincoMultiplo = selecionarBrincoMultiplo;
+
   function abrirCadastroEstoqueV2Local(dadosBrinco, codigoOriginal) {
     const overlay = document.getElementById('estoqueCadastroOverlayV2');
     if (!overlay) {
@@ -11588,6 +11828,20 @@ document.addEventListener('DOMContentLoaded', async function () {
     estoqueCadastroCodigoAtual = codigoBrinco;
     if (typeof window !== 'undefined') {
       window.estoqueCadastroCodigoAtual = codigoBrinco;
+    }
+    
+    // Se o brinco tem ID (foi selecionado de múltiplos), armazenar
+    if (dadosBrinco && dadosBrinco.id) {
+      estoqueCadastroBrincoId = dadosBrinco.id;
+      if (typeof window !== 'undefined') {
+        window.estoqueCadastroBrincoId = dadosBrinco.id;
+      }
+    } else {
+      // Limpar ID se não foi selecionado de múltiplos
+      estoqueCadastroBrincoId = null;
+      if (typeof window !== 'undefined') {
+        window.estoqueCadastroBrincoId = null;
+      }
     }
     
     console.log('✅ Código do brinco definido:', codigoBrinco);

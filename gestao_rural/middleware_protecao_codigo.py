@@ -78,12 +78,14 @@ class ProtecaoCodigoMiddleware(MiddlewareMixin):
             response['X-Content-Type-Options'] = 'nosniff'
             
             # CSP (Content Security Policy) - restringe recursos externos
+            # Permitir fontes dos ícones (Font Awesome e Bootstrap Icons)
             csp = (
                 "default-src 'self'; "
                 "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
-                "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; "
-                "font-src 'self' https://fonts.gstatic.com; "
+                "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; "
+                "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
                 "img-src 'self' data: https:; "
+                "media-src 'self' blob:; "
                 "connect-src 'self'; "
                 "frame-ancestors 'none';"
             )
