@@ -235,6 +235,15 @@ def login_view(request):
         username = request.POST.get('username', '').strip()
         password = request.POST.get('password', '')
         
+        # Validação básica
+        if not username:
+            messages.error(request, 'Por favor, informe o nome de usuário.')
+            return render(request, 'gestao_rural/login_clean.html')
+        
+        if not password:
+            messages.error(request, 'Por favor, informe a senha.')
+            return render(request, 'gestao_rural/login_clean.html')
+        
         # Verifica bloqueio por tentativas
         bloqueado, tempo_restante = verificar_tentativas_login(username, ip_address)
         if bloqueado:
@@ -242,15 +251,61 @@ def login_view(request):
             segundos = int(tempo_restante % 60)
             messages.error(
                 request, 
-                f'Muitas tentativas de login falhas. Tente novamente em {minutos}min {segundos}s.'
+                f'⚠️ <strong>Bloqueio por tentativas:</strong> Após 5 tentativas falhas, o sistema bloqueia por 1 minuto. '
+                f'Aguarde {minutos}min {segundos}s antes de tentar novamente. '
+                f'Possíveis causas: senha incorreta, conta desativada ou e-mail não verificado.'
+            )
+            return render(request, 'gestao_rural/login_clean.html', {'mostrar_info_ajuda': True})
+        
+        # Verifica se o usuário existe antes de autenticar
+        from django.contrib.auth.models import User
+        try:
+            usuario_existe = User.objects.filter(username=username).exists()
+        except Exception as e:
+            logger.error(f'Erro ao verificar usuário: {e}')
+            messages.error(
+                request, 
+                '❌ Erro ao verificar credenciais. Por favor, tente novamente ou entre em contato com o suporte.'
+            )
+            return render(request, 'gestao_rural/login_clean.html')
+        
+        if not usuario_existe:
+            registrar_tentativa_login_falha(username, ip_address)
+            messages.error(
+                request, 
+                f'❌ <strong>Usuário não encontrado:</strong> O usuário "{username}" não existe no sistema. '
+                f'Verifique se o nome de usuário está correto. <strong>Após 5 tentativas falhas, o sistema bloqueia por 1 minuto.</strong>'
+            )
+            registrar_log_auditoria(
+                tipo_acao='LOGIN_FALHA',
+                descricao=f"Tentativa de login com usuário inexistente: {username}",
+                usuario=None,
+                ip_address=ip_address,
+                user_agent=user_agent,
+                nivel_severidade='MEDIO',
+                sucesso=False,
             )
             return render(request, 'gestao_rural/login_clean.html')
         
         # Tenta autenticar
-        user = authenticate(request, username=username, password=password)
+        try:
+            user = authenticate(request, username=username, password=password)
+        except Exception as e:
+            logger.error(f'Erro na autenticação: {e}')
+            messages.error(
+                request, 
+                '❌ Erro ao processar autenticação. Por favor, tente novamente ou entre em contato com o suporte.'
+            )
+            return render(request, 'gestao_rural/login_clean.html')
+        
         if user is not None:
             if not user.is_active:
-                messages.error(request, 'Esta conta está desabilitada. Entre em contato com o administrador.')
+                messages.error(
+                    request, 
+                    '❌ <strong>Conta desativada:</strong> Esta conta está desabilitada. '
+                    'Entre em contato com o administrador do sistema para reativar sua conta. '
+                    '<strong>Após 5 tentativas falhas, o sistema bloqueia por 1 minuto.</strong>'
+                )
                 registrar_tentativa_login_falha(username, ip_address)
                 registrar_log_auditoria(
                     tipo_acao='LOGIN_FALHA',
@@ -261,16 +316,18 @@ def login_view(request):
                     nivel_severidade='ALTO',
                     sucesso=False,
                 )
+                return render(request, 'gestao_rural/login_clean.html')
             else:
                 # Verificar se e-mail foi verificado (para novos usuários)
                 from .models_auditoria import VerificacaoEmail
+                from django.db import OperationalError
                 try:
                     verificacao = VerificacaoEmail.objects.get(usuario=user)
                     if not verificacao.email_verificado:
                         messages.warning(
                             request,
-                            'Por favor, verifique seu e-mail antes de fazer login. '
-                            'Verifique sua caixa de entrada.'
+                            '⚠️ <strong>Verificação de e-mail pendente:</strong> Por favor, verifique seu e-mail antes de fazer login. '
+                            'Verifique sua caixa de entrada e spam. <strong>Após 5 tentativas falhas, o sistema bloqueia por 1 minuto.</strong>'
                         )
                         registrar_tentativa_login_falha(username, ip_address)
                         registrar_log_auditoria(
@@ -283,44 +340,83 @@ def login_view(request):
                             sucesso=False,
                         )
                         return render(request, 'gestao_rural/login_clean.html')
-                except VerificacaoEmail.DoesNotExist:
-                    pass  # Usuário antigo, não precisa verificar
+                except (VerificacaoEmail.DoesNotExist, OperationalError):
+                    # Usuário antigo ou tabela não existe ainda - não precisa verificar
+                    pass
                 
                 # Login bem-sucedido - limpa tentativas
-                limpar_tentativas_login(username, ip_address)
-                login(request, user)
-                
-                # Registrar sessão segura
-                registrar_sessao_segura(user, request.session.session_key, ip_address, user_agent)
-                
-                # Registrar log
-                registrar_log_auditoria(
-                    tipo_acao='LOGIN',
-                    descricao=f"Login bem-sucedido: {username}",
-                    usuario=user,
-                    ip_address=ip_address,
-                    user_agent=user_agent,
-                    nivel_severidade='BAIXO',
-                    sucesso=True,
-                )
-                
-                logger.info(f'Login bem-sucedido - Usuário: {username}, IP: {ip_address}')
-                return redirect('dashboard')
+                try:
+                    limpar_tentativas_login(username, ip_address)
+                    login(request, user)
+                    
+                    # Registrar sessão segura
+                    registrar_sessao_segura(user, request.session.session_key, ip_address, user_agent)
+                    
+                    # Registrar log
+                    registrar_log_auditoria(
+                        tipo_acao='LOGIN',
+                        descricao=f"Login bem-sucedido: {username}",
+                        usuario=user,
+                        ip_address=ip_address,
+                        user_agent=user_agent,
+                        nivel_severidade='BAIXO',
+                        sucesso=True,
+                    )
+                    
+                    logger.info(f'Login bem-sucedido - Usuário: {username}, IP: {ip_address}')
+                    
+                    # Redirecionar para a URL original (next) ou para o dashboard
+                    next_url = request.GET.get('next') or request.POST.get('next')
+                    if next_url:
+                        return redirect(next_url)
+                    return redirect('dashboard')
+                except Exception as e:
+                    logger.error(f'Erro após autenticação bem-sucedida: {e}')
+                    messages.error(
+                        request,
+                        '⚠️ Login realizado, mas houve um erro ao iniciar a sessão. Por favor, tente novamente.'
+                    )
+                    return render(request, 'gestao_rural/login_clean.html')
         else:
-            # Login falhou - registra tentativa
+            # Login falhou - registra tentativa e verifica quantas tentativas restam
+            from django.core.cache import cache
+            chave_usuario = f'login_attempts_user_{username}'
+            tentativas_atuais = cache.get(chave_usuario, 0)
+            tentativas_restantes = 5 - tentativas_atuais - 1
+            
             registrar_tentativa_login_falha(username, ip_address)
+            
+            if tentativas_restantes > 0:
+                mensagem = (
+                    f'❌ <strong>Senha incorreta:</strong> Verifique se a senha está digitada corretamente. '
+                    f'<strong>Você tem {tentativas_restantes} tentativa(s) restante(s).</strong> '
+                    f'Após 5 tentativas falhas, o sistema bloqueia por 1 minuto. '
+                    f'Se esqueceu sua senha, use a opção "Esqueceu a senha?".'
+                )
+            else:
+                mensagem = (
+                    f'❌ <strong>Senha incorreta:</strong> Você excedeu 5 tentativas falhas. '
+                    f'O sistema foi bloqueado por 1 minuto. Aguarde antes de tentar novamente.'
+                )
+            
+            messages.error(request, mensagem)
             registrar_log_auditoria(
                 tipo_acao='LOGIN_FALHA',
-                descricao=f"Tentativa de login falha: {username}",
+                descricao=f"Tentativa de login com senha incorreta: {username}",
                 usuario=None,
                 ip_address=ip_address,
                 user_agent=user_agent,
                 nivel_severidade='MEDIO',
                 sucesso=False,
             )
-            messages.error(request, 'Usuário ou senha inválidos.')
     
-    return render(request, 'gestao_rural/login_clean.html')
+    # Adicionar informações de ajuda no contexto
+    from django.conf import settings
+    context = {
+        'mostrar_info_ajuda': True,
+        'hotmart_checkout_url': getattr(settings, 'HOTMART_CHECKOUT_URL', 'https://pay.hotmart.com/SEU_CODIGO_AQUI'),
+    }
+    return render(request, 'gestao_rural/login_clean.html', context)
 
 
 def logout_view(request):

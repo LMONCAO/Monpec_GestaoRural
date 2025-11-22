@@ -205,7 +205,7 @@
   .curral-v3-content {
     padding: 24px;
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: 1.6fr 1.2fr 0.8fr;
     gap: 24px;
     grid-template-rows: auto auto 1fr;
   }
@@ -299,31 +299,50 @@
 
   .scanner-animal-resumo {
     margin-top: 20px;
-    padding: 16px;
-    background: var(--bg-light);
+    padding: 20px;
+    background: #5a6c7d; /* Cinza meio escuro */
     border-radius: var(--radius);
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  .scanner-animal-resumo table {
+    width: 100%;
+    border-collapse: collapse;
+    background: transparent;
+  }
+
+  .scanner-animal-resumo table tr {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .scanner-animal-resumo table tr:last-child {
+    border-bottom: none;
+  }
+
+  .scanner-animal-resumo table td {
+    padding: 12px 8px;
+    vertical-align: middle;
   }
 
   .resumo-item {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+    display: table-row;
   }
 
   .resumo-label {
-    font-size: 0.75rem;
-    color: var(--text-secondary);
+    font-size: 0.8125rem;
+    color: rgba(255, 255, 255, 0.85);
     font-weight: 600;
     text-transform: uppercase;
+    letter-spacing: 0.03em;
+    width: 40%;
+    padding-right: 16px;
   }
 
   .resumo-value {
     font-size: 0.9375rem;
-    color: var(--text-primary);
-    font-weight: 500;
+    color: #ffffff;
+    font-weight: 600;
+    text-align: left;
   }
 
   /* ========== CARD PESAGEM ========== */
@@ -458,54 +477,84 @@
   .stats-grid-v3 {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 12px;
+    gap: 10px;
   }
 
-  .stat-card-v3 {
+  /* Tabela de Estatísticas */
+  .stats-table-v3 {
     background: var(--bg-card);
     border-radius: var(--radius-lg);
-    padding: 16px;
     box-shadow: var(--shadow-md);
-    text-align: center;
-    border-top: 4px solid;
-    transition: all 0.3s;
+    overflow: hidden;
+    border: 1px solid rgba(0, 0, 0, 0.05);
   }
 
-  .stat-card-v3:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-lg);
+  .stats-table-v3 table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0;
   }
 
-  .stat-card-v3.purple { border-top-color: #8b5cf6; }
-  .stat-card-v3.pink { border-top-color: #ec4899; }
-  .stat-card-v3.blue { border-top-color: #3b82f6; }
-  .stat-card-v3.green { border-top-color: #43a047; }
-
-  .stat-card-v3-icon {
-    font-size: 2rem;
-    margin-bottom: 8px;
-    display: block;
+  .stats-table-v3 thead {
+    background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
+    border-bottom: 2px solid rgba(0, 0, 0, 0.1);
   }
 
-  .stat-card-v3-value {
-    font-size: 1.5rem;
-    font-weight: 800;
+  .stats-table-v3 th {
+    padding: 16px 20px;
+    text-align: left;
+    font-size: 0.875rem;
+    font-weight: 700;
     color: var(--text-primary);
-    margin-bottom: 4px;
-  }
-
-  .stat-card-v3-label {
-    font-size: 0.75rem;
-    color: var(--text-secondary);
-    font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    border-right: 1px solid rgba(0, 0, 0, 0.05);
   }
+
+  .stats-table-v3 th:last-child {
+    border-right: none;
+  }
+
+  .stats-table-v3 tbody tr {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    transition: background-color 0.2s;
+  }
+
+  .stats-table-v3 tbody tr:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+  }
+
+  .stats-table-v3 tbody tr:last-child {
+    border-bottom: none;
+  }
+
+  .stats-table-v3 td {
+    padding: 20px;
+    vertical-align: middle;
+  }
+
+  .stat-cell-label {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    padding-left: 20px;
+  }
+
+  .stat-cell-value {
+    font-size: 1.5rem;
+    font-weight: 800;
+    text-align: center;
+    min-width: 100px;
+  }
+
+  .stat-cell-value.purple { color: #8b5cf6; }
+  .stat-cell-value.pink { color: #ec4899; }
+  .stat-cell-value.blue { color: #3b82f6; }
+  .stat-cell-value.green { color: #43a047; }
 
   /* ========== CARD MANEJOS ========== */
   .manejos-selecionados {
     min-height: 200px;
-    grid-column: 1 / -1; /* Ocupa toda a largura */
   }
   
   .manejos-lista {
@@ -583,7 +632,7 @@
   }
   
   .btn-manejo-tipo {
-    padding: 10px 16px;
+    padding: 10px 20px;
     border: 2px solid rgba(0, 0, 0, 0.1);
     border-radius: var(--radius);
     background: var(--bg-card);
@@ -591,9 +640,10 @@
     transition: all 0.2s;
     font-weight: 600;
     font-size: 0.875rem;
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 8px;
+    justify-content: center;
+    white-space: nowrap;
   }
   
   .btn-manejo-tipo:hover {
@@ -629,6 +679,111 @@
   .empty-state-hint {
     font-size: 0.75rem;
     color: var(--text-light);
+  }
+
+  /* ========== TABELA ESTATÍSTICAS DE LOTES ========== */
+  .estatisticas-lotes {
+    grid-column: 1 / -1;
+    margin-top: 24px;
+  }
+
+  .table-wrapper-estatisticas-lotes {
+    max-height: calc(4 * 54px + 60px); /* 4 linhas (18px padding * 2 + 18px conteúdo) + cabeçalho */
+    overflow-y: auto;
+    overflow-x: auto;
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  }
+
+  .table-wrapper-estatisticas-lotes::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .table-wrapper-estatisticas-lotes::-webkit-scrollbar-track {
+    background: var(--bg-light);
+    border-radius: 4px;
+  }
+
+  .table-wrapper-estatisticas-lotes::-webkit-scrollbar-thumb {
+    background: var(--text-secondary);
+    border-radius: 4px;
+  }
+
+  .table-wrapper-estatisticas-lotes::-webkit-scrollbar-thumb:hover {
+    background: var(--text-primary);
+  }
+
+  .table-estatisticas-lotes {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+    background: var(--bg-card);
+  }
+
+  .table-estatisticas-lotes thead {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .table-estatisticas-lotes thead {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: var(--text-white);
+    border-bottom: 3px solid rgba(0, 0, 0, 0.1);
+  }
+
+  .table-estatisticas-lotes th {
+    padding: 18px 16px;
+    text-align: left;
+    font-weight: 700;
+    color: var(--text-white);
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    border-right: 1px solid rgba(255, 255, 255, 0.25);
+    white-space: nowrap;
+  }
+
+  .table-estatisticas-lotes th:last-child {
+    border-right: none;
+  }
+
+  .table-estatisticas-lotes tbody tr {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    background: var(--bg-card);
+  }
+
+  .table-estatisticas-lotes tbody tr:hover {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%);
+    transform: translateX(3px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  .table-estatisticas-lotes tbody tr:last-child {
+    border-bottom: none;
+  }
+
+  .table-estatisticas-lotes td {
+    padding: 18px 16px;
+    vertical-align: middle;
+    border-right: 1px solid rgba(0, 0, 0, 0.05);
+  }
+
+  .table-estatisticas-lotes td:last-child {
+    border-right: none;
+  }
+
+  .table-estatisticas-lotes tbody tr:nth-child(even) {
+    background-color: rgba(0, 0, 0, 0.015);
+  }
+
+  .table-estatisticas-lotes tbody tr:nth-child(even):hover {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.12) 0%, rgba(118, 75, 162, 0.12) 100%);
+  }
+
+  .table-estatisticas-lotes .empty-state {
+    padding: 60px 20px;
   }
 
   /* ========== TABELA ANIMAIS ========== */
@@ -990,39 +1145,41 @@
           </small>
         </div>
         
-        <div class="scanner-animal-resumo" id="scannerAnimalResumoV3" style="display: none;">
-          <div class="resumo-item">
-            <span class="resumo-label">Código Eletrônico:</span>
-            <span class="resumo-value" id="scannerCodigoEletronicoV3">—</span>
-          </div>
-          <div class="resumo-item">
-            <span class="resumo-label">SISBOV:</span>
-            <span class="resumo-value" id="scannerSisbovV3">—</span>
-          </div>
-          <div class="resumo-item">
-            <span class="resumo-label">Número de Manejo:</span>
-            <span class="resumo-value" id="scannerNumeroManejoV3">—</span>
-          </div>
-          <div class="resumo-item">
-            <span class="resumo-label">Raça / Sexo:</span>
-            <span class="resumo-value" id="scannerRacaSexoV3">—</span>
-          </div>
-          <div class="resumo-item">
-            <span class="resumo-label">Nascimento:</span>
-            <span class="resumo-value" id="scannerDataNascV3">—</span>
-          </div>
-          <div class="resumo-item">
-            <span class="resumo-label">Último peso:</span>
-            <span class="resumo-value" id="scannerUltimoPesoV3">—</span>
-          </div>
-          <div class="resumo-item">
-            <span class="resumo-label">Categoria:</span>
-            <span class="resumo-value" id="scannerCategoriaV3">—</span>
-          </div>
-          <div class="resumo-item">
-            <span class="resumo-label">Pasto/Lote:</span>
-            <span class="resumo-value" id="scannerPastoLoteV3">—</span>
-          </div>
+        <div class="scanner-animal-resumo" id="scannerAnimalResumoV3">
+          <table>
+            <tr class="resumo-item">
+              <td class="resumo-label">Código Eletrônico:</td>
+              <td class="resumo-value" id="scannerCodigoEletronicoV3">—</td>
+            </tr>
+            <tr class="resumo-item">
+              <td class="resumo-label">SISBOV:</td>
+              <td class="resumo-value" id="scannerSisbovV3">—</td>
+            </tr>
+            <tr class="resumo-item">
+              <td class="resumo-label">Número de Manejo:</td>
+              <td class="resumo-value" id="scannerNumeroManejoV3">—</td>
+            </tr>
+            <tr class="resumo-item">
+              <td class="resumo-label">Raça / Sexo:</td>
+              <td class="resumo-value" id="scannerRacaSexoV3">—</td>
+            </tr>
+            <tr class="resumo-item">
+              <td class="resumo-label">Nascimento:</td>
+              <td class="resumo-value" id="scannerDataNascV3">—</td>
+            </tr>
+            <tr class="resumo-item">
+              <td class="resumo-label">Último peso:</td>
+              <td class="resumo-value" id="scannerUltimoPesoV3">—</td>
+            </tr>
+            <tr class="resumo-item">
+              <td class="resumo-label">Categoria:</td>
+              <td class="resumo-value" id="scannerCategoriaV3">—</td>
+            </tr>
+            <tr class="resumo-item">
+              <td class="resumo-label">Pasto/Lote:</td>
+              <td class="resumo-value" id="scannerPastoLoteV3">—</td>
+            </tr>
+          </table>
         </div>
       </div>
     </div>
@@ -1080,32 +1237,38 @@
       </div>
     </div>
 
-    <!-- Cards de Estatísticas -->
-    <div class="stats-grid-v3">
-      <div class="stat-card-v3 purple">
-        <div class="stat-card-v3-icon">🐄</div>
-        <div class="stat-card-v3-value" id="statTotalAnimais">0</div>
-        <div class="stat-card-v3-label">Total</div>
-      </div>
-      <div class="stat-card-v3 pink">
-        <div class="stat-card-v3-icon">🔍</div>
-        <div class="stat-card-v3-value" id="statIdentificados">0</div>
-        <div class="stat-card-v3-label">Identificados</div>
-      </div>
-      <div class="stat-card-v3 blue">
-        <div class="stat-card-v3-icon">📝</div>
-        <div class="stat-card-v3-value" id="statCadastrados">0</div>
-        <div class="stat-card-v3-label">Cadastrados</div>
-      </div>
-      <div class="stat-card-v3 green">
-        <div class="stat-card-v3-icon">✅</div>
-        <div class="stat-card-v3-value" id="statProcessados">0</div>
-        <div class="stat-card-v3-label">Processados</div>
-      </div>
+    <!-- Tabela de Estatísticas -->
+    <div class="stats-table-v3">
+      <table>
+        <thead>
+          <tr>
+            <th>Indicador</th>
+            <th style="text-align: center; width: 120px;">Quantidade</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="stat-cell-label">Total de Animais</td>
+            <td class="stat-cell-value purple" id="statTotalAnimais">0</td>
+          </tr>
+          <tr>
+            <td class="stat-cell-label">Identificados</td>
+            <td class="stat-cell-value pink" id="statIdentificados">0</td>
+          </tr>
+          <tr>
+            <td class="stat-cell-label">Cadastrados</td>
+            <td class="stat-cell-value blue" id="statCadastrados">0</td>
+          </tr>
+          <tr>
+            <td class="stat-cell-label">Processados</td>
+            <td class="stat-cell-value green" id="statProcessados">0</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
     <!-- Card Manejos Selecionados -->
-    <div class="card-curral manejos-selecionados">
+    <div class="card-curral manejos-selecionados" style="grid-column: 1 / -1;">
       <div class="card-curral-header">
         <h2><i class="fas fa-list"></i> Manejos Selecionados</h2>
         <button onclick="limparTodosManejosV3()" style="background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1.125rem;" title="Limpar todos os manejos">
@@ -1121,25 +1284,104 @@
         <div id="listaManejosV3" class="manejos-lista" style="display: none;"></div>
         <div class="manejos-acoes">
           <button class="btn-manejo-tipo pesagem" onclick="adicionarManejoV3('PESAGEM', 'Pesagem', 'Registrar peso do animal')">
-            <span>⚖️</span>
-            <span>Pesagem</span>
+            Pesagem
           </button>
           <button class="btn-manejo-tipo vacinacao" onclick="adicionarManejoV3('VACINACAO', 'Vacinação', 'Aplicar vacina no animal')">
-            <span>💉</span>
-            <span>Vacinação</span>
+            Vacinação
           </button>
           <button class="btn-manejo-tipo tratamento" onclick="adicionarManejoV3('TRATAMENTO', 'Tratamento', 'Tratamento sanitário')">
-            <span>💊</span>
-            <span>Tratamento</span>
+            Tratamento
           </button>
           <button class="btn-manejo-tipo reproducao" onclick="adicionarManejoV3('REPRODUCAO', 'Reprodução', 'Protocolo reprodutivo/IATF')">
-            <span>🤰</span>
-            <span>Reprodução</span>
+            Reprodução
           </button>
           <button class="btn-manejo-tipo diagnostico" onclick="adicionarManejoV3('DIAGNOSTICO', 'Diagnóstico', 'Diagnóstico de prenhez')">
-            <span>🔬</span>
-            <span>Diagnóstico</span>
+            Diagnóstico
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card Estatísticas de Lotes (Peso Médio e Diagnósticos) -->
+    <div class="card-curral estatisticas-lotes" style="grid-column: 1 / -1;">
+      <div class="card-curral-header">
+        <h2><i class="fas fa-chart-line"></i> Estatísticas Profissionais de Lotes</h2>
+        <span style="font-size: 0.75rem; color: var(--text-secondary);">Peso médio e diagnósticos reprodutivos</span>
+      </div>
+      <div class="card-curral-body" style="padding: 0;">
+        <div class="table-wrapper-estatisticas-lotes" style="max-height: calc(4 * 54px + 60px);">
+          <table class="table-estatisticas-lotes">
+            <thead>
+              <tr>
+                <th style="min-width: 150px;">Lote</th>
+                <th style="text-align: center; min-width: 100px;">Animais</th>
+                <th style="text-align: center; min-width: 120px;">Peso Médio (kg)</th>
+                <th style="text-align: center; min-width: 140px;">Peso Mín/Máx (kg)</th>
+                <th style="text-align: center; min-width: 100px;">Prenhas</th>
+                <th style="text-align: center; min-width: 100px;">Vazias</th>
+                <th style="text-align: center; min-width: 130px;">Taxa Prenhez (%)</th>
+                <th style="text-align: center; min-width: 110px;">Total Diagn.</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if estatisticas_lotes %}
+                {% for stat in estatisticas_lotes %}
+                <tr>
+                  <td style="font-weight: 600; color: var(--text-primary);">
+                    {{ stat.lote_nome }}
+                  </td>
+                  <td style="text-align: center; font-weight: 600; color: var(--text-primary);">
+                    {{ stat.total_animais|default:0 }}
+                  </td>
+                  <td style="text-align: center; font-weight: 700; color: var(--primary); font-size: 1.125rem;">
+                    {% if stat.peso_medio %}
+                      {{ stat.peso_medio|floatformat:1 }}
+                    {% else %}
+                      <span style="color: var(--text-light); font-weight: 400;">—</span>
+                    {% endif %}
+                  </td>
+                  <td style="text-align: center; font-weight: 500; color: var(--text-secondary); font-size: 0.875rem;">
+                    {% if stat.peso_min and stat.peso_max %}
+                      {{ stat.peso_min|floatformat:1 }} / {{ stat.peso_max|floatformat:1 }}
+                    {% elif stat.peso_min %}
+                      {{ stat.peso_min|floatformat:1 }} / —
+                    {% elif stat.peso_max %}
+                      — / {{ stat.peso_max|floatformat:1 }}
+                    {% else %}
+                      <span style="color: var(--text-light);">—</span>
+                    {% endif %}
+                  </td>
+                  <td style="text-align: center; font-weight: 600; color: var(--success); font-size: 1rem;">
+                    {{ stat.prenhas|default:0 }}
+                  </td>
+                  <td style="text-align: center; font-weight: 600; color: var(--warning); font-size: 1rem;">
+                    {{ stat.vazias|default:0 }}
+                  </td>
+                  <td style="text-align: center; font-weight: 700; color: var(--accent); font-size: 1.125rem;">
+                    {% if stat.taxa_prenhez %}
+                      {{ stat.taxa_prenhez|floatformat:1 }}%
+                    {% else %}
+                      <span style="color: var(--text-light); font-weight: 400;">—</span>
+                    {% endif %}
+                  </td>
+                  <td style="text-align: center; font-weight: 500; color: var(--text-secondary);">
+                    {{ stat.total_diagnosticos|default:0 }}
+                  </td>
+                </tr>
+                {% endfor %}
+              {% else %}
+              <tr>
+                <td colspan="8" style="text-align: center; padding: 60px 40px; color: var(--text-secondary);">
+                  <div class="empty-state">
+                    <div class="empty-state-icon" style="font-size: 4rem; opacity: 0.4; margin-bottom: 16px;">📊</div>
+                    <div class="empty-state-text" style="font-size: 1rem; font-weight: 600; margin-bottom: 8px; color: var(--text-primary);">Nenhuma estatística de lote disponível</div>
+                    <div class="empty-state-hint" style="font-size: 0.875rem; color: var(--text-secondary);">Processe animais em lotes para visualizar estatísticas de peso médio e diagnósticos</div>
+                  </div>
+                </td>
+              </tr>
+              {% endif %}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -1323,27 +1565,46 @@
           
           console.log('Animal encontrado:', data.dados);
           
-          // Preencher resumo
+          // Preencher resumo - tabela sempre visível
           const codigoEletronico = document.getElementById('scannerCodigoEletronicoV3');
           const sisbov = document.getElementById('scannerSisbovV3');
+          const numeroManejo = document.getElementById('scannerNumeroManejoV3');
           const racaSexo = document.getElementById('scannerRacaSexoV3');
+          const dataNasc = document.getElementById('scannerDataNascV3');
           const ultimoPeso = document.getElementById('scannerUltimoPesoV3');
+          const categoria = document.getElementById('scannerCategoriaV3');
+          const pastoLote = document.getElementById('scannerPastoLoteV3');
           
-          if (codigoEletronico) codigoEletronico.textContent = data.dados.numero_brinco || '—';
+          if (codigoEletronico) codigoEletronico.textContent = data.dados.codigo_eletronico || data.dados.numero_brinco || '—';
           if (sisbov) sisbov.textContent = data.dados.codigo_sisbov || '—';
+          if (numeroManejo) numeroManejo.textContent = data.dados.numero_manejo || '—';
           
           // Tratar sexo (pode vir como código F/M ou display)
           let sexoDisplay = data.dados.sexo || '';
           if (sexoDisplay === 'F') sexoDisplay = 'Fêmea';
           if (sexoDisplay === 'M') sexoDisplay = 'Macho';
-          if (racaSexo) racaSexo.textContent = `${data.dados.raca || '—'} - ${sexoDisplay}`;
+          if (racaSexo) racaSexo.textContent = `${data.dados.raca || '—'} / ${sexoDisplay || '—'}`;
           
-          if (ultimoPeso) {
-            ultimoPeso.textContent = data.dados.peso_atual ? `${data.dados.peso_atual} kg` : '—';
+          // Formatar data de nascimento
+          if (dataNasc && data.dados.data_nascimento) {
+            const dataNascObj = new Date(data.dados.data_nascimento);
+            if (!isNaN(dataNascObj.getTime())) {
+              dataNasc.textContent = dataNascObj.toLocaleDateString('pt-BR');
+            } else {
+              dataNasc.textContent = data.dados.data_nascimento;
+            }
+          } else if (dataNasc) {
+            dataNasc.textContent = '—';
           }
           
-          const resumo = document.getElementById('scannerAnimalResumoV3');
-          if (resumo) resumo.style.display = 'grid';
+          if (ultimoPeso) {
+            ultimoPeso.textContent = data.dados.peso_atual ? `${parseFloat(data.dados.peso_atual).toFixed(1)} kg` : '—';
+          }
+          
+          if (categoria) categoria.textContent = data.dados.categoria_nome || data.dados.categoria || '—';
+          if (pastoLote) pastoLote.textContent = data.dados.pasto_nome || data.dados.lote_nome || '—';
+          
+          // Tabela sempre visível, não precisa mudar display
           
           // Habilitar campo de peso - CRÍTICO: sempre habilitar quando animal é encontrado
           const pesoInput = document.getElementById('pesoValorV3');
@@ -1565,7 +1826,17 @@
       document.getElementById('pesoValorV3').disabled = true;
       document.getElementById('pesoGravarBtnV3').disabled = true;
       document.getElementById('btnFinalizarGravarV3').disabled = true;
-      document.getElementById('scannerAnimalResumoV3').style.display = 'none';
+      
+      // Limpar valores da tabela (mas manter visível)
+      document.getElementById('scannerCodigoEletronicoV3').textContent = '—';
+      document.getElementById('scannerSisbovV3').textContent = '—';
+      document.getElementById('scannerNumeroManejoV3').textContent = '—';
+      document.getElementById('scannerRacaSexoV3').textContent = '—';
+      document.getElementById('scannerDataNascV3').textContent = '—';
+      document.getElementById('scannerUltimoPesoV3').textContent = '—';
+      document.getElementById('scannerCategoriaV3').textContent = '—';
+      document.getElementById('scannerPastoLoteV3').textContent = '—';
+      
       limparTodosManejosV3();
       animalAtualV3 = null;
       brincoAtualV3 = null;

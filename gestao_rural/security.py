@@ -101,9 +101,9 @@ def verificar_tentativas_login(username, ip_address):
     Verifica se o usuário/IP excedeu o limite de tentativas de login.
     Retorna (bloqueado, tempo_restante_segundos)
     """
-    # Limite: 5 tentativas em 15 minutos
+    # Limite: 5 tentativas em 1 minuto
     MAX_TENTATIVAS = 5
-    TEMPO_BLOQUEIO_MINUTOS = 15
+    TEMPO_BLOQUEIO_MINUTOS = 1
     
     chave_usuario = f'login_attempts_user_{username}'
     chave_ip = f'login_attempts_ip_{ip_address}'
@@ -133,7 +133,7 @@ def registrar_tentativa_login_falha(username, ip_address):
     chave_usuario = f'login_attempts_user_{username}'
     chave_ip = f'login_attempts_ip_{ip_address}'
     
-    TEMPO_BLOQUEIO_SEGUNDOS = 15 * 60  # 15 minutos
+    TEMPO_BLOQUEIO_SEGUNDOS = 1 * 60  # 1 minuto
     
     # Incrementa tentativas do usuário
     tentativas_usuario = cache.get(chave_usuario, 0) + 1

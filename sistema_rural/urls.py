@@ -21,6 +21,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 from gestao_rural import views as gestao_views
+from gestao_rural import views_curral
 
 urlpatterns = [
     # Logout deve vir antes do admin para garantir que use nossa view personalizada
@@ -28,6 +29,9 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', gestao_views.landing_page, name='landing_page'),
     path('contato/', gestao_views.contato_submit, name='contato_submit'),
+    
+    # Curral Dashboard v3 - Adicionado diretamente para garantir que funcione
+    path('propriedade/<int:propriedade_id>/curral/v3/', views_curral.curral_dashboard_v3, name='curral_dashboard_v3'),
     
     # Recuperação de senha
     path('recuperar-senha/', auth_views.PasswordResetView.as_view(

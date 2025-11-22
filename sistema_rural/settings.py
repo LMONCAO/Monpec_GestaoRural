@@ -201,3 +201,6 @@ DEMO_MODE = os.getenv('DEMO_MODE', 'False').lower() == 'true'  # DESATIVADO - Ve
 # Link para página de pagamento/assinatura
 DEMO_LINK_PAGAMENTO = os.getenv('DEMO_LINK_PAGAMENTO', 'http://localhost:8000/assinaturas/')
 
+# URL da Hotmart para pagamento
+HOTMART_CHECKOUT_URL = os.getenv('HOTMART_CHECKOUT_URL', 'https://pay.hotmart.com/O102944551F')
+

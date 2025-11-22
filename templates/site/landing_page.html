@@ -73,14 +73,15 @@
         }
 
         .logo-text {
-            font-size: 30px;
-            font-weight: 800;
-            background: linear-gradient(135deg, var(--azul-celestial-escuro) 0%, var(--azul-celestial) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
+            font-size: 42px;
+            font-weight: 900;
+            color: var(--texto-muito-escuro);
+            letter-spacing: 0.5px;
+        }
+
+        .logo-text .ponto-verde {
+            color: #28a745;
+            font-weight: 900;
         }
 
         .nav-menu {
@@ -253,13 +254,192 @@
             display: none;
         }
 
-        .hero-content {
+        /* Vídeo na seção hero */
+        .video-hero-section {
+            padding: 60px 20px;
+            position: relative;
+            min-height: 650px;
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .video-hero-section .background-slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            z-index: 0;
+            opacity: 0;
+            transition: opacity 1.5s ease-in-out;
+            /* Melhorar qualidade de renderização das imagens */
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
+            image-rendering: auto;
+            /* Aceleração de hardware */
+            transform: translateZ(0);
+            -webkit-transform: translateZ(0);
+            will-change: opacity, transform;
+            /* Melhorar interpolação */
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            /* Forçar alta qualidade */
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            /* Melhorar nitidez da imagem */
+            filter: contrast(1.02) brightness(1.01);
+            -webkit-filter: contrast(1.02) brightness(1.01);
+        }
+
+        .video-hero-section .background-slide.active {
+            opacity: 1;
+        }
+
+        /* Overlay escuro para melhorar legibilidade do texto */
+        .video-hero-section::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .video-container-hero {
+            width: 100%;
+            max-width: 1600px;
+            margin: 0 auto;
             position: relative;
             z-index: 2;
+        }
+
+        .video-wrapper-hero {
+            position: relative;
+            width: 100%;
+            padding-bottom: 35%; /* Proporção ainda mais horizontal para vídeo maior */
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 25px 70px rgba(0, 0, 0, 0.4), 0 10px 20px rgba(0, 0, 0, 0.3);
+            /* Melhorar renderização do container */
+            transform: translateZ(0);
+            -webkit-transform: translateZ(0);
+            will-change: contents;
+        }
+
+        .video-wrapper-hero video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+            border-radius: 20px;
+            /* Forçar renderização em alta qualidade */
+            transform: translateZ(0) scale(1);
+            -webkit-transform: translateZ(0) scale(1);
+            will-change: transform;
+            /* Aceleração de hardware para melhor performance */
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            -webkit-perspective: 1000;
+            perspective: 1000;
+            /* Melhorar qualidade de interpolação */
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            /* Forçar alta qualidade de renderização */
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: auto;
+            /* Melhorar nitidez e contraste */
+            filter: contrast(1.08) brightness(1.03) saturate(1.02);
+            -webkit-filter: contrast(1.08) brightness(1.03) saturate(1.02);
+            /* Otimizar para qualidade máxima */
+            -webkit-transform-style: preserve-3d;
+            transform-style: preserve-3d;
+            /* Forçar renderização nativa sem compressão */
+            -webkit-image-rendering: -webkit-optimize-contrast;
+            image-rendering: -webkit-optimize-contrast;
+            /* Desabilitar interação com o vídeo */
+            pointer-events: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* Botão customizado para ativar/desativar som */
+        .sound-toggle-btn {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.6);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            pointer-events: auto;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        .sound-toggle-btn:hover {
+            background: rgba(0, 0, 0, 0.8);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: scale(1.1);
+        }
+
+        .sound-toggle-btn:active {
+            transform: scale(0.95);
+        }
+
+        .sound-toggle-btn i {
+            transition: all 0.3s ease;
+            pointer-events: none;
+        }
+
+        .hero-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
             max-width: 900px;
-            margin: 0 auto;
+            width: 90%;
             text-align: center;
             animation: fadeInUp 0.8s ease-out;
+            pointer-events: none;
+            padding: 20px;
+        }
+
+        .hero-content .btn-hero {
+            pointer-events: auto;
+        }
+
+        .hero-content .hero-title {
+            text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.5);
+            color: white;
+        }
+
+        .hero-content .hero-badge {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
         }
         
         @keyframes fadeInUp {
@@ -1112,29 +1292,112 @@
         }
 
         @media (max-width: 768px) {
+            .popup-oferta-overlay {
+                padding: 5px;
+                align-items: flex-start;
+                padding-top: 10px;
+            }
+
+            .popup-oferta-overlay.show {
+                padding: 5px;
+            }
+
             .popup-oferta-content {
-                padding: 30px 20px;
+                padding: 10px 6px;
+                max-width: 220px;
+                width: calc(100% - 20px);
+                border-radius: 6px;
+                margin: 0 auto;
+                max-height: 85vh;
+                overflow-y: auto;
+                position: relative;
+            }
+
+            .popup-oferta-close {
+                top: 3px;
+                right: 3px;
+                width: 32px;
+                height: 32px;
+                font-size: 22px;
+                background: rgba(255, 255, 255, 0.25);
+                z-index: 10001;
+                border: 2px solid rgba(255, 255, 255, 0.6);
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            }
+
+            .popup-oferta-close:active {
+                background: rgba(255, 255, 255, 0.4);
+                transform: scale(0.95);
+            }
+
+            .countdown-container {
+                margin-bottom: 15px;
+            }
+
+            .countdown-container {
+                margin-bottom: 10px;
+            }
+
+            .countdown-title {
+                font-size: 8px;
+                margin-bottom: 8px;
+                letter-spacing: 0.5px;
             }
 
             .countdown-timer {
-                gap: 10px;
+                gap: 4px;
+                margin-bottom: 8px;
+                flex-wrap: wrap;
+                justify-content: center;
             }
 
             .countdown-item {
-                padding: 12px 15px;
-                min-width: 70px;
+                padding: 5px 6px;
+                min-width: 30px;
+                border-radius: 5px;
+                flex: 0 0 auto;
             }
 
             .countdown-number {
-                font-size: 24px;
+                font-size: 14px;
+                margin-bottom: 2px;
+            }
+
+            .countdown-label {
+                font-size: 5px;
+                letter-spacing: 0.3px;
+            }
+
+            .popup-oferta-info {
+                padding: 8px;
+                margin-bottom: 8px;
+                border-radius: 6px;
             }
 
             .popup-oferta-info h3 {
-                font-size: 18px;
+                font-size: 10px;
+                margin-bottom: 6px;
+                line-height: 1.3;
+            }
+
+            .popup-oferta-info p {
+                font-size: 7px;
+                line-height: 1.3;
+                margin-bottom: 4px;
             }
 
             .popup-oferta-info .preco-destaque {
-                font-size: 24px;
+                font-size: 12px;
+                margin: 6px 0;
+            }
+
+            .btn-oferta {
+                padding: 7px 15px;
+                font-size: 8px;
+                border-radius: 5px;
+                margin-top: 6px;
+                box-shadow: 0 3px 10px rgba(255, 215, 0, 0.3);
+                line-height: 1.2;
             }
         }
 
@@ -1146,9 +1409,33 @@
             }
 
             .hero-section {
-                min-height: 450px;
-                max-height: 500px;
+                min-height: auto;
+                max-height: none;
                 padding: 40px 0;
+            }
+
+            .video-hero-section {
+                padding: 30px 15px;
+                min-height: 400px;
+            }
+
+            .video-container-hero {
+                max-width: 100%;
+            }
+
+            .video-wrapper-hero {
+                padding-bottom: 45%;
+                border-radius: 15px;
+            }
+
+            .video-wrapper-hero video {
+                /* Manter qualidade em mobile */
+                image-rendering: auto;
+            }
+
+            .hero-content {
+                width: 95%;
+                padding: 15px;
             }
 
             .hero-section .dashboard-image {
@@ -1156,7 +1443,8 @@
             }
 
             .hero-title {
-                font-size: 32px;
+                font-size: 28px;
+                text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.7);
             }
 
             .hero-subtitle {
@@ -1234,7 +1522,7 @@
             <nav class="navbar-custom">
                 <div class="logo-container">
                     <img src="logo.png" alt="MONPEC Logo" onerror="this.style.display='none'">
-                    <span class="logo-text">MONPEC</span>
+                    <span class="logo-text">Monpec<span class="ponto-verde">.</span></span>
                 </div>
                 <ul class="nav-menu">
                     <li><a href="#inicio">Início</a></li>
@@ -1247,11 +1535,36 @@
         </div>
     </header>
 
-    <!-- Hero Section -->
-    <section class="hero-section" id="inicio">
-        <!-- Padrão de ícones decorativos de gestão e processos -->
-        <div class="dashboard-image"></div>
-        <div class="container">
+    <!-- Hero Section com Vídeo -->
+    <section class="hero-section video-hero-section" id="inicio">
+        <!-- Slideshow de fundo -->
+        <div class="background-slide active" style="background-image: url('{% static 'site/foto1.jpeg' %}');"></div>
+        <div class="background-slide" style="background-image: url('{% static 'site/foto2.jpeg' %}');"></div>
+        
+        <div class="video-container-hero">
+            <div class="video-wrapper-hero">
+                <video 
+                    id="heroVideo"
+                    autoplay 
+                    muted 
+                    loop 
+                    playsinline 
+                    preload="auto"
+                    webkit-playsinline="true"
+                    x-webkit-airplay="allow"
+                    style="width: 100%; height: 100%;"
+                    poster=""
+                    disablePictureInPicture
+                    controlsList="nodownload nofullscreen noremoteplayback">
+                    <source src="{% static 'site/video.mp4' %}" type="video/mp4">
+                    Seu navegador não suporta a tag de vídeo.
+                </video>
+                <!-- Botão customizado apenas para ativar/desativar som -->
+                <button id="toggleSound" class="sound-toggle-btn" aria-label="Ativar/Desativar som">
+                    <i class="fas fa-volume-mute" id="soundIcon"></i>
+                </button>
+            </div>
+            
             <div class="hero-content">
                 <div class="hero-badge">GESTÃO RURAL INTELIGENTE</div>
                 <h1 class="hero-title">Controle completo da sua fazenda:<br>rebanho, custos, produção<br>e projetos bancários</h1>
@@ -1540,7 +1853,7 @@
             </div>
 
             <div class="popup-oferta-info">
-                <h3>SISTEMA SERÁ LIBERADO EM: 01/12/2025</h3>
+                <h3>SISTEMA SERÁ LIBERADO EM: 05/12/2025</h3>
                 <p>Garanta seu acesso com desconto especial de pré-lançamento!</p>
                 <p class="preco-destaque">Pague apenas R$ 99,00</p>
                 <p style="color: #FFD700; font-weight: 600; margin-top: 15px;">
@@ -1623,16 +1936,24 @@
             localStorage.setItem('popupOfertaFechado', hoje);
         }
 
-        // Fechar ao clicar fora do popup
+        // Fechar ao clicar fora do popup ou tocar fora (mobile)
         document.getElementById('popupOferta').addEventListener('click', function(e) {
             if (e.target === this) {
                 fecharPopup();
             }
         });
 
+        // Fechar ao tocar fora do popup em mobile
+        document.getElementById('popupOferta').addEventListener('touchend', function(e) {
+            if (e.target === this) {
+                e.preventDefault();
+                fecharPopup();
+            }
+        });
+
         // Countdown Timer
         function atualizarCountdown() {
-            const dataLancamento = new Date('2025-12-01T00:00:00').getTime();
+            const dataLancamento = new Date('2025-12-05T00:00:00').getTime();
             const agora = new Date().getTime();
             const diferenca = dataLancamento - agora;
 
@@ -1666,6 +1987,169 @@
         document.addEventListener('mouseout', function(e) {
             if (!e.toElement && !e.relatedTarget) {
                 mostrarPopup();
+            }
+        });
+
+        // ========== SLIDESHOW DE FUNDO COM OTIMIZAÇÃO DE QUALIDADE ==========
+        document.addEventListener('DOMContentLoaded', function() {
+            const slides = document.querySelectorAll('.video-hero-section .background-slide');
+            let currentSlide = 0;
+            
+            // Pré-carregar todas as imagens em alta qualidade
+            slides.forEach((slide, index) => {
+                const bgImage = slide.style.backgroundImage;
+                if (bgImage) {
+                    const img = new Image();
+                    img.src = bgImage.replace(/url\(['"]?([^'"]+)['"]?\)/, '$1');
+                    img.onload = function() {
+                        // Forçar renderização em alta qualidade
+                        slide.style.imageRendering = 'auto';
+                        slide.style.webkitImageRendering = 'auto';
+                        // Aplicar otimizações de qualidade
+                        slide.style.willChange = 'opacity, transform';
+                    };
+                }
+            });
+            
+            function nextSlide() {
+                // Remove classe active do slide atual
+                slides[currentSlide].classList.remove('active');
+                
+                // Avança para o próximo slide
+                currentSlide = (currentSlide + 1) % slides.length;
+                
+                // Adiciona classe active ao próximo slide
+                slides[currentSlide].classList.add('active');
+                
+                // Forçar renderização em alta qualidade
+                slides[currentSlide].style.willChange = 'opacity, transform';
+            }
+            
+            // Inicia o slideshow - muda a cada 15 segundos
+            setInterval(nextSlide, 15000);
+        });
+
+        // ========== CONTROLE DE SOM DO VÍDEO ==========
+        document.addEventListener('DOMContentLoaded', function() {
+            const video = document.getElementById('heroVideo');
+            const toggleSoundBtn = document.getElementById('toggleSound');
+            const soundIcon = document.getElementById('soundIcon');
+            
+            if (video && toggleSoundBtn && soundIcon) {
+                // Garantir que o vídeo sempre toque (sem pausar)
+                video.addEventListener('pause', function() {
+                    video.play();
+                });
+                
+                // Prevenir que o vídeo seja pausado ao clicar
+                video.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    video.play();
+                });
+                
+                // Desabilitar controles de contexto
+                video.addEventListener('contextmenu', function(e) {
+                    e.preventDefault();
+                });
+                
+                // Botão para ativar/desativar som
+                toggleSoundBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    console.log('Botão clicado! Estado atual muted:', video.muted);
+                    
+                    if (video.muted) {
+                        video.muted = false;
+                        console.log('Som ativado');
+                        if (soundIcon) {
+                            soundIcon.className = 'fas fa-volume-up';
+                        }
+                    } else {
+                        video.muted = true;
+                        console.log('Som desativado');
+                        if (soundIcon) {
+                            soundIcon.className = 'fas fa-volume-mute';
+                        }
+                    }
+                });
+                
+                // Atualizar ícone baseado no estado inicial (muted)
+                if (video.muted) {
+                    soundIcon.className = 'fas fa-volume-mute';
+                } else {
+                    soundIcon.className = 'fas fa-volume-up';
+                }
+                
+                console.log('Controle de som inicializado. Vídeo muted:', video.muted);
+            }
+        });
+
+        // ========== OTIMIZAÇÃO DE QUALIDADE DO VÍDEO ==========
+        document.addEventListener('DOMContentLoaded', function() {
+            const video = document.getElementById('heroVideo');
+            
+            if (video) {
+                // Forçar melhor qualidade de renderização
+                video.setAttribute('playsinline', 'true');
+                video.setAttribute('webkit-playsinline', 'true');
+                
+                // Garantir que o vídeo sempre toque
+                video.play().catch(function(error) {
+                    // Se autoplay falhar, tentar novamente
+                    setTimeout(function() {
+                        video.play();
+                    }, 100);
+                });
+                
+                // Quando o vídeo estiver pronto, aplicar otimizações
+                video.addEventListener('loadedmetadata', function() {
+                    // Forçar alta qualidade
+                    if (video.webkitDecodedFrameCount !== undefined) {
+                        video.style.imageRendering = 'auto';
+                    }
+                    
+                    // Melhorar qualidade de renderização
+                    video.style.transform = 'translateZ(0) scale(1)';
+                    video.style.webkitTransform = 'translateZ(0) scale(1)';
+                });
+
+                // Quando o vídeo começar a tocar, garantir qualidade máxima
+                video.addEventListener('play', function() {
+                    // Forçar renderização em alta qualidade
+                    video.style.willChange = 'transform';
+                    
+                    // Aplicar filtros de qualidade aprimorados (se suportado)
+                    if (CSS.supports('filter', 'contrast(1.08)')) {
+                        video.style.filter = 'contrast(1.08) brightness(1.03) saturate(1.02)';
+                        video.style.webkitFilter = 'contrast(1.08) brightness(1.03) saturate(1.02)';
+                    }
+                    
+                    // Forçar renderização nativa sem compressão
+                    video.style.imageRendering = 'auto';
+                    video.style.webkitImageRendering = 'auto';
+                });
+
+                // Prevenir compressão de qualidade
+                video.addEventListener('loadeddata', function() {
+                    // Garantir que o vídeo seja renderizado em resolução nativa
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    if (ctx) {
+                        ctx.imageSmoothingEnabled = true;
+                        ctx.imageSmoothingQuality = 'high';
+                    }
+                });
+
+                // Otimizar para diferentes conexões
+                if (navigator.connection) {
+                    const connection = navigator.connection;
+                    // Se a conexão for rápida, garantir qualidade máxima
+                    if (connection.effectiveType === '4g' || connection.downlink > 5) {
+                        video.setAttribute('preload', 'auto');
+                    }
+                }
             }
         });
     </script>

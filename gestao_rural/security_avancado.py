@@ -169,15 +169,20 @@ def verificar_email_token(token: str) -> Tuple[bool, Optional[User], str]:
 
 def registrar_sessao_segura(usuario: User, session_key: str, ip_address: str, user_agent: str = ''):
     """Registra sessão segura do usuário"""
-    SessaoSegura.objects.update_or_create(
-        session_key=session_key,
-        defaults={
-            'usuario': usuario,
-            'ip_address': ip_address,
-            'user_agent': user_agent,
-            'ativo': True,
-        }
-    )
+    from django.db import OperationalError
+    try:
+        SessaoSegura.objects.update_or_create(
+            session_key=session_key,
+            defaults={
+                'usuario': usuario,
+                'ip_address': ip_address,
+                'user_agent': user_agent,
+                'ativo': True,
+            }
+        )
+    except OperationalError:
+        # Tabela não existe ainda - ignora silenciosamente
+        pass
 
 
 def verificar_sessao_segura(usuario: User, session_key: str, ip_address: str) -> bool:

@@ -593,6 +593,11 @@ def animal_individual_novo(request, propriedade_id):
                 data_ultima_movimentacao=data_movimentacao_base,
             )
             
+            # Garantir que data_identificacao seja igual a data_cadastro.date() (por enquanto)
+            if not animal.data_identificacao:
+                animal.data_identificacao = animal.data_cadastro.date()
+                animal.save(update_fields=['data_identificacao'])
+            
             # Criar movimentação de nascimento ou compra
             if tipo_origem == 'NASCIMENTO':
                 tipo_mov = 'NASCIMENTO'
