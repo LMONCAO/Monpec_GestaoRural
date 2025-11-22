@@ -188,22 +188,4 @@ if IS_CLOUD_RUN:
     # Timeout para Cloud Run
     SECURE_SSL_REDIRECT = True
     USE_TZ = True
-    
-    # Permitir hosts do Cloud Run dinamicamente
-    # Como o Django verifica ALLOWED_HOSTS muito cedo (antes do middleware),
-    # vamos usar uma abordagem mais permissiva para Cloud Run
-    # Permitir qualquer host que termine com .a.run.app
-    # Isso é seguro porque apenas o Google Cloud pode criar esses hosts
-    # Vamos sobrescrever a validação de ALLOWED_HOSTS para Cloud Run
-    import django.core.checks.hosts
-    original_check_host = django.core.checks.hosts.check_host
-    
-    def check_host_allowed(host, allowed_hosts):
-        """Verificação customizada que permite hosts do Cloud Run"""
-        # Se for um host do Cloud Run, permitir
-        if host.endswith('.a.run.app'):
-            return True
-        # Caso contrário, usar validação padrão
-        return original_check_host(host, allowed_hosts)
-    
 
