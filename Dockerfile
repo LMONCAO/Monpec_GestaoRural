@@ -23,8 +23,7 @@ COPY requirements_producao.txt .
 
 # Instalar dependências Python
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements_producao.txt && \
-    pip install --no-cache-dir gunicorn
+    pip install --no-cache-dir -r requirements_producao.txt
 
 # Copiar código da aplicação
 COPY . .

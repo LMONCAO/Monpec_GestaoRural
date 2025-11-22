@@ -1,0 +1,146 @@
+#!/bin/bash
+# Script de deploy rápido para Google Cloud Run
+# Execute no Google Cloud Shell
+
+set -e  # Parar em caso de erro
+
+echo "🚀 MONPEC - Deploy no Google Cloud Run"
+echo "========================================"
+echo ""
+
+# Configurações
+PROJECT_ID="monpec-sistema-rural"
+REGION="us-central1"
+SERVICE_NAME="monpec"
+DB_INSTANCE="monpec-db"
+DB_NAME="monpec_db"
+DB_USER="monpec_user"
+DB_PASSWORD="Monpec2025!"
+
+# Verificar se está autenticado
+echo "🔐 Verificando autenticação..."
+if ! gcloud auth list --filter=status:ACTIVE --format="value(account)" | head -n 1 > /dev/null; then
+    echo "❌ Não autenticado. Execute: gcloud auth login"
+    exit 1
+fi
+
+# Configurar projeto
+echo "📋 Configurando projeto..."
+gcloud config set project $PROJECT_ID
+
+# Habilitar APIs
+echo "🔧 Habilitando APIs necessárias..."
+gcloud services enable cloudbuild.googleapis.com run.googleapis.com sqladmin.googleapis.com
+
+# Obter connection name
+echo "🔗 Obtendo connection name do banco..."
+CONNECTION_NAME=$(gcloud sql instances describe $DB_INSTANCE --format="value(connectionName)" 2>/dev/null || echo "")
+if [ -z "$CONNECTION_NAME" ]; then
+    echo "⚠️  Instância de banco não encontrada: $DB_INSTANCE"
+    echo "   Continuando sem banco (você pode configurar depois)..."
+    CONNECTION_NAME=""
+else
+    echo "✅ Connection Name: $CONNECTION_NAME"
+fi
+
+# Gerar SECRET_KEY
+echo "🔑 Gerando SECRET_KEY..."
+SECRET_KEY=$(python3 -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())" 2>/dev/null || echo "temp-secret-key-change-me")
+echo "✅ SECRET_KEY gerada"
+
+echo ""
+echo "🔨 PASSO 1/2: Fazendo build da imagem Docker..."
+echo "⏳ Isso pode levar 10-15 minutos..."
+echo ""
+
+# Build da imagem
+if [ -n "$CONNECTION_NAME" ]; then
+    gcloud builds submit --tag gcr.io/$PROJECT_ID/$SERVICE_NAME
+else
+    # Build sem banco (pode falhar, mas vamos tentar)
+    gcloud builds submit --tag gcr.io/$PROJECT_ID/$SERVICE_NAME || {
+        echo "⚠️  Build falhou. Verifique os logs acima."
+        exit 1
+    }
+fi
+
+if [ $? -ne 0 ]; then
+    echo "❌ Erro no build. Verifique os logs acima."
+    exit 1
+fi
+
+echo ""
+echo "✅ Build concluído!"
+echo ""
+
+# Deploy
+echo "🚀 PASSO 2/2: Fazendo deploy no Cloud Run..."
+echo "⏳ Isso pode levar 2-3 minutos..."
+echo ""
+
+if [ -n "$CONNECTION_NAME" ]; then
+    gcloud run deploy $SERVICE_NAME \
+        --image gcr.io/$PROJECT_ID/$SERVICE_NAME \
+        --platform managed \
+        --region $REGION \
+        --allow-unauthenticated \
+        --add-cloudsql-instances $CONNECTION_NAME \
+        --set-env-vars \
+            DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,\
+            DEBUG=False,\
+            DB_NAME=$DB_NAME,\
+            DB_USER=$DB_USER,\
+            DB_PASSWORD=$DB_PASSWORD,\
+            CLOUD_SQL_CONNECTION_NAME=$CONNECTION_NAME,\
+            SECRET_KEY=$SECRET_KEY \
+        --memory=512Mi \
+        --cpu=1 \
+        --timeout=300 \
+        --max-instances=10
+else
+    gcloud run deploy $SERVICE_NAME \
+        --image gcr.io/$PROJECT_ID/$SERVICE_NAME \
+        --platform managed \
+        --region $REGION \
+        --allow-unauthenticated \
+        --set-env-vars \
+            DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,\
+            DEBUG=False,\
+            SECRET_KEY=$SECRET_KEY \
+        --memory=512Mi \
+        --cpu=1 \
+        --timeout=300 \
+        --max-instances=10
+fi
+
+if [ $? -ne 0 ]; then
+    echo "❌ Erro no deploy. Verifique os logs acima."
+    exit 1
+fi
+
+echo ""
+echo "✅ Deploy concluído!"
+echo ""
+
+# Obter URL
+SERVICE_URL=$(gcloud run services describe $SERVICE_NAME --region $REGION --format 'value(status.url)')
+echo "========================================"
+echo "  ✅ DEPLOY CONCLUÍDO COM SUCESSO!"
+echo "========================================"
+echo ""
+echo "🌐 URL do serviço:"
+echo "   $SERVICE_URL"
+echo ""
+echo "📋 Próximos passos:"
+echo "   1. Teste a URL no navegador"
+echo "   2. Verifique a meta tag no código-fonte"
+echo "   3. Teste: $SERVICE_URL/google40933139f3b0d469.html"
+echo "   4. Verifique no Google Search Console"
+echo ""
+echo "📖 Para configurar domínio:"
+echo "   gcloud run domain-mappings create \\"
+echo "       --service $SERVICE_NAME \\"
+echo "       --domain monpec.com.br \\"
+echo "       --region $REGION"
+echo ""
+

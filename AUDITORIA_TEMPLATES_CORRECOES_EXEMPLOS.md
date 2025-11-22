@@ -539,3 +539,5 @@ Ao aplicar as correções, verifique:
 4. Testar extensivamente
 5. Implementar sistema de logging adequado
 
+
+

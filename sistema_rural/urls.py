@@ -29,6 +29,9 @@ urlpatterns = [
     path('', gestao_views.landing_page, name='landing_page'),
     path('contato/', gestao_views.contato_submit, name='contato_submit'),
     
+    # Google Search Console Verification
+    path('google40933139f3b0d469.html', gestao_views.google_search_console_verification, name='google_search_console_verification'),
+    
     # Recuperação de senha
     path('recuperar-senha/', auth_views.PasswordResetView.as_view(
         template_name='registration/password_reset_form.html',
