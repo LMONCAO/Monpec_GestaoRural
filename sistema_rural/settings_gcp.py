@@ -24,11 +24,10 @@ ALLOWED_HOSTS = [
     '127.0.0.1',
 ]
 
-# Adicionar host do Cloud Run se disponível
-# Cloud Run pode ter URLs no formato: SERVICE-PROJECT_ID-REGION.a.run.app ou SERVICE-PROJECT_ID-REGION.run.app
-# Adicionar padrões comuns do Cloud Run
-if os.getenv('K_SERVICE') or os.getenv('K_CONFIGURATION') or os.getenv('CLOUD_RUN_HOST'):
-    # Adicionar host específico se fornecido via variável de ambiente
+# Adicionar hosts do Cloud Run
+# Cloud Run URLs têm formato: SERVICE-PROJECT_HASH-REGION.a.run.app
+if IS_CLOUD_RUN:
+    # Obter host do Cloud Run via variável de ambiente
     cloud_run_host = os.getenv('CLOUD_RUN_HOST', '')
     if cloud_run_host:
         ALLOWED_HOSTS.append(cloud_run_host)
@@ -184,6 +183,10 @@ LOGGING = {
 # URLs do Stripe para produção
 STRIPE_SUCCESS_URL = os.getenv('STRIPE_SUCCESS_URL', 'https://monpec.com.br/assinaturas/sucesso/')
 STRIPE_CANCEL_URL = os.getenv('STRIPE_CANCEL_URL', 'https://monpec.com.br/assinaturas/cancelado/')
+
+# Google Analytics (pode ser sobrescrito via variável de ambiente)
+# Prioridade: variável de ambiente > settings.py
+GOOGLE_ANALYTICS_ID = os.getenv('GOOGLE_ANALYTICS_ID', GOOGLE_ANALYTICS_ID if 'GOOGLE_ANALYTICS_ID' in globals() else '')
 
 # Cache usando Cloud Memorystore (Redis) se disponível
 REDIS_HOST = os.getenv('REDIS_HOST', '')

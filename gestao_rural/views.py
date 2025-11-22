@@ -20,6 +20,19 @@ import urllib.parse
 logger = logging.getLogger(__name__)
 
 
+def google_search_console_verification(request):
+    """
+    Serve o arquivo HTML de verificação do Google Search Console.
+    Arquivo: google40933139f3b0d469.html
+    O conteúdo deste arquivo é fornecido pelo Google Search Console quando você
+    seleciona o método de verificação via arquivo HTML.
+    """
+    # Conteúdo do arquivo de verificação do Google Search Console
+    # Este é o conteúdo padrão que o Google espera
+    content = "google-site-verification: google40933139f3b0d469.html"
+    return HttpResponse(content, content_type='text/html')
+
+
 def landing_page(request):
     """Página pública do sistema antes do login."""
     if request.user.is_authenticated:

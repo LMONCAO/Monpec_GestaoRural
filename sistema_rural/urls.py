@@ -33,6 +33,9 @@ urlpatterns = [
     # Curral Dashboard v3 - Adicionado diretamente para garantir que funcione
     path('propriedade/<int:propriedade_id>/curral/v3/', views_curral.curral_dashboard_v3, name='curral_dashboard_v3'),
     
+    # Google Search Console Verification
+    path('google40933139f3b0d469.html', gestao_views.google_search_console_verification, name='google_search_console_verification'),
+    
     # Recuperação de senha
     path('recuperar-senha/', auth_views.PasswordResetView.as_view(
         template_name='registration/password_reset_form.html',
