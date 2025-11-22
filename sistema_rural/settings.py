@@ -201,3 +201,9 @@ DEMO_MODE = os.getenv('DEMO_MODE', 'False').lower() == 'true'  # DESATIVADO - Ve
 # Link para página de pagamento/assinatura
 DEMO_LINK_PAGAMENTO = os.getenv('DEMO_LINK_PAGAMENTO', 'http://localhost:8000/assinaturas/')
 
+# ========================================
+# CONFIGURAÇÕES DO GOOGLE ANALYTICS
+# ========================================
+# ID de medição do Google Analytics (ex: G-XXXXXXXXXX)
+GOOGLE_ANALYTICS_ID = os.getenv('GOOGLE_ANALYTICS_ID', '')
+

@@ -11,6 +11,7 @@ def demo_mode(request):
     return {
         'DEMO_MODE': getattr(settings, 'DEMO_MODE', False),
         'DEMO_LINK_PAGAMENTO': getattr(settings, 'DEMO_LINK_PAGAMENTO', '/assinaturas/'),
+        'google_analytics_id': getattr(settings, 'GOOGLE_ANALYTICS_ID', ''),
     }
 
 

@@ -1,0 +1,82 @@
+#!/bin/bash
+# 🚀 Deploy Corrigido - Execute no Cloud Shell
+# Este script corrige o problema das variáveis de ambiente
+
+set -e
+
+echo "🚀 MONPEC - Deploy Corrigido no Cloud Run"
+echo "========================================"
+echo ""
+
+# Configurações
+PROJECT_ID="monpec-sistema-rural"
+REGION="us-central1"
+SERVICE_NAME="monpec"
+DB_INSTANCE="monpec-db"
+DB_NAME="monpec_db"
+DB_USER="monpec_user"
+DB_PASSWORD="Monpec2025!"
+
+# Navegar para pasta
+cd ~/Monpec_GestaoRural
+
+# Obter connection name
+echo "🔗 Obtendo connection name do banco..."
+CONNECTION_NAME=$(gcloud sql instances describe $DB_INSTANCE --format="value(connectionName)" 2>/dev/null || echo "")
+if [ -z "$CONNECTION_NAME" ]; then
+    echo "⚠️  Instância de banco não encontrada: $DB_INSTANCE"
+    exit 1
+fi
+echo "✅ Connection Name: $CONNECTION_NAME"
+
+# Gerar SECRET_KEY
+echo ""
+echo "🔑 Gerando SECRET_KEY..."
+SECRET_KEY=$(python3 -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())" 2>/dev/null || echo "temp-secret-key-change-me")
+echo "✅ SECRET_KEY gerada"
+
+# Deploy com sintaxe CORRETA
+echo ""
+echo "🚀 Fazendo deploy no Cloud Run..."
+echo "⏳ Isso pode levar 2-3 minutos..."
+echo ""
+
+gcloud run deploy $SERVICE_NAME \
+    --image gcr.io/$PROJECT_ID/$SERVICE_NAME \
+    --platform managed \
+    --region $REGION \
+    --allow-unauthenticated \
+    --add-cloudsql-instances $CONNECTION_NAME \
+    --set-env-vars "DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,DEBUG=False,DB_NAME=$DB_NAME,DB_USER=$DB_USER,DB_PASSWORD=$DB_PASSWORD,CLOUD_SQL_CONNECTION_NAME=$CONNECTION_NAME,SECRET_KEY=$SECRET_KEY" \
+    --memory=512Mi \
+    --cpu=1 \
+    --timeout=300 \
+    --max-instances=10
+
+if [ $? -ne 0 ]; then
+    echo ""
+    echo "❌ Erro no deploy. Verifique os logs acima."
+    exit 1
+fi
+
+echo ""
+echo "✅ Deploy concluído!"
+echo ""
+
+# Obter URL
+SERVICE_URL=$(gcloud run services describe $SERVICE_NAME --region $REGION --format 'value(status.url)')
+
+echo "========================================"
+echo "  ✅ DEPLOY CONCLUÍDO COM SUCESSO!"
+echo "========================================"
+echo ""
+echo "🌐 URL do serviço:"
+echo "   $SERVICE_URL"
+echo ""
+echo "📋 Próximos passos:"
+echo "   1. Teste: $SERVICE_URL"
+echo "   2. Verifique meta tag: $SERVICE_URL (Ctrl+U para ver código-fonte)"
+echo "   3. Teste arquivo HTML: $SERVICE_URL/google40933139f3b0d469.html"
+echo "   4. Verifique no Google Search Console usando esta URL"
+echo ""
+

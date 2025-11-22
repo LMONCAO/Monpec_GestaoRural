@@ -95,14 +95,7 @@ if [ "$USE_DB" = true ]; then
         --region $REGION \
         --allow-unauthenticated \
         --add-cloudsql-instances $CONNECTION_NAME \
-        --set-env-vars \
-            DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,\
-            DEBUG=False,\
-            DB_NAME=$DB_NAME,\
-            DB_USER=$DB_USER,\
-            DB_PASSWORD=$DB_PASSWORD,\
-            CLOUD_SQL_CONNECTION_NAME=$CONNECTION_NAME,\
-            SECRET_KEY=$SECRET_KEY \
+        --set-env-vars "DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,DEBUG=False,DB_NAME=$DB_NAME,DB_USER=$DB_USER,DB_PASSWORD=$DB_PASSWORD,CLOUD_SQL_CONNECTION_NAME=$CONNECTION_NAME,SECRET_KEY=$SECRET_KEY" \
         --memory=512Mi \
         --cpu=1 \
         --timeout=300 \
@@ -113,10 +106,7 @@ else
         --platform managed \
         --region $REGION \
         --allow-unauthenticated \
-        --set-env-vars \
-            DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,\
-            DEBUG=False,\
-            SECRET_KEY=$SECRET_KEY \
+        --set-env-vars "DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,DEBUG=False,SECRET_KEY=$SECRET_KEY" \
         --memory=512Mi \
         --cpu=1 \
         --timeout=300 \
