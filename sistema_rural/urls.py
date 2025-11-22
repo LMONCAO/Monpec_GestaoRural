@@ -16,12 +16,19 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.contrib.auth import views as auth_views
+from django.contrib.sitemaps.views import sitemap
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 
 from gestao_rural import views as gestao_views
 from gestao_rural import views_curral
+from gestao_rural.sitemaps import StaticViewSitemap
+
+# Configuração do sitemap
+sitemaps = {
+    'static': StaticViewSitemap,
+}
 
 urlpatterns = [
     # Logout deve vir antes do admin para garantir que use nossa view personalizada
@@ -35,6 +42,9 @@ urlpatterns = [
     
     # Google Search Console Verification
     path('google40933139f3b0d469.html', gestao_views.google_search_console_verification, name='google_search_console_verification'),
+    
+    # Sitemap
+    path('sitemap.xml', sitemap, {'sitemaps': sitemaps}, name='django.contrib.sitemaps.views.sitemap'),
     
     # Recuperação de senha
     path('recuperar-senha/', auth_views.PasswordResetView.as_view(

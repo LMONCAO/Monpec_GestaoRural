@@ -66,6 +66,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sitemaps',  # Sitemap para SEO
     'django.contrib.humanize',
     'gestao_rural.apps.GestaoRuralConfig',
 ]
