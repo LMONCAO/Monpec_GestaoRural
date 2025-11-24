@@ -1931,7 +1931,7 @@
           <!-- Gráfico de Barras Horizontais - Eficiência de Ganho de Peso -->
           <div class="gauge-container" style="margin-top: 4px; padding-top: 12px; border-top: 2px solid rgba(255, 255, 255, 0.1);">
             <div class="gauge-header" style="text-align: center; margin-bottom: 20px;">
-              <h3 style="color: rgba(255, 255, 255, 0.9); font-size: 1rem; font-weight: 600; margin: 0;">
+              <h3 style="color: #FFFFFF !important; font-size: 1.3rem !important; font-weight: 600; margin: 0;">
                 <i class="fas fa-chart-bar" style="margin-right: 8px;"></i>
                 Eficiência de Ganho de Peso
               </h3>
@@ -2031,10 +2031,10 @@
                   
                   <!-- Labels nas seções -->
                   <div style="position: absolute; top: 60px; left: 0; width: 100%; display: flex; justify-content: space-between;">
-                    <span style="color: rgba(255, 255, 255, 0.9); font-size: 13px; font-weight: 700; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);">Ruim</span>
-                    <span style="color: rgba(255, 255, 255, 0.9); font-size: 13px; font-weight: 700; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);">Regular</span>
-                    <span style="color: rgba(255, 255, 255, 0.9); font-size: 13px; font-weight: 700; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);">Bom</span>
-                    <span style="color: rgba(255, 255, 255, 0.9); font-size: 13px; font-weight: 700; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);">Ótimo</span>
+                    <span style="color: #FFFFFF !important; font-size: 18px !important; font-weight: 700; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);">Ruim</span>
+                    <span style="color: #FFFFFF !important; font-size: 18px !important; font-weight: 700; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);">Regular</span>
+                    <span style="color: #FFFFFF !important; font-size: 18px !important; font-weight: 700; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);">Bom</span>
+                    <span style="color: #FFFFFF !important; font-size: 18px !important; font-weight: 700; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);">Ótimo</span>
                   </div>
                 </div>
                 
@@ -2071,19 +2071,19 @@
               ">
                 <div class="legenda-item" style="display: flex; align-items: center; gap: 8px;">
                   <div class="legenda-cor" style="width: 20px; height: 20px; border-radius: 4px; background: linear-gradient(90deg, #FF6B6B 0%, #FF5722 100%);"></div>
-                  <span style="color: rgba(255, 255, 255, 0.8); font-size: 0.875rem;">Ruim: &lt; 0.4 kg/dia</span>
+                  <span style="color: #FFFFFF !important; font-size: 1.1rem !important;">Ruim: &lt; 0.4 kg/dia</span>
                 </div>
                 <div class="legenda-item" style="display: flex; align-items: center; gap: 8px;">
                   <div class="legenda-cor" style="width: 20px; height: 20px; border-radius: 4px; background: linear-gradient(90deg, #FFD93D 0%, #FFC107 100%);"></div>
-                  <span style="color: rgba(255, 255, 255, 0.8); font-size: 0.875rem;">Regular: 0.4 - 0.7</span>
+                  <span style="color: #FFFFFF !important; font-size: 1.1rem !important;">Regular: 0.4 - 0.7</span>
                 </div>
                 <div class="legenda-item" style="display: flex; align-items: center; gap: 8px;">
                   <div class="legenda-cor" style="width: 20px; height: 20px; border-radius: 4px; background: linear-gradient(90deg, #4DABF7 0%, #2196F3 100%);"></div>
-                  <span style="color: rgba(255, 255, 255, 0.8); font-size: 0.875rem;">Bom: 0.7 - 1.0</span>
+                  <span style="color: #FFFFFF !important; font-size: 1.1rem !important;">Bom: 0.7 - 1.0</span>
                 </div>
                 <div class="legenda-item" style="display: flex; align-items: center; gap: 8px;">
                   <div class="legenda-cor" style="width: 20px; height: 20px; border-radius: 4px; background: linear-gradient(90deg, #69DB7C 0%, #4CAF50 100%);"></div>
-                  <span style="color: rgba(255, 255, 255, 0.8); font-size: 0.875rem;">Ótimo: &gt; 1.0</span>
+                  <span style="color: #FFFFFF !important; font-size: 1.1rem !important;">Ótimo: &gt; 1.0</span>
                 </div>
               </div>
             </div>
@@ -6015,25 +6015,27 @@ window.iniciarSimulador = function() {
     console.log(`[${status}] ${operacao}:`, detalhes);
   }
 
-  // Função para aguardar (simular velocidade humana)
-  function aguardar(min = 500, max = 1500) {
+  // Função para aguardar (simular velocidade humana - aumentado para parecer mais real)
+  function aguardar(min = 1000, max = 2500) {
     const tempo = Math.floor(Math.random() * (max - min + 1)) + min;
     return new Promise(resolve => setTimeout(resolve, tempo));
   }
 
-  // Função para simular digitação humana
-  async function simularDigitacao(elemento, texto, velocidade = 100) {
+  // Função para simular digitação humana (mais lenta para parecer real)
+  async function simularDigitacao(elemento, texto, velocidade = 120) {
     if (!elemento) return;
     elemento.value = '';
-    elemento.focus();
+    // Não focar para evitar desfoque da tela
+    await aguardar(200, 400);
     
     for (let i = 0; i < texto.length; i++) {
       elemento.value += texto[i];
       elemento.dispatchEvent(new Event('input', { bubbles: true }));
-      await new Promise(resolve => setTimeout(resolve, velocidade + Math.random() * 50));
+      await new Promise(resolve => setTimeout(resolve, velocidade + Math.random() * 80));
     }
     
     elemento.dispatchEvent(new Event('change', { bubbles: true }));
+    await aguardar(300, 600);
   }
 
   // Função para gerar número de estoque
@@ -6970,12 +6972,47 @@ window.iniciarSimulador = function() {
 
       const data = await response.json();
       
+      // LOG DETALHADO: Mostrar resposta completa da API
+      console.log('📡 Resposta da API (brincos):', {
+        status: data.status,
+        total_brincos: data.brincos_estoque?.length || 0,
+        brincos: data.brincos_estoque?.slice(0, 5) || [] // Mostrar primeiros 5 para debug
+      });
+      
       if (data.status === 'sucesso' && data.brincos_estoque) {
-        adicionarLogOperacao('Brincos disponíveis encontrados', 'OK', { 
-          total: data.brincos_estoque.length 
+        // LOG: Mostrar todos os códigos recebidos
+        console.log('📋 Códigos de brincos recebidos da API:');
+        data.brincos_estoque.forEach((brinco, idx) => {
+          const codigo = brinco.numero_brinco || brinco.codigo_sisbov || brinco.numero_manejo || '';
+          console.log(`   ${idx + 1}. ${codigo || '(SEM CÓDIGO)'} - ID: ${brinco.id || 'N/A'}`);
         });
-        exibirMensagemSimulador(`Encontrados ${data.brincos_estoque.length} brincos disponíveis no estoque`, 'success');
-        return data.brincos_estoque;
+        
+        // Filtrar apenas brincos com código válido
+        const brincosValidos = data.brincos_estoque.filter(brinco => {
+          const codigo = (brinco.numero_brinco && brinco.numero_brinco.trim()) || 
+                         (brinco.codigo_sisbov && brinco.codigo_sisbov.trim()) || 
+                         (brinco.numero_manejo && brinco.numero_manejo.trim()) || 
+                         '';
+          return codigo && codigo.trim() !== '';
+        });
+        
+        if (brincosValidos.length < data.brincos_estoque.length) {
+          console.warn(`⚠️ ${data.brincos_estoque.length - brincosValidos.length} brincos sem código válido foram filtrados`);
+        }
+        
+        // LOG: Mostrar códigos válidos que serão processados
+        console.log(`✅ Brincos válidos que serão processados (${brincosValidos.length}):`);
+        brincosValidos.forEach((brinco, idx) => {
+          const codigo = brinco.numero_brinco || brinco.codigo_sisbov || brinco.numero_manejo || '';
+          console.log(`   ${idx + 1}. ${codigo} - ID: ${brinco.id || 'N/A'}`);
+        });
+        
+        adicionarLogOperacao('Brincos disponíveis encontrados', 'OK', { 
+          total_recebido: data.brincos_estoque.length,
+          total_valido: brincosValidos.length
+        });
+        exibirMensagemSimulador(`Encontrados ${brincosValidos.length} brincos válidos no estoque`, 'success');
+        return brincosValidos;
       } else {
         throw new Error(data.mensagem || 'Resposta inválida da API');
       }
@@ -7015,12 +7052,47 @@ window.iniciarSimulador = function() {
 
       const data = await response.json();
       
+      // LOG DETALHADO: Mostrar resposta completa da API
+      console.log('📡 Resposta da API (animais):', {
+        status: data.status,
+        total_animais: data.animais_cadastrados?.length || 0,
+        animais: data.animais_cadastrados?.slice(0, 5) || [] // Mostrar primeiros 5 para debug
+      });
+      
       if (data.status === 'sucesso' && data.animais_cadastrados) {
-        adicionarLogOperacao('Animais cadastrados encontrados', 'OK', { 
-          total: data.animais_cadastrados.length 
+        // LOG: Mostrar todos os códigos recebidos
+        console.log('📋 Códigos de animais recebidos da API:');
+        data.animais_cadastrados.forEach((animal, idx) => {
+          const codigo = animal.numero_brinco || animal.codigo_sisbov || animal.numero_manejo || '';
+          console.log(`   ${idx + 1}. ${codigo || '(SEM CÓDIGO)'} - ID: ${animal.id || 'N/A'}`);
         });
-        exibirMensagemSimulador(`Encontrados ${data.animais_cadastrados.length} animais cadastrados`, 'success');
-        return data.animais_cadastrados;
+        
+        // Filtrar apenas animais com código válido
+        const animaisValidos = data.animais_cadastrados.filter(animal => {
+          const codigo = (animal.numero_brinco && animal.numero_brinco.trim()) || 
+                         (animal.codigo_sisbov && animal.codigo_sisbov.trim()) || 
+                         (animal.numero_manejo && animal.numero_manejo.trim()) || 
+                         '';
+          return codigo && codigo.trim() !== '';
+        });
+        
+        if (animaisValidos.length < data.animais_cadastrados.length) {
+          console.warn(`⚠️ ${data.animais_cadastrados.length - animaisValidos.length} animais sem código válido foram filtrados`);
+        }
+        
+        // LOG: Mostrar códigos válidos que serão processados
+        console.log(`✅ Animais válidos que serão processados (${animaisValidos.length}):`);
+        animaisValidos.forEach((animal, idx) => {
+          const codigo = animal.numero_brinco || animal.codigo_sisbov || animal.numero_manejo || '';
+          console.log(`   ${idx + 1}. ${codigo} - ID: ${animal.id || 'N/A'}`);
+        });
+        
+        adicionarLogOperacao('Animais cadastrados encontrados', 'OK', { 
+          total_recebido: data.animais_cadastrados.length,
+          total_valido: animaisValidos.length
+        });
+        exibirMensagemSimulador(`Encontrados ${animaisValidos.length} animais válidos cadastrados`, 'success');
+        return animaisValidos;
       } else {
         throw new Error(data.mensagem || 'Resposta inválida da API');
       }
@@ -7032,6 +7104,386 @@ window.iniciarSimulador = function() {
       });
       exibirMensagemSimulador(`Erro ao buscar animais: ${error.message}`, 'error');
       return [];
+    }
+  }
+
+  // Função unificada para processar um item (brinco do estoque ou animal cadastrado)
+  async function processarItemUnificado(item, index, total, tipo) {
+    // tipo: 'brinco_estoque' ou 'animal_cadastrado'
+    
+    // VALIDAÇÃO CRÍTICA: Extrair código de forma segura
+    const codigo = (item.numero_brinco && item.numero_brinco.trim()) || 
+                   (item.codigo_sisbov && item.codigo_sisbov.trim()) || 
+                   (item.numero_manejo && item.numero_manejo.trim()) || 
+                   '';
+    
+    const isBrincoEstoque = tipo === 'brinco_estoque';
+    let pesoGerado = null; // Variável para armazenar peso gerado durante cadastro
+    
+    // VALIDAÇÃO CRÍTICA: Garantir que o item tenha um código válido
+    if (!codigo || codigo.trim() === '') {
+      console.error(`❌ Item ${index + 1} sem código válido:`, item);
+      throw new Error(`Item ${index + 1} não possui código válido (numero_brinco, codigo_sisbov ou numero_manejo). Item ignorado.`);
+    }
+    
+    // VALIDAÇÃO: Garantir que o tipo seja válido
+    if (tipo !== 'brinco_estoque' && tipo !== 'animal_cadastrado') {
+      console.error(`❌ Tipo de item inválido: ${tipo}`, item);
+      throw new Error(`Tipo de item inválido: ${tipo}. Deve ser 'brinco_estoque' ou 'animal_cadastrado'.`);
+    }
+    
+    // LOG DETALHADO: Mostrar exatamente o que está sendo processado
+    console.log(`📋 Processando ${tipo}:`, {
+      codigo: codigo,
+      numero_brinco: item.numero_brinco || 'N/A',
+      codigo_sisbov: item.codigo_sisbov || 'N/A',
+      numero_manejo: item.numero_manejo || 'N/A',
+      id: item.id || 'N/A',
+      item_index: `${index + 1}/${total}`
+    });
+    
+    // VALIDAÇÃO ADICIONAL: Verificar se o código não parece ser gerado aleatoriamente
+    // Códigos SISBOV geralmente têm 15 dígitos e começam com números específicos
+    // Se o código não seguir um padrão conhecido, avisar (mas não bloquear)
+    if (codigo.length < 6) {
+      console.warn(`⚠️ Código muito curto: ${codigo} (${codigo.length} caracteres)`);
+    }
+    
+    try {
+      // 1. Leitura do brinco
+      // LOG CRÍTICO: Mostrar exatamente qual código será digitado
+      console.log(`🔍 VAI DIGITAR: ${codigo} (${tipo})`);
+      console.log(`   - numero_brinco: ${item.numero_brinco || 'N/A'}`);
+      console.log(`   - codigo_sisbov: ${item.codigo_sisbov || 'N/A'}`);
+      console.log(`   - numero_manejo: ${item.numero_manejo || 'N/A'}`);
+      console.log(`   - id: ${item.id || 'N/A'}`);
+      
+      exibirMensagemSimulador(`${isBrincoEstoque ? 'Brinco' : 'Animal'} ${index + 1}/${total}: Lendo brinco ${codigo}...`, 'info');
+      await aguardar(1200, 2000); // Delay mais longo para parecer humano
+      
+      const brincoInput = document.getElementById('brincoInputV3');
+      if (!brincoInput) {
+        throw new Error('Campo de brinco não encontrado');
+      }
+      
+      // LIMPAR campo antes de digitar
+      brincoInput.value = '';
+      brincoInput.dispatchEvent(new Event('input', { bubbles: true }));
+      await aguardar(300, 600);
+      
+      // VERIFICAÇÃO FINAL: Garantir que o código não está vazio antes de digitar
+      if (!codigo || codigo.trim() === '') {
+        throw new Error(`Código vazio detectado antes de digitar! Item: ${JSON.stringify(item)}`);
+      }
+      
+      console.log(`⌨️ Digitando código: "${codigo}" (${codigo.length} caracteres)`);
+      await simularDigitacao(brincoInput, codigo, 120);
+      
+      // VERIFICAÇÃO: Confirmar que o código foi digitado corretamente
+      const codigoDigitado = brincoInput.value.trim();
+      if (codigoDigitado !== codigo.trim()) {
+        console.error(`❌ ERRO: Código digitado não corresponde! Esperado: "${codigo}", Digitado: "${codigoDigitado}"`);
+        throw new Error(`Código digitado não corresponde ao esperado. Esperado: "${codigo}", Digitado: "${codigoDigitado}"`);
+      }
+      console.log(`✅ Código digitado corretamente: "${codigoDigitado}"`);
+      
+      await aguardar(800, 1500);
+      
+      // Remover foco do input
+      if (brincoInput === document.activeElement) {
+        brincoInput.blur();
+      }
+      
+      // 2. Buscar no sistema - verificar resposta da API diretamente
+      exibirMensagemSimulador(`${isBrincoEstoque ? 'Brinco' : 'Animal'} ${index + 1}/${total}: Buscando no sistema...`, 'info');
+      
+      let animalEncontrado = false;
+      let brincoNoEstoque = false;
+      let dadosEstoque = null;
+      
+      // Buscar diretamente na API para verificar status
+      try {
+        const response = await fetch(identificarUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: JSON.stringify({ codigo: codigo })
+        });
+        
+        const data = await response.json();
+        console.log(`📥 Resposta API para ${codigo}:`, data);
+        
+        if (data.status === 'animal' && data.dados) {
+          // Animal já cadastrado - preencher card
+          animalEncontrado = true;
+          if (typeof window.buscarBrincoV3 === 'function') {
+            await window.buscarBrincoV3(codigo);
+          }
+          await aguardar(2000, 3000);
+        } else if (data.status === 'estoque' && data.dados) {
+          // Brinco no estoque - precisa cadastrar
+          brincoNoEstoque = true;
+          dadosEstoque = data.dados;
+          console.log(`📦 Brinco ${codigo} está no estoque, será cadastrado`);
+        } else {
+          // Não encontrado - se for brinco do estoque, tentar cadastrar mesmo assim
+          if (isBrincoEstoque) {
+            brincoNoEstoque = true;
+            console.log(`⚠️ Brinco ${codigo} não encontrado, mas é do estoque - tentando cadastrar`);
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao buscar na API:', error);
+        // Se der erro e for brinco do estoque, tentar cadastrar mesmo assim
+        if (isBrincoEstoque) {
+          brincoNoEstoque = true;
+        }
+      }
+      
+      // Se não encontrou animal, verificar no DOM também (fallback)
+      if (!animalEncontrado && !brincoNoEstoque) {
+        await aguardar(1500, 2500);
+        const numeroManejoEl = document.getElementById('scannerNumeroManejoV3');
+        animalEncontrado = (numeroManejoEl && numeroManejoEl.textContent !== '—' && numeroManejoEl.textContent.trim() !== '');
+      }
+      
+      // 4. Se não encontrou e é brinco do estoque, cadastrar
+      if ((!animalEncontrado && isBrincoEstoque) || brincoNoEstoque) {
+        exibirMensagemSimulador(`Brinco ${index + 1}/${total}: Brinco no estoque, abrindo modal de cadastro...`, 'info');
+        
+        // Abrir modal de cadastro usando a função que preenche automaticamente
+        if (typeof window.abrirModalCadastroEstoque === 'function' && dadosEstoque) {
+          window.abrirModalCadastroEstoque(codigo, dadosEstoque);
+          await aguardar(1000, 1800);
+        } else {
+          // Fallback: abrir modal manualmente
+          const modalCadastro = document.getElementById('modalCadastroEstoque');
+          if (!modalCadastro) {
+            throw new Error('Modal de cadastro não encontrado');
+          }
+          
+          if (!modalCadastro.classList.contains('show')) {
+            modalCadastro.classList.add('show');
+            await aguardar(1000, 1800);
+          }
+          
+          // Preencher campos básicos do modal se não foram preenchidos pela função
+          const brincoSpan = document.getElementById('cadastroBrincoV3');
+          if (brincoSpan && !brincoSpan.textContent || brincoSpan.textContent === '—') {
+            brincoSpan.textContent = codigo;
+          }
+        }
+        
+        // Preencher dados do cadastro
+        const sexo = gerarSexo();
+        pesoGerado = gerarPeso(sexo); // Armazenar peso gerado
+        const racasDisponiveis = [
+          { nome: 'Nelore', codigo: 'NE' },
+          { nome: 'Composto', codigo: 'XX' }
+        ];
+        const racaSelecionada = racasDisponiveis[Math.floor(Math.random() * racasDisponiveis.length)];
+        const racaCodigo = racaSelecionada.codigo;
+        const codigoRfid = item.codigo_rfid || gerarNumeroChip();
+        
+        exibirMensagemSimulador(`Brinco ${index + 1}/${total}: Preenchendo dados (Raça: ${racaSelecionada.nome}, Sexo: ${sexo === 'F' ? 'Fêmea' : 'Macho'})...`, 'info');
+        await aguardar(800, 1500);
+        
+        const rfidInput = document.getElementById('cadastroRfidV3');
+        const racaInput = document.getElementById('cadastroRacaV3');
+        const sexoInput = document.getElementById('cadastroSexoV3');
+        const idadeInput = document.getElementById('cadastroIdadeV3');
+        const tipoRegistroInput = document.getElementById('cadastroTipoRegistroV3');
+        
+        if (rfidInput) {
+          rfidInput.value = codigoRfid;
+          rfidInput.dispatchEvent(new Event('input', { bubbles: true }));
+          await aguardar(400, 800);
+        }
+        
+        if (racaInput) {
+          racaInput.value = racaCodigo;
+          racaInput.dispatchEvent(new Event('change', { bubbles: true }));
+          await aguardar(400, 800);
+        }
+        
+        if (sexoInput) {
+          sexoInput.value = sexo;
+          sexoInput.dispatchEvent(new Event('change', { bubbles: true }));
+          await aguardar(400, 800);
+        }
+        
+        if (idadeInput) {
+          const idade = Math.floor(Math.random() * 12) + 6;
+          idadeInput.value = String(idade);
+          idadeInput.dispatchEvent(new Event('input', { bubbles: true }));
+          await aguardar(800, 1200);
+        }
+        
+        if (tipoRegistroInput) {
+          tipoRegistroInput.value = 'DESMAMA';
+          tipoRegistroInput.dispatchEvent(new Event('change', { bubbles: true }));
+          await aguardar(400, 800);
+        }
+        
+        // Confirmar cadastro
+        exibirMensagemSimulador(`Brinco ${index + 1}/${total}: Confirmando cadastro...`, 'info');
+        await aguardar(800, 1500);
+        
+        const btnConfirmar = document.getElementById('btnConfirmarCadastroV3');
+        if (btnConfirmar && !btnConfirmar.disabled) {
+          if (typeof window.confirmarCadastroEstoqueV3 === 'function') {
+            // A função confirmarCadastroEstoqueV3 já fecha o modal e faz a busca automaticamente
+            console.log('📝 Chamando confirmarCadastroEstoqueV3 (fecha modal e busca automaticamente)...');
+            await window.confirmarCadastroEstoqueV3();
+            // Aguardar mais tempo para garantir que toda a lógica de busca foi concluída
+            console.log('⏳ Aguardando conclusão do cadastro e busca...');
+            await aguardar(5000, 7000); // Tempo maior para garantir que a busca foi concluída
+          } else {
+            btnConfirmar.click();
+            await aguardar(5000, 7000);
+          }
+        }
+        
+        // A função confirmarCadastroEstoqueV3 já fecha o modal e faz a busca automaticamente
+        // Não precisamos fechar manualmente nem fazer nova busca
+        
+        // Verificar se o card foi atualizado (com múltiplas tentativas)
+        exibirMensagemSimulador(`Brinco ${index + 1}/${total}: Verificando se animal foi encontrado...`, 'info');
+        let tentativas = 0;
+        const maxTentativas = 5;
+        let numeroManejoEl = null; // Declarar variável antes do loop
+        
+        while (tentativas < maxTentativas && !animalEncontrado) {
+          await aguardar(1000, 2000);
+          numeroManejoEl = document.getElementById('scannerNumeroManejoV3');
+          const sisbovEl = document.getElementById('scannerSisbovV3');
+          
+          // Verificar tanto número de manejo quanto SISBOV
+          animalEncontrado = (numeroManejoEl && numeroManejoEl.textContent !== '—' && numeroManejoEl.textContent.trim() !== '') ||
+                             (sisbovEl && sisbovEl.textContent !== '—' && sisbovEl.textContent.trim() !== '');
+          
+          if (animalEncontrado) {
+            console.log(`✅ Animal encontrado após ${tentativas + 1} tentativa(s)!`);
+            console.log(`   - Número de Manejo: ${numeroManejoEl?.textContent || 'N/A'}`);
+            console.log(`   - SISBOV: ${sisbovEl?.textContent || 'N/A'}`);
+            break;
+          }
+          
+          tentativas++;
+          console.log(`⏳ Tentativa ${tentativas}/${maxTentativas}: Animal ainda não encontrado, aguardando...`);
+        }
+        
+        if (!animalEncontrado) {
+          console.warn(`⚠️ Animal não encontrado após ${maxTentativas} tentativas. Verificando novamente...`);
+          // Última tentativa com busca manual
+          if (typeof window.buscarBrincoV3 === 'function') {
+            console.log(`🔍 Fazendo busca manual com código: ${codigo}`);
+            await window.buscarBrincoV3(codigo);
+            await aguardar(3000, 5000);
+            
+            numeroManejoEl = document.getElementById('scannerNumeroManejoV3');
+            const sisbovEl = document.getElementById('scannerSisbovV3');
+            animalEncontrado = (numeroManejoEl && numeroManejoEl.textContent !== '—' && numeroManejoEl.textContent.trim() !== '') ||
+                               (sisbovEl && sisbovEl.textContent !== '—' && sisbovEl.textContent.trim() !== '');
+          }
+        }
+      }
+      
+      // 5. Se animal encontrado (já cadastrado ou recém-cadastrado), fazer pesagem e manejo
+      if (animalEncontrado) {
+        exibirMensagemSimulador(`${isBrincoEstoque ? 'Brinco' : 'Animal'} ${index + 1}/${total}: Animal identificado! Card atualizado.`, 'success');
+        await aguardar(1000, 1800);
+        
+        // Preencher peso
+        let pesoFinal;
+        if (isBrincoEstoque && pesoGerado !== null) {
+          // Se foi brinco do estoque, usar o peso gerado durante o cadastro
+          pesoFinal = pesoGerado;
+        } else {
+          // Se é animal cadastrado, gerar novo peso baseado no sexo do animal
+          const sexoAnimal = item.sexo || gerarSexo();
+          pesoFinal = gerarPeso(sexoAnimal);
+        }
+        
+        exibirMensagemSimulador(`${isBrincoEstoque ? 'Brinco' : 'Animal'} ${index + 1}/${total}: Registrando pesagem (${pesoFinal} kg)...`, 'info');
+        await aguardar(1000, 1800);
+        
+        const pesoInput = document.getElementById('pesoValorV3');
+        if (pesoInput) {
+          pesoInput.value = String(pesoFinal);
+          pesoInput.dispatchEvent(new Event('input', { bubbles: true }));
+          pesoInput.dispatchEvent(new Event('change', { bubbles: true }));
+          await aguardar(800, 1500);
+          
+          if (pesoInput === document.activeElement) {
+            pesoInput.blur();
+          }
+        }
+        
+        // Selecionar manejo
+        exibirMensagemSimulador(`${isBrincoEstoque ? 'Brinco' : 'Animal'} ${index + 1}/${total}: Selecionando manejo (Desmama)...`, 'info');
+        await aguardar(800, 1500);
+        
+        const manejoSelect = document.getElementById('manejoSelectV3');
+        if (manejoSelect) {
+          const opcoes = manejoSelect.options;
+          for (let i = 0; i < opcoes.length; i++) {
+            if (opcoes[i].text.toLowerCase().includes('desmama') || opcoes[i].value.toLowerCase().includes('desmama')) {
+              manejoSelect.value = opcoes[i].value;
+              manejoSelect.dispatchEvent(new Event('change', { bubbles: true }));
+              break;
+            }
+          }
+          await aguardar(800, 1500);
+        }
+        
+        // Finalizar e gravar
+        exibirMensagemSimulador(`${isBrincoEstoque ? 'Brinco' : 'Animal'} ${index + 1}/${total}: Finalizando e gravando pesagem e manejo...`, 'info');
+        await aguardar(1000, 1800);
+        
+        const btnFinalizar = document.getElementById('btnFinalizarGravarV3') || document.getElementById('pesoGravarBtnV3');
+        if (btnFinalizar) {
+          btnFinalizar.click();
+          await aguardar(3000, 4500); // Aguardar gravação processar
+        }
+        
+        // Atualizar indicadores
+        if (typeof atualizarEstatisticas === 'function') {
+          await atualizarEstatisticas();
+        }
+        if (typeof atualizarEstatisticasSessao === 'function') {
+          await atualizarEstatisticasSessao();
+        }
+        
+        exibirMensagemSimulador(`${isBrincoEstoque ? 'Brinco' : 'Animal'} ${index + 1}/${total}: Processado com sucesso!`, 'success');
+      } else {
+        throw new Error(`Animal não encontrado após busca: ${codigo}`);
+      }
+      
+      // Limpar campo para próximo item
+      const brincoInputLimpar = document.getElementById('brincoInputV3');
+      if (brincoInputLimpar) {
+        brincoInputLimpar.value = '';
+        if (brincoInputLimpar === document.activeElement) {
+          brincoInputLimpar.blur();
+        }
+      }
+      
+      // Remover foco de qualquer elemento
+      if (document.activeElement && document.activeElement.blur) {
+        document.activeElement.blur();
+      }
+      document.body.focus();
+      
+      await aguardar(1500, 2500); // Pausa antes do próximo item
+      
+    } catch (error) {
+      console.error(`Erro ao processar ${isBrincoEstoque ? 'brinco' : 'animal'} ${index + 1}:`, error);
+      exibirMensagemSimulador(`${isBrincoEstoque ? 'Brinco' : 'Animal'} ${index + 1}/${total}: Erro - ${error.message}`, 'error');
+      throw error;
     }
   }
 
@@ -7108,71 +7560,11 @@ window.iniciarSimulador = function() {
     
     await aguardar(1000, 2000);
     
-    // ========== FASE 1: CADASTRAR BRINCOS DO ESTOQUE ==========
-    simuladorRelatorio.fase = 'CADASTRO_BRINCOS';
-    exibirMensagemSimulador('FASE 1: Cadastrando brincos disponíveis do estoque...', 'info');
-    adicionarLogOperacao('Iniciando fase de cadastro de brincos', 'INFO');
-    
-    const brincosDisponiveis = await buscarBrincosDisponiveis();
-    
-    if (brincosDisponiveis.length === 0) {
-      exibirMensagemSimulador('Nenhum brinco disponível encontrado. Pulando fase de cadastro.', 'warning');
-      adicionarLogOperacao('Nenhum brinco disponível encontrado', 'INFO');
-    } else {
-      exibirMensagemSimulador(`Cadastrando ${brincosDisponiveis.length} brincos do estoque...`, 'info');
-      
-      for (let i = 0; i < brincosDisponiveis.length; i++) {
-        if (!simuladorAtivo) {
-          exibirMensagemSimulador('Simulador interrompido pelo usuário', 'warning');
-          break;
-        }
-        
-        const brinco = brincosDisponiveis[i];
-        const numeroBrinco = brinco.numero_brinco || brinco.codigo_sisbov || '';
-        const codigoRfid = brinco.codigo_rfid || '';
-        
-        try {
-          adicionarLogOperacao(`Cadastrar brinco ${i + 1}/${brincosDisponiveis.length}`, 'INFO', {
-            numero_brinco: numeroBrinco,
-            codigo_rfid: codigoRfid
-          });
-          
-          exibirMensagemSimulador(`Brinco ${i + 1}/${brincosDisponiveis.length}: Cadastrando ${numeroBrinco}...`, 'info');
-          
-          await processarCadastroBrinco(brinco, i, brincosDisponiveis.length);
-          
-          simuladorRelatorio.brincosCadastrados++;
-          adicionarLogOperacao(`Brinco ${i + 1}/${brincosDisponiveis.length} cadastrado`, 'OK', {
-            numero_brinco: numeroBrinco
-          });
-        } catch (error) {
-          simuladorRelatorio.brincosComErro++;
-          adicionarLogOperacao(`Erro ao cadastrar brinco ${i + 1}/${brincosDisponiveis.length}`, 'ERRO', {
-            numero_brinco: numeroBrinco,
-            mensagem: error.message
-          });
-          simuladorRelatorio.erros.push({
-            fase: 'CADASTRO_BRINCOS',
-            brinco: numeroBrinco,
-            indice: i + 1,
-            tipo: 'Cadastro de Brinco',
-            mensagem: error.message,
-            timestamp: new Date().toISOString()
-          });
-        }
-        
-        await aguardar(1000, 2000);
-      }
-    }
-    
-    exibirMensagemSimulador(`Fase 1 concluída: ${simuladorRelatorio.brincosCadastrados} brincos cadastrados`, 'success');
-    await aguardar(2000, 3000);
-    
-    // ========== FASE 2: LOOP INFINITO DE PESAGEM E MANEJO ==========
-    simuladorRelatorio.fase = 'PROCESSAMENTO_ANIMAIS';
-    exibirMensagemSimulador('FASE 2: Iniciando loop contínuo de pesagem e manejo...', 'info');
-    exibirMensagemSimulador('O simulador processará todos os animais em loop até você parar.', 'info');
-    adicionarLogOperacao('Iniciando fase de processamento contínuo de animais', 'INFO');
+    // ========== LOOP CONTÍNUO: PROCESSAR BRINCOS DO ESTOQUE E ANIMAIS CADASTRADOS ==========
+    simuladorRelatorio.fase = 'PROCESSAMENTO_CONTINUO';
+    exibirMensagemSimulador('Iniciando processamento contínuo de brincos e animais...', 'info');
+    exibirMensagemSimulador('O simulador processará brincos do estoque e animais cadastrados em loop até você parar.', 'info');
+    adicionarLogOperacao('Iniciando processamento contínuo unificado', 'INFO');
     
     let ciclo = 0;
     let totalProcessamentos = 0;
@@ -7180,72 +7572,176 @@ window.iniciarSimulador = function() {
     // Loop infinito até o usuário parar
     while (simuladorAtivo) {
       ciclo++;
-      exibirMensagemSimulador(`=== CICLO ${ciclo} === Buscando animais cadastrados...`, 'info');
+      exibirMensagemSimulador(`=== CICLO ${ciclo} === Buscando dados do sistema...`, 'info');
       adicionarLogOperacao(`Iniciando ciclo ${ciclo} de processamento`, 'INFO');
       
+      // Buscar brincos do estoque e animais cadastrados
+      const brincosDisponiveis = await buscarBrincosDisponiveis();
       const animaisCadastrados = await buscarAnimaisCadastrados();
       
-      if (animaisCadastrados.length === 0) {
-        exibirMensagemSimulador('Nenhum animal cadastrado encontrado. Aguardando 5 segundos antes de tentar novamente...', 'warning');
-        adicionarLogOperacao('Nenhum animal cadastrado encontrado, aguardando...', 'INFO');
+      console.log(`📊 Dados recebidos: ${brincosDisponiveis.length} brincos do estoque, ${animaisCadastrados.length} animais cadastrados`);
+      
+      // Combinar todos os itens em uma única lista
+      const todosItens = [];
+      let brincosIgnorados = 0;
+      let animaisIgnorados = 0;
+      
+      // Adicionar brincos do estoque marcados como 'brinco_estoque'
+      // VALIDAÇÃO: Apenas adicionar brincos que tenham código válido
+      brincosDisponiveis.forEach((brinco, idx) => {
+        const codigo = (brinco.numero_brinco && brinco.numero_brinco.trim()) || 
+                       (brinco.codigo_sisbov && brinco.codigo_sisbov.trim()) || 
+                       (brinco.numero_manejo && brinco.numero_manejo.trim()) || 
+                       '';
+        
+        if (codigo && codigo.trim() !== '') {
+          // LOG: Mostrar cada brinco válido sendo adicionado
+          console.log(`✅ Brinco ${idx + 1} válido adicionado:`, {
+            codigo: codigo,
+            numero_brinco: brinco.numero_brinco || 'N/A',
+            codigo_sisbov: brinco.codigo_sisbov || 'N/A',
+            numero_manejo: brinco.numero_manejo || 'N/A',
+            id: brinco.id || 'N/A'
+          });
+          todosItens.push({ ...brinco, _tipo: 'brinco_estoque' });
+        } else {
+          brincosIgnorados++;
+          console.warn('⚠️ Brinco do estoque sem código válido ignorado:', {
+            brinco: brinco,
+            numero_brinco: brinco.numero_brinco,
+            codigo_sisbov: brinco.codigo_sisbov,
+            numero_manejo: brinco.numero_manejo
+          });
+        }
+      });
+      
+      // Adicionar animais cadastrados marcados como 'animal_cadastrado'
+      // VALIDAÇÃO: Apenas adicionar animais que tenham código válido
+      animaisCadastrados.forEach((animal, idx) => {
+        const codigo = (animal.numero_brinco && animal.numero_brinco.trim()) || 
+                       (animal.codigo_sisbov && animal.codigo_sisbov.trim()) || 
+                       (animal.numero_manejo && animal.numero_manejo.trim()) || 
+                       '';
+        
+        if (codigo && codigo.trim() !== '') {
+          // LOG: Mostrar cada animal válido sendo adicionado
+          console.log(`✅ Animal ${idx + 1} válido adicionado:`, {
+            codigo: codigo,
+            numero_brinco: animal.numero_brinco || 'N/A',
+            codigo_sisbov: animal.codigo_sisbov || 'N/A',
+            numero_manejo: animal.numero_manejo || 'N/A',
+            id: animal.id || 'N/A'
+          });
+          todosItens.push({ ...animal, _tipo: 'animal_cadastrado' });
+        } else {
+          animaisIgnorados++;
+          console.warn('⚠️ Animal cadastrado sem código válido ignorado:', {
+            animal: animal,
+            numero_brinco: animal.numero_brinco,
+            codigo_sisbov: animal.codigo_sisbov,
+            numero_manejo: animal.numero_manejo
+          });
+        }
+      });
+      
+      if (brincosIgnorados > 0 || animaisIgnorados > 0) {
+        console.warn(`⚠️ Total de itens ignorados: ${brincosIgnorados} brincos, ${animaisIgnorados} animais (sem código válido)`);
+      }
+      
+      if (todosItens.length === 0) {
+        const mensagem = `Nenhum item válido encontrado no sistema. Brincos: ${brincosDisponiveis.length}, Animais: ${animaisCadastrados.length}. Aguardando 5 segundos...`;
+        exibirMensagemSimulador(mensagem, 'warning');
+        adicionarLogOperacao('Nenhum item válido encontrado, aguardando...', 'INFO', {
+          brincos_recebidos: brincosDisponiveis.length,
+          animais_recebidos: animaisCadastrados.length,
+          brincos_ignorados: brincosIgnorados,
+          animais_ignorados: animaisIgnorados
+        });
         await aguardar(5000, 5000);
         continue; // Volta ao início do loop
       }
       
-      exibirMensagemSimulador(`Ciclo ${ciclo}: Processando ${animaisCadastrados.length} animais (do primeiro ao último)...`, 'info');
+      console.log(`✅ Total de itens válidos para processar: ${todosItens.length} (${todosItens.filter(i => i._tipo === 'brinco_estoque').length} brincos + ${todosItens.filter(i => i._tipo === 'animal_cadastrado').length} animais)`);
       
-      // Processar todos os animais do primeiro ao último
-      for (let i = 0; i < animaisCadastrados.length; i++) {
+      // Embaralhar a lista para processar de forma mais realista
+      for (let i = todosItens.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [todosItens[i], todosItens[j]] = [todosItens[j], todosItens[i]];
+      }
+      
+      exibirMensagemSimulador(`Ciclo ${ciclo}: Processando ${todosItens.length} itens (${brincosDisponiveis.length} brincos do estoque + ${animaisCadastrados.length} animais cadastrados)...`, 'info');
+      
+      // Processar todos os itens
+      for (let i = 0; i < todosItens.length; i++) {
         if (!simuladorAtivo) {
           exibirMensagemSimulador('Simulador interrompido pelo usuário', 'warning');
           break;
         }
         
-        const animal = animaisCadastrados[i];
-        const codigoAnimal = animal.codigo_sisbov || animal.numero_brinco || animal.numero_manejo || '';
+        const item = todosItens[i];
+        const tipo = item._tipo;
+        const codigo = item.numero_brinco || item.codigo_sisbov || item.numero_manejo || '';
+        
+        // VALIDAÇÃO: Pular itens sem código válido
+        if (!codigo || codigo.trim() === '') {
+          console.warn(`⚠️ Item ${i + 1} sem código válido, pulando...`, item);
+          exibirMensagemSimulador(`Item ${i + 1}/${todosItens.length}: Sem código válido, pulando...`, 'warning');
+          continue;
+        }
         
         try {
-          adicionarLogOperacao(`Ciclo ${ciclo} - Animal ${i + 1}/${animaisCadastrados.length}`, 'INFO', {
-            codigo: codigoAnimal,
-            id: animal.id,
-            ciclo: ciclo
+          adicionarLogOperacao(`Ciclo ${ciclo} - Item ${i + 1}/${todosItens.length} (${tipo})`, 'INFO', {
+            codigo: codigo,
+            tipo: tipo,
+            ciclo: ciclo,
+            item_id: item.id || 'N/A'
           });
           
-          exibirMensagemSimulador(`Ciclo ${ciclo} - Animal ${i + 1}/${animaisCadastrados.length}: Processando ${codigoAnimal}...`, 'info');
+          await processarItemUnificado(item, i, todosItens.length, tipo);
           
-          await processarAnimalCadastrado(animal, i, animaisCadastrados.length);
-          
-          simuladorRelatorio.animaisProcessados++;
+          if (tipo === 'brinco_estoque') {
+            simuladorRelatorio.brincosCadastrados++;
+          } else {
+            simuladorRelatorio.animaisProcessados++;
+          }
           totalProcessamentos++;
-          adicionarLogOperacao(`Ciclo ${ciclo} - Animal ${i + 1}/${animaisCadastrados.length} processado`, 'OK', {
-            codigo: codigoAnimal,
+          
+          adicionarLogOperacao(`Ciclo ${ciclo} - Item ${i + 1}/${todosItens.length} processado`, 'OK', {
+            codigo: codigo,
+            tipo: tipo,
             ciclo: ciclo,
             total_processamentos: totalProcessamentos
           });
         } catch (error) {
-          simuladorRelatorio.animaisComErro++;
-          adicionarLogOperacao(`Ciclo ${ciclo} - Erro ao processar animal ${i + 1}/${animaisCadastrados.length}`, 'ERRO', {
-            codigo: codigoAnimal,
+          if (tipo === 'brinco_estoque') {
+            simuladorRelatorio.brincosComErro++;
+          } else {
+            simuladorRelatorio.animaisComErro++;
+          }
+          
+          adicionarLogOperacao(`Ciclo ${ciclo} - Erro ao processar item ${i + 1}/${todosItens.length}`, 'ERRO', {
+            codigo: codigo,
+            tipo: tipo,
             mensagem: error.message,
             ciclo: ciclo
           });
+          
           simuladorRelatorio.erros.push({
-            fase: 'PROCESSAMENTO_ANIMAIS',
-            animal: codigoAnimal,
+            fase: 'PROCESSAMENTO_CONTINUO',
+            item: codigo,
+            tipo_item: tipo,
             indice: i + 1,
             ciclo: ciclo,
-            tipo: 'Processamento de Animal',
+            tipo: 'Processamento de Item',
             mensagem: error.message,
             timestamp: new Date().toISOString()
           });
         }
-        
-        await aguardar(1000, 2000);
       }
       
-      // Após processar todos os animais, volta ao início
-      exibirMensagemSimulador(`Ciclo ${ciclo} concluído! Total de ${totalProcessamentos} processamentos realizados. Reiniciando do primeiro animal...`, 'success');
-      await aguardar(2000, 3000);
+      // Após processar todos os itens, volta ao início
+      exibirMensagemSimulador(`Ciclo ${ciclo} concluído! Total de ${totalProcessamentos} processamentos realizados. Reiniciando...`, 'success');
+      await aguardar(3000, 5000); // Pausa maior entre ciclos
     }
     
     // Se saiu do loop, finalizar
@@ -8239,6 +8735,87 @@ ${simuladorRelatorio.operacoes.map((op, idx) => {
     URL.revokeObjectURL(url);
 
     console.log('📊 Relatório de Análise Completo:', relatorio);
+  }
+
+  // ========== MONITORAMENTO DO SIMULADOR ==========
+  function monitorarSimulador() {
+    try {
+      // Verificar se o simulador está ativo
+      const simuladorAtivo = window.simuladorAtivo || false;
+      
+      // Verificar elementos críticos do DOM
+      const elementosCriticos = {
+        brincoInput: document.getElementById('brincoInputV3'),
+        pesoInput: document.getElementById('pesoValorV3'),
+        manejoSelect: document.getElementById('manejoSelectV3'),
+        btnGravar: document.getElementById('btnFinalizarGravarV3')
+      };
+      
+      // Registrar estado dos elementos
+      Object.entries(elementosCriticos).forEach(([nome, elemento]) => {
+        if (!elemento) {
+          registrarEvento('DOM_ELEMENTO_NAO_ENCONTRADO', {
+            elemento: nome,
+            timestamp: new Date().toISOString()
+          });
+        } else if (elemento.disabled) {
+          registrarEvento('DOM_ELEMENTO_DESABILITADO', {
+            elemento: nome,
+            timestamp: new Date().toISOString()
+          });
+        }
+      });
+      
+      // Verificar estado do simulador
+      if (simuladorAtivo) {
+        registrarEvento('SIMULADOR_ATIVO', {
+          timestamp: new Date().toISOString()
+        });
+      }
+    } catch (error) {
+      console.warn('Erro ao monitorar simulador:', error);
+    }
+  }
+
+  // ========== MONITORAMENTO DO ESTADO DO SIMULADOR ==========
+  function monitorarEstadoSimulador() {
+    try {
+      // Sincronizar com simuladorRelatorio se disponível
+      if (window.simuladorRelatorio) {
+        const relatorio = window.simuladorRelatorio;
+        
+        // Atualizar métricas de fluxo
+        sistemaAnalise.metricas.fluxo.animaisProcessados = relatorio.animaisProcessados || 0;
+        sistemaAnalise.metricas.fluxo.brincosCadastrados = relatorio.brincosCadastrados || 0;
+        sistemaAnalise.metricas.fluxo.animaisComErro = relatorio.animaisComErro || 0;
+        sistemaAnalise.metricas.fluxo.brincosComErro = relatorio.brincosComErro || 0;
+        sistemaAnalise.metricas.fluxo.faseAtual = relatorio.fase || 'INICIO';
+        
+        // Registrar mudança de fase
+        if (relatorio.fase && relatorio.fase !== sistemaAnalise.metricas.fluxo.faseAtual) {
+          registrarEvento('MUDANCA_FASE', {
+            faseAnterior: sistemaAnalise.metricas.fluxo.faseAtual,
+            faseNova: relatorio.fase,
+            timestamp: new Date().toISOString()
+          });
+        }
+      }
+      
+      // Verificar se há erros recentes
+      if (window.simuladorRelatorio && window.simuladorRelatorio.erros) {
+        const errosRecentes = window.simuladorRelatorio.erros.slice(-5);
+        errosRecentes.forEach(erro => {
+          registrarEvento('ERRO_SIMULADOR', {
+            tipo: erro.tipo,
+            mensagem: erro.mensagem,
+            animal: erro.animal,
+            timestamp: erro.timestamp || new Date().toISOString()
+          });
+        });
+      }
+    } catch (error) {
+      console.warn('Erro ao monitorar estado do simulador:', error);
+    }
   }
 
   // ========== INICIALIZAÇÃO DO SISTEMA ==========

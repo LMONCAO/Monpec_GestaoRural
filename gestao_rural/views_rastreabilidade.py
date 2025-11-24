@@ -20,6 +20,13 @@ from .models import (
 )
 
 
+def _normalizar_codigo(codigo: str) -> str:
+    """Remove caracteres não numéricos e devolve o código limpo."""
+    if not codigo:
+        return ''
+    return re.sub(r'\D', '', codigo)
+
+
 @login_required
 def rastreabilidade_dashboard(request, propriedade_id):
     """Dashboard principal de rastreabilidade bovina"""
@@ -424,11 +431,42 @@ def animais_individuais_lista(request, propriedade_id):
         animais = animais.filter(categoria_id=categoria_filtro)
     
     if busca:
-        animais = animais.filter(
+        # Normalizar código de busca (remover espaços, traços, etc.)
+        busca_normalizada = _normalizar_codigo(busca)
+        
+        # PRIORIDADE: Buscar por SISBOV primeiro (ID principal do animal)
+        # Busca por: SISBOV, número de manejo, número do brinco, raça e observações
+        filtros_busca = (
             Q(numero_brinco__icontains=busca) |
             Q(raca__icontains=busca) |
             Q(observacoes__icontains=busca)
         )
+        
+        # Se a busca normalizada tiver 8+ dígitos, pode ser SISBOV
+        if len(busca_normalizada) >= 8:
+            # Busca por SISBOV completo ou parcial
+            filtros_busca |= (
+                Q(codigo_sisbov=busca_normalizada) |
+                Q(codigo_sisbov__icontains=busca_normalizada) |
+                Q(codigo_sisbov__endswith=busca_normalizada) |
+                Q(numero_brinco__icontains=busca_normalizada)
+            )
+        # Se a busca normalizada tiver 6-7 dígitos, pode ser número de manejo ou SISBOV parcial
+        elif len(busca_normalizada) >= 6:
+            filtros_busca |= (
+                Q(numero_manejo=busca_normalizada) |
+                Q(codigo_sisbov__icontains=busca_normalizada) |
+                Q(codigo_sisbov__endswith=busca_normalizada) |
+                Q(numero_brinco__icontains=busca_normalizada)
+            )
+        # Para códigos menores, também tenta buscar por SISBOV que contém
+        elif len(busca_normalizada) >= 3:
+            filtros_busca |= (
+                Q(codigo_sisbov__icontains=busca_normalizada) |
+                Q(numero_brinco__icontains=busca_normalizada)
+            )
+        
+        animais = animais.filter(filtros_busca)
     
     animais = animais.order_by('-data_cadastro')
     
@@ -1038,7 +1076,42 @@ def brincos_lista(request, propriedade_id):
         brincos = brincos.filter(tipo_brinco=tipo_filtro)
     
     if busca:
-        brincos = brincos.filter(numero_brinco__icontains=busca)
+        # Normalizar código de busca (remover espaços, traços, etc.)
+        busca_normalizada = _normalizar_codigo(busca)
+        
+        # PRIORIDADE: Buscar por SISBOV primeiro (ID principal do animal)
+        # Busca por: SISBOV no numero_brinco (pode ser SISBOV salvo como brinco), 
+        # e também busca no animal relacionado
+        filtros_busca = Q(numero_brinco__icontains=busca)
+        
+        # Se a busca normalizada tiver 8+ dígitos, pode ser SISBOV
+        if len(busca_normalizada) >= 8:
+            # Busca por SISBOV no numero_brinco (pode ser SISBOV completo salvo como brinco)
+            filtros_busca |= (
+                Q(numero_brinco=busca_normalizada) |
+                Q(numero_brinco__icontains=busca_normalizada) |
+                Q(numero_brinco__endswith=busca_normalizada) |
+                Q(animal__codigo_sisbov=busca_normalizada) |
+                Q(animal__codigo_sisbov__icontains=busca_normalizada) |
+                Q(animal__codigo_sisbov__endswith=busca_normalizada)
+            )
+        # Se a busca normalizada tiver 6-7 dígitos, pode ser número de manejo ou SISBOV parcial
+        elif len(busca_normalizada) >= 6:
+            filtros_busca |= (
+                Q(numero_brinco__icontains=busca_normalizada) |
+                Q(numero_brinco__endswith=busca_normalizada) |
+                Q(animal__numero_manejo=busca_normalizada) |
+                Q(animal__codigo_sisbov__icontains=busca_normalizada) |
+                Q(animal__codigo_sisbov__endswith=busca_normalizada)
+            )
+        # Para códigos menores, também tenta buscar por SISBOV que contém
+        elif len(busca_normalizada) >= 3:
+            filtros_busca |= (
+                Q(numero_brinco__icontains=busca_normalizada) |
+                Q(animal__codigo_sisbov__icontains=busca_normalizada)
+            )
+        
+        brincos = brincos.filter(filtros_busca)
     
     brincos = brincos.order_by('numero_brinco')
 

@@ -39,7 +39,6 @@
                             <th>Destino</th>
                             <th>Categoria</th>
                             <th class="text-end">Quantidade</th>
-                            <th class="text-end">Valor Total</th>
                             <th>Status</th>
                             <th>Observações</th>
                             <th class="text-end">Ações</th>
@@ -59,18 +58,11 @@
                             </td>
                             <td>{{ transferencia.categoria.nome }}</td>
                             <td class="text-end">{{ transferencia.quantidade|numero_br }}</td>
-                            <td class="text-end">
-                                {% if transferencia.valor_total %}
-                                    {{ transferencia.valor_total|moeda_br }}
-                                {% else %}
-                                    <span class="text-muted">-</span>
-                                {% endif %}
-                            </td>
                             <td>
-                                {% if transferencia.status == "CONCLUIDA" %}
-                                    <span class="badge bg-success">Concluída</span>
-                                {% elif transferencia.status == "PENDENTE" %}
-                                    <span class="badge bg-warning text-dark">Pendente</span>
+                                {% if transferencia.status == "REALIZADA" %}
+                                    <span class="badge bg-success">Realizada</span>
+                                {% elif transferencia.status == "AGENDADA" %}
+                                    <span class="badge bg-warning text-dark">Agendada</span>
                                 {% elif transferencia.status == "CANCELADA" %}
                                     <span class="badge bg-danger">Cancelada</span>
                                 {% else %}
@@ -78,9 +70,9 @@
                                 {% endif %}
                             </td>
                             <td>
-                                {% if transferencia.observacoes %}
-                                    <span class="text-nowrap d-inline-block" style="max-width: 220px;" title="{{ transferencia.observacoes }}">
-                                        {{ transferencia.observacoes }}
+                                {% if transferencia.observacao %}
+                                    <span class="text-nowrap d-inline-block" style="max-width: 220px;" title="{{ transferencia.observacao }}">
+                                        {{ transferencia.observacao }}
                                     </span>
                                 {% else %}
                                     <span class="text-muted">-</span>
@@ -99,7 +91,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="9" class="text-center text-muted py-4">
+                            <td colspan="8" class="text-center text-muted py-4">
                                 Nenhuma transferência registrada até o momento.
                                 <a href="{% url 'transferencia_nova' %}">Cadastre a primeira transferência</a>.
                             </td>

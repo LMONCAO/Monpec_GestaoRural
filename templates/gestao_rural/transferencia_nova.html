@@ -1,0 +1,192 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load formatacao_br %}
+
+{% block title %}Nova Transferência - MONPEC{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'transferencias_lista' %}">Transferências</a></li>
+            <li class="breadcrumb-item active">Nova Transferência</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1"><i class="bi bi-plus-circle text-primary me-2"></i>Nova Transferência Entre Propriedades</h2>
+            <p class="text-muted mb-0">Registre uma nova movimentação de animais entre fazendas</p>
+        </div>
+        <div>
+            <a href="{% url 'transferencias_lista' %}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Voltar
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-file-earmark-plus me-2"></i>Dados da Transferência</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.propriedade_origem.id_for_label }}" class="form-label">
+                                    <i class="bi bi-geo-alt"></i> Propriedade de Origem <span class="text-danger">*</span>
+                                </label>
+                                {{ form.propriedade_origem }}
+                                {% if form.propriedade_origem.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.propriedade_origem.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.propriedade_destino.id_for_label }}" class="form-label">
+                                    <i class="bi bi-geo-alt-fill"></i> Propriedade de Destino <span class="text-danger">*</span>
+                                </label>
+                                {{ form.propriedade_destino }}
+                                {% if form.propriedade_destino.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.propriedade_destino.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.categoria.id_for_label }}" class="form-label">
+                                    <i class="bi bi-tag"></i> Categoria <span class="text-danger">*</span>
+                                </label>
+                                {{ form.categoria }}
+                                {% if form.categoria.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.categoria.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.quantidade.id_for_label }}" class="form-label">
+                                    <i class="bi bi-123"></i> Quantidade <span class="text-danger">*</span>
+                                </label>
+                                {{ form.quantidade }}
+                                {% if form.quantidade.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.quantidade.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.data_transferencia.id_for_label }}" class="form-label">
+                                    <i class="bi bi-calendar"></i> Data da Transferência <span class="text-danger">*</span>
+                                </label>
+                                {{ form.data_transferencia }}
+                                {% if form.data_transferencia.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.data_transferencia.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.tipo_transferencia.id_for_label }}" class="form-label">
+                                    <i class="bi bi-arrow-left-right"></i> Tipo de Transferência
+                                </label>
+                                {{ form.tipo_transferencia }}
+                                {% if form.tipo_transferencia.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.tipo_transferencia.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.status.id_for_label }}" class="form-label">
+                                    <i class="bi bi-check-circle"></i> Status
+                                </label>
+                                {{ form.status }}
+                                {% if form.status.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.status.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.observacao.id_for_label }}" class="form-label">
+                                <i class="bi bi-card-text"></i> Observações
+                            </label>
+                            {{ form.observacao }}
+                            {% if form.observacao.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.observacao.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="d-flex justify-content-end gap-2">
+                            <a href="{% url 'transferencias_lista' %}" class="btn btn-secondary">
+                                <i class="bi bi-x-circle me-1"></i>Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle me-1"></i>Salvar Transferência
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Informações</h6>
+                </div>
+                <div class="card-body">
+                    <p class="small text-muted">
+                        <strong>Transferências entre propriedades</strong> permitem registrar movimentações de animais 
+                        entre diferentes fazendas do mesmo produtor.
+                    </p>
+                    <ul class="small text-muted">
+                        <li>Selecione a propriedade de origem e destino</li>
+                        <li>Informe a categoria e quantidade de animais</li>
+                        <li>Defina a data e tipo de transferência</li>
+                        <li>Adicione observações se necessário</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

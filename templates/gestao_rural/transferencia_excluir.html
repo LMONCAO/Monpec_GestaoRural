@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load formatacao_br %}
+
+{% block title %}Excluir Transferência - MONPEC{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'transferencias_lista' %}">Transferências</a></li>
+            <li class="breadcrumb-item active">Excluir Transferência</li>
+        </ol>
+    </nav>
+
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Confirmar Exclusão</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <strong>Atenção!</strong> Esta ação não pode ser desfeita. A transferência será permanentemente excluída do sistema.
+                    </div>
+                    
+                    <h6 class="mb-3">Dados da Transferência:</h6>
+                    <dl class="row">
+                        <dt class="col-sm-4">ID:</dt>
+                        <dd class="col-sm-8">#{{ transferencia.id }}</dd>
+                        
+                        <dt class="col-sm-4">Origem:</dt>
+                        <dd class="col-sm-8">
+                            <strong>{{ transferencia.propriedade_origem.nome_propriedade }}</strong><br>
+                            <small class="text-muted">{{ transferencia.propriedade_origem.produtor.nome }}</small>
+                        </dd>
+                        
+                        <dt class="col-sm-4">Destino:</dt>
+                        <dd class="col-sm-8">
+                            <strong>{{ transferencia.propriedade_destino.nome_propriedade }}</strong><br>
+                            <small class="text-muted">{{ transferencia.propriedade_destino.produtor.nome }}</small>
+                        </dd>
+                        
+                        <dt class="col-sm-4">Categoria:</dt>
+                        <dd class="col-sm-8">{{ transferencia.categoria.nome }}</dd>
+                        
+                        <dt class="col-sm-4">Quantidade:</dt>
+                        <dd class="col-sm-8">{{ transferencia.quantidade|numero_br }} animais</dd>
+                        
+                        <dt class="col-sm-4">Data:</dt>
+                        <dd class="col-sm-8">{{ transferencia.data_transferencia|date:"d/m/Y" }}</dd>
+                        
+                        <dt class="col-sm-4">Status:</dt>
+                        <dd class="col-sm-8">
+                            {% if transferencia.status == "REALIZADA" %}
+                                <span class="badge bg-success">Realizada</span>
+                            {% elif transferencia.status == "AGENDADA" %}
+                                <span class="badge bg-warning text-dark">Agendada</span>
+                            {% elif transferencia.status == "CANCELADA" %}
+                                <span class="badge bg-danger">Cancelada</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ transferencia.get_status_display }}</span>
+                            {% endif %}
+                        </dd>
+                        
+                        {% if transferencia.observacao %}
+                        <dt class="col-sm-4">Observação:</dt>
+                        <dd class="col-sm-8">{{ transferencia.observacao }}</dd>
+                        {% endif %}
+                    </dl>
+                    
+                    <form method="post" class="mt-4">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-end gap-2">
+                            <a href="{% url 'transferencias_lista' %}" class="btn btn-secondary">
+                                <i class="bi bi-x-circle me-1"></i>Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="bi bi-trash me-1"></i>Confirmar Exclusão
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
