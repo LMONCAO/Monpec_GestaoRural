@@ -169,3 +169,4 @@ openssl ssl_client -connect monpec.com.br:443 -showcerts
 
 
 
+

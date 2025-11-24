@@ -36,3 +36,4 @@ O arquivo `COMANDO_DEPLOY_UNICO.txt` contém o mesmo comando para copiar facilme
 
 
 
+

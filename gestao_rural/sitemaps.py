@@ -32,3 +32,4 @@ class StaticViewSitemap(Sitemap):
 
 
 
+

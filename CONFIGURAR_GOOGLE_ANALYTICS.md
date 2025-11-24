@@ -196,3 +196,4 @@ GOOGLE_ANALYTICS_ID = 'G-XXXXXXXXXX'  # Substitua pelo seu ID
 
 
 
+

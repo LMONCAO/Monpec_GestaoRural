@@ -50,3 +50,4 @@ O arquivo `DEPLOY_PASSO_A_PASSO.sh` foi atualizado para resolver isso automatica
 
 
 
+
