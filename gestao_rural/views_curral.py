@@ -667,7 +667,9 @@ def curral_painel(request, propriedade_id):
     context['pastagens_disponiveis'] = pastagens_disponiveis
     context['tipos_trabalho'] = tipos_trabalho
 
-    return render(request, 'gestao_rural/curral_dashboard_v2.html', context)
+    # Redirecionar para a versão v3 (nova versão atualizada)
+    from django.shortcuts import redirect
+    return redirect('curral_dashboard_v3', propriedade_id=propriedade_id)
 
 
 @login_required

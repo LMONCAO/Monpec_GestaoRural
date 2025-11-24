@@ -26,14 +26,14 @@ from gestao_rural import views_curral
 from gestao_rural import views_sitemap
 
 urlpatterns = [
+    # Curral Dashboard v3 - DEVE VIR PRIMEIRO para garantir que seja encontrado
+    path('propriedade/<int:propriedade_id>/curral/v3/', views_curral.curral_dashboard_v3, name='curral_dashboard_v3'),
+    
     # Logout deve vir antes do admin para garantir que use nossa view personalizada
     path('logout/', gestao_views.logout_view, name='logout'),
     path('admin/', admin.site.urls),
     path('', gestao_views.landing_page, name='landing_page'),
     path('contato/', gestao_views.contato_submit, name='contato_submit'),
-    
-    # Curral Dashboard v3 - Adicionado diretamente para garantir que funcione
-    path('propriedade/<int:propriedade_id>/curral/v3/', views_curral.curral_dashboard_v3, name='curral_dashboard_v3'),
     
     # Google Search Console Verification
     path('google40933139f3b0d469.html', gestao_views.google_search_console_verification, name='google_search_console_verification'),
