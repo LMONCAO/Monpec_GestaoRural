@@ -86,3 +86,4 @@ gcloud run services logs read monpec --region us-central1 --limit 50
 
 
 
+
