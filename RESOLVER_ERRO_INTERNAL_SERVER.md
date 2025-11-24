@@ -140,3 +140,14 @@ gcloud run deploy monpec \
 
 **Última atualização:** Novembro 2025
 
+
+
+
+
+
+
+
+
+
+
+

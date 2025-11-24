@@ -89,3 +89,14 @@ Ou combine aspas simples com variáveis:
 
 **Última atualização:** Novembro 2025
 
+
+
+
+
+
+
+
+
+
+
+

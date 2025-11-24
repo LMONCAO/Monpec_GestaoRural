@@ -28,9 +28,9 @@ def google_search_console_verification(request):
     seleciona o método de verificação via arquivo HTML.
     """
     # Conteúdo do arquivo de verificação do Google Search Console
-    # Este é o conteúdo padrão que o Google espera
+    # O Google espera que o arquivo contenha exatamente: google-site-verification: google40933139f3b0d469.html
     content = "google-site-verification: google40933139f3b0d469.html"
-    return HttpResponse(content, content_type='text/html')
+    return HttpResponse(content, content_type='text/html; charset=utf-8')
 
 
 def landing_page(request):

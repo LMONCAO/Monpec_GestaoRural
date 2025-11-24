@@ -1,132 +1,213 @@
-# Script para configurar dominio monpec.com.br no Google Cloud Run
-# Execute este script apos configurar o DNS no seu provedor
+# Script para Configurar Domínio monpec.com.br no Google Cloud Run
+# Autor: Assistente AI
+# Data: 2025
 
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "  CONFIGURAR DOMINIO MONPEC.COM.BR" -ForegroundColor Cyan
+Write-Host "Configurar Domínio monpec.com.br" -ForegroundColor Cyan
+Write-Host "Google Cloud Run" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
-# Verificar se gcloud esta instalado
-$gcloudCheck = gcloud --version 2>&1
+# Verificar se o gcloud CLI está instalado
+$gcloudPath = Get-Command gcloud -ErrorAction SilentlyContinue
+if (-not $gcloudPath) {
+    Write-Host "⚠️  Google Cloud CLI não encontrado!" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "Opções:" -ForegroundColor Yellow
+    Write-Host "1. Instalar o Google Cloud CLI: https://cloud.google.com/sdk/docs/install" -ForegroundColor White
+    Write-Host "2. Use o Console Web: https://console.cloud.google.com/run" -ForegroundColor White
+    Write-Host ""
+    Write-Host "Pressione qualquer tecla para abrir o guia completo de configuração..."
+    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+    Start-Process "CONFIGURAR_DOMINIO.md"
+    exit
+}
+
+# Verificar se está autenticado
+Write-Host "Verificando autenticação no Google Cloud..." -ForegroundColor Yellow
+$authStatus = gcloud auth list --filter=status:ACTIVE --format="value(account)" 2>&1
+if ($LASTEXITCODE -ne 0 -or -not $authStatus) {
+    Write-Host "❌ Não autenticado no Google Cloud!" -ForegroundColor Red
+    Write-Host ""
+    Write-Host "Execute: gcloud auth login" -ForegroundColor Yellow
+    exit
+}
+
+Write-Host "✅ Autenticado como: $authStatus" -ForegroundColor Green
+Write-Host ""
+
+# Definir variáveis
+$domain = "monpec.com.br"
+$service = "monpec"
+$region = "us-central1"
+
+Write-Host "Configurações:" -ForegroundColor Cyan
+Write-Host "  Domínio: $domain" -ForegroundColor White
+Write-Host "  Serviço: $service" -ForegroundColor White
+Write-Host "  Região: $region" -ForegroundColor White
+Write-Host ""
+
+# Verificar se o serviço existe
+Write-Host "Verificando serviço Cloud Run..." -ForegroundColor Yellow
+$serviceExists = gcloud run services describe $service --region $region --format="value(name)" 2>&1
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "X Google Cloud SDK nao encontrado!" -ForegroundColor Red
-    Write-Host "  Instale em: https://cloud.google.com/sdk/docs/install" -ForegroundColor Yellow
-    exit 1
-} else {
-    Write-Host "OK Google Cloud SDK encontrado" -ForegroundColor Green
+    Write-Host "❌ Serviço '$service' não encontrado na região '$region'!" -ForegroundColor Red
+    Write-Host ""
+    Write-Host "Verifique o nome do serviço e região:" -ForegroundColor Yellow
+    Write-Host "  gcloud run services list --region $region" -ForegroundColor White
+    exit
 }
 
-# Variaveis
-$SERVICE_NAME = "monpec"
-$DOMAIN = "monpec.com.br"
-$REGION = "us-central1"
-
-Write-Host "Configuracoes:" -ForegroundColor Yellow
-Write-Host "  Servico: $SERVICE_NAME" -ForegroundColor White
-Write-Host "  Dominio: $DOMAIN" -ForegroundColor White
-Write-Host "  Regiao: $REGION" -ForegroundColor White
+Write-Host "✅ Serviço encontrado!" -ForegroundColor Green
 Write-Host ""
 
-# Verificar se o servico existe
-Write-Host "Verificando servico Cloud Run..." -ForegroundColor Yellow
-$service = gcloud run services describe $SERVICE_NAME --region $REGION --format="value(status.url)" 2>&1
-if ($LASTEXITCODE -eq 0) {
-    Write-Host "OK Servico encontrado: $service" -ForegroundColor Green
-} else {
-    Write-Host "X Servico nao encontrado!" -ForegroundColor Red
-    Write-Host "  Execute primeiro o deploy do servico." -ForegroundColor Yellow
-    exit 1
-}
-
+# Menu principal
+Write-Host "O que você deseja fazer?" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "1. Criar mapeamento de domínio (novo)" -ForegroundColor White
+Write-Host "2. Ver mapeamento existente" -ForegroundColor White
+Write-Host "3. Listar todos os domínios mapeados" -ForegroundColor White
+Write-Host "4. Ver registros DNS necessários" -ForegroundColor White
+Write-Host "5. Remover mapeamento de domínio" -ForegroundColor White
+Write-Host "6. Ver logs do serviço" -ForegroundColor White
+Write-Host "7. Abrir guia completo (CONFIGURAR_DOMINIO.md)" -ForegroundColor White
+Write-Host "0. Sair" -ForegroundColor White
 Write-Host ""
 
-# Verificar se o mapeamento ja existe
-Write-Host "Verificando mapeamento de dominio existente..." -ForegroundColor Yellow
-$existingMapping = gcloud run domain-mappings describe $DOMAIN --region $REGION 2>&1
-if ($LASTEXITCODE -eq 0) {
-    Write-Host "ATENCAO Mapeamento ja existe!" -ForegroundColor Yellow
-    Write-Host "  Deseja continuar mesmo assim? (S/N)" -ForegroundColor Yellow
-    $continue = Read-Host
-    if ($continue -ne "S" -and $continue -ne "s") {
-        Write-Host "Operacao cancelada." -ForegroundColor Yellow
-        exit 0
-    }
-} else {
-    Write-Host "OK Nenhum mapeamento existente encontrado" -ForegroundColor Green
-}
+$opcao = Read-Host "Escolha uma opção (0-7)"
 
-Write-Host ""
-
-# Criar mapeamento de dominio
-Write-Host "Criando mapeamento de dominio..." -ForegroundColor Yellow
-Write-Host "  Isso pode levar alguns minutos..." -ForegroundColor Gray
-
-$mappingResult = gcloud run domain-mappings create --service $SERVICE_NAME --domain $DOMAIN --region $REGION 2>&1
-
-if ($LASTEXITCODE -eq 0) {
-    Write-Host "OK Mapeamento criado com sucesso!" -ForegroundColor Green
-    Write-Host ""
-    
-    # Extrair informacoes do DNS
-    Write-Host "========================================" -ForegroundColor Cyan
-    Write-Host "  CONFIGURACAO DNS NECESSARIA" -ForegroundColor Cyan
-    Write-Host "========================================" -ForegroundColor Cyan
-    Write-Host ""
-    Write-Host "Configure os seguintes registros DNS no seu provedor:" -ForegroundColor Yellow
-    Write-Host ""
-    Write-Host "Registro CNAME:" -ForegroundColor White
-    Write-Host "  Nome: @ (ou monpec.com.br)" -ForegroundColor Cyan
-    Write-Host "  Tipo: CNAME" -ForegroundColor Cyan
-    Write-Host "  Valor: ghs.googlehosted.com" -ForegroundColor Cyan
-    Write-Host "  TTL: 3600" -ForegroundColor Cyan
-    Write-Host ""
-    Write-Host "Registro CNAME para www:" -ForegroundColor White
-    Write-Host "  Nome: www" -ForegroundColor Cyan
-    Write-Host "  Tipo: CNAME" -ForegroundColor Cyan
-    Write-Host "  Valor: ghs.googlehosted.com" -ForegroundColor Cyan
-    Write-Host "  TTL: 3600" -ForegroundColor Cyan
-    Write-Host ""
-    Write-Host "IMPORTANTE:" -ForegroundColor Yellow
-    Write-Host "  1. Configure o DNS no seu provedor (Registro.br, GoDaddy, etc.)" -ForegroundColor White
-    Write-Host "  2. Aguarde a propagacao DNS (1-48 horas, geralmente 1-2 horas)" -ForegroundColor White
-    Write-Host "  3. O SSL sera configurado automaticamente apos a propagacao" -ForegroundColor White
-    Write-Host ""
-    
-} else {
-    Write-Host "X Erro ao criar mapeamento!" -ForegroundColor Red
-    Write-Host $mappingResult -ForegroundColor Red
-    exit 1
-}
-
-Write-Host ""
-
-# Verificar status do mapeamento
-Write-Host "Verificando status do mapeamento..." -ForegroundColor Yellow
-Start-Sleep -Seconds 5
-
-$mappingStatus = gcloud run domain-mappings describe $DOMAIN --region $REGION --format="value(status.conditions[0].status)" 2>&1
-if ($LASTEXITCODE -eq 0) {
-    $statusColor = if ($mappingStatus -eq "True") { "Green" } else { "Yellow" }
-    Write-Host "Status: $mappingStatus" -ForegroundColor $statusColor
-    
-    if ($mappingStatus -ne "True") {
+switch ($opcao) {
+    "1" {
         Write-Host ""
-        Write-Host "ATENCAO O mapeamento esta aguardando configuracao DNS." -ForegroundColor Yellow
-        Write-Host "  Apos configurar o DNS, o status mudara para ACTIVE." -ForegroundColor White
+        Write-Host "Criando mapeamento de domínio..." -ForegroundColor Yellow
+        Write-Host ""
+        
+        Write-Host "⚠️  IMPORTANTE: Após criar o mapeamento, você receberá registros DNS." -ForegroundColor Yellow
+        Write-Host "   Adicione esses registros no painel do seu provedor de domínio!" -ForegroundColor Yellow
+        Write-Host ""
+        
+        $confirm = Read-Host "Continuar? (S/N)"
+        if ($confirm -ne "S" -and $confirm -ne "s") {
+            Write-Host "Operação cancelada." -ForegroundColor Yellow
+            exit
+        }
+        
+        Write-Host ""
+        gcloud run domain-mappings create --service $service --domain $domain --region $region
+        
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host ""
+            Write-Host "✅ Mapeamento criado com sucesso!" -ForegroundColor Green
+            Write-Host ""
+            Write-Host "📋 Próximos passos:" -ForegroundColor Cyan
+            Write-Host "1. Anote os registros DNS que apareceram acima" -ForegroundColor White
+            Write-Host "2. Acesse o painel do seu provedor de domínio" -ForegroundColor White
+            Write-Host "3. Adicione os registros DNS fornecidos" -ForegroundColor White
+            Write-Host "4. Aguarde a propagação DNS (15 minutos - 2 horas)" -ForegroundColor White
+            Write-Host ""
+            Write-Host "Para ver os registros DNS novamente:" -ForegroundColor Yellow
+            Write-Host "  gcloud run domain-mappings describe $domain --region $region" -ForegroundColor White
+        } else {
+            Write-Host ""
+            Write-Host "❌ Erro ao criar mapeamento!" -ForegroundColor Red
+            Write-Host "Verifique se o domínio já não está mapeado ou há problemas de permissão." -ForegroundColor Yellow
+        }
     }
-} else {
-    Write-Host "ATENCAO Nao foi possivel verificar o status ainda." -ForegroundColor Yellow
+    
+    "2" {
+        Write-Host ""
+        Write-Host "Verificando mapeamento de domínio..." -ForegroundColor Yellow
+        Write-Host ""
+        gcloud run domain-mappings describe $domain --region $region --format="yaml"
+    }
+    
+    "3" {
+        Write-Host ""
+        Write-Host "Listando todos os domínios mapeados..." -ForegroundColor Yellow
+        Write-Host ""
+        gcloud run domain-mappings list --region $region
+    }
+    
+    "4" {
+        Write-Host ""
+        Write-Host "Verificando registros DNS necessários..." -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "Registros DNS que você precisa adicionar no seu provedor:" -ForegroundColor Cyan
+        Write-Host ""
+        
+        gcloud run domain-mappings describe $domain --region $region --format="value(metadata.name)" | Out-Null
+        
+        if ($LASTEXITCODE -eq 0) {
+            $mapping = gcloud run domain-mappings describe $domain --region $region --format="json" | ConvertFrom-Json
+            Write-Host "Domínio: $domain" -ForegroundColor White
+            Write-Host "Status: $($mapping.status.conditions[0].status)" -ForegroundColor White
+            Write-Host ""
+            Write-Host "Registros DNS:" -ForegroundColor Cyan
+            
+            # Verificar se há registros DNS nas anotações
+            $resourceRecords = gcloud run domain-mappings describe $domain --region $region --format="value(status.resourceRecords)" 2>&1
+            if ($resourceRecords) {
+                Write-Host $resourceRecords -ForegroundColor White
+            } else {
+                Write-Host "Execute o comando completo para ver os registros:" -ForegroundColor Yellow
+                Write-Host "  gcloud run domain-mappings describe $domain --region $region" -ForegroundColor White
+            }
+        } else {
+            Write-Host "❌ Domínio não encontrado!" -ForegroundColor Red
+            Write-Host "Crie o mapeamento primeiro (opção 1)" -ForegroundColor Yellow
+        }
+    }
+    
+    "5" {
+        Write-Host ""
+        Write-Host "⚠️  ATENÇÃO: Isso removerá o mapeamento de domínio!" -ForegroundColor Red
+        Write-Host ""
+        $confirm = Read-Host "Tem certeza que deseja remover o mapeamento de $domain? (digite 'SIM' para confirmar)"
+        if ($confirm -eq "SIM") {
+            gcloud run domain-mappings delete $domain --region $region
+            if ($LASTEXITCODE -eq 0) {
+                Write-Host ""
+                Write-Host "✅ Mapeamento removido com sucesso!" -ForegroundColor Green
+            } else {
+                Write-Host ""
+                Write-Host "❌ Erro ao remover mapeamento!" -ForegroundColor Red
+            }
+        } else {
+            Write-Host "Operação cancelada." -ForegroundColor Yellow
+        }
+    }
+    
+    "6" {
+        Write-Host ""
+        Write-Host "Últimos logs do serviço..." -ForegroundColor Yellow
+        Write-Host ""
+        $limit = Read-Host "Quantas linhas de log deseja ver? (padrão: 50)"
+        if (-not $limit) { $limit = 50 }
+        gcloud run services logs read $service --region $region --limit $limit
+    }
+    
+    "7" {
+        Write-Host ""
+        Write-Host "Abrindo guia completo..." -ForegroundColor Yellow
+        Start-Process "CONFIGURAR_DOMINIO.md"
+    }
+    
+    "0" {
+        Write-Host ""
+        Write-Host "Saindo..." -ForegroundColor Yellow
+        exit
+    }
+    
+    default {
+        Write-Host ""
+        Write-Host "❌ Opção inválida!" -ForegroundColor Red
+    }
 }
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "  PROXIMOS PASSOS" -ForegroundColor Cyan
+Write-Host "Operação concluída!" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "1. Configure o DNS no seu provedor de dominio" -ForegroundColor White
-Write-Host "2. Aguarde a propagacao DNS (verifique com: dig monpec.com.br CNAME)" -ForegroundColor White
-Write-Host "3. Verifique o status com:" -ForegroundColor White
-Write-Host "   gcloud run domain-mappings describe $DOMAIN --region $REGION" -ForegroundColor Cyan
-Write-Host ""
-Write-Host "Para mais informacoes, consulte: CONFIGURAR_DOMINIO_MONPEC_COM_BR.md" -ForegroundColor DarkGray
-Write-Host ""
+
+

@@ -184,3 +184,14 @@ GOOGLE_ANALYTICS_ID = 'G-XXXXXXXXXX'  # Substitua pelo seu ID
 
 **Última atualização:** Dezembro 2025
 
+
+
+
+
+
+
+
+
+
+
+

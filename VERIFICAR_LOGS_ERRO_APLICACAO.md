@@ -123,3 +123,14 @@ gcloud run services describe monpec --region us-central1 --format="value(spec.te
 
 **Última atualização:** Novembro 2025
 
+
+
+
+
+
+
+
+
+
+
+

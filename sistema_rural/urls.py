@@ -23,12 +23,7 @@ from django.conf.urls.static import static
 
 from gestao_rural import views as gestao_views
 from gestao_rural import views_curral
-from gestao_rural.sitemaps import StaticViewSitemap
-
-# Configuração do sitemap
-sitemaps = {
-    'static': StaticViewSitemap,
-}
+from gestao_rural import views_sitemap
 
 urlpatterns = [
     # Logout deve vir antes do admin para garantir que use nossa view personalizada
@@ -43,8 +38,8 @@ urlpatterns = [
     # Google Search Console Verification
     path('google40933139f3b0d469.html', gestao_views.google_search_console_verification, name='google_search_console_verification'),
     
-    # Sitemap
-    path('sitemap.xml', sitemap, {'sitemaps': sitemaps}, name='django.contrib.sitemaps.views.sitemap'),
+    # Sitemap (view customizada para garantir acesso público)
+    path('sitemap.xml', views_sitemap.sitemap_view, name='sitemap'),
     
     # Recuperação de senha
     path('recuperar-senha/', auth_views.PasswordResetView.as_view(

@@ -80,3 +80,14 @@ echo "   3. Teste arquivo HTML: $SERVICE_URL/google40933139f3b0d469.html"
 echo "   4. Verifique no Google Search Console usando esta URL"
 echo ""
 
+
+
+
+
+
+
+
+
+
+
+

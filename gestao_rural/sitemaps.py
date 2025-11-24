@@ -20,3 +20,14 @@ class StaticViewSitemap(Sitemap):
         return reverse(item)
 
 
+
+
+
+
+
+
+
+
+
+
+

@@ -16,3 +16,14 @@ echo "📋 Para ver logs em tempo real, execute:"
 echo "   gcloud run services logs tail monpec --region us-central1"
 echo ""
 
+
+
+
+
+
+
+
+
+
+
+

@@ -132,3 +132,14 @@ echo "🔍 Se ainda houver erro, verifique os logs:"
 echo "   gcloud run services logs read monpec --region us-central1 --limit 50"
 echo ""
 
+
+
+
+
+
+
+
+
+
+
+

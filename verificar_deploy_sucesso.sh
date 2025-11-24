@@ -67,3 +67,14 @@ echo "   → Prefixo de URL: $SERVICE_URL"
 echo "   → Método: Tag HTML ou Arquivo HTML"
 echo ""
 
+
+
+
+
+
+
+
+
+
+
+

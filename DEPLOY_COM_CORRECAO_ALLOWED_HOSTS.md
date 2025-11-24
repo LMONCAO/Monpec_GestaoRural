@@ -115,3 +115,14 @@ A correção atual permite todos os hosts (`ALLOWED_HOSTS = ['*']`) apenas para 
 
 **Última atualização:** Novembro 2025
 
+
+
+
+
+
+
+
+
+
+
+

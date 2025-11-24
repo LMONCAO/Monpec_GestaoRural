@@ -735,6 +735,9 @@ def curral_dashboard_v3(request, propriedade_id):
         'identificar_url': reverse('curral_identificar_codigo', args=[propriedade_id]),
         'registrar_url': reverse('curral_registrar_manejo', args=[propriedade_id]),
         'stats_url': reverse('curral_stats_api', args=[propriedade_id]),
+        'criar_sessao_url': reverse('curral_criar_sessao_api', args=[propriedade_id]),
+        'encerrar_sessao_url': reverse('curral_encerrar_sessao_api', args=[propriedade_id]),
+        'stats_sessao_url': reverse('curral_stats_sessao_api', args=[propriedade_id]),
         'sessao_ativa': sessao_ativa,
         'stats_sessao': stats_sessao,
         'super_tela': {
@@ -877,23 +880,47 @@ def curral_identificar_codigo(request, propriedade_id):
     propriedade = get_object_or_404(Propriedade, id=propriedade_id)
     
     # Aceita código tanto de GET quanto de POST
+    animal_id_especifico = None
     if request.method == 'POST':
         try:
             import json
             data = json.loads(request.body)
             codigo_bruto = data.get('codigo', '').strip()
+            animal_id_especifico = data.get('animal_id')  # ID específico quando selecionado no modal
         except (json.JSONDecodeError, AttributeError):
             codigo_bruto = request.POST.get('codigo', '').strip()
+            try:
+                animal_id_especifico = int(request.POST.get('animal_id', 0)) or None
+            except (ValueError, TypeError):
+                animal_id_especifico = None
     else:
         codigo_bruto = request.GET.get('codigo', '').strip()
+        try:
+            animal_id_especifico = int(request.GET.get('animal_id', 0)) or None
+        except (ValueError, TypeError):
+            animal_id_especifico = None
     
-    if not codigo_bruto:
+    # Se foi fornecido um animal_id específico, buscar diretamente e pular a busca
+    animal = None
+    if animal_id_especifico:
+        animal = AnimalIndividual.objects.filter(
+            id=animal_id_especifico,
+            propriedade=propriedade
+        ).select_related('categoria', 'propriedade__produtor').first()
+        
+        if not animal:
+            return JsonResponse(
+                {'status': 'erro', 'mensagem': 'Animal não encontrado.'},
+                status=404,
+            )
+    
+    if not codigo_bruto and not animal_id_especifico:
         return JsonResponse(
             {'status': 'erro', 'mensagem': 'Informe o código do brinco/SISBOV.'},
             status=400,
         )
     
-    codigo = _normalizar_codigo(codigo_bruto)
+    codigo = _normalizar_codigo(codigo_bruto) if codigo_bruto else ''
     parece_sisbov = len(codigo) == 15
 
     if not codigo or len(codigo) < 3:
@@ -911,25 +938,29 @@ def curral_identificar_codigo(request, propriedade_id):
         Q(numero_manejo=codigo)
     )
     
-    # Para códigos de 6 dígitos (número de manejo típico), busca mais específica
+    # Para códigos de 6 dígitos (número de manejo típico), busca EXATA e PRECISA
     if len(codigo) == 6:
-        # Busca exata no campo numero_manejo
+        # PRIORIDADE 1: Busca exata no campo numero_manejo (MAIS PRECISO)
         filtros_animais |= Q(numero_manejo=codigo)
-        # Busca nos últimos 6 dígitos do SISBOV (posições 8-13 em códigos de 15 dígitos)
-        filtros_animais |= Q(codigo_sisbov__regex=rf'^\d{{7}}{codigo}\d$')
-        # Busca nos últimos 6 dígitos do numero_brinco
+        # PRIORIDADE 2: Busca EXATA nas posições 8-13 do SISBOV (15 dígitos)
+        # Regex: 8 dígitos iniciais (posições 0-7) + código de 6 dígitos (posições 8-13) + 1 dígito verificador (posição 14)
+        filtros_animais |= Q(codigo_sisbov__regex=rf'^\d{{8}}{re.escape(codigo)}\d$')
+        # PRIORIDADE 3: Busca nos últimos 6 dígitos do numero_brinco (apenas se terminar exatamente)
         filtros_animais |= Q(numero_brinco__endswith=codigo)
+        # NÃO usa __contains para evitar falsos positivos
     
-    # Para códigos maiores, também busca por substring
-    if len(codigo) >= 6:
-        filtros_animais |= (
-            Q(codigo_sisbov__contains=codigo) |
-            Q(numero_brinco__contains=codigo) |
-            Q(codigo_eletronico__contains=codigo)
-        )
-        # Para códigos de 6-7 dígitos, também busca número de manejo
-        if len(codigo) <= 7:
-            filtros_animais |= Q(numero_manejo=codigo)
+    # Para códigos de 7 dígitos (também pode ser número de manejo)
+    if len(codigo) == 7:
+        # PRIORIDADE 1: Busca exata no campo numero_manejo
+        filtros_animais |= Q(numero_manejo=codigo)
+        # PRIORIDADE 2: Busca nos últimos 7 dígitos do SISBOV
+        filtros_animais |= Q(codigo_sisbov__endswith=codigo)
+        # PRIORIDADE 3: Busca nos últimos 7 dígitos do numero_brinco
+        filtros_animais |= Q(numero_brinco__endswith=codigo)
+        # NÃO usa __contains para evitar falsos positivos
+    
+    # Para códigos de 6-7 dígitos, busca exata no número de manejo já foi feita acima
+    # Não adiciona busca por substring para códigos de 6-7 dígitos para evitar falsos positivos
     
     # Para códigos SISBOV completos (15 dígitos), também busca pelos últimos dígitos
     if len(codigo) == 15:
@@ -962,78 +993,173 @@ def curral_identificar_codigo(request, propriedade_id):
     if len(codigo) >= 6:
         filtros_brinco |= Q(numero_brinco__contains=codigo)
 
-    # Busca animal com os filtros
-    animal = (
-        AnimalIndividual.objects.filter(propriedade=propriedade)
-        .filter(filtros_animais)
-        .select_related('categoria', 'propriedade__produtor')
-        .first()
-    )
+    # NOVA LÓGICA: Buscar TODOS os animais que correspondem (para detectar duplicidades)
+    # Se buscar por SISBOV completo, retorna direto
+    # Se buscar por manejo ou RFID, coleta TODOS e verifica duplicidade
+    # Se animal_id foi fornecido, já temos o animal e pulamos a busca
     
-    # Se não encontrou com filtros diretos, tenta busca normalizada em Python
-    # Isso é necessário porque o código pode estar salvo com formatação diferente
-    if not animal and len(codigo) >= 6:
-        animais_candidatos = (
-            AnimalIndividual.objects.filter(propriedade=propriedade)
-            .select_related('categoria', 'propriedade__produtor')
-        )
-        
-        for animal_candidato in animais_candidatos:
-            sisbov_normalizado = _normalizar_codigo(animal_candidato.codigo_sisbov or '')
-            brinco_normalizado = _normalizar_codigo(animal_candidato.numero_brinco or '')
-            eletronico_normalizado = _normalizar_codigo(animal_candidato.codigo_eletronico or '')
-            manejo_normalizado = _normalizar_codigo(animal_candidato.numero_manejo or '')
+    animais_encontrados = []
+    busca_por_sisbov = len(codigo) == 15
+    
+    # Se já temos o animal (fornecido por animal_id), pular busca
+    if not animal:
+        # Busca direta por SISBOV (código completo de 15 dígitos)
+        # IMPORTANTE: Para SISBOV completo, buscar APENAS por codigo_sisbov (evita confusão com RFID)
+        if busca_por_sisbov:
+            # PRIORIDADE 1: Busca EXATA por codigo_sisbov (SISBOV é único e não deve buscar em outros campos)
+            animal = (
+                AnimalIndividual.objects.filter(
+                    propriedade=propriedade,
+                    codigo_sisbov=codigo
+                )
+                .select_related('categoria', 'propriedade__produtor')
+                .first()
+            )
             
-            # Se não tem numero_manejo salvo, tenta extrair do SISBOV
-            if not manejo_normalizado:
-                if sisbov_normalizado:
-                    manejo_normalizado = _extrair_numero_manejo(sisbov_normalizado)
-                elif brinco_normalizado and len(brinco_normalizado) >= 6:
-                    # Para brincos, tenta usar os últimos 6 dígitos
-                    manejo_normalizado = brinco_normalizado[-6:] if len(brinco_normalizado) >= 6 else brinco_normalizado[-7:]
-            
-            # Compara o código normalizado
-            if (sisbov_normalizado == codigo or 
-                brinco_normalizado == codigo or 
-                eletronico_normalizado == codigo or
-                manejo_normalizado == codigo):
-                animal = animal_candidato
-                break
-            
-            # Para códigos de 6 dígitos (número de manejo), busca mais específica
-            if len(codigo) == 6:
-                # Verifica se o número de manejo extraído corresponde
-                if manejo_normalizado and manejo_normalizado == codigo:
-                    animal = animal_candidato
-                    break
-                # Verifica se termina com o código (para SISBOV completos, posições 8-13)
-                if sisbov_normalizado and len(sisbov_normalizado) == 15:
-                    manejo_extraido = sisbov_normalizado[8:14]  # Posições 8-13
-                    if manejo_extraido == codigo:
+            # Se não encontrou com busca exata, tenta busca normalizada
+            if not animal:
+                animais_candidatos = (
+                    AnimalIndividual.objects.filter(propriedade=propriedade)
+                    .select_related('categoria', 'propriedade__produtor')
+                )
+                
+                for animal_candidato in animais_candidatos:
+                    sisbov_normalizado = _normalizar_codigo(animal_candidato.codigo_sisbov or '')
+                    if sisbov_normalizado == codigo:
                         animal = animal_candidato
                         break
-                # Verifica se termina com o código no numero_brinco
-                if brinco_normalizado and brinco_normalizado.endswith(codigo):
-                    animal = animal_candidato
-                    break
             
-            # Para códigos SISBOV completos, também tenta comparar os últimos dígitos
-            if len(codigo) == 15:
-                codigo_final = codigo[-7:]
-                codigo_manejo = codigo[8:14]  # Posições 8-13 (6 dígitos)
-                if (sisbov_normalizado and len(sisbov_normalizado) == 15 and 
-                    codigo_final == sisbov_normalizado[-7:]):
-                    animal = animal_candidato
-                    break
-                if (brinco_normalizado and len(brinco_normalizado) == 15 and 
-                    codigo_final == brinco_normalizado[-7:]):
-                    animal = animal_candidato
-                    break
-                if manejo_normalizado and (manejo_normalizado == codigo_final or manejo_normalizado == codigo_manejo):
-                    animal = animal_candidato
-                    break
-
+                # Se encontrou por SISBOV, retorna direto (SISBOV é único)
+                if animal:
+                    animais_encontrados = [animal]
+        else:
+            # Busca por manejo ou RFID - coleta TODOS os animais que correspondem
+            # Primeiro tenta com filtros diretos
+            animais_diretos = list(
+                AnimalIndividual.objects.filter(propriedade=propriedade)
+                .filter(filtros_animais)
+                .select_related('categoria', 'propriedade__produtor')
+            )
+        
+        # Depois tenta busca normalizada em Python
+        if len(codigo) >= 6:
+            animais_candidatos = (
+                AnimalIndividual.objects.filter(propriedade=propriedade)
+                .select_related('categoria', 'propriedade__produtor')
+            )
+            
+            for animal_candidato in animais_candidatos:
+                # Pula se já está na lista
+                if animal_candidato in animais_diretos:
+                    continue
+                    
+                sisbov_normalizado = _normalizar_codigo(animal_candidato.codigo_sisbov or '')
+                brinco_normalizado = _normalizar_codigo(animal_candidato.numero_brinco or '')
+                eletronico_normalizado = _normalizar_codigo(animal_candidato.codigo_eletronico or '')
+                manejo_normalizado = _normalizar_codigo(animal_candidato.numero_manejo or '')
+                
+                # Se não tem numero_manejo salvo, tenta extrair do SISBOV
+                if not manejo_normalizado:
+                    if sisbov_normalizado:
+                        manejo_normalizado = _extrair_numero_manejo(sisbov_normalizado)
+                    elif brinco_normalizado and len(brinco_normalizado) >= 6:
+                        manejo_normalizado = brinco_normalizado[-6:] if len(brinco_normalizado) >= 6 else brinco_normalizado[-7:]
+                
+                corresponde = False
+                
+                # PRIORIDADE 1: Verifica correspondência por código eletrônico (RFID) - EXATA
+                if eletronico_normalizado == codigo:
+                    corresponde = True
+                # PRIORIDADE 2: Verifica correspondência por número de manejo - EXATA
+                elif manejo_normalizado == codigo:
+                    corresponde = True
+                # PRIORIDADE 3: Para códigos de 6 dígitos, verifica nas posições corretas do SISBOV
+                elif len(codigo) == 6:
+                    # Verifica se o número de manejo está nas posições 8-13 do SISBOV (15 dígitos)
+                    if sisbov_normalizado and len(sisbov_normalizado) == 15:
+                        manejo_extraido = sisbov_normalizado[8:14]  # Posições 8-13 (6 dígitos)
+                        if manejo_extraido == codigo:
+                            corresponde = True
+                    # Verifica se o número de manejo está no final do brinco (últimos 6 dígitos) - EXATA
+                    elif brinco_normalizado and len(brinco_normalizado) >= 6:
+                        if brinco_normalizado[-6:] == codigo:
+                            corresponde = True
+                # PRIORIDADE 4: Para códigos de 7 dígitos, verifica no final do SISBOV
+                elif len(codigo) == 7:
+                    if sisbov_normalizado and sisbov_normalizado.endswith(codigo):
+                        corresponde = True
+                    elif brinco_normalizado and brinco_normalizado.endswith(codigo):
+                        corresponde = True
+                
+                if corresponde:
+                    animais_diretos.append(animal_candidato)
+        
+            # Remove duplicatas mantendo ordem
+            animais_encontrados = []
+            ids_vistos = set()
+            for animal_candidato in animais_diretos:
+                if animal_candidato.id not in ids_vistos:
+                    animais_encontrados.append(animal_candidato)
+                    ids_vistos.add(animal_candidato.id)
+    
+    # Verificar se encontrou animais
+    if not animal:
+        if len(animais_encontrados) == 0:
+            animal = None
+        elif len(animais_encontrados) == 1:
+            animal = animais_encontrados[0]
+    else:
+        # Múltiplos animais encontrados - retornar lista para escolha
+        # IMPORTANTE: Verificar se todos têm SISBOV
+        animais_com_sisbov = []
+        for animal_candidato in animais_encontrados:
+            sisbov = animal_candidato.codigo_sisbov or animal_candidato.numero_brinco or ''
+            if not sisbov:
+                continue  # Pula animais sem SISBOV
+            
+            numero_manejo = animal_candidato.numero_manejo or _extrair_numero_manejo(sisbov)
+            animais_com_sisbov.append({
+                'id': animal_candidato.id,
+                'codigo_sisbov': sisbov,
+                'numero_manejo': numero_manejo,
+                'codigo_eletronico': animal_candidato.codigo_eletronico or '',
+                'raca': getattr(animal_candidato, 'raca', '') or '',
+                'sexo': animal_candidato.get_sexo_display() if hasattr(animal_candidato, 'get_sexo_display') else '',
+                'data_nascimento': animal_candidato.data_nascimento.strftime('%d/%m/%Y') if animal_candidato.data_nascimento else '',
+                'categoria': getattr(animal_candidato.categoria, 'nome', '') if animal_candidato.categoria else '',
+                'peso_atual': float(animal_candidato.peso_atual_kg) if animal_candidato.peso_atual_kg else None,
+            })
+        
+        if len(animais_com_sisbov) == 0:
+            # Nenhum animal tem SISBOV - retornar erro
+            return JsonResponse(
+                {
+                    'status': 'erro',
+                    'mensagem': 'Código encontrado, mas nenhum animal possui SISBOV cadastrado. O código não foi encontrado.',
+                },
+                status=404,
+            )
+        elif len(animais_com_sisbov) == 1:
+            # Apenas um tem SISBOV - usar esse
+            animal_id = animais_com_sisbov[0]['id']
+            animal = AnimalIndividual.objects.filter(id=animal_id, propriedade=propriedade).first()
+        else:
+            # Múltiplos animais com SISBOV - retornar lista para escolha
+            return JsonResponse(
+                {
+                    'status': 'duplicidade',
+                    'codigo_lido': codigo,
+                    'animais': animais_com_sisbov,
+                    'mensagem': f'Foram encontrados {len(animais_com_sisbov)} animais com o mesmo número de manejo ou código RFID. Selecione o animal correto pelo SISBOV completo:',
+                }
+            )
+    
     if animal:
+        # ANIMAL JÁ CADASTRADO: Retornar dados do animal para preencher card e ir para pesagem
+        # IMPORTANTE: O brinco é o SISBOV completo (15 dígitos)
+        # O número de manejo é extraído do SISBOV (posições 8-13, 6 dígitos)
+        # Exemplo: 105500376195129 -> número de manejo = 619512 (posições 8-13)
+        
         # Usa o numero_manejo do banco se existir, senão calcula
         numero_manejo = animal.numero_manejo or _extrair_numero_manejo(animal.codigo_sisbov or animal.numero_brinco or '')
         # Se não tinha numero_manejo salvo, salva agora
@@ -1191,7 +1317,13 @@ def curral_identificar_codigo(request, propriedade_id):
         brinco_normalizado = _normalizar_codigo(brinco_candidato.numero_brinco or '')
         rfid_normalizado = _normalizar_codigo(brinco_candidato.codigo_rfid or '')
         manejo_candidato = _extrair_numero_manejo(brinco_candidato.numero_brinco or '')
-        manejo_codigo = _extrair_numero_manejo(codigo)
+        
+        # Para códigos de 6 dígitos, usar o próprio código como número de manejo
+        # Para códigos maiores, extrair o número de manejo
+        if len(codigo_normalizado) == 6:
+            manejo_codigo = codigo_normalizado  # Usar o código diretamente
+        else:
+            manejo_codigo = _extrair_numero_manejo(codigo)
         
         corresponde = False
         
@@ -1201,15 +1333,25 @@ def curral_identificar_codigo(request, propriedade_id):
         # Verifica correspondência por RFID
         elif rfid_normalizado == codigo_normalizado and rfid_normalizado:
             corresponde = True
-        # Verifica correspondência por número de manejo (últimos 7 dígitos)
+        # Verifica correspondência por número de manejo
         elif manejo_candidato and manejo_codigo and manejo_candidato == manejo_codigo:
             corresponde = True
         # Para códigos SISBOV completos, também tenta comparar os últimos dígitos
         elif len(codigo_normalizado) == 15 and len(brinco_normalizado) == 15:
             if codigo_normalizado[-7:] == brinco_normalizado[-7:]:
                 corresponde = True
-        # Para códigos parciais (6-7 dígitos), verifica se termina com o código
-        elif len(codigo_normalizado) >= 6:
+        # Para códigos de 6 dígitos, verifica se o número de manejo do brinco corresponde
+        elif len(codigo_normalizado) == 6:
+            # Verifica se o número de manejo extraído do brinco corresponde ao código
+            if manejo_candidato == codigo_normalizado:
+                corresponde = True
+            # Verifica se o código está nas posições 8-13 do SISBOV (15 dígitos)
+            elif len(brinco_normalizado) == 15:
+                manejo_extraido_brinco = brinco_normalizado[8:14]  # Posições 8-13
+                if manejo_extraido_brinco == codigo_normalizado:
+                    corresponde = True
+        # Para códigos parciais (7+ dígitos), verifica se termina com o código
+        elif len(codigo_normalizado) >= 7:
             if (brinco_normalizado.endswith(codigo_normalizado) or 
                 (rfid_normalizado and rfid_normalizado.endswith(codigo_normalizado))):
                 corresponde = True
@@ -1525,13 +1667,21 @@ def curral_registrar_manejo(request, propriedade_id):
         with transaction.atomic():
             if tipo_fluxo == 'estoque' and manejo == 'CADASTRO_INICIAL':
                 resultado = _processar_cadastro_estoque(propriedade, codigo, payload, request.user)
-                return JsonResponse(
-                    {
-                        'status': 'ok',
-                        'mensagem': resultado.get('mensagem', 'Animal cadastrado com sucesso!'),
-                        'redirect': resultado.get('redirect'),
-                    }
-                )
+                resposta = {
+                    'status': 'ok',
+                    'mensagem': resultado.get('mensagem', 'Animal cadastrado com sucesso!'),
+                }
+                if resultado.get('redirect'):
+                    resposta['redirect'] = resultado.get('redirect')
+                if resultado.get('animal_id'):
+                    resposta['animal_id'] = resultado.get('animal_id')
+                if resultado.get('numero_brinco'):
+                    resposta['numero_brinco'] = resultado.get('numero_brinco')
+                if resultado.get('codigo_sisbov'):
+                    resposta['codigo_sisbov'] = resultado.get('codigo_sisbov')
+                if resultado.get('numero_manejo'):
+                    resposta['numero_manejo'] = resultado.get('numero_manejo')
+                return JsonResponse(resposta)
 
             if tipo_fluxo == 'animal' and payload.get('novo_brinco'):
                 resultado = _processar_troca_brinco(propriedade, codigo, payload, request.user)
@@ -1847,7 +1997,14 @@ def _processar_cadastro_estoque(propriedade, codigo, payload, usuario):
     )
 
     redirect_url = reverse('animal_individual_detalhes', args=[propriedade.id, animal.id])
-    return {'redirect': redirect_url}
+    return {
+        'redirect': redirect_url,
+        'animal_id': animal.id,
+        'numero_brinco': animal.numero_brinco,
+        'codigo_sisbov': animal.codigo_sisbov,
+        'numero_manejo': animal.numero_manejo or _extrair_numero_manejo(animal.codigo_sisbov or animal.numero_brinco or ''),
+        'mensagem': 'Animal cadastrado com sucesso!'
+    }
 
 
 def _status_para_brinco_antigo(motivo: str) -> tuple[str, str | None]:
@@ -2878,19 +3035,24 @@ def curral_historico_manejos(request, propriedade_id, animal_id):
     historico = []
     
     for manejo in manejos:
-        historico.append({
+        item = {
             'id': manejo.id,
             'tipo': 'manejo',
             'titulo': manejo.titulo,
             'tipo_manejo': manejo.tipo.nome if manejo.tipo else '',
+            'tipo_slug': manejo.tipo.slug if manejo.tipo else '',
+            'tipo_nome': manejo.tipo.nome if manejo.tipo else '',
             'status': manejo.get_status_display(),
             'prioridade': manejo.get_prioridade_display(),
             'data': manejo.data_prevista.isoformat() if manejo.data_prevista else None,
+            'data_prevista': manejo.data_prevista.isoformat() if manejo.data_prevista else None,
             'data_formatada': manejo.data_prevista.strftime('%d/%m/%Y') if manejo.data_prevista else '',
             'responsavel': manejo.responsavel.get_full_name() if manejo.responsavel else '',
             'observacoes': manejo.observacoes or '',
             'criado_em': localtime(manejo.data_criacao).isoformat() if hasattr(manejo, 'data_criacao') else None,
-        })
+            'metadados': manejo.metadados or {},
+        }
+        historico.append(item)
     
     for evento in eventos_curral:
         data_local = localtime(evento.data_evento)
@@ -3697,6 +3859,98 @@ def curral_registrar_manejos_api(request, propriedade_id):
             
     except Exception as exc:  # noqa: BLE001
         return JsonResponse({'status': 'erro', 'mensagem': f'Erro ao registrar manejos: {str(exc)}'}, status=500)
+
+
+@login_required
+def curral_atualizar_animal_api(request, propriedade_id):
+    """API: Atualiza dados editáveis de um animal (raça, sexo, nascimento, peso, categoria, lote)."""
+    if request.method != 'POST':
+        return JsonResponse({'status': 'erro', 'mensagem': 'Método não permitido.'}, status=405)
+    
+    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    
+    try:
+        payload = json.loads(request.body or '{}')
+    except json.JSONDecodeError:
+        return JsonResponse({'status': 'erro', 'mensagem': 'Corpo da requisição inválido.'}, status=400)
+    
+    animal_id = payload.get('animal_id')
+    if not animal_id:
+        return JsonResponse({'status': 'erro', 'mensagem': 'ID do animal não informado.'}, status=400)
+    
+    # Buscar animal
+    animal = AnimalIndividual.objects.filter(id=animal_id, propriedade=propriedade).first()
+    if not animal:
+        return JsonResponse({'status': 'erro', 'mensagem': 'Animal não encontrado.'}, status=404)
+    
+    try:
+        # Atualizar campos editáveis
+        if 'raca' in payload:
+            animal.raca = payload['raca'].strip() if payload['raca'] else None
+        
+        if 'sexo' in payload:
+            sexo = payload['sexo'].strip().upper()
+            if sexo in ['F', 'M']:
+                animal.sexo = sexo
+        
+        if 'data_nascimento' in payload:
+            data_nasc = payload['data_nascimento']
+            if data_nasc:
+                try:
+                    # Aceita formato YYYY-MM-DD ou DD/MM/YYYY
+                    if '-' in data_nasc:
+                        animal.data_nascimento = datetime.strptime(data_nasc, '%Y-%m-%d').date()
+                    elif '/' in data_nasc:
+                        animal.data_nascimento = datetime.strptime(data_nasc, '%d/%m/%Y').date()
+                except (ValueError, TypeError):
+                    pass  # Ignora data inválida
+            else:
+                animal.data_nascimento = None
+        
+        if 'peso' in payload:
+            peso = payload['peso']
+            if peso:
+                try:
+                    animal.peso_atual_kg = Decimal(str(peso).replace(',', '.'))
+                except (ValueError, InvalidOperation):
+                    pass  # Ignora peso inválido
+            else:
+                animal.peso_atual_kg = None
+        
+        if 'categoria' in payload:
+            categoria_nome = payload['categoria'].strip() if payload['categoria'] else None
+            if categoria_nome:
+                # Tentar encontrar categoria pelo nome
+                categoria = CategoriaAnimal.objects.filter(
+                    nome__icontains=categoria_nome,
+                    ativo=True
+                ).first()
+                if categoria:
+                    animal.categoria = categoria
+        
+        if 'lote' in payload:
+            lote_nome = payload['lote'].strip() if payload['lote'] else None
+            if lote_nome:
+                # Tentar encontrar lote pelo nome na sessão atual ou geral
+                lote = CurralLote.objects.filter(
+                    nome__icontains=lote_nome,
+                    sessao__propriedade=propriedade
+                ).order_by('-sessao__data_inicio').first()
+                if lote:
+                    animal.lote_atual = lote
+            else:
+                animal.lote_atual = None
+        
+        animal.save()
+        
+        return JsonResponse({
+            'status': 'ok',
+            'mensagem': 'Dados do animal atualizados com sucesso!',
+            'animal_id': animal.id
+        })
+        
+    except Exception as exc:  # noqa: BLE001
+        return JsonResponse({'status': 'erro', 'mensagem': f'Erro ao atualizar animal: {str(exc)}'}, status=500)
 
 
 @login_required

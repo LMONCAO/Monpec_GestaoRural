@@ -128,6 +128,7 @@ urlpatterns = [
     path('propriedade/<int:propriedade_id>/curral/relatorio/iatf/', views_curral.curral_relatorio_iatf, name='curral_relatorio_iatf'),
     path('propriedade/<int:propriedade_id>/curral/api/identificar/', views_curral.curral_identificar_codigo, name='curral_identificar_codigo'),
     path('propriedade/<int:propriedade_id>/curral/api/dados-simulacao/', views_curral.curral_dados_simulacao, name='curral_dados_simulacao'),
+    path('propriedade/<int:propriedade_id>/curral/api/animal/atualizar/', views_curral.curral_atualizar_animal_api, name='curral_atualizar_animal_api'),
     path('propriedade/<int:propriedade_id>/curral/api/registrar/', views_curral.curral_registrar_manejo, name='curral_registrar_manejo'),
     path('propriedade/<int:propriedade_id>/curral/api/animal/<int:animal_id>/registros/', views_curral.curral_registros_animal, name='curral_registros_animal'),
     path('propriedade/<int:propriedade_id>/curral/api/animal/<int:animal_id>/pesagens/', views_curral.curral_historico_pesagens, name='curral_historico_pesagens'),

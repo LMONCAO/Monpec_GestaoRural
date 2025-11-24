@@ -32,6 +32,8 @@ class DemoRestrictionMiddleware:
             r'^/static/',
             r'^/media/',
             r'^/admin/',
+            r'^/sitemap\.xml$',  # Sitemap para SEO
+            r'^/google.*\.html$',  # Arquivos de verificação Google
         ]
         
         # Rotas de API permitidas (se necessário)
