@@ -3,6 +3,12 @@
 echo "🚀 INICIANDO SISTEMA RURAL COMPLETO"
 echo "==================================="
 
+# Obter o diretório onde o script está localizado
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PROJECT_DIR="$SCRIPT_DIR"
+
+echo "📁 Diretório do projeto: $PROJECT_DIR"
+
 # Parar processos existentes
 echo "⏹️ Parando processos existentes..."
 pkill -f "python.*manage.py"
@@ -12,23 +18,47 @@ systemctl stop nginx 2>/dev/null
 # Aguardar
 sleep 3
 
-# Ir para o diretório
-cd /home/django/sistema-rural
+# Ir para o diretório do projeto
+cd "$PROJECT_DIR"
 
-# Ativar ambiente virtual
-source venv/bin/activate
+# Verificar se manage.py existe
+if [ ! -f "manage.py" ]; then
+    echo "❌ ERRO: manage.py não encontrado em $PROJECT_DIR"
+    echo "   Certifique-se de executar o script na raiz do projeto Django"
+    exit 1
+fi
+
+# Ativar ambiente virtual (se existir)
+if [ -d "venv/bin" ]; then
+    echo "🔌 Ativando ambiente virtual..."
+    source venv/bin/activate
+elif [ -d ".venv/bin" ]; then
+    echo "🔌 Ativando ambiente virtual..."
+    source .venv/bin/activate
+else
+    echo "⚠️  Ambiente virtual não encontrado. Usando Python do sistema."
+fi
+
+# Verificar configuração (detectar qual usar)
+if [ -f "sistema_rural/settings_producao.py" ]; then
+    SETTINGS="sistema_rural.settings_producao"
+    echo "🔍 Usando configurações de produção"
+else
+    SETTINGS="sistema_rural.settings"
+    echo "🔍 Usando configurações padrão"
+fi
 
 # Verificar configuração
 echo "🔍 Verificando configuração Django..."
-python manage.py check --settings=sistema_rural.settings_producao
+python manage.py check --settings=$SETTINGS
 
 # Coletar arquivos estáticos
 echo "📦 Coletando arquivos estáticos..."
-python manage.py collectstatic --noinput --settings=sistema_rural.settings_producao
+python manage.py collectstatic --noinput --settings=$SETTINGS
 
 # Iniciar Django em background
 echo "🚀 Iniciando Django..."
-nohup python manage.py runserver 0.0.0.0:8000 --settings=sistema_rural.settings_producao > /tmp/django.log 2>&1 &
+nohup python manage.py runserver 0.0.0.0:8000 --settings=$SETTINGS > /tmp/django.log 2>&1 &
 
 # Aguardar inicialização
 echo "⏳ Aguardando inicialização..."
@@ -49,7 +79,12 @@ curl -I http://localhost:8000
 echo ""
 echo "✅ SISTEMA INICIADO!"
 echo "==================="
-echo "Acesse: http://45.32.219.76:8000"
-echo "Logs: tail -f /tmp/django.log"
+echo "📁 Diretório: $PROJECT_DIR"
+echo "⚙️  Settings: $SETTINGS"
+echo "🌐 Acesse: http://localhost:8000"
+echo "📝 Logs: tail -f /tmp/django.log"
+echo ""
+echo "💡 Para verificar o IP externo:"
+echo "   hostname -I | awk '{print \$1}'"
 
 

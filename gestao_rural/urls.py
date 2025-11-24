@@ -116,6 +116,8 @@ urlpatterns = [
     # Super Tela de Curral / Manejo
     # Rotas específicas devem vir ANTES da rota genérica
     # NOTA: curral/v3/ está definido em sistema_rural/urls.py para garantir prioridade
+    # Mas também adicionamos aqui como backup
+    path('propriedade/<int:propriedade_id>/curral/v3/', views_curral.curral_dashboard_v3, name='curral_dashboard_v3'),
     path('propriedade/<int:propriedade_id>/curral/painel/', views_curral.curral_painel, name='curral_painel'),
     path('propriedade/<int:propriedade_id>/curral/tela-unica/', views_curral.curral_tela_unica, name='curral_tela_unica'),
     path('propriedade/<int:propriedade_id>/curral/', views_curral.curral_dashboard, name='curral_dashboard'),

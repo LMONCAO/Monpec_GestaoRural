@@ -63,7 +63,7 @@ echo   Pressione Ctrl+C para parar
 echo ========================================
 echo.
 
-%PYTHON_CMD% manage.py runserver 0.0.0.0:8000 --settings=sistema_rural.settings_windows
+%PYTHON_CMD% manage.py runserver 0.0.0.0:8000
 
 pause
 

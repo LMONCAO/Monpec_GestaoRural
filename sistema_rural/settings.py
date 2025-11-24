@@ -21,10 +21,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-your-secret-key-here'
+# SECRET_KEY gerado automaticamente para desenvolvimento
+SECRET_KEY = os.getenv('SECRET_KEY', 'YrJOs823th_HB2BP6Uz9A0NVvzL0Fif-t-Rfub5BXgVtE0LxXIWEPQIFqYvI8UNiZKE')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
 
 ALLOWED_HOSTS = [
        'localhost',
@@ -213,4 +214,23 @@ GOOGLE_ANALYTICS_ID = os.getenv('GOOGLE_ANALYTICS_ID', '')
 # ========================================
 # URL da Hotmart para pagamento
 HOTMART_CHECKOUT_URL = os.getenv('HOTMART_CHECKOUT_URL', 'https://pay.hotmart.com/O102944551F')
+
+# ========================================
+# CONFIGURAÇÕES DE SEGURANÇA
+# ========================================
+# Configurações de segurança HTTPS/SSL (apenas em produção)
+# Em desenvolvimento, deixar False para facilitar testes locais
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+    SECURE_HSTS_SECONDS = 31536000  # 1 ano
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+else:
+    # Em desenvolvimento, manter False para não bloquear HTTP local
+    SECURE_SSL_REDIRECT = False
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
 
