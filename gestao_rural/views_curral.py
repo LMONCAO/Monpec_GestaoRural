@@ -13,7 +13,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.db.utils import OperationalError
-from django.db.models import Count, Q
+from django.db.models import Count, Q, Avg
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -1404,9 +1404,14 @@ def curral_identificar_codigo(request, propriedade_id):
     codigo_normalizado = _normalizar_codigo(codigo)
     
     # Busca todos os brincos disponíveis e normaliza em Python
+    # IMPORTANTE: Buscar explicitamente por status DISPONIVEL (não apenas excluir EM_USO)
     brincos_disponiveis = (
-        BrincoAnimal.objects.filter(propriedade=propriedade)
-        .exclude(status='EM_USO')
+        BrincoAnimal.objects.filter(
+            propriedade=propriedade,
+            status='DISPONIVEL'  # Buscar apenas brincos disponíveis
+        )
+        .exclude(numero_brinco__isnull=True)  # Excluir brincos sem número
+        .exclude(numero_brinco='')  # Excluir brincos com número vazio
         .select_related('propriedade__produtor')
     )
     
@@ -3706,10 +3711,30 @@ def curral_stats_api(request, propriedade_id):
     propriedade = get_object_or_404(Propriedade, id=propriedade_id)
     
     # Total de animais ativos
-    total_animais = AnimalIndividual.objects.filter(
+    animais_ativos = AnimalIndividual.objects.filter(
         propriedade=propriedade,
         status='ATIVO'
-    ).count()
+    )
+    total_animais = animais_ativos.count()
+    
+    # Machos e Fêmeas
+    machos = animais_ativos.filter(sexo='M').count()
+    femeas = animais_ativos.filter(sexo='F').count()
+    
+    # Média de peso (apenas animais com peso atual)
+    animais_com_peso = animais_ativos.exclude(peso_atual_kg__isnull=True).exclude(peso_atual_kg=0)
+    if animais_com_peso.exists():
+        media_peso = animais_com_peso.aggregate(Avg('peso_atual_kg'))['peso_atual_kg__avg']
+        media_peso = round(float(media_peso), 1) if media_peso else None
+    else:
+        media_peso = None
+    
+    # Por categoria (agrupar por categoria)
+    from django.db.models import Count
+    categorias = animais_ativos.values('categoria').annotate(
+        total=Count('id')
+    ).order_by('-total')[:5]  # Top 5 categorias
+    categorias_str = ', '.join([f"{cat['categoria'] or 'Sem categoria'}: {cat['total']}" for cat in categorias]) if categorias else '—'
     
     # Pesagens hoje
     hoje = timezone.now().date()
@@ -3718,24 +3743,77 @@ def curral_stats_api(request, propriedade_id):
         data_pesagem=hoje
     ).count() if AnimalPesagem else 0
     
-    # Manejos hoje (concluídos hoje)
-    manejos_hoje = Manejo.objects.filter(
-        propriedade=propriedade,
-        data_conclusao__date=hoje
-    ).count() if Manejo else 0
-    
-    # Sessão ativa
+    # Sessão ativa para obter animais trabalhados
     sessao_ativa = (
         CurralSessao.objects.filter(propriedade=propriedade, status='ABERTA')
         .order_by('-data_inicio')
         .first()
     )
     
+    animais_trabalhados = 0
+    if sessao_ativa:
+        eventos = CurralEvento.objects.filter(sessao=sessao_ativa)
+        animais_trabalhados = eventos.values('animal').distinct().count()
+    
+    # Ganho médio diário (calcular baseado nas pesagens da sessão ativa)
+    ganho_medio_diario = None
+    ganho_positivo = 0
+    ganho_negativo = 0
+    
+    if sessao_ativa:
+        # Buscar pesagens da sessão
+        pesagens_sessao = CurralEvento.objects.filter(
+            sessao=sessao_ativa,
+            tipo_evento='PESAGEM',
+            peso_kg__isnull=False
+        ).select_related('animal').order_by('data_evento')
+        
+        if pesagens_sessao.exists():
+            # Calcular ganhos para cada animal
+            ganhos_totais = []
+            for evento in pesagens_sessao:
+                animal = evento.animal
+                if animal and animal.peso_atual_kg and evento.peso_kg:
+                    # Buscar primeira pesagem do animal
+                    primeira_pesagem = AnimalPesagem.objects.filter(
+                        animal=animal
+                    ).order_by('data_pesagem').first() if AnimalPesagem else None
+                    
+                    if primeira_pesagem and primeira_pesagem.peso_kg:
+                        ganho_total = float(evento.peso_kg) - float(primeira_pesagem.peso_kg)
+                        if ganho_total > 0:
+                            ganho_positivo += 1
+                        elif ganho_total < 0:
+                            ganho_negativo += 1
+                        
+                        # Calcular dias entre primeira e última pesagem
+                        dias = (evento.data_evento.date() - primeira_pesagem.data_pesagem).days
+                        if dias > 0:
+                            ganho_diario = ganho_total / dias
+                            ganhos_totais.append(ganho_diario)
+            
+            if ganhos_totais:
+                ganho_medio_diario = round(sum(ganhos_totais) / len(ganhos_totais), 2)
+    
+    # Manejos hoje (concluídos hoje)
+    manejos_hoje = Manejo.objects.filter(
+        propriedade=propriedade,
+        data_conclusao__date=hoje
+    ).count() if Manejo else 0
+    
     return JsonResponse({
         'status': 'ok',
         'total_animais': total_animais,
+        'animais_trabalhados': animais_trabalhados,
+        'machos': machos,
+        'femeas': femeas,
+        'media_peso': media_peso,
+        'por_categoria': categorias_str,
         'pesagens_hoje': pesagens_hoje,
         'manejos_hoje': manejos_hoje,
+        'ganho_medio_diario': ganho_medio_diario,
+        'ganho_positivo': ganho_positivo,
+        'ganho_negativo': ganho_negativo,
         'sessao_ativa': sessao_ativa is not None,
         'sessao_nome': sessao_ativa.nome if sessao_ativa else None,
     })
