@@ -226,3 +226,4 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS('='*60))
         self.stdout.write(self.style.SUCCESS('\n✅ Inventário criado com sucesso!'))
 
+

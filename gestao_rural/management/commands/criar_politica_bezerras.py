@@ -49,3 +49,4 @@ class Command(BaseCommand):
         for p in politicas:
             self.stdout.write(f'  - {p.categoria.nome}: {p.percentual_venda}%')
 
+

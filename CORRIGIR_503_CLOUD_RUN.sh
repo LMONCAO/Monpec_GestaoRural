@@ -245,3 +245,4 @@ echo "   - Ver domínio: gcloud run domain-mappings describe $DOMAIN --region $R
 echo ""
 
 
+

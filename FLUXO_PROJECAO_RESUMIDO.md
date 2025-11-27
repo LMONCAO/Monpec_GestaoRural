@@ -144,3 +144,4 @@ MÊS → Nascimentos → Mortes → Evolução → Vendas → Compras → Transf
 
 **⚠️ IMPORTANTE**: A evolução DEVE acontecer ANTES das vendas, senão os animais não estarão nas categorias corretas para venda!
 
+

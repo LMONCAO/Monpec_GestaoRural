@@ -298,3 +298,4 @@ Write-Host "  FIM DO DIAGNÓSTICO" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 
 
+

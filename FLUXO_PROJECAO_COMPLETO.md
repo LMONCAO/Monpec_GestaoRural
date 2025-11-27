@@ -360,3 +360,4 @@ O sistema gera uma projeção completa e realista que:
 - Cache é usado para otimizar consultas
 - Logs detalhados são gerados para debug
 
+
