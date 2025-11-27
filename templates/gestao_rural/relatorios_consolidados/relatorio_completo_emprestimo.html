@@ -1,0 +1,794 @@
+{% extends "gestao_rural/base.html" %}
+{% load static %}
+{% load formatacao_br %}
+{% load humanize %}
+
+{% block title %}Relatório Completo para Empréstimo - {{ produtor.nome }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    @media print {
+        .no-print { display: none; }
+        .page-break { page-break-after: always; }
+        .card { border: none; box-shadow: none; }
+    }
+    .secao-relatorio {
+        margin-bottom: 2rem;
+        page-break-inside: avoid;
+    }
+    .valor-emprestimo {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #007bff;
+        padding: 1rem;
+        background: #f8f9fa;
+        border-radius: 8px;
+    }
+    .indicador-card {
+        border-left: 4px solid #007bff;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        background: #f8f9fa;
+    }
+    .table-profissional {
+        font-size: 0.9rem;
+    }
+    .table-profissional th {
+        background-color: #1a5490;
+        color: white;
+        font-weight: 600;
+        padding: 12px;
+    }
+    .table-profissional td {
+        padding: 10px;
+        vertical-align: middle;
+    }
+    .badge-indicador {
+        font-size: 0.9rem;
+        padding: 0.5rem 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Cabeçalho -->
+    <div class="row mb-4 no-print">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-0">
+                        <i class="bi bi-file-earmark-pdf"></i>
+                        Relatório Completo para Comprovação de Empréstimo
+                    </h1>
+                    <p class="text-muted">{{ produtor.nome }} - Ano {{ ano }}</p>
+                </div>
+                <a href="{% url 'relatorios_consolidados_dashboard' %}?ano={{ ano }}{% for p in propriedades_selecionadas %}&propriedades={{ p.id }}{% endfor %}" 
+                   class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Voltar
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4 no-print">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Propriedades:</label>
+                    {% for propriedade in propriedades %}
+                    <div class="form-check">
+                        <input class="form-check-input" 
+                               type="checkbox" 
+                               name="propriedades" 
+                               value="{{ propriedade.id }}"
+                               id="prop_{{ propriedade.id }}"
+                               {% if propriedade in propriedades_selecionadas %}checked{% endif %}>
+                        <label class="form-check-label" for="prop_{{ propriedade.id }}">
+                            {{ propriedade.nome_propriedade }}
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Ano:</label>
+                    <input type="number" name="ano" class="form-control" value="{{ ano }}" min="2020" max="2030">
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-funnel"></i> Filtrar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- RELATÓRIO COMPLETO -->
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <!-- Cabeçalho do Relatório -->
+            <div class="text-center mb-5">
+                <h2 class="mb-3" style="color: #1a5490; font-weight: bold;">
+                    RELATÓRIO PARA COMPROVAÇÃO DE EMPRÉSTIMO BANCÁRIO
+                </h2>
+                <h4 class="mb-2">{{ produtor.nome|upper }}</h4>
+                <p class="mb-1"><strong>CPF/CNPJ:</strong> {{ produtor.cpf_cnpj }}</p>
+                {% if produtor.endereco %}
+                <p class="mb-1"><strong>Endereço:</strong> {{ produtor.endereco }}</p>
+                {% endif %}
+                <p class="mb-3"><strong>Exercício:</strong> {{ ano }}</p>
+                <div class="valor-emprestimo">
+                    Valor Solicitado: {{ valor_emprestimo|floatformat:2|moeda_br }}
+                </div>
+            </div>
+
+            <hr class="my-4">
+
+            <!-- Indicadores Principais -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="indicador-card border-primary">
+                        <h6 class="text-muted mb-2">PATRIMÔNIO TOTAL</h6>
+                        <h4 class="text-primary mb-0">{{ patrimonio_total|floatformat:2|moeda_br }}</h4>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="indicador-card border-success">
+                        <h6 class="text-muted mb-2">RECEITAS ANUAIS</h6>
+                        <h4 class="text-success mb-0">{{ totais.financeiro.receitas|floatformat:2|moeda_br }}</h4>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="indicador-card border-info">
+                        <h6 class="text-muted mb-2">COBERTURA PATRIMONIAL</h6>
+                        <h4 class="text-info mb-0">{{ cobertura_patrimonial|floatformat:1 }}%</h4>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="indicador-card border-warning">
+                        <h6 class="text-muted mb-2">COBERTURA RECEITAS</h6>
+                        <h4 class="text-warning mb-0">{{ cobertura_receitas|floatformat:1 }}%</h4>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Propriedades Incluídas -->
+            <div class="secao-relatorio">
+                <h4 class="mb-3" style="color: #1a5490;">
+                    <i class="bi bi-building"></i> 1. PROPRIEDADES INCLUÍDAS NO RELATÓRIO
+                </h4>
+                <div class="table-responsive">
+                    <table class="table table-profissional table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Propriedade</th>
+                                <th>Município/UF</th>
+                                <th class="text-end">Área Total (ha)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for propriedade in propriedades_selecionadas %}
+                            <tr>
+                                <td><strong>{{ propriedade.nome_propriedade }}</strong></td>
+                                <td>{{ propriedade.municipio }}/{{ propriedade.uf }}</td>
+                                <td class="text-end">{{ propriedade.area_total_ha|floatformat:2 }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <hr class="page-break my-4">
+
+            <!-- REBANHO -->
+            <div class="secao-relatorio">
+                <h4 class="mb-3" style="color: #1a5490;">
+                    <i class="bi bi-cow"></i> 2. REBANHO - GARANTIA DE PRODUÇÃO
+                </h4>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="card border-primary">
+                            <div class="card-body text-center">
+                                <h6 class="text-muted">Total de Cabeças</h6>
+                                <h3 class="text-primary mb-0">{{ totais.rebanho.total_cabecas|intcomma }}</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card border-success">
+                            <div class="card-body text-center">
+                                <h6 class="text-muted">Valor Total do Rebanho</h6>
+                                <h3 class="text-success mb-0">{{ totais.rebanho.valor_total|floatformat:2|moeda_br }}</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-profissional table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Categoria</th>
+                                <th class="text-end">Quantidade</th>
+                                <th class="text-end">Valor Total</th>
+                                <th class="text-end">Valor Médio/Cabeça</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in inventarios_com_medio %}
+                            <tr>
+                                <td><strong>{{ item.categoria__nome }}</strong></td>
+                                <td class="text-end">{{ item.quantidade_total|intcomma }}</td>
+                                <td class="text-end">{{ item.valor_total|floatformat:2|moeda_br }}</td>
+                                <td class="text-end">{{ item.valor_medio|floatformat:2|moeda_br }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted">
+                                    Nenhum inventário encontrado para o ano {{ ano }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr class="table-primary">
+                                <th>TOTAL</th>
+                                <th class="text-end">{{ totais.rebanho.total_cabecas|intcomma }}</th>
+                                <th class="text-end">{{ totais.rebanho.valor_total|floatformat:2|moeda_br }}</th>
+                                <th class="text-end">{{ valor_medio_por_cabeca|floatformat:2|moeda_br }}</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+            <hr class="page-break my-4">
+
+            <!-- DADOS DE PRODUÇÃO -->
+            {% if total_vendas_producao.quantidade > 0 or movimentacoes_por_tipo %}
+            <div class="secao-relatorio">
+                <h4 class="mb-3" style="color: #1a5490;">
+                    <i class="bi bi-graph-up-arrow"></i> 3. DADOS DE PRODUÇÃO E VENDAS
+                </h4>
+                
+                {% if total_vendas_producao.quantidade > 0 %}
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="card border-info">
+                            <div class="card-body text-center">
+                                <h6 class="text-muted">Total de Animais Vendidos</h6>
+                                <h3 class="text-info mb-0">{{ total_vendas_producao.quantidade|intcomma }}</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card border-success">
+                            <div class="card-body text-center">
+                                <h6 class="text-muted">Valor Total das Vendas</h6>
+                                <h3 class="text-success mb-0">{{ total_vendas_producao.valor|floatformat:2|moeda_br }}</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="table-responsive mb-4">
+                    <table class="table table-profissional table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Propriedade</th>
+                                <th>Categoria</th>
+                                <th class="text-end">Quantidade</th>
+                                <th class="text-end">Valor Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for venda in vendas_projetadas|slice:":20" %}
+                            <tr>
+                                <td>{{ venda.data_venda|date:"d/m/Y" }}</td>
+                                <td>{{ venda.propriedade.nome_propriedade }}</td>
+                                <td>{{ venda.categoria.nome|default:"N/A" }}</td>
+                                <td class="text-end">{{ venda.quantidade_animais|intcomma }}</td>
+                                <td class="text-end">{{ venda.valor_total|floatformat:2|moeda_br }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+                
+                {% if movimentacoes_por_tipo %}
+                <h5 class="mb-3">Movimentações por Tipo</h5>
+                <div class="table-responsive">
+                    <table class="table table-profissional table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Tipo de Movimentação</th>
+                                <th class="text-end">Quantidade</th>
+                                <th class="text-end">Valor Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for mov in movimentacoes_por_tipo %}
+                            <tr>
+                                <td><strong>{{ mov.tipo_movimentacao }}</strong></td>
+                                <td class="text-end">{{ mov.quantidade_total|intcomma }}</td>
+                                <td class="text-end">{{ mov.valor_total|floatformat:2|moeda_br }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+            </div>
+            <hr class="page-break my-4">
+            {% endif %}
+
+            <!-- BENS IMOBILIZADOS -->
+            <div class="secao-relatorio">
+                <h4 class="mb-3" style="color: #1a5490;">
+                    <i class="bi bi-building"></i> 4. BENS IMOBILIZADOS - GARANTIA REAL
+                </h4>
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <div class="card border-primary">
+                            <div class="card-body text-center">
+                                <h6 class="text-muted">Total de Bens</h6>
+                                <h4 class="text-primary mb-0">{{ totais.bens.total_bens|intcomma }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-info">
+                            <div class="card-body text-center">
+                                <h6 class="text-muted">Valor de Aquisição</h6>
+                                <h4 class="text-info mb-0">{{ totais.bens.valor_total|floatformat:2|moeda_br }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-warning">
+                            <div class="card-body text-center">
+                                <h6 class="text-muted">Depreciação Acumulada</h6>
+                                <h4 class="text-warning mb-0">{{ totais.bens.valor_depreciado|floatformat:2|moeda_br }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-success">
+                            <div class="card-body text-center">
+                                <h6 class="text-muted">Valor Líquido</h6>
+                                <h4 class="text-success mb-0">{{ totais.bens.valor_liquido|floatformat:2|moeda_br }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <hr class="page-break my-4">
+
+            <!-- DRE COMPLETO -->
+            <div class="secao-relatorio">
+                <h4 class="mb-3" style="color: #1a5490;">
+                    <i class="bi bi-graph-up"></i> 5. DEMONSTRAÇÃO DO RESULTADO DO EXERCÍCIO (DRE)
+                </h4>
+                <div class="table-responsive">
+                    <table class="table table-profissional table-bordered">
+                        <thead>
+                            <tr>
+                                <th style="width: 12%;">CÓDIGO</th>
+                                <th style="width: 58%;">DESCRIÇÃO</th>
+                                <th style="width: 30%;" class="text-end">VALOR (R$)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Receita Bruta -->
+                            <tr style="background-color: #e3f2fd;">
+                                <td><strong>3.01.01.01.01</strong></td>
+                                <td><strong>RECEITA BRUTA DE VENDAS</strong></td>
+                                <td class="text-end"><strong>{{ dre_consolidado.receita_bruta|floatformat:2|moeda_br }}</strong></td>
+                            </tr>
+                            
+                            <!-- Deduções -->
+                            {% if dre_consolidado.total_deducoes > 0 %}
+                            <tr>
+                                <td>3.01.01.01.02</td>
+                                <td class="ps-4">(-) Total de Deduções</td>
+                                <td class="text-end text-danger">({{ dre_consolidado.total_deducoes|floatformat:2|moeda_br }})</td>
+                            </tr>
+                            {% endif %}
+                            
+                            <!-- Receita Líquida -->
+                            <tr style="background-color: #c8e6c9;">
+                                <td><strong>3.01.01.01.03</strong></td>
+                                <td><strong>RECEITA LÍQUIDA</strong></td>
+                                <td class="text-end"><strong>{{ dre_consolidado.receita_liquida|floatformat:2|moeda_br }}</strong></td>
+                            </tr>
+                            
+                            <!-- CPV -->
+                            {% if dre_consolidado.cpv > 0 %}
+                            <tr>
+                                <td>3.01.01.01.03.0001</td>
+                                <td class="ps-4">(-) Custo dos Produtos Vendidos (CPV)</td>
+                                <td class="text-end text-danger">({{ dre_consolidado.cpv|floatformat:2|moeda_br }})</td>
+                            </tr>
+                            {% endif %}
+                            
+                            <!-- Lucro Bruto -->
+                            <tr style="background-color: #c8e6c9;">
+                                <td><strong>3.01.01.01.04</strong></td>
+                                <td><strong>LUCRO BRUTO</strong></td>
+                                <td class="text-end"><strong>{{ dre_consolidado.lucro_bruto|floatformat:2|moeda_br }}</strong></td>
+                            </tr>
+                            
+                            <!-- Despesas Operacionais -->
+                            <tr>
+                                <td>3.01.01.07</td>
+                                <td class="ps-4">(-) Despesas Operacionais</td>
+                                <td class="text-end text-danger">({{ dre_consolidado.despesas_operacionais|floatformat:2|moeda_br }})</td>
+                            </tr>
+                            
+                            <!-- Resultado Operacional -->
+                            <tr style="background-color: {% if dre_consolidado.resultado_operacional >= 0 %}#c8e6c9{% else %}#ffcdd2{% endif %};">
+                                <td><strong>3.01.01.01.01</strong></td>
+                                <td><strong>RESULTADO OPERACIONAL</strong></td>
+                                <td class="text-end"><strong>{{ dre_consolidado.resultado_operacional|floatformat:2|moeda_br }}</strong></td>
+                            </tr>
+                            
+                            <!-- Resultado Financeiro -->
+                            <tr>
+                                <td>3.01.01.08</td>
+                                <td class="ps-4">Resultado Financeiro</td>
+                                <td class="text-end {% if dre_consolidado.resultado_financeiro >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                    {{ dre_consolidado.resultado_financeiro|floatformat:2|moeda_br }}
+                                </td>
+                            </tr>
+                            
+                            <!-- LAIR -->
+                            <tr style="background-color: {% if dre_consolidado.lair >= 0 %}#c8e6c9{% else %}#ffcdd2{% endif %};">
+                                <td><strong>3.01.01.09</strong></td>
+                                <td><strong>LUCRO ANTES DO IMPOSTO DE RENDA (LAIR)</strong></td>
+                                <td class="text-end"><strong>{{ dre_consolidado.lair|floatformat:2|moeda_br }}</strong></td>
+                            </tr>
+                            
+                            <!-- Impostos -->
+                            {% if dre_consolidado.total_impostos > 0 %}
+                            <tr>
+                                <td>3.01.01.10</td>
+                                <td class="ps-4">(-) Total de Impostos</td>
+                                <td class="text-end text-danger">({{ dre_consolidado.total_impostos|floatformat:2|moeda_br }})</td>
+                            </tr>
+                            {% endif %}
+                            
+                            <!-- Resultado Líquido -->
+                            <tr style="background-color: {% if dre_consolidado.resultado_liquido >= 0 %}#28a745{% else %}#dc3545{% endif %}; color: white;">
+                                <td><strong>3.01</strong></td>
+                                <td><strong>RESULTADO LÍQUIDO DO EXERCÍCIO</strong></td>
+                                <td class="text-end"><strong>{{ dre_consolidado.resultado_liquido|floatformat:2|moeda_br }}</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <hr class="page-break my-4">
+
+            <!-- FLUXO DE CAIXA -->
+            <div class="secao-relatorio">
+                <h4 class="mb-3" style="color: #1a5490;">
+                    <i class="bi bi-cash-stack"></i> 6. FLUXO DE CAIXA CONSOLIDADO
+                </h4>
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <div class="card border-success">
+                            <div class="card-body text-center">
+                                <h6 class="text-muted">Receitas Anuais</h6>
+                                <h4 class="text-success mb-0">{{ totais.financeiro.receitas|floatformat:2|moeda_br }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-danger">
+                            <div class="card-body text-center">
+                                <h6 class="text-muted">Despesas Anuais</h6>
+                                <h4 class="text-danger mb-0">{{ totais.financeiro.despesas|floatformat:2|moeda_br }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-primary">
+                            <div class="card-body text-center">
+                                <h6 class="text-muted">Fluxo Líquido</h6>
+                                <h4 class="{% if totais.financeiro.saldo >= 0 %}text-success{% else %}text-danger{% endif %} mb-0">
+                                    {{ totais.financeiro.saldo|floatformat:2|moeda_br }}
+                                </h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-info">
+                            <div class="card-body text-center">
+                                <h6 class="text-muted">Saldo Final</h6>
+                                <h4 class="{% if totais.financeiro.saldo >= 0 %}text-success{% else %}text-danger{% endif %} mb-0">
+                                    {{ totais.financeiro.saldo|floatformat:2|moeda_br }}
+                                </h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-profissional table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Mês</th>
+                                <th class="text-end">Receitas</th>
+                                <th class="text-end">Despesas</th>
+                                <th class="text-end">Fluxo Líquido</th>
+                                <th class="text-end">Saldo Acumulado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for mes in fluxo_mensal %}
+                            <tr>
+                                <td><strong>{{ mes.mes_nome|title }}</strong></td>
+                                <td class="text-end text-success">{{ mes.receitas|floatformat:2|moeda_br }}</td>
+                                <td class="text-end text-danger">{{ mes.despesas|floatformat:2|moeda_br }}</td>
+                                <td class="text-end {% if mes.fluxo_liquido >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                    <strong>{{ mes.fluxo_liquido|floatformat:2|moeda_br }}</strong>
+                                </td>
+                                <td class="text-end {% if mes.saldo_acumulado >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                    <strong>{{ mes.saldo_acumulado|floatformat:2|moeda_br }}</strong>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr class="table-primary">
+                                <th>TOTAL ANUAL</th>
+                                <th class="text-end">{{ totais.financeiro.receitas|floatformat:2|moeda_br }}</th>
+                                <th class="text-end">{{ totais.financeiro.despesas|floatformat:2|moeda_br }}</th>
+                                <th class="text-end {% if totais.financeiro.saldo >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                    <strong>{{ totais.financeiro.saldo|floatformat:2|moeda_br }}</strong>
+                                </th>
+                                <th class="text-end {% if totais.financeiro.saldo >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                    <strong>{{ totais.financeiro.saldo|floatformat:2|moeda_br }}</strong>
+                                </th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+            <hr class="page-break my-4">
+
+            <!-- HISTÓRICO DE RECEITAS -->
+            {% if historico_receitas %}
+            <div class="secao-relatorio">
+                <h4 class="mb-3" style="color: #1a5490;">
+                    <i class="bi bi-calendar-range"></i> 7. HISTÓRICO FINANCEIRO (ÚLTIMOS 3 ANOS)
+                </h4>
+                <div class="table-responsive">
+                    <table class="table table-profissional table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Ano</th>
+                                <th class="text-end">Receitas</th>
+                                <th class="text-end">Despesas</th>
+                                <th class="text-end">Saldo Líquido</th>
+                                <th class="text-end">Variação %</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for hist in historico_receitas %}
+                            <tr>
+                                <td><strong>{{ hist.ano }}</strong></td>
+                                <td class="text-end text-success">{{ hist.receitas|floatformat:2|moeda_br }}</td>
+                                <td class="text-end text-danger">{{ hist.despesas|floatformat:2|moeda_br }}</td>
+                                <td class="text-end {% if hist.saldo >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                    <strong>{{ hist.saldo|floatformat:2|moeda_br }}</strong>
+                                </td>
+                                <td class="text-end">
+                                    {% if not forloop.first %}
+                                        {% with prev=historico_receitas|slice:forloop.counter0|first %}
+                                            {% if prev.receitas > 0 %}
+                                                {% widthratio hist.receitas prev.receitas 100 as variacao %}
+                                                {% if variacao > 100 %}
+                                                    <span class="badge bg-success">{{ variacao|add:"-100"|floatformat:1 }}%</span>
+                                                {% else %}
+                                                    <span class="badge bg-danger">{{ variacao|add:"-100"|floatformat:1 }}%</span>
+                                                {% endif %}
+                                            {% else %}
+                                                <span class="badge bg-secondary">N/A</span>
+                                            {% endif %}
+                                        {% endwith %}
+                                    {% else %}
+                                        <span class="badge bg-secondary">-</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <hr class="page-break my-4">
+            {% endif %}
+
+            <!-- ENDIVIDAMENTO -->
+            {% if scr or total_dividas > 0 %}
+            <div class="secao-relatorio">
+                <h4 class="mb-3" style="color: #1a5490;">
+                    <i class="bi bi-exclamation-triangle"></i> 8. SITUAÇÃO DE ENDIVIDAMENTO
+                </h4>
+                
+                {% if scr %}
+                <div class="alert alert-info mb-3">
+                    <strong>SCR - Sistema de Informações de Crédito do Banco Central</strong><br>
+                    Data de Referência: {{ scr.data_referencia_scr|date:"d/m/Y" }}<br>
+                    Status: {{ scr.get_status_display }}
+                </div>
+                {% endif %}
+                
+                {% if dividas_por_banco %}
+                <div class="table-responsive mb-3">
+                    <table class="table table-profissional table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Banco</th>
+                                <th class="text-end">Valor Total da Dívida</th>
+                                <th class="text-end">Parcelas em Atraso</th>
+                                <th class="text-end">Valor em Atraso</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for divida in dividas_por_banco %}
+                            <tr>
+                                <td><strong>{{ divida.banco }}</strong></td>
+                                <td class="text-end">{{ divida.valor_total_divida|floatformat:2|moeda_br }}</td>
+                                <td class="text-end">{{ divida.parcelas_em_atraso|default:0 }}</td>
+                                <td class="text-end text-danger">{{ divida.valor_em_atraso|default:0|floatformat:2|moeda_br }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr class="table-danger">
+                                <th>TOTAL DE DÍVIDAS</th>
+                                <th class="text-end">{{ total_dividas|floatformat:2|moeda_br }}</th>
+                                <th colspan="2"></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                {% endif %}
+                
+                <!-- Capacidade de Pagamento -->
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="card border-success">
+                            <div class="card-body">
+                                <h6 class="text-muted">Capacidade de Pagamento Mensal</h6>
+                                <h4 class="text-success mb-0">{{ capacidade_pagamento.capacidade_mensal|floatformat:2|moeda_br }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card border-info">
+                            <div class="card-body">
+                                <h6 class="text-muted">Saldo Disponível Anual</h6>
+                                <h4 class="text-info mb-0">{{ capacidade_pagamento.saldo_disponivel|floatformat:2|moeda_br }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <hr class="page-break my-4">
+            {% endif %}
+
+            <!-- RESUMO FINAL E INDICADORES -->
+            <div class="secao-relatorio">
+                <h4 class="mb-3" style="color: #1a5490;">
+                    <i class="bi bi-clipboard-check"></i> 9. RESUMO CONSOLIDADO E INDICADORES
+                </h4>
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="table-responsive">
+                            <table class="table table-profissional table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th>Item</th>
+                                        <th class="text-end">Valor (R$)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><strong>Valor do Rebanho</strong></td>
+                                        <td class="text-end"><strong>{{ totais.rebanho.valor_total|floatformat:2|moeda_br }}</strong></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Valor dos Bens Imobilizados (Líquido)</strong></td>
+                                        <td class="text-end"><strong>{{ totais.bens.valor_liquido|floatformat:2|moeda_br }}</strong></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Receitas Anuais</strong></td>
+                                        <td class="text-end"><strong>{{ totais.financeiro.receitas|floatformat:2|moeda_br }}</strong></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Resultado Líquido (DRE)</strong></td>
+                                        <td class="text-end"><strong>{{ dre_consolidado.resultado_liquido|floatformat:2|moeda_br }}</strong></td>
+                                    </tr>
+                                    <tr class="table-primary">
+                                        <td><strong>TOTAL DO PATRIMÔNIO</strong></td>
+                                        <td class="text-end"><strong>{{ patrimonio_total|floatformat:2|moeda_br }}</strong></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="table-responsive">
+                            <table class="table table-profissional table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th>Indicador</th>
+                                        <th class="text-end">Valor</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><strong>Cobertura Patrimonial</strong></td>
+                                        <td class="text-end">
+                                            <span class="badge {% if cobertura_patrimonial >= 100 %}bg-success{% elif cobertura_patrimonial >= 50 %}bg-warning{% else %}bg-danger{% endif %} badge-indicador">
+                                                {{ cobertura_patrimonial|floatformat:1 }}%
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Cobertura por Receitas</strong></td>
+                                        <td class="text-end">
+                                            <span class="badge {% if cobertura_receitas >= 50 %}bg-success{% elif cobertura_receitas >= 25 %}bg-warning{% else %}bg-danger{% endif %} badge-indicador">
+                                                {{ cobertura_receitas|floatformat:1 }}%
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Margem de Lucro</strong></td>
+                                        <td class="text-end">
+                                            <span class="badge {% if margem_lucro >= 20 %}bg-success{% elif margem_lucro >= 10 %}bg-warning{% else %}bg-danger{% endif %} badge-indicador">
+                                                {{ margem_lucro|floatformat:1 }}%
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Valor do Empréstimo Solicitado</strong></td>
+                                        <td class="text-end"><strong>{{ valor_emprestimo|floatformat:2|moeda_br }}</strong></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rodapé -->
+            <div class="text-center mt-5 pt-4 border-top">
+                <p class="mb-1"><strong>Relatório gerado em:</strong> {{ "now"|date:"d/m/Y às H:i" }}</p>
+                <p class="text-muted mb-0">Sistema MONPEC - Gestão Rural Integrada</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botões de Ação -->
+    <div class="row mt-4 no-print">
+        <div class="col-12 text-center">
+            <button onclick="window.print()" class="btn btn-primary btn-lg">
+                <i class="bi bi-printer"></i> Imprimir Relatório
+            </button>
+            <a href="{% url 'exportar_relatorio_completo_pdf' %}?ano={{ ano }}{% for p in propriedades_selecionadas %}&propriedades={{ p.id }}{% endfor %}" 
+               class="btn btn-success btn-lg">
+                <i class="bi bi-file-earmark-pdf"></i> Exportar PDF
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

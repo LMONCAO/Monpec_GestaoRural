@@ -50,3 +50,4 @@ class Command(BaseCommand):
             self.stdout.write(f'  - {p.categoria.nome}: {p.percentual_venda}%')
 
 
+

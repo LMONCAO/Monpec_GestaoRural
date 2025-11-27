@@ -46,11 +46,14 @@ echo [OK] Python encontrado
 echo.
 
 REM Verificar banco de dados correto
-echo [INFO] Verificando banco de dados...
-%PYTHON_CMD% -c "import django; import os; os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'sistema_rural.settings'); django.setup(); from gestao_rural.models import ProdutorRural, Propriedade; p = ProdutorRural.objects.filter(nome__icontains='Sanguino').first(); prop = Propriedade.objects.filter(nome_propriedade__icontains='Canta Galo').first(); print('=== BANCO DE DADOS ==='); print(f'Produtor encontrado: {p.nome if p else \"NAO ENCONTRADO\"}'); print(f'Fazenda encontrada: {prop.nome_propriedade if prop else \"NAO ENCONTRADA\"}'); exit(0 if (p and prop) else 1)" 2>nul
+echo [INFO] Verificando banco de dados (Marcelo Sanguino / Fazenda Canta Galo)...
+%PYTHON_CMD% verificar_banco_correto.py
 if errorlevel 1 (
+    echo.
     echo [ERRO] Banco de dados incorreto! Nao encontrou Marcelo Sanguino ou Fazenda Canta Galo
     echo [INFO] Verifique se esta usando o banco correto (db.sqlite3)
+    echo [INFO] Certifique-se de que o arquivo db.sqlite3 esta no diretorio raiz do projeto
+    echo.
     pause
     exit /b 1
 )

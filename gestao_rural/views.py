@@ -35,78 +35,14 @@ def google_search_console_verification(request):
 
 def landing_page(request):
     """Página pública do sistema antes do login."""
+    # Se o usuário já estiver autenticado, redirecionar para o dashboard
     if request.user.is_authenticated:
         return redirect('dashboard')
-
-    # Limpar mensagens de warning/error que não são relacionadas ao formulário de contato
-    # Isso evita que mensagens internas do sistema (como erros de brincos/lotes) apareçam na landing page
-    from django.contrib.messages import get_messages
-    storage = get_messages(request)
-    mensagens_validas = []
     
-    # Filtrar mensagens: remover mensagens internas do sistema que não fazem sentido na landing page
-    for message in storage:
-        mensagem_texto = str(message).lower()
-        
-        # Remover mensagens sobre brincos, lotes, animais, etc. que são do sistema interno
-        if any(palavra in mensagem_texto for palavra in [
-            'brinco', 'lote', 'localizado para o', 'animal', 'propriedade', 
-            'cadastro', 'editar', 'excluir', 'salvo', 'atualizado'
-        ]):
-            continue  # Não adicionar essas mensagens
-        
-        # Manter apenas mensagens relacionadas ao formulário de contato
-        if any(palavra in mensagem_texto for palavra in ['contato', 'enviar', 'mensagem', 'preencha', 'tente novamente']):
-            mensagens_validas.append((message.level, message.message, message.tags))
-    
-    # Consumir todas as mensagens antigas
-    list(storage)  # Isso consome as mensagens do storage
-    
-    # Recriar apenas as mensagens válidas (relacionadas ao contato)
-    for level, msg, tags in mensagens_validas:
-        messages.add_message(request, level, msg, extra_tags=tags)
-
-    features = [
-        {
-            'icone': 'bi-speedometer2',
-            'titulo': 'Dashboard integrado',
-            'descricao': 'Indicadores completos para tomada de decisão em tempo real para propriedades rurais.',
-        },
-        {
-            'icone': 'bi-diagram-3',
-            'titulo': 'Planejamento pecuário',
-            'descricao': 'Cenários, planejamento nutricional e reprodução com projeções automáticas.',
-        },
-        {
-            'icone': 'bi-cash-coin',
-            'titulo': 'Controle financeiro',
-            'descricao': 'Gestão de custos, vendas, dívidas e fluxo de caixa em um único lugar.',
-        },
-        {
-            'icone': 'bi-shield-check',
-            'titulo': 'Rastreabilidade completa',
-            'descricao': 'Registro individual dos animais, movimentações e relatórios oficiais PNIB.',
-        },
-    ]
-
-    depoimentos = [
-        {
-            'nome': 'André Souza',
-            'cargo': 'Produtor de corte em Goiás',
-            'texto': '“Centralizamos toda a gestão do rebanho em um único painel e reduzimos custos em 18% no primeiro ano.”',
-        },
-        {
-            'nome': 'Carla Menezes',
-            'cargo': 'Consultora agropecuária',
-            'texto': '“Com o MONPEC conseguimos acompanhar os indicadores dos clientes em tempo real e otimizar decisões estratégicas.”',
-        },
-    ]
-
-    context = {
-        'features': features,
-        'depoimentos': depoimentos,
-    }
-    return render(request, 'site/landing_page.html', context)
+    # Redirecionar automaticamente para login se não estiver autenticado
+    # Isso garante que o sistema sempre mostre o login ao invés da landing page
+    # para usuários que já conhecem o sistema (como Marcelo Sanguino)
+    return redirect('login')
 
 
 def contato_submit(request):

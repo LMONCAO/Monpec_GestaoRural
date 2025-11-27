@@ -361,3 +361,4 @@ O sistema gera uma projeção completa e realista que:
 - Logs detalhados são gerados para debug
 
 
+

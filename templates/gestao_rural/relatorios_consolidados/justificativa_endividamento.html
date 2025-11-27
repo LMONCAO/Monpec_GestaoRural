@@ -1,0 +1,190 @@
+{% extends "gestao_rural/base.html" %}
+{% load static %}
+{% load formatacao_br %}
+
+{% block title %}Justificativa de Endividamento - {{ produtor.nome }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .card-explicacao {
+        border-left: 4px solid #ffc107;
+        background-color: #fff3cd;
+    }
+    .card-situacao {
+        border-left: 4px solid #dc3545;
+    }
+    .card-solucao {
+        border-left: 4px solid #28a745;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3 mb-0">
+                <i class="bi bi-file-earmark-text"></i>
+                Justificativa de Endividamento
+            </h1>
+            <p class="text-muted">{{ produtor.nome }} - CPF/CNPJ: {{ produtor.cpf_cnpj }}</p>
+        </div>
+    </div>
+
+    <!-- Explicação da Situação -->
+    <div class="card card-explicacao mb-4">
+        <div class="card-header bg-warning">
+            <h5 class="mb-0"><i class="bi bi-info-circle"></i> Contexto da Situação Financeira</h5>
+        </div>
+        <div class="card-body">
+            <h6><strong>Situação Atual:</strong></h6>
+            <ul>
+                <li><strong>Dívida Original:</strong> R$ 11.000.000,00</li>
+                <li><strong>Renegociações:</strong> Algumas dívidas foram renegociadas, porém com aumento significativo de valores</li>
+                <li><strong>Exemplo:</strong> Dívida de R$ 500.000,00 foi renegociada para R$ 850.000,00</li>
+            </ul>
+            
+            <h6 class="mt-3"><strong>Causas do Endividamento:</strong></h6>
+            <ul>
+                <li><strong>Queda de Preços (2023 - Julho 2024):</strong> Preços dos bezerros e do gado caíram significativamente</li>
+                <li><strong>Compromisso Fixo:</strong> Fazenda Canta Galo requer R$ 8.000.000,00 por ano</li>
+                <li><strong>Pagamento como Avalista (2024):</strong> R$ 2.400.000,00 pagos em dívidas de terceiros onde era avalista</li>
+                <li><strong>Falta de Caixa:</strong> Com a queda de preços e os pagamentos como avalista, não houve caixa suficiente para honrar todos os compromissos</li>
+            </ul>
+            
+            <h6 class="mt-3"><strong>Estratégia Adotada:</strong></h6>
+            <ul>
+                <li>Priorização do pagamento de dívidas bancárias</li>
+                <li>Aguardar estabilização do mercado de gado</li>
+                <li>Negociação de descontos em parcelas vencidas</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Situação do SCR -->
+    {% if scr %}
+    <div class="card card-situacao mb-4">
+        <div class="card-header bg-danger text-white">
+            <h5 class="mb-0"><i class="bi bi-bank"></i> Situação no SCR (Banco Central)</h5>
+        </div>
+        <div class="card-body">
+            <p><strong>Data de Referência:</strong> {{ scr.data_referencia_scr|date:"d/m/Y" }}</p>
+            <p><strong>Status:</strong> {{ scr.get_status_display }}</p>
+            {% if scr.arquivo_pdf %}
+            <a href="{{ scr.arquivo_pdf.url }}" target="_blank" class="btn btn-primary">
+                <i class="bi bi-file-pdf"></i> Ver SCR Completo
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    {% else %}
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5>Importar SCR do Banco Central</h5>
+            <p class="text-muted">Faça upload do arquivo SCR para análise detalhada das dívidas.</p>
+            <form id="formImportarSCR" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <input type="file" name="arquivo_scr" class="form-control" accept=".pdf" required>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-upload"></i> Importar SCR
+                </button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Capacidade de Pagamento -->
+    <div class="card card-solucao mb-4">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0"><i class="bi bi-cash-coin"></i> Capacidade de Pagamento</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <h6 class="text-muted">Receitas Anuais</h6>
+                        <h4 class="text-success">{{ capacidade_pagamento.receitas_anuais|floatformat:2|moeda_br }}</h4>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <h6 class="text-muted">Despesas Operacionais</h6>
+                        <h4 class="text-danger">{{ capacidade_pagamento.despesas_operacionais|floatformat:2|moeda_br }}</h4>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <h6 class="text-muted">Saldo Disponível</h6>
+                        <h4 class="text-primary">{{ capacidade_pagamento.saldo_disponivel|floatformat:2|moeda_br }}</h4>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <h6 class="text-muted">Capacidade Mensal</h6>
+                        <h4 class="text-info">{{ capacidade_pagamento.capacidade_mensal|floatformat:2|moeda_br }}</h4>
+                        <small class="text-muted">(70% do saldo disponível)</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Garantias -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-shield-check"></i> Garantias Disponíveis</h5>
+        </div>
+        <div class="card-body">
+            <p>As garantias serão calculadas com base em:</p>
+            <ul>
+                <li>Valor do rebanho (inventário atualizado)</li>
+                <li>Bens imobilizados (valor líquido após depreciação)</li>
+                <li>Receitas projetadas</li>
+            </ul>
+            <a href="{% url 'relatorios_consolidados_dashboard' %}" class="btn btn-primary">
+                <i class="bi bi-graph-up"></i> Ver Relatórios Consolidados
+            </a>
+        </div>
+    </div>
+
+    <!-- Ações -->
+    <div class="row">
+        <div class="col-12 text-center">
+            <a href="{% url 'relatorio_justificativa_completo' %}?ano={{ ano_atual }}" class="btn btn-primary btn-lg">
+                <i class="bi bi-file-earmark-pdf"></i> Gerar Relatório Completo de Justificativa
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('formImportarSCR').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    
+    fetch('{% url "importar_scr" %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.sucesso) {
+            alert('SCR importado com sucesso!');
+            location.reload();
+        } else {
+            alert('Erro ao importar SCR: ' + data.erro);
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro ao importar SCR');
+    });
+});
+</script>
+{% endblock %}
+

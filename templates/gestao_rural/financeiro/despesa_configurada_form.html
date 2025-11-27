@@ -1,0 +1,150 @@
+{% extends 'base_modulos_unificado.html' %}
+{% load static %}
+
+{% block title %}
+    {% if despesa %}Editar{% else %}Nova{% endif %} Despesa Configurada - {{ propriedade.nome_propriedade }}
+{% endblock %}
+
+{% block breadcrumb_extra %}
+    <li class="breadcrumb-item"><a href="{% url 'financeiro_dashboard' propriedade.id %}">Financeiro</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'financeiro_despesas_configuradas' propriedade.id %}">Despesas Configuradas</a></li>
+    <li class="breadcrumb-item active">{% if despesa %}Editar{% else %}Nova{% endif %}</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2>
+                <i class="bi bi-calculator me-2"></i>
+                {% if despesa %}Editar{% else %}Nova{% endif %} Despesa Configurada
+            </h2>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.grupo.id_for_label }}" class="form-label">Grupo *</label>
+                            {{ form.grupo }}
+                            {% if form.grupo.errors %}
+                                <div class="text-danger">{{ form.grupo.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.categoria_financeira.id_for_label }}" class="form-label">Categoria Financeira *</label>
+                            {{ form.categoria_financeira }}
+                            {% if form.categoria_financeira.errors %}
+                                <div class="text-danger">{{ form.categoria_financeira.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.nome.id_for_label }}" class="form-label">Nome da Despesa *</label>
+                            {{ form.nome }}
+                            {% if form.nome.errors %}
+                                <div class="text-danger">{{ form.nome.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.descricao.id_for_label }}" class="form-label">Descrição</label>
+                            {{ form.descricao }}
+                            {% if form.descricao.errors %}
+                                <div class="text-danger">{{ form.descricao.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.tipo_calculo.id_for_label }}" class="form-label">Tipo de Cálculo *</label>
+                            {{ form.tipo_calculo }}
+                            {% if form.tipo_calculo.errors %}
+                                <div class="text-danger">{{ form.tipo_calculo.errors }}</div>
+                            {% endif %}
+                            <small class="form-text text-muted">
+                                <strong>Porcentagem:</strong> Calcula baseado em % da receita anual<br>
+                                <strong>Valor Fixo Mensal:</strong> Valor fixo por mês (será multiplicado por 12)<br>
+                                <strong>Valor Fixo Anual:</strong> Valor fixo por ano
+                            </small>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3" id="porcentagem-field">
+                                <label for="{{ form.porcentagem_receita.id_for_label }}" class="form-label">Porcentagem sobre Receita (%)</label>
+                                {{ form.porcentagem_receita }}
+                                {% if form.porcentagem_receita.errors %}
+                                    <div class="text-danger">{{ form.porcentagem_receita.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3" id="valor-fixo-field">
+                                <label for="{{ form.valor_fixo.id_for_label }}" class="form-label">Valor Fixo (R$)</label>
+                                {{ form.valor_fixo }}
+                                {% if form.valor_fixo.errors %}
+                                    <div class="text-danger">{{ form.valor_fixo.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.ordem.id_for_label }}" class="form-label">Ordem de Exibição</label>
+                                {{ form.ordem }}
+                                {% if form.ordem.errors %}
+                                    <div class="text-danger">{{ form.ordem.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="form-check form-switch mt-4">
+                                    {{ form.ativo }}
+                                    <label class="form-check-label" for="{{ form.ativo.id_for_label }}">
+                                        Ativo
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle me-1"></i>
+                                Salvar
+                            </button>
+                            <a href="{% url 'financeiro_despesas_configuradas' propriedade.id %}" class="btn btn-secondary">
+                                <i class="bi bi-x-circle me-1"></i>
+                                Cancelar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('id_tipo_calculo').addEventListener('change', function() {
+    const tipo = this.value;
+    const porcentagemField = document.getElementById('porcentagem-field');
+    const valorFixoField = document.getElementById('valor-fixo-field');
+    
+    if (tipo === 'PORCENTAGEM') {
+        porcentagemField.style.display = 'block';
+        valorFixoField.style.display = 'none';
+    } else {
+        porcentagemField.style.display = 'none';
+        valorFixoField.style.display = 'block';
+    }
+});
+
+// Executar na carga da página
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('id_tipo_calculo').dispatchEvent(new Event('change'));
+});
+</script>
+{% endblock %}
+

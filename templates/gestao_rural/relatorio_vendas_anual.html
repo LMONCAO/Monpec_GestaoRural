@@ -1,5 +1,6 @@
 {% extends 'base_modulos_unificado.html' %}
 {% load static %}
+{% load formatacao_br %}
 
 {% block title %}Relatório de Vendas Anual {{ ano }} - {{ propriedade.nome_propriedade }}{% endblock %}
 
@@ -84,7 +85,7 @@
             <div class="content-card">
                 <div class="content-card-body text-center">
                     <h6 class="text-muted mb-2">Valor Total (R$)</h6>
-                    <h3 class="mb-0 text-success">R$ {{ total_valor|floatformat:2 }}</h3>
+                    <h3 class="mb-0 text-success">{{ total_valor|moeda_br }}</h3>
                 </div>
             </div>
         </div>
@@ -92,7 +93,7 @@
             <div class="content-card">
                 <div class="content-card-body text-center">
                     <h6 class="text-muted mb-2">Peso Total (kg)</h6>
-                    <h3 class="mb-0">{{ total_peso|floatformat:2 }} kg</h3>
+                    <h3 class="mb-0">{{ total_peso|numero_br:2 }} kg</h3>
                 </div>
             </div>
         </div>
@@ -128,9 +129,9 @@
                                         <strong>{{ item.mes_nome }}/{{ ano }}</strong>
                                     </td>
                                     <td class="text-end">{{ item.quantidade }}</td>
-                                    <td class="text-end">{{ item.peso|floatformat:2 }} kg</td>
+                                    <td class="text-end">{{ item.peso|numero_br:2 }} kg</td>
                                     <td class="text-end">
-                                        <strong class="text-success">R$ {{ item.valor|floatformat:2 }}</strong>
+                                        <strong class="text-success">{{ item.valor|moeda_br }}</strong>
                                     </td>
                                     <td class="text-center">
                                         <a href="{% url 'relatorio_vendas_mensal' propriedade.id ano item.mes %}{% if cenario_selecionado %}?cenario={{ cenario_selecionado }}{% endif %}" 
@@ -146,9 +147,9 @@
                                 <tr>
                                     <th>Total:</th>
                                     <th class="text-end">{{ total_quantidade }}</th>
-                                    <th class="text-end">{{ total_peso|floatformat:2 }} kg</th>
+                                    <th class="text-end">{{ total_peso|numero_br:2 }} kg</th>
                                     <th class="text-end">
-                                        <strong class="text-success">R$ {{ total_valor|floatformat:2 }}</strong>
+                                        <strong class="text-success">{{ total_valor|moeda_br }}</strong>
                                     </th>
                                     <th></th>
                                 </tr>
@@ -202,11 +203,29 @@
                                     <td>{{ venda.quantidade }}</td>
                                     <td>{{ venda.categoria.nome }}</td>
                                     <td>{{ venda.cliente_nome|default:"Cliente não definido" }}</td>
-                                    <td class="text-end">{{ venda.peso_total_kg|default:"-"|floatformat:2 }}</td>
-                                    <td class="text-end">R$ {{ venda.valor_por_kg|default:"-"|floatformat:2 }}</td>
-                                    <td class="text-end">R$ {{ venda.valor_por_animal|default:"-"|floatformat:2 }}</td>
                                     <td class="text-end">
-                                        <strong class="text-success">R$ {{ venda.valor_total|floatformat:2 }}</strong>
+                                        {% if venda.peso_total_kg %}
+                                            {{ venda.peso_total_kg|numero_br:2 }}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        {% if venda.valor_por_kg %}
+                                            {{ venda.valor_por_kg|moeda_br }}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        {% if venda.valor_por_animal %}
+                                            {{ venda.valor_por_animal|moeda_br }}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        <strong class="text-success">{{ venda.valor_total|moeda_br }}</strong>
                                     </td>
                                     <td>{{ venda.data_recebimento|date:"d/m/Y"|default:"-" }}</td>
                                 </tr>
@@ -253,8 +272,8 @@
                                 <tr>
                                     <td>{{ categoria }}</td>
                                     <td class="text-end">{{ dados.quantidade }}</td>
-                                    <td class="text-end">{{ dados.peso|floatformat:2 }} kg</td>
-                                    <td class="text-end">R$ {{ dados.valor|floatformat:2 }}</td>
+                                    <td class="text-end">{{ dados.peso|numero_br:2 }} kg</td>
+                                    <td class="text-end">{{ dados.valor|moeda_br }}</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>

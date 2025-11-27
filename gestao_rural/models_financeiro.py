@@ -535,3 +535,391 @@ class MovimentoFinanceiro(TimeStampedModel):
             self.valor_liquido = self.valor_bruto - self.valor_taxas
         super().save(*args, **kwargs)
 
+
+class GrupoDespesa(TimeStampedModel):
+    """Grupo de despesas para organização (Fixas ou Variáveis)."""
+    
+    TIPO_FIXA = "FIXA"
+    TIPO_VARIAVEL = "VARIAVEL"
+    
+    TIPOS = [
+        (TIPO_FIXA, "Despesa Fixa"),
+        (TIPO_VARIAVEL, "Despesa Variável"),
+    ]
+    
+    propriedade = models.ForeignKey(
+        "Propriedade",
+        on_delete=models.CASCADE,
+        related_name="grupos_despesa",
+    )
+    nome = models.CharField("Nome do Grupo", max_length=120)
+    tipo = models.CharField("Tipo", max_length=15, choices=TIPOS)
+    descricao = models.TextField("Descrição", blank=True)
+    ativo = models.BooleanField("Ativo", default=True)
+    ordem = models.IntegerField("Ordem de Exibição", default=0)
+    
+    class Meta:
+        verbose_name = "Grupo de Despesa"
+        verbose_name_plural = "Grupos de Despesas"
+        unique_together = (("propriedade", "nome"),)
+        ordering = ["ordem", "nome"]
+    
+    def __str__(self):
+        return f"{self.nome} ({self.get_tipo_display()})"
+
+
+class DespesaConfigurada(TimeStampedModel):
+    """Despesa configurada com cálculo automático baseado em receita ou valor fixo."""
+    
+    TIPO_PORCENTAGEM = "PORCENTAGEM"
+    TIPO_VALOR_FIXO_MENSAL = "VALOR_FIXO_MENSAL"
+    TIPO_VALOR_FIXO_ANUAL = "VALOR_FIXO_ANUAL"
+    
+    TIPOS_CALCULO = [
+        (TIPO_PORCENTAGEM, "Porcentagem sobre Receita"),
+        (TIPO_VALOR_FIXO_MENSAL, "Valor Fixo Mensal"),
+        (TIPO_VALOR_FIXO_ANUAL, "Valor Fixo Anual"),
+    ]
+    
+    propriedade = models.ForeignKey(
+        "Propriedade",
+        on_delete=models.CASCADE,
+        related_name="despesas_configuradas",
+    )
+    grupo = models.ForeignKey(
+        GrupoDespesa,
+        on_delete=models.CASCADE,
+        related_name="despesas",
+    )
+    categoria_financeira = models.ForeignKey(
+        CategoriaFinanceira,
+        on_delete=models.PROTECT,
+        related_name="despesas_configuradas",
+        limit_choices_to={'tipo': CategoriaFinanceira.TIPO_DESPESA},
+    )
+    nome = models.CharField("Nome da Despesa", max_length=120)
+    descricao = models.TextField("Descrição", blank=True)
+    
+    # Tipo de cálculo
+    tipo_calculo = models.CharField(
+        "Tipo de Cálculo",
+        max_length=20,
+        choices=TIPOS_CALCULO,
+        default=TIPO_PORCENTAGEM,
+    )
+    
+    # Se for porcentagem sobre receita
+    porcentagem_receita = models.DecimalField(
+        "Porcentagem sobre Receita (%)",
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        validators=[MinValueValidator(Decimal("0.00"))],
+        help_text="Percentual da receita anual que será destinado a esta despesa.",
+    )
+    
+    # Se for valor fixo mensal ou anual
+    valor_fixo = models.DecimalField(
+        "Valor Fixo",
+        max_digits=14,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        validators=[MinValueValidator(Decimal("0.00"))],
+        help_text="Valor fixo mensal ou anual, dependendo do tipo de cálculo.",
+    )
+    
+    ativo = models.BooleanField("Ativo", default=True)
+    ordem = models.IntegerField("Ordem de Exibição", default=0)
+    
+    class Meta:
+        verbose_name = "Despesa Configurada"
+        verbose_name_plural = "Despesas Configuradas"
+        ordering = ["grupo__ordem", "ordem", "nome"]
+    
+    def __str__(self):
+        return f"{self.nome} - {self.grupo.nome}"
+    
+    def calcular_valor_anual(self, receita_anual=None):
+        """Calcula o valor anual da despesa baseado no tipo de cálculo."""
+        if not self.ativo:
+            return Decimal("0.00")
+        
+        if self.tipo_calculo == self.TIPO_PORCENTAGEM:
+            if receita_anual is None:
+                return Decimal("0.00")
+            return (receita_anual * self.porcentagem_receita) / Decimal("100.00")
+        elif self.tipo_calculo == self.TIPO_VALOR_FIXO_MENSAL:
+            return self.valor_fixo * Decimal("12")
+        elif self.tipo_calculo == self.TIPO_VALOR_FIXO_ANUAL:
+            return self.valor_fixo
+        return Decimal("0.00")
+    
+    def calcular_valor_mensal(self, receita_anual=None):
+        """Calcula o valor mensal da despesa."""
+        valor_anual = self.calcular_valor_anual(receita_anual)
+        return valor_anual / Decimal("12")
+
+
+class ReceitaAnual(TimeStampedModel):
+    """Receita anual por propriedade e ano para cálculo de despesas e DRE completo."""
+    
+    propriedade = models.ForeignKey(
+        "Propriedade",
+        on_delete=models.CASCADE,
+        related_name="receitas_anuais",
+    )
+    ano = models.IntegerField("Ano")
+    valor_receita = models.DecimalField(
+        "Valor da Receita Bruta (R$)",
+        max_digits=14,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        validators=[MinValueValidator(Decimal("0.00"))],
+        help_text="Receita bruta antes de deduções",
+    )
+    
+    # Deduções da Receita
+    icms_vendas = models.DecimalField(
+        "ICMS sobre Vendas (R$)",
+        max_digits=14,
+        decimal_places=2,
+        default=Decimal("0.00"),
+    )
+    funviral_vendas = models.DecimalField(
+        "Funviral sobre Vendas (R$)",
+        max_digits=14,
+        decimal_places=2,
+        default=Decimal("0.00"),
+    )
+    outros_impostos_vendas = models.DecimalField(
+        "Outros Impostos sobre Vendas (R$)",
+        max_digits=14,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        help_text="PIS, COFINS, etc.",
+    )
+    devolucoes_vendas = models.DecimalField(
+        "Devoluções de Vendas (R$)",
+        max_digits=14,
+        decimal_places=2,
+        default=Decimal("0.00"),
+    )
+    abatimentos_vendas = models.DecimalField(
+        "Abatimentos sobre Vendas (R$)",
+        max_digits=14,
+        decimal_places=2,
+        default=Decimal("0.00"),
+    )
+    
+    # Custo dos Produtos Vendidos
+    custo_produtos_vendidos = models.DecimalField(
+        "Custo dos Produtos Vendidos - CPV (R$)",
+        max_digits=14,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        help_text="Custo direto dos produtos/mercadorias vendidas",
+    )
+    
+    # Depreciação e Amortização
+    depreciacao_amortizacao = models.DecimalField(
+        "Depreciação e Amortização (R$)",
+        max_digits=14,
+        decimal_places=2,
+        default=Decimal("0.00"),
+    )
+    
+    # Despesas Operacionais Detalhadas (conforme DRE contábil)
+    retirada_labore = models.DecimalField(
+        "Retirada Labore (R$)",
+        max_digits=14,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        help_text="Retirada de pró-labore dos sócios",
+    )
+    assistencia_contabil = models.DecimalField(
+        "Assistência Contábil (R$)",
+        max_digits=14,
+        decimal_places=2,
+        default=Decimal("0.00"),
+    )
+    encargos_inss = models.DecimalField(
+        "Encargos INSS (R$)",
+        max_digits=14,
+        decimal_places=2,
+        default=Decimal("0.00"),
+    )
+    taxas_diversas = models.DecimalField(
+        "Taxas Diversas (R$)",
+        max_digits=14,
+        decimal_places=2,
+        default=Decimal("0.00"),
+    )
+    despesas_administrativas = models.DecimalField(
+        "Despesas Administrativas (R$)",
+        max_digits=14,
+        decimal_places=2,
+        default=Decimal("0.00"),
+    )
+    material_uso_consumo = models.DecimalField(
+        "Material de Uso e Consumo (R$)",
+        max_digits=14,
+        decimal_places=2,
+        default=Decimal("0.00"),
+    )
+    despesas_comunicacao = models.DecimalField(
+        "Despesas Comunicação (R$)",
+        max_digits=14,
+        decimal_places=2,
+        default=Decimal("0.00"),
+    )
+    despesas_viagens = models.DecimalField(
+        "Despesas Viagens (R$)",
+        max_digits=14,
+        decimal_places=2,
+        default=Decimal("0.00"),
+    )
+    despesas_energia_eletrica = models.DecimalField(
+        "Despesas Energia Elétrica (R$)",
+        max_digits=14,
+        decimal_places=2,
+        default=Decimal("0.00"),
+    )
+    despesas_transportes = models.DecimalField(
+        "Despesas Transportes (R$)",
+        max_digits=14,
+        decimal_places=2,
+        default=Decimal("0.00"),
+    )
+    despesas_combustivel = models.DecimalField(
+        "Despesas Combustível (R$)",
+        max_digits=14,
+        decimal_places=2,
+        default=Decimal("0.00"),
+    )
+    despesas_manutencao = models.DecimalField(
+        "Despesas Manutenção (R$)",
+        max_digits=14,
+        decimal_places=2,
+        default=Decimal("0.00"),
+    )
+    
+    # Resultado Financeiro
+    despesas_financeiras = models.DecimalField(
+        "Despesas Financeiras (R$)",
+        max_digits=14,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        help_text="Juros, taxas bancárias, etc.",
+    )
+    receitas_financeiras = models.DecimalField(
+        "Receitas Financeiras (R$)",
+        max_digits=14,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        help_text="Aplicações financeiras, rendimentos, etc.",
+    )
+    
+    # Imposto de Renda (separado)
+    csll = models.DecimalField(
+        "Contribuição Social sobre Lucro Líquido - CSLL (R$)",
+        max_digits=14,
+        decimal_places=2,
+        default=Decimal("0.00"),
+    )
+    irpj = models.DecimalField(
+        "Imposto de Renda Pessoa Jurídica - IRPJ (R$)",
+        max_digits=14,
+        decimal_places=2,
+        default=Decimal("0.00"),
+    )
+    
+    descricao = models.TextField("Descrição/Observações", blank=True)
+    
+    class Meta:
+        verbose_name = "Receita Anual"
+        verbose_name_plural = "Receitas Anuais"
+        unique_together = (("propriedade", "ano"),)
+        ordering = ["-ano"]
+    
+    def __str__(self):
+        return f"{self.propriedade} - {self.ano}: R$ {self.valor_receita:,.2f}"
+    
+    def calcular_despesas_totais(self):
+        """Calcula o total de despesas configuradas para este ano."""
+        despesas = DespesaConfigurada.objects.filter(
+            propriedade=self.propriedade,
+            ativo=True
+        )
+        total = Decimal("0.00")
+        for despesa in despesas:
+            total += despesa.calcular_valor_anual(self.valor_receita)
+        return total
+    
+    def calcular_resultado_caixa(self):
+        """Calcula o resultado de caixa (receita - despesas)."""
+        despesas = self.calcular_despesas_totais()
+        return self.valor_receita - despesas
+    
+    def calcular_receita_liquida(self):
+        """Calcula a receita líquida (bruta - deduções)."""
+        deducoes = (self.icms_vendas or Decimal("0.00")) + \
+                   (self.funviral_vendas or Decimal("0.00")) + \
+                   (self.outros_impostos_vendas or Decimal("0.00")) + \
+                   (self.devolucoes_vendas or Decimal("0.00")) + \
+                   (self.abatimentos_vendas or Decimal("0.00"))
+        return self.valor_receita - deducoes
+    
+    def calcular_total_impostos_vendas(self):
+        """Calcula o total de impostos sobre vendas."""
+        return (self.icms_vendas or Decimal("0.00")) + \
+               (self.funviral_vendas or Decimal("0.00")) + \
+               (self.outros_impostos_vendas or Decimal("0.00"))
+    
+    def calcular_total_impostos_renda(self):
+        """Calcula o total de impostos sobre o lucro."""
+        return (self.csll or Decimal("0.00")) + (self.irpj or Decimal("0.00"))
+    
+    def calcular_lucro_bruto(self):
+        """Calcula o lucro bruto (receita líquida - CPV)."""
+        receita_liquida = self.calcular_receita_liquida()
+        return receita_liquida - self.custo_produtos_vendidos
+    
+    def calcular_resultado_operacional(self, despesas_operacionais):
+        """Calcula o resultado operacional (lucro bruto - despesas operacionais)."""
+        lucro_bruto = self.calcular_lucro_bruto()
+        return lucro_bruto - despesas_operacionais
+    
+    def calcular_ebit(self, despesas_operacionais):
+        """Calcula o EBIT (Resultado antes de juros e impostos)."""
+        resultado_operacional = self.calcular_resultado_operacional(despesas_operacionais)
+        return resultado_operacional - self.depreciacao_amortizacao
+    
+    def calcular_resultado_antes_ir(self, despesas_operacionais):
+        """Calcula o resultado antes do Imposto de Renda."""
+        ebit = self.calcular_ebit(despesas_operacionais)
+        resultado_financeiro = self.receitas_financeiras - self.despesas_financeiras
+        return ebit + resultado_financeiro
+    
+    def calcular_resultado_liquido_completo(self, despesas_operacionais):
+        """Calcula o resultado líquido completo do exercício."""
+        resultado_antes_ir = self.calcular_resultado_antes_ir(despesas_operacionais)
+        total_impostos = self.calcular_total_impostos_renda()
+        return resultado_antes_ir - total_impostos
+    
+    def calcular_despesas_operacionais_detalhadas(self):
+        """Calcula o total das despesas operacionais detalhadas."""
+        return (
+            (self.retirada_labore or Decimal("0.00")) +
+            (self.assistencia_contabil or Decimal("0.00")) +
+            (self.encargos_inss or Decimal("0.00")) +
+            (self.taxas_diversas or Decimal("0.00")) +
+            (self.despesas_administrativas or Decimal("0.00")) +
+            (self.material_uso_consumo or Decimal("0.00")) +
+            (self.despesas_comunicacao or Decimal("0.00")) +
+            (self.despesas_viagens or Decimal("0.00")) +
+            (self.despesas_energia_eletrica or Decimal("0.00")) +
+            (self.despesas_transportes or Decimal("0.00")) +
+            (self.despesas_combustivel or Decimal("0.00")) +
+            (self.despesas_manutencao or Decimal("0.00")) +
+            (self.depreciacao_amortizacao or Decimal("0.00"))
+        )

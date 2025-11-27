@@ -1,0 +1,230 @@
+{% extends 'base_modulos_unificado.html' %}
+{% load static %}
+
+{% block title %}Editar Cliente da Venda - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="submenu-page-header">
+        <div class="d-flex align-items-start gap-4">
+            <div class="submenu-page-icon">
+                <i class="bi bi-person-plus"></i>
+            </div>
+            <div class="flex-grow-1">
+                <h1 class="submenu-page-title">Editar Cliente da Venda</h1>
+                <p class="submenu-page-description">
+                    Atualize o cliente para esta venda projetada
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="content-card">
+                <div class="content-card-header">
+                    <h5 class="mb-0 text-dark fw-semibold">
+                        <i class="bi bi-info-circle me-2"></i>
+                        Informações da Venda
+                    </h5>
+                </div>
+                <div class="content-card-body">
+                    <table class="table table-sm">
+                        <tr>
+                            <th width="150">Data:</th>
+                            <td>{{ venda.data_venda|date:"d/m/Y" }}</td>
+                        </tr>
+                        <tr>
+                            <th>Cenário:</th>
+                            <td>
+                                {% if venda.cenario %}
+                                    <span class="badge bg-primary">{{ venda.cenario.nome }}</span>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Categoria:</th>
+                            <td>{{ venda.categoria.nome }}</td>
+                        </tr>
+                        <tr>
+                            <th>Quantidade:</th>
+                            <td><strong>{{ venda.quantidade }}</strong> animais</td>
+                        </tr>
+                        <tr>
+                            <th>Valor Total:</th>
+                            <td><strong class="text-success">R$ {{ venda.valor_total|floatformat:2 }}</strong></td>
+                        </tr>
+                        <tr>
+                            <th>Cliente Atual:</th>
+                            <td>{{ venda.cliente_nome|default:"Cliente não definido" }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <div class="content-card mt-4">
+                <div class="content-card-header">
+                    <h5 class="mb-0 text-dark fw-semibold">
+                        <i class="bi bi-person-check me-2"></i>
+                        Selecionar Cliente
+                    </h5>
+                </div>
+                <div class="content-card-body">
+                    <form method="post" id="form-editar-cliente">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Buscar Cliente Cadastrado</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="buscar-cliente" 
+                                   placeholder="Digite o nome do cliente..."
+                                   autocomplete="off">
+                            <div id="sugestoes-clientes" class="list-group mt-2" style="display: none; max-height: 300px; overflow-y: auto;"></div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Nome do Cliente</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   name="cliente_nome" 
+                                   id="cliente_nome" 
+                                   value="{{ venda.cliente_nome|default:'' }}"
+                                   required
+                                   placeholder="Digite ou selecione um cliente">
+                            <small class="text-muted">Você pode selecionar um cliente cadastrado acima ou digitar um novo nome</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Quantidade para este Cliente</label>
+                            <input type="number" 
+                                   class="form-control" 
+                                   name="quantidade_cliente" 
+                                   value="{{ venda.quantidade }}"
+                                   min="1"
+                                   max="{{ venda.quantidade }}"
+                                   required>
+                            <small class="text-muted">
+                                Quantidade de animais para este cliente. 
+                                Se for menor que {{ venda.quantidade }}, será criada uma nova venda com o restante.
+                            </small>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-check-circle me-2"></i>
+                                Salvar Cliente
+                            </button>
+                            <a href="{% url 'relatorio_vendas_projecao' propriedade.id %}{% if request.GET.codigo %}?codigo={{ request.GET.codigo }}{% if request.GET.cenario %}&cenario={{ request.GET.cenario }}{% endif %}{% elif request.GET.cenario %}?cenario={{ request.GET.cenario }}{% endif %}" 
+                               class="btn btn-secondary">
+                                <i class="bi bi-x-circle me-2"></i>
+                                Cancelar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="content-card">
+                <div class="content-card-header">
+                    <h5 class="mb-0 text-dark fw-semibold">
+                        <i class="bi bi-list-ul me-2"></i>
+                        Clientes Cadastrados
+                    </h5>
+                </div>
+                <div class="content-card-body">
+                    {% if clientes %}
+                        <div class="list-group" style="max-height: 400px; overflow-y: auto;">
+                            {% for cliente in clientes %}
+                            <a href="#" 
+                               class="list-group-item list-group-item-action cliente-item"
+                               data-nome="{{ cliente.nome }}"
+                               onclick="selecionarCliente('{{ cliente.nome }}'); return false;">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">{{ cliente.nome }}</h6>
+                                </div>
+                                {% if cliente.nome_fantasia %}
+                                <p class="mb-1 text-muted small">{{ cliente.nome_fantasia }}</p>
+                                {% endif %}
+                                {% if cliente.cpf_cnpj %}
+                                <small class="text-muted">{{ cliente.cpf_cnpj }}</small>
+                                {% endif %}
+                            </a>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted">Nenhum cliente cadastrado ainda.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function selecionarCliente(nome) {
+    document.getElementById('cliente_nome').value = nome;
+    document.getElementById('buscar-cliente').value = nome;
+    document.getElementById('sugestoes-clientes').style.display = 'none';
+}
+
+// Busca de clientes com AJAX
+let timeoutBusca;
+document.getElementById('buscar-cliente').addEventListener('input', function(e) {
+    clearTimeout(timeoutBusca);
+    const termo = e.target.value.trim();
+    
+    if (termo.length < 2) {
+        document.getElementById('sugestoes-clientes').style.display = 'none';
+        return;
+    }
+    
+    timeoutBusca = setTimeout(() => {
+        fetch(`{% url 'buscar_clientes_ajax' propriedade.id %}?q=${encodeURIComponent(termo)}`)
+            .then(response => response.json())
+            .then(data => {
+                const sugestoes = document.getElementById('sugestoes-clientes');
+                sugestoes.innerHTML = '';
+                
+                if (data.clientes && data.clientes.length > 0) {
+                    data.clientes.forEach(cliente => {
+                        const item = document.createElement('a');
+                        item.className = 'list-group-item list-group-item-action';
+                        item.href = '#';
+                        item.innerHTML = `
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">${cliente.nome}</h6>
+                            </div>
+                            ${cliente.nome_fantasia ? `<p class="mb-1 text-muted small">${cliente.nome_fantasia}</p>` : ''}
+                            <small class="text-muted">${cliente.cpf_cnpj}</small>
+                        `;
+                        item.onclick = (e) => {
+                            e.preventDefault();
+                            selecionarCliente(cliente.nome);
+                        };
+                        sugestoes.appendChild(item);
+                    });
+                    sugestoes.style.display = 'block';
+                } else {
+                    sugestoes.style.display = 'none';
+                }
+            })
+            .catch(error => {
+                console.error('Erro ao buscar clientes:', error);
+            });
+    }, 300);
+});
+
+// Fechar sugestões ao clicar fora
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('#buscar-cliente') && !e.target.closest('#sugestoes-clientes')) {
+        document.getElementById('sugestoes-clientes').style.display = 'none';
+    }
+});
+</script>
+{% endblock %}
+

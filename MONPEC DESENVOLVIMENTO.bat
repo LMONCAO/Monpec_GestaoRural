@@ -62,12 +62,20 @@ echo.
 echo ========================================
 echo.
 
-REM Verificar banco de dados antes de iniciar
-echo [INFO] Verificando banco de dados...
-%PYTHON_CMD% -c "import django; django.setup(); from gestao_rural.models import ProdutorRural, Propriedade; p = ProdutorRural.objects.filter(nome__icontains='Sanguino').first(); prop = Propriedade.objects.filter(nome_propriedade__icontains='Canta Galo').first(); print(f'Produtor: {p.nome if p else \"NAO ENCONTRADO\"}'); print(f'Fazenda: {prop.nome_propriedade if prop else \"NAO ENCONTRADA\"}')" 2>nul
+REM Verificar banco de dados correto antes de iniciar
+echo [INFO] Verificando banco de dados (Marcelo Sanguino / Fazenda Canta Galo)...
+%PYTHON_CMD% verificar_banco_correto.py
 if errorlevel 1 (
-    echo [AVISO] Nao foi possivel verificar o banco de dados
+    echo.
+    echo [ERRO] Banco de dados incorreto! Nao encontrou Marcelo Sanguino ou Fazenda Canta Galo
+    echo [INFO] Verifique se esta usando o banco correto (db.sqlite3)
+    echo [INFO] Use o script INICIAR_SISTEMA_CORRETO.bat para garantir o banco correto
+    echo.
+    pause
+    exit /b 1
 )
+
+echo [OK] Banco de dados correto confirmado!
 
 echo.
 echo ========================================
@@ -76,6 +84,27 @@ echo ========================================
 echo [INFO] Settings: sistema_rural.settings (DESENVOLVIMENTO)
 echo [INFO] Banco: db.sqlite3 (com Marcelo Sanguino / Fazenda Canta Galo)
 echo [INFO] URL: http://127.0.0.1:8000/
+echo.
+echo ========================================
+echo   IMPORTANTE - COMO ACESSAR
+echo ========================================
+echo.
+echo   Para acessar o sistema MARCELO SANGUINO:
+echo.
+echo   OPCAO 1 (RECOMENDADO):
+echo      http://localhost:8000/login/
+echo.
+echo   OPCAO 2: Se aparecer a landing page:
+echo      - Clique no botao "Ja sou cliente" (canto superior direito)
+echo      - OU digite na barra de endereco: /login/
+echo.
+echo   OPCAO 3: Se ja estiver logado:
+echo      http://localhost:8000/dashboard/
+echo.
+echo   [ATENCAO] Certifique-se de usar: localhost:8000
+echo            NAO use outras URLs que possam estar em cache
+echo.
+echo ========================================
 echo.
 
 REM Iniciar servidor Django com settings de desenvolvimento

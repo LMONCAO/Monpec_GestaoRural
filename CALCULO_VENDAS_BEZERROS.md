@@ -158,3 +158,4 @@ Com a política de **20% de venda** de bezerros:
 - **Anos seguintes:** Apenas bezerros do ano anterior são vendidos (20% do disponível)
 
 
+
