@@ -845,6 +845,22 @@ def gerar_vendas_todos_cenarios_view(request, propriedade_id):
         logger = logging.getLogger(__name__)
         logger.info(f"Iniciando geração de vendas para planejamento {planejamento.codigo} com {movimentacoes_finais} movimentações")
         
+        # Verificar se há cenários, se não houver, criar um baseline automaticamente
+        total_cenarios = planejamento.cenarios.count()
+        if total_cenarios == 0:
+            logger.info(f"Nenhum cenário encontrado. Criando cenário Baseline automaticamente...")
+            cenario_baseline = CenarioPlanejamento.objects.create(
+                planejamento=planejamento,
+                nome="Baseline",
+                descricao="Cenário base criado automaticamente para geração de vendas",
+                is_baseline=True
+            )
+            messages.info(
+                request,
+                f'ℹ️ Um cenário "Baseline" foi criado automaticamente para a projeção {planejamento.codigo}.'
+            )
+            logger.info(f"Cenário Baseline criado: {cenario_baseline.id}")
+        
         vendas_geradas = gerar_vendas_todos_cenarios(propriedade, planejamento)
         total_vendas = sum(len(vendas) for vendas in vendas_geradas.values())
         
@@ -919,13 +935,45 @@ def relatorio_vendas_projecao(request, propriedade_id):
         produtor__usuario_responsavel=request.user
     )
     
-    # Buscar planejamento atual
-    planejamento = PlanejamentoAnual.objects.filter(
-        propriedade=propriedade
-    ).order_by('-ano').first()
+    # Buscar planejamento - pode vir da URL como parâmetro (codigo ou planejamento_id)
+    planejamento = None
+    codigo_busca = request.GET.get('codigo', '').strip()
+    planejamento_id = request.GET.get('planejamento_id')
+    
+    # PRIORIDADE 1: Buscar por código (projeção selecionada pelo usuário)
+    if codigo_busca:
+        try:
+            planejamento = PlanejamentoAnual.objects.get(
+                codigo=codigo_busca.upper(),
+                propriedade=propriedade
+            )
+        except PlanejamentoAnual.DoesNotExist:
+            messages.error(request, f'❌ Nenhuma projeção encontrada com o código: {codigo_busca.upper()}')
+            planejamento = None
+        except PlanejamentoAnual.MultipleObjectsReturned:
+            planejamento = PlanejamentoAnual.objects.filter(
+                codigo=codigo_busca.upper(),
+                propriedade=propriedade
+            ).order_by('-data_criacao').first()
+    
+    # PRIORIDADE 2: Buscar por ID
+    if not planejamento and planejamento_id:
+        try:
+            planejamento = PlanejamentoAnual.objects.get(
+                id=planejamento_id,
+                propriedade=propriedade
+            )
+        except PlanejamentoAnual.DoesNotExist:
+            planejamento = None
+    
+    # PRIORIDADE 3: Buscar o planejamento mais recente por data de criação
+    if not planejamento:
+        planejamento = PlanejamentoAnual.objects.filter(
+            propriedade=propriedade
+        ).order_by('-data_criacao', '-ano').first()
     
     if not planejamento:
-        messages.warning(request, 'Nenhum planejamento encontrado. Crie um planejamento primeiro.')
+        messages.warning(request, 'Nenhum planejamento encontrado. Crie um planejamento primeiro gerando uma projeção na página "Projeções do Rebanho".')
         return redirect('analise_cenarios', propriedade_id=propriedade.id)
     
     # Filtros
@@ -952,10 +1000,52 @@ def relatorio_vendas_projecao(request, propriedade_id):
     
     vendas = vendas_query.order_by('-data_venda', 'categoria')
     
+    # Debug: Log para entender o que está sendo buscado
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"DEBUG relatorio_vendas_projecao - Planejamento: {planejamento.codigo if planejamento else 'None'}")
+    logger.info(f"DEBUG relatorio_vendas_projecao - Planejamento ID: {planejamento.id if planejamento else 'None'}")
+    logger.info(f"DEBUG relatorio_vendas_projecao - Total de vendas encontradas: {vendas.count()}")
+    
+    # Verificar se há vendas no banco de dados para este planejamento (sem filtros)
+    vendas_totais_planejamento = VendaProjetada.objects.filter(
+        propriedade=propriedade,
+        planejamento=planejamento
+    ).count()
+    logger.info(f"DEBUG relatorio_vendas_projecao - Total de vendas no banco para este planejamento: {vendas_totais_planejamento}")
+    
+    # Se não há vendas, verificar se há movimentações
+    if vendas_totais_planejamento == 0:
+        movimentacoes_count = MovimentacaoProjetada.objects.filter(
+            propriedade=propriedade,
+            planejamento=planejamento,
+            tipo_movimentacao='VENDA',
+            quantidade__gt=0
+        ).count()
+        logger.info(f"DEBUG relatorio_vendas_projecao - Movimentações VENDA encontradas: {movimentacoes_count}")
+        
+        cenarios_count = planejamento.cenarios.count()
+        logger.info(f"DEBUG relatorio_vendas_projecao - Cenários encontrados: {cenarios_count}")
+        
+        if movimentacoes_count > 0 and cenarios_count == 0:
+            messages.warning(
+                request,
+                f'⚠️ Nenhuma venda encontrada para a projeção {planejamento.codigo}. '
+                f'Foram encontradas {movimentacoes_count} movimentações de VENDA, mas não há cenários. '
+                f'Clique em "Gerar Vendas" para criar um cenário automaticamente e gerar as vendas.'
+            )
+        elif movimentacoes_count == 0:
+            messages.warning(
+                request,
+                f'⚠️ Nenhuma movimentação de VENDA encontrada para a projeção {planejamento.codigo}. '
+                f'É necessário gerar primeiro as projeções na página "Projeções do Rebanho".'
+            )
+    
     # Buscar range de anos disponíveis nas vendas/movimentações para exibir no filtro
     # Primeiro tenta buscar das vendas, se não houver, busca das movimentações
     if vendas.exists():
         anos_disponiveis = list(vendas.values_list('data_venda__year', flat=True).distinct().order_by('data_venda__year'))
+        logger.info(f"DEBUG relatorio_vendas_projecao - Anos encontrados nas vendas: {anos_disponiveis}")
     else:
         # Buscar anos das movimentações projetadas vinculadas ao planejamento
         anos_disponiveis = list(MovimentacaoProjetada.objects.filter(
@@ -1014,11 +1104,36 @@ def relatorio_vendas_projecao(request, propriedade_id):
     # Buscar cenários disponíveis
     cenarios = planejamento.cenarios.all().order_by('-is_baseline', 'nome')
     
+    # Se não há cenários mas há movimentações, criar um cenário padrão automaticamente
+    if not cenarios.exists():
+        movimentacoes_existem = MovimentacaoProjetada.objects.filter(
+            propriedade=propriedade,
+            planejamento=planejamento,
+            tipo_movimentacao='VENDA',
+            quantidade__gt=0
+        ).exists()
+        
+        if movimentacoes_existem:
+            # Criar cenário baseline automaticamente
+            cenario_baseline = CenarioPlanejamento.objects.create(
+                planejamento=planejamento,
+                nome="Baseline",
+                descricao="Cenário base criado automaticamente",
+                is_baseline=True
+            )
+            cenarios = planejamento.cenarios.all().order_by('-is_baseline', 'nome')
+            messages.info(request, f'ℹ️ Um cenário "Baseline" foi criado automaticamente para a projeção {planejamento.codigo}.')
+    
+    # Converter queryset para lista para melhor renderização no template
+    vendas_lista = list(vendas)
+    
     # Estatísticas gerais
-    total_vendas = vendas.count()
-    total_quantidade = sum(v.quantidade for v in vendas)
-    total_valor = sum(v.valor_total for v in vendas)
-    total_peso = sum(v.peso_total_kg or Decimal('0') for v in vendas)
+    total_vendas = len(vendas_lista)
+    total_quantidade = sum(v.quantidade for v in vendas_lista)
+    total_valor = sum(v.valor_total or Decimal('0') for v in vendas_lista)
+    total_peso = sum(v.peso_total_kg or Decimal('0') for v in vendas_lista)
+    
+    logger.info(f"DEBUG relatorio_vendas_projecao - Estatísticas: Total={total_vendas}, Quantidade={total_quantidade}, Valor={total_valor}, Peso={total_peso}")
     
     # Agrupar por ANO primeiro
     vendas_por_ano = defaultdict(lambda: {
@@ -1034,7 +1149,7 @@ def relatorio_vendas_projecao(request, propriedade_id):
         })
     })
     
-    for venda in vendas:
+    for venda in vendas_lista:
         ano = venda.data_venda.year
         mes_num = venda.data_venda.month
         mes_ano = f"{ano}-{mes_num:02d}"
@@ -1042,14 +1157,14 @@ def relatorio_vendas_projecao(request, propriedade_id):
         # Agrupar por ano
         vendas_por_ano[ano]['vendas'].append(venda)
         vendas_por_ano[ano]['total_quantidade'] += venda.quantidade
-        vendas_por_ano[ano]['total_valor'] += venda.valor_total
+        vendas_por_ano[ano]['total_valor'] += venda.valor_total or Decimal('0')
         if venda.peso_total_kg:
             vendas_por_ano[ano]['total_peso'] += venda.peso_total_kg
         
         # Agrupar por mês dentro do ano
         vendas_por_ano[ano]['meses'][mes_num]['vendas'].append(venda)
         vendas_por_ano[ano]['meses'][mes_num]['total_quantidade'] += venda.quantidade
-        vendas_por_ano[ano]['meses'][mes_num]['total_valor'] += venda.valor_total
+        vendas_por_ano[ano]['meses'][mes_num]['total_valor'] += venda.valor_total or Decimal('0')
         if venda.peso_total_kg:
             vendas_por_ano[ano]['meses'][mes_num]['total_peso'] += venda.peso_total_kg
     
@@ -1110,11 +1225,11 @@ def relatorio_vendas_projecao(request, propriedade_id):
         'total_peso': Decimal('0')
     })
     
-    for venda in vendas:
+    for venda in vendas_lista:
         cat_nome = venda.categoria.nome
         vendas_por_categoria[cat_nome]['vendas'].append(venda)
         vendas_por_categoria[cat_nome]['total_quantidade'] += venda.quantidade
-        vendas_por_categoria[cat_nome]['total_valor'] += venda.valor_total
+        vendas_por_categoria[cat_nome]['total_valor'] += venda.valor_total or Decimal('0')
         if venda.peso_total_kg:
             vendas_por_categoria[cat_nome]['total_peso'] += venda.peso_total_kg
     
@@ -1126,7 +1241,7 @@ def relatorio_vendas_projecao(request, propriedade_id):
         'total_peso': Decimal('0')
     })
     
-    for venda in vendas:
+    for venda in vendas_lista:
         cliente_nome = venda.cliente_nome or "Cliente não definido"
         vendas_por_cliente[cliente_nome]['vendas'].append(venda)
         vendas_por_cliente[cliente_nome]['total_quantidade'] += venda.quantidade
@@ -1142,7 +1257,7 @@ def relatorio_vendas_projecao(request, propriedade_id):
         'ano_selecionado': int(ano) if ano else None,
         'mes_selecionado': int(mes) if mes else None,
         'tipo_relatorio': tipo_relatorio,
-        'vendas': vendas,
+        'vendas': vendas_lista,
         'total_vendas': total_vendas,
         'total_quantidade': total_quantidade,
         'total_valor': float(total_valor),
@@ -1168,10 +1283,42 @@ def relatorio_vendas_mensal(request, propriedade_id, ano, mes):
         produtor__usuario_responsavel=request.user
     )
     
-    # Buscar planejamento - pode ser do ano ou pode ser um planejamento multi-ano que contém vendas do ano solicitado
-    planejamento = PlanejamentoAnual.objects.filter(
-        propriedade=propriedade
-    ).order_by('-ano').first()
+    # Buscar planejamento - pode vir da URL como parâmetro (codigo ou planejamento_id)
+    planejamento = None
+    codigo_busca = request.GET.get('codigo', '').strip()
+    planejamento_id = request.GET.get('planejamento_id')
+    
+    # PRIORIDADE 1: Buscar por código (projeção selecionada pelo usuário)
+    if codigo_busca:
+        try:
+            planejamento = PlanejamentoAnual.objects.get(
+                codigo=codigo_busca.upper(),
+                propriedade=propriedade
+            )
+        except PlanejamentoAnual.DoesNotExist:
+            messages.error(request, f'❌ Nenhuma projeção encontrada com o código: {codigo_busca.upper()}')
+            planejamento = None
+        except PlanejamentoAnual.MultipleObjectsReturned:
+            planejamento = PlanejamentoAnual.objects.filter(
+                codigo=codigo_busca.upper(),
+                propriedade=propriedade
+            ).order_by('-data_criacao').first()
+    
+    # PRIORIDADE 2: Buscar por ID
+    if not planejamento and planejamento_id:
+        try:
+            planejamento = PlanejamentoAnual.objects.get(
+                id=planejamento_id,
+                propriedade=propriedade
+            )
+        except PlanejamentoAnual.DoesNotExist:
+            planejamento = None
+    
+    # PRIORIDADE 3: Buscar o planejamento mais recente por data de criação
+    if not planejamento:
+        planejamento = PlanejamentoAnual.objects.filter(
+            propriedade=propriedade
+        ).order_by('-data_criacao', '-ano').first()
     
     if not planejamento:
         messages.warning(request, f'Nenhum planejamento encontrado.')
@@ -1219,7 +1366,7 @@ def relatorio_vendas_mensal(request, propriedade_id, ano, mes):
         'ano': ano,
         'mes': mes,
         'mes_nome': month_name[mes],
-        'vendas': vendas,
+        'vendas': vendas_lista,
         'vendas_por_categoria': dict(vendas_por_categoria),
         'total_quantidade': total_quantidade,
         'total_valor': float(total_valor),
@@ -1239,10 +1386,42 @@ def relatorio_vendas_anual(request, propriedade_id, ano):
         produtor__usuario_responsavel=request.user
     )
     
-    # Buscar planejamento - pode ser do ano ou pode ser um planejamento multi-ano que contém vendas do ano solicitado
-    planejamento = PlanejamentoAnual.objects.filter(
-        propriedade=propriedade
-    ).order_by('-ano').first()
+    # Buscar planejamento - pode vir da URL como parâmetro (codigo ou planejamento_id)
+    planejamento = None
+    codigo_busca = request.GET.get('codigo', '').strip()
+    planejamento_id = request.GET.get('planejamento_id')
+    
+    # PRIORIDADE 1: Buscar por código (projeção selecionada pelo usuário)
+    if codigo_busca:
+        try:
+            planejamento = PlanejamentoAnual.objects.get(
+                codigo=codigo_busca.upper(),
+                propriedade=propriedade
+            )
+        except PlanejamentoAnual.DoesNotExist:
+            messages.error(request, f'❌ Nenhuma projeção encontrada com o código: {codigo_busca.upper()}')
+            planejamento = None
+        except PlanejamentoAnual.MultipleObjectsReturned:
+            planejamento = PlanejamentoAnual.objects.filter(
+                codigo=codigo_busca.upper(),
+                propriedade=propriedade
+            ).order_by('-data_criacao').first()
+    
+    # PRIORIDADE 2: Buscar por ID
+    if not planejamento and planejamento_id:
+        try:
+            planejamento = PlanejamentoAnual.objects.get(
+                id=planejamento_id,
+                propriedade=propriedade
+            )
+        except PlanejamentoAnual.DoesNotExist:
+            planejamento = None
+    
+    # PRIORIDADE 3: Buscar o planejamento mais recente por data de criação
+    if not planejamento:
+        planejamento = PlanejamentoAnual.objects.filter(
+            propriedade=propriedade
+        ).order_by('-data_criacao', '-ano').first()
     
     if not planejamento:
         messages.warning(request, f'Nenhum planejamento encontrado.')
@@ -1250,7 +1429,7 @@ def relatorio_vendas_anual(request, propriedade_id, ano):
     
     cenario_id = request.GET.get('cenario')
     
-    # Buscar vendas do ano
+    # Buscar vendas do ano - TODAS do planejamento (pode incluir múltiplos anos da projeção)
     vendas_query = VendaProjetada.objects.filter(
         propriedade=propriedade,
         planejamento=planejamento,
@@ -1262,10 +1441,13 @@ def relatorio_vendas_anual(request, propriedade_id, ano):
     
     vendas = vendas_query.order_by('data_venda', 'categoria')
     
+    # Converter queryset para lista para melhor renderização no template
+    vendas_lista = list(vendas)
+    
     # Estatísticas do ano
-    total_quantidade = sum(v.quantidade for v in vendas)
-    total_valor = sum(v.valor_total for v in vendas)
-    total_peso = sum(v.peso_total_kg or Decimal('0') for v in vendas)
+    total_quantidade = sum(v.quantidade for v in vendas_lista)
+    total_valor = sum(v.valor_total or Decimal('0') for v in vendas_lista)
+    total_peso = sum(v.peso_total_kg or Decimal('0') for v in vendas_lista)
     
     # Agrupar por mês
     vendas_por_mes = defaultdict(lambda: {
@@ -1275,11 +1457,11 @@ def relatorio_vendas_anual(request, propriedade_id, ano):
         'peso': Decimal('0')
     })
     
-    for venda in vendas:
+    for venda in vendas_lista:
         mes_num = venda.data_venda.month
         vendas_por_mes[mes_num]['vendas'].append(venda)
         vendas_por_mes[mes_num]['quantidade'] += venda.quantidade
-        vendas_por_mes[mes_num]['valor'] += venda.valor_total
+        vendas_por_mes[mes_num]['valor'] += venda.valor_total or Decimal('0')
         if venda.peso_total_kg:
             vendas_por_mes[mes_num]['peso'] += venda.peso_total_kg
     
@@ -1299,10 +1481,10 @@ def relatorio_vendas_anual(request, propriedade_id, ano):
         'peso': Decimal('0')
     })
     
-    for venda in vendas:
+    for venda in vendas_lista:
         cat_nome = venda.categoria.nome
         vendas_por_categoria[cat_nome]['quantidade'] += venda.quantidade
-        vendas_por_categoria[cat_nome]['valor'] += venda.valor_total
+        vendas_por_categoria[cat_nome]['valor'] += venda.valor_total or Decimal('0')
         if venda.peso_total_kg:
             vendas_por_categoria[cat_nome]['peso'] += venda.peso_total_kg
     
@@ -1310,7 +1492,7 @@ def relatorio_vendas_anual(request, propriedade_id, ano):
         'propriedade': propriedade,
         'planejamento': planejamento,
         'ano': ano,
-        'vendas': vendas,
+        'vendas': vendas_lista,
         'vendas_por_mes': vendas_por_mes_lista,
         'vendas_por_categoria': dict(vendas_por_categoria),
         'total_quantidade': total_quantidade,

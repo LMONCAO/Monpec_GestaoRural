@@ -38,6 +38,18 @@
             </div>
             <div class="flex-grow-1">
                 <h1 class="submenu-page-title">Relatório de Vendas da Projeção</h1>
+                {% if planejamento %}
+                <div class="mb-2">
+                    <span class="badge bg-primary fs-6 me-2">
+                        <i class="bi bi-hash me-1"></i>
+                        ID: {{ planejamento.codigo }}
+                    </span>
+                    <span class="text-muted">
+                        Ano: {{ planejamento.ano }} | 
+                        Status: {{ planejamento.get_status_display }}
+                    </span>
+                </div>
+                {% endif %}
                 <p class="submenu-page-description">
                     Relatório detalhado de vendas projetadas por cenário, com consolidações mensais e anuais.
                 </p>
@@ -321,7 +333,7 @@
                                         <span class="text-info">R$ {{ item_mes.total_valor|floatformat:2 }}</span>
                                     </td>
                                     <td class="text-center">
-                                        <a href="{% url 'relatorio_vendas_mensal' propriedade.id item_ano.ano item_mes.mes %}{% if cenario_selecionado %}?cenario={{ cenario_selecionado }}{% endif %}" 
+                                        <a href="{% url 'relatorio_vendas_mensal' propriedade.id item_ano.ano item_mes.mes %}{% if planejamento and planejamento.codigo %}?codigo={{ planejamento.codigo }}{% if cenario_selecionado %}&cenario={{ cenario_selecionado }}{% endif %}{% elif cenario_selecionado %}?cenario={{ cenario_selecionado }}{% endif %}" 
                                            class="btn btn-xs btn-outline-primary"
                                            onclick="event.stopPropagation();"
                                            title="Ver detalhes do mês">
@@ -392,7 +404,7 @@
                                         <strong class="text-success">R$ {{ item.total_valor|floatformat:2 }}</strong>
                                     </td>
                                     <td class="text-center">
-                                        <a href="{% url 'relatorio_vendas_mensal' propriedade.id item.ano item.mes %}{% if cenario_selecionado %}?cenario={{ cenario_selecionado }}{% endif %}" 
+                                        <a href="{% url 'relatorio_vendas_mensal' propriedade.id item.ano item.mes %}{% if planejamento and planejamento.codigo %}?codigo={{ planejamento.codigo }}{% if cenario_selecionado %}&cenario={{ cenario_selecionado }}{% endif %}{% elif cenario_selecionado %}?cenario={{ cenario_selecionado }}{% endif %}" 
                                            class="btn btn-sm btn-outline-primary">
                                             <i class="bi bi-eye me-1"></i>
                                             Ver Detalhes
@@ -482,7 +494,7 @@
     <!-- Link para Relatório Anual -->
     <div class="row">
         <div class="col-12 text-center">
-            <a href="{% url 'relatorio_vendas_anual' propriedade.id planejamento.ano %}{% if cenario_selecionado %}?cenario={{ cenario_selecionado }}{% endif %}" 
+            <a href="{% url 'relatorio_vendas_anual' propriedade.id planejamento.ano %}{% if planejamento and planejamento.codigo %}?codigo={{ planejamento.codigo }}{% if cenario_selecionado %}&cenario={{ cenario_selecionado }}{% endif %}{% elif cenario_selecionado %}?cenario={{ cenario_selecionado }}{% endif %}" 
                class="btn btn-lg btn-primary">
                 <i class="bi bi-file-earmark-bar-graph me-2"></i>
                 Ver Relatório Anual Consolidado
