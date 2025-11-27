@@ -9,11 +9,13 @@ Módulo de Integração com APIs Externas
 from .api_bovtrace import BovTraceAPI
 from .api_agrofit import AgrofitAPI
 from .api_infodap import InfoDAPAPI
+from .api_cepea import CEPEAService
 
 __all__ = [
     'BovTraceAPI',
     'AgrofitAPI',
     'InfoDAPAPI',
+    'CEPEAService',
 ]
 
 

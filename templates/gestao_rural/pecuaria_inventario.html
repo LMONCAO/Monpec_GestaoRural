@@ -57,8 +57,18 @@
                            class="form-control form-control-sm" 
                            id="data_inventario" 
                            name="data_inventario"
-                           value="{% now 'Y-m-d' %}" 
+                           value="{% if data_inventario_atual %}{{ data_inventario_atual|date:'Y-m-d' }}{% else %}{% now 'Y-m-d' %}{% endif %}" 
                            style="max-width: 150px;">
+                    {% if tem_inventario %}
+                    <div class="btn-group btn-group-sm" role="group">
+                        <a href="{% url 'exportar_inventario_excel' propriedade.id %}" class="btn btn-success" title="Exportar para Excel">
+                            <i class="bi bi-file-earmark-excel me-1"></i>Excel
+                        </a>
+                        <a href="{% url 'exportar_inventario_pdf' propriedade.id %}" class="btn btn-danger" title="Exportar para PDF">
+                            <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+                        </a>
+                    </div>
+                    {% endif %}
                     <a href="{% url 'categoria_nova' %}?next={{ request.path }}" class="btn btn-outline-primary btn-sm">
                         <i class="bi bi-plus-circle me-1"></i>Nova Categoria
                     </a>
@@ -68,7 +78,7 @@
         <div class="card-body p-0">
             <form method="post" id="form-inventario">
                 {% csrf_token %}
-                <input type="hidden" name="data_inventario" id="data_inventario_hidden" value="{% now 'Y-m-d' %}">
+                <input type="hidden" name="data_inventario" id="data_inventario_hidden" value="{% if data_inventario_atual %}{{ data_inventario_atual|date:'Y-m-d' }}{% else %}{% now 'Y-m-d' %}{% endif %}">
                 
                 <div class="table-responsive">
                     <table class="table table-hover align-middle mb-0" id="tabela-inventario">
@@ -210,6 +220,16 @@
                         {% endif %}
                     </div>
                     <div class="d-flex gap-2">
+                        {% if tem_inventario %}
+                        <div class="btn-group btn-group-sm" role="group">
+                            <a href="{% url 'exportar_inventario_excel' propriedade.id %}" class="btn btn-success" title="Gerar relatório em Excel">
+                                <i class="bi bi-file-earmark-excel me-1"></i>Excel
+                            </a>
+                            <a href="{% url 'exportar_inventario_pdf' propriedade.id %}" class="btn btn-danger" title="Gerar relatório em PDF">
+                                <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+                            </a>
+                        </div>
+                        {% endif %}
                         <a href="{% url 'pecuaria_dashboard' propriedade.id %}" class="btn btn-outline-secondary btn-sm">
                             <i class="bi bi-arrow-left me-1"></i>Cancelar
                         </a>
@@ -282,9 +302,18 @@ document.addEventListener('DOMContentLoaded', function() {
     const dataInput = document.getElementById('data_inventario');
     const dataHidden = document.getElementById('data_inventario_hidden');
     
-    // Sincronizar data
+    // Sincronizar data - inicializar e manter sincronizado
     if (dataInput && dataHidden) {
+        // Inicializar o campo hidden com o valor do campo visível
+        dataHidden.value = dataInput.value;
+        
+        // Sincronizar quando o campo visível mudar
         dataInput.addEventListener('change', function() {
+            dataHidden.value = this.value;
+        });
+        
+        // Também sincronizar em input (para garantir)
+        dataInput.addEventListener('input', function() {
             dataHidden.value = this.value;
         });
     }

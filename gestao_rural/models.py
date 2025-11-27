@@ -340,6 +340,27 @@ class Propriedade(models.Model):
     )
     municipio = models.CharField(max_length=100, verbose_name="Município")
     uf = models.CharField(max_length=2, verbose_name="UF")
+    
+    # Campos de localização detalhada
+    endereco = models.TextField(blank=True, null=True, verbose_name="Endereço")
+    cep = models.CharField(max_length=10, blank=True, null=True, verbose_name="CEP")
+    bairro = models.CharField(max_length=100, blank=True, null=True, verbose_name="Bairro/Distrito")
+    latitude = models.DecimalField(
+        max_digits=10, 
+        decimal_places=8, 
+        blank=True, 
+        null=True,
+        verbose_name="Latitude"
+    )
+    longitude = models.DecimalField(
+        max_digits=11, 
+        decimal_places=8, 
+        blank=True, 
+        null=True,
+        verbose_name="Longitude"
+    )
+    ponto_referencia = models.TextField(blank=True, null=True, verbose_name="Ponto de Referência")
+    
     area_total_ha = models.DecimalField(
         max_digits=10, 
         decimal_places=2, 
@@ -390,6 +411,7 @@ class Propriedade(models.Model):
     nirf = models.CharField(max_length=50, blank=True, null=True, verbose_name="NIRF")
     incra = models.CharField(max_length=50, blank=True, null=True, verbose_name="INCRA")
     car = models.CharField(max_length=50, blank=True, null=True, verbose_name="CAR")
+    inscricao_estadual = models.CharField(max_length=50, blank=True, null=True, verbose_name="Inscrição Estadual")
     
     data_cadastro = models.DateTimeField(auto_now_add=True, verbose_name="Data de Cadastro")
     
@@ -540,6 +562,14 @@ class PlanejamentoAnual(models.Model):
         related_name='planejamentos_pecuarios',
         verbose_name="Propriedade",
     )
+    codigo = models.CharField(
+        max_length=20,
+        unique=True,
+        blank=True,
+        null=True,
+        verbose_name="Código da Projeção",
+        help_text="Código único identificador da projeção (gerado automaticamente)"
+    )
     ano = models.PositiveIntegerField(verbose_name="Ano do Planejamento")
     descricao = models.CharField(
         max_length=255,
@@ -558,11 +588,75 @@ class PlanejamentoAnual(models.Model):
     class Meta:
         verbose_name = "Planejamento Anual Pecuário"
         verbose_name_plural = "Planejamentos Anuais Pecuários"
-        ordering = ['-ano', 'propriedade']
-        unique_together = ['propriedade', 'ano']
+        ordering = ['-data_criacao', '-ano', 'propriedade']
+        # Removido unique_together para permitir múltiplos planejamentos no mesmo ano
+        # Cada planejamento terá um código único gerado automaticamente
+        indexes = [
+            models.Index(fields=['codigo']),
+            models.Index(fields=['ano', 'propriedade']),
+            models.Index(fields=['data_criacao']),
+        ]
+
+    def gerar_codigo_unico(self):
+        """Gera um código único para a projeção no formato PROJ-YYYY-NNNN"""
+        if self.codigo:
+            return self.codigo
+        
+        # Buscar o último código do mesmo ano
+        ano_atual = self.ano
+        queryset = PlanejamentoAnual.objects.filter(
+            ano=ano_atual,
+            codigo__isnull=False
+        )
+        
+        # Excluir o próprio objeto se já tiver ID
+        if self.pk:
+            queryset = queryset.exclude(pk=self.pk)
+        
+        ultimo_planejamento = queryset.order_by('-codigo').first()
+        
+        if ultimo_planejamento and ultimo_planejamento.codigo:
+            # Extrair o número sequencial do último código
+            try:
+                partes = ultimo_planejamento.codigo.split('-')
+                if len(partes) == 3 and partes[0] == 'PROJ':
+                    sequencial = int(partes[2])
+                    novo_sequencial = sequencial + 1
+                else:
+                    novo_sequencial = 1
+            except (ValueError, IndexError):
+                novo_sequencial = 1
+        else:
+            novo_sequencial = 1
+        
+        # Gerar código no formato PROJ-YYYY-NNNN e verificar unicidade
+        max_tentativas = 100
+        tentativa = 0
+        while tentativa < max_tentativas:
+            self.codigo = f"PROJ-{ano_atual}-{novo_sequencial:04d}"
+            
+            # Verificar se o código já existe
+            if not PlanejamentoAnual.objects.filter(codigo=self.codigo).exclude(pk=self.pk if self.pk else None).exists():
+                return self.codigo
+            
+            novo_sequencial += 1
+            tentativa += 1
+        
+        # Se não conseguiu após 100 tentativas, usar timestamp
+        from django.utils import timezone
+        timestamp = int(timezone.now().timestamp() % 10000)
+        self.codigo = f"PROJ-{ano_atual}-{timestamp:04d}"
+        return self.codigo
+
+    def save(self, *args, **kwargs):
+        """Override save para gerar código automaticamente se não existir"""
+        if not self.codigo:
+            self.gerar_codigo_unico()
+        super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.propriedade.nome_propriedade} - {self.ano}"
+        codigo_display = f"[{self.codigo}] " if self.codigo else ""
+        return f"{codigo_display}{self.propriedade.nome_propriedade} - {self.ano}"
 
 
 class AtividadePlanejada(models.Model):
@@ -1052,6 +1146,8 @@ class MovimentacaoProjetada(models.Model):
         ('MORTE', 'Morte'),
         ('TRANSFERENCIA_ENTRADA', 'Transferência de Entrada'),
         ('TRANSFERENCIA_SAIDA', 'Transferência de Saída'),
+        ('PROMOCAO_ENTRADA', 'Promoção de Entrada (Evolução de Idade)'),
+        ('PROMOCAO_SAIDA', 'Promoção de Saída (Evolução de Idade)'),
     ]
     
     propriedade = models.ForeignKey(
@@ -1114,6 +1210,147 @@ class MovimentacaoProjetada(models.Model):
             f"{self.propriedade.nome_propriedade}{nome_cenario} - "
             f"{self.get_tipo_movimentacao_display()}: {self.quantidade} {self.categoria.nome}"
         )
+
+
+class VendaProjetada(models.Model):
+    """Modelo para vendas projetadas a partir das projeções de cenários"""
+    propriedade = models.ForeignKey(
+        Propriedade,
+        on_delete=models.CASCADE,
+        related_name='vendas_projetadas',
+        verbose_name="Propriedade"
+    )
+    planejamento = models.ForeignKey(
+        PlanejamentoAnual,
+        on_delete=models.CASCADE,
+        related_name='vendas_projetadas',
+        null=True,
+        blank=True,
+        verbose_name="Planejamento Anual"
+    )
+    cenario = models.ForeignKey(
+        CenarioPlanejamento,
+        on_delete=models.CASCADE,
+        related_name='vendas_projetadas',
+        null=True,
+        blank=True,
+        verbose_name="Cenário"
+    )
+    movimentacao_projetada = models.ForeignKey(
+        MovimentacaoProjetada,
+        on_delete=models.CASCADE,
+        related_name='vendas_geradas',
+        null=True,
+        blank=True,
+        verbose_name="Movimentação Projetada Origem"
+    )
+    data_venda = models.DateField(verbose_name="Data da Venda")
+    categoria = models.ForeignKey(
+        CategoriaAnimal,
+        on_delete=models.CASCADE,
+        verbose_name="Categoria"
+    )
+    quantidade = models.PositiveIntegerField(verbose_name="Quantidade")
+    # Cliente será referenciado usando lazy reference
+    # Nota: O modelo Cliente está em models_cadastros.py mas será resolvido no momento da migração
+    cliente_nome = models.CharField(
+        max_length=200,
+        blank=True,
+        null=True,
+        verbose_name="Nome do Cliente",
+        help_text="Nome do cliente da venda (será vinculado ao cadastro quando disponível)"
+    )
+    peso_total_kg = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name="Peso Total (kg)"
+    )
+    peso_medio_kg = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name="Peso Médio por Animal (kg)"
+    )
+    valor_por_kg = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name="Valor por KG (R$)"
+    )
+    valor_por_animal = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name="Valor por Animal (R$)"
+    )
+    valor_total = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        verbose_name="Valor Total (R$)"
+    )
+    data_recebimento = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name="Data de Recebimento"
+    )
+    prazo_pagamento_dias = models.PositiveIntegerField(
+        default=30,
+        verbose_name="Prazo de Pagamento (dias)"
+    )
+    observacoes = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Observações"
+    )
+    criado_em = models.DateTimeField(auto_now_add=True, verbose_name="Criado em")
+    atualizado_em = models.DateTimeField(auto_now=True, verbose_name="Atualizado em")
+    
+    class Meta:
+        verbose_name = "Venda Projetada"
+        verbose_name_plural = "Vendas Projetadas"
+        ordering = ['-data_venda', 'categoria']
+        indexes = [
+            models.Index(fields=['propriedade', 'data_venda']),
+            models.Index(fields=['cenario', 'data_venda']),
+            models.Index(fields=['cliente_nome', 'data_venda']),
+        ]
+    
+    def __str__(self):
+        cliente_nome = self.cliente_nome or "Cliente não definido"
+        return (
+            f"Venda {self.data_venda.strftime('%d/%m/%Y')} - "
+            f"{self.quantidade} {self.categoria.nome} - {cliente_nome}"
+        )
+    
+    def calcular_valor_total(self):
+        """Calcula o valor total baseado no método de precificação"""
+        if self.valor_por_animal and self.quantidade:
+            self.valor_total = self.valor_por_animal * self.quantidade
+        elif self.valor_por_kg and self.peso_total_kg:
+            self.valor_total = self.valor_por_kg * self.peso_total_kg
+        elif self.valor_por_animal:
+            self.valor_total = self.valor_por_animal * self.quantidade
+        return self.valor_total
+    
+    def calcular_data_recebimento(self):
+        """Calcula a data de recebimento baseada no prazo de pagamento"""
+        if self.data_venda and not self.data_recebimento:
+            from datetime import timedelta
+            self.data_recebimento = self.data_venda + timedelta(days=self.prazo_pagamento_dias)
+        return self.data_recebimento
+    
+    def save(self, *args, **kwargs):
+        """Sobrescreve save para calcular valores automaticamente"""
+        if not self.valor_total or self.valor_total == 0:
+            self.valor_total = self.calcular_valor_total() or Decimal('0.00')
+        if not self.data_recebimento:
+            self.calcular_data_recebimento()
+        super().save(*args, **kwargs)
 
 
 class RegraPromocaoCategoria(models.Model):
@@ -1737,6 +1974,15 @@ class ProjetoBancario(models.Model):
     ]
     
     propriedade = models.ForeignKey(Propriedade, on_delete=models.CASCADE, related_name='projetos_bancarios')
+    planejamento = models.ForeignKey(
+        PlanejamentoAnual,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name='projetos_bancarios',
+        verbose_name="Planejamento de Projeção",
+        help_text="Vincule a um planejamento anual para avaliar cenários de projeção no projeto bancário"
+    )
     nome_projeto = models.CharField(max_length=200, verbose_name="Nome do Projeto")
     tipo_projeto = models.CharField(max_length=20, choices=TIPO_PROJETO_CHOICES, verbose_name="Tipo de Projeto")
     banco_solicitado = models.CharField(max_length=200, verbose_name="Banco Solicitado")
@@ -3211,6 +3457,81 @@ class MensagemWhatsApp(models.Model):
         return f"Mensagem de {self.numero_whatsapp} - {self.get_status_display()}"
 
 
+class PrecoCEPEA(models.Model):
+    """Modelo para armazenar preços médios CEPEA por estado, ano e categoria de animal"""
+    
+    TIPO_CATEGORIA_CHOICES = [
+        ('BEZERRO', 'Bezerro (0-12 meses)'),
+        ('BEZERRA', 'Bezerra (0-12 meses)'),
+        ('GARROTE', 'Garrote (12-24 meses)'),
+        ('NOVILHA', 'Novilha (12-24 meses)'),
+        ('BOI', 'Boi (24-36 meses)'),
+        ('BOI_MAGRO', 'Boi Magro (24-36 meses)'),
+        ('PRIMIPARA', 'Primípara (24-36 meses)'),
+        ('MULTIPARA', 'Multípara (>36 meses)'),
+        ('VACA_DESCARTE', 'Vaca Descarte (>36 meses)'),
+        ('TOURO', 'Touro (>36 meses)'),
+    ]
+    
+    uf = models.CharField(max_length=2, verbose_name="UF", db_index=True)
+    ano = models.PositiveIntegerField(verbose_name="Ano", db_index=True)
+    tipo_categoria = models.CharField(
+        max_length=20,
+        choices=TIPO_CATEGORIA_CHOICES,
+        verbose_name="Tipo de Categoria",
+        db_index=True
+    )
+    preco_medio = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        verbose_name="Preço Médio (R$/cabeça)",
+        validators=[MinValueValidator(Decimal('0.01'))]
+    )
+    preco_minimo = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        blank=True,
+        null=True,
+        verbose_name="Preço Mínimo (R$/cabeça)",
+        validators=[MinValueValidator(Decimal('0.01'))]
+    )
+    preco_maximo = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        blank=True,
+        null=True,
+        verbose_name="Preço Máximo (R$/cabeça)",
+        validators=[MinValueValidator(Decimal('0.01'))]
+    )
+    fonte = models.CharField(
+        max_length=100,
+        default='CEPEA',
+        verbose_name="Fonte dos Dados"
+    )
+    data_atualizacao = models.DateTimeField(
+        auto_now=True,
+        verbose_name="Data de Atualização"
+    )
+    observacoes = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Observações"
+    )
+    
+    class Meta:
+        verbose_name = "Preço CEPEA"
+        verbose_name_plural = "Preços CEPEA"
+        unique_together = [['uf', 'ano', 'tipo_categoria']]
+        ordering = ['-ano', 'uf', 'tipo_categoria']
+        indexes = [
+            models.Index(fields=['uf', 'ano']),
+            models.Index(fields=['tipo_categoria', 'ano']),
+        ]
+    
+    def __str__(self):
+        return f"{self.get_tipo_categoria_display()} - {self.uf} ({self.ano}): R$ {self.preco_medio}"
+
+
 from .models_manejo import (  # noqa: E402,F401
     Manejo,
     ManejoChecklistExecucao,
@@ -3218,3 +3539,14 @@ from .models_manejo import (  # noqa: E402,F401
     ManejoHistorico,
     ManejoTipo,
 )
+
+# Importar modelos de cadastros para garantir que sejam registrados
+try:
+    from .models_cadastros import (  # noqa: E402,F401
+        Cliente,
+        Frigorifico,
+        UnidadeMedida,
+    )
+except ImportError:
+    # Se houver erro de importação, ignorar
+    pass

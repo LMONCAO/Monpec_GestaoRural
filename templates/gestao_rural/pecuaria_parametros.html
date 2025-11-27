@@ -386,7 +386,15 @@ function carregarSaldosAtuais() {
     fetch(`/propriedade/{{ propriedade.id }}/pecuaria/inventario/dados/`)
         .then(response => response.json())
         .then(data => {
-            estado.saldosAtuais = data.saldos || {};
+            // Combinar saldos por nome e por ID para compatibilidade
+            estado.saldosAtuais = {...(data.saldos || {}), ...(data.saldos_por_id || {})};
+            // Também adicionar formato id_X para compatibilidade com template
+            if (data.saldos_por_id) {
+                Object.keys(data.saldos_por_id).forEach(id => {
+                    estado.saldosAtuais[`id_${id}`] = data.saldos_por_id[id];
+                });
+            }
+            console.log('Saldos carregados:', estado.saldosAtuais);
             atualizarSaldosNaTela();
             calcularVendas();
         })
@@ -400,12 +408,20 @@ function carregarSaldosAtuais() {
 function atualizarSaldosNaTela() {
     document.querySelectorAll('[data-saldo-categoria]').forEach(badge => {
         const categoriaId = badge.dataset.saldoCategoria;
-        const categoriaNome = badge.closest('tr').dataset.categoriaNome;
+        const row = badge.closest('tr');
+        const categoriaNome = row ? row.dataset.categoriaNome : '';
         
         let saldo = 0;
+        // Tentar buscar por ID primeiro (formato id_X)
         if (estado.saldosAtuais[`id_${categoriaId}`] !== undefined) {
             saldo = estado.saldosAtuais[`id_${categoriaId}`];
-        } else if (estado.saldosAtuais[categoriaNome] !== undefined) {
+        } 
+        // Tentar buscar pelo ID direto
+        else if (estado.saldosAtuais[categoriaId] !== undefined) {
+            saldo = estado.saldosAtuais[categoriaId];
+        }
+        // Tentar buscar pelo nome da categoria
+        else if (categoriaNome && estado.saldosAtuais[categoriaNome] !== undefined) {
             saldo = estado.saldosAtuais[categoriaNome];
         }
         
@@ -420,11 +436,19 @@ function calcularVendas() {
     document.querySelectorAll('.perc-venda').forEach(input => {
         const categoriaId = input.dataset.categoria;
         const row = input.closest('tr');
-        const categoriaNome = row.dataset.categoriaNome;
+        const categoriaNome = row ? row.dataset.categoriaNome : '';
         
         const percentual = parseFloat(input.value) || 0;
-        const saldo = estado.saldosAtuais[`id_${categoriaId}`] || 
-                     estado.saldosAtuais[categoriaNome] || 0;
+        
+        // Buscar saldo com múltiplas tentativas
+        let saldo = 0;
+        if (estado.saldosAtuais[`id_${categoriaId}`] !== undefined) {
+            saldo = estado.saldosAtuais[`id_${categoriaId}`];
+        } else if (estado.saldosAtuais[categoriaId] !== undefined) {
+            saldo = estado.saldosAtuais[categoriaId];
+        } else if (categoriaNome && estado.saldosAtuais[categoriaNome] !== undefined) {
+            saldo = estado.saldosAtuais[categoriaNome];
+        }
         
         const qtdVenda = Math.floor(saldo * percentual / 100);
         const badge = row.querySelector(`.qtd-venda[data-categoria="${categoriaId}"]`);
@@ -500,6 +524,28 @@ function configurarEventListeners() {
     
     // Tipo de reposição
     document.querySelectorAll('.reposicao-tipo').forEach(select => {
+        // Verificar estado inicial
+        const categoriaId = select.dataset.categoria;
+        const row = select.closest('tr');
+        const reposicaoTipo = select.value;
+        
+        if (reposicaoTipo === 'TRANSFERENCIA') {
+            // Mostrar colunas de transferência se já estiver selecionado
+            document.getElementById('col-fazenda-origem').style.display = 'table-cell';
+            document.getElementById('col-saldo-origem').style.display = 'table-cell';
+            document.getElementById('col-qtd-transferir').style.display = 'table-cell';
+            row.querySelectorAll('.col-fazenda-origem, .col-saldo-origem, .col-qtd-transferir').forEach(cell => {
+                cell.style.display = 'table-cell';
+            });
+            
+            // Configurar select de fazenda origem
+            const origemSelect = row.querySelector('.fazenda-origem');
+            if (origemSelect && origemSelect.value) {
+                carregarSaldoOrigem(categoriaId, origemSelect.value);
+            }
+        }
+        
+        // Adicionar listener para mudanças
         select.addEventListener('change', function() {
             const categoriaId = this.dataset.categoria;
             const row = this.closest('tr');
@@ -516,13 +562,18 @@ function configurarEventListeners() {
                 
                 // Configurar select de fazenda origem
                 const origemSelect = row.querySelector('.fazenda-origem');
-                if (origemSelect && origemSelect.value) {
-                    carregarSaldoOrigem(categoriaId, origemSelect.value);
+                if (origemSelect) {
+                    if (origemSelect.value) {
+                        carregarSaldoOrigem(categoriaId, origemSelect.value);
+                    }
+                    
+                    // Remover listener anterior se existir e adicionar novo
+                    const novoSelect = origemSelect.cloneNode(true);
+                    origemSelect.parentNode.replaceChild(novoSelect, origemSelect);
+                    novoSelect.addEventListener('change', function() {
+                        carregarSaldoOrigem(categoriaId, this.value);
+                    });
                 }
-                
-                origemSelect.addEventListener('change', function() {
-                    carregarSaldoOrigem(categoriaId, this.value);
-                });
             } else {
                 // Ocultar colunas se nenhuma linha usar transferência
                 let temTransferencia = false;
@@ -552,26 +603,53 @@ function configurarFormulario() {
     if (form) {
         form.addEventListener('submit', function(e) {
             e.preventDefault();
-            processarDados();
+            console.log('Formulário interceptado, processando dados...');
+            try {
+                processarDados();
+            } catch (error) {
+                console.error('Erro ao processar dados:', error);
+                alert('Erro ao processar os dados. Verifique o console para mais detalhes.');
+            }
         });
+        console.log('Formulário configurado com sucesso');
+    } else {
+        console.error('Formulário form-parametros não encontrado!');
     }
 }
 
 // Processar dados antes de enviar
 function processarDados() {
+    console.log('Processando dados do formulário...');
     const politicaVendasData = [];
     
-    document.querySelectorAll('#tbody-politicas tr').forEach(row => {
+    const rows = document.querySelectorAll('#tbody-politicas tr');
+    console.log(`Encontradas ${rows.length} linhas na tabela`);
+    
+    rows.forEach((row, index) => {
         const categoriaId = row.dataset.categoriaId;
-        if (!categoriaId) return;
+        if (!categoriaId) {
+            console.warn(`Linha ${index} sem categoriaId, pulando...`);
+            return;
+        }
         
-        const percVenda = parseFloat(row.querySelector('.perc-venda').value) || 0;
-        const qtdVenda = parseInt(row.querySelector('.qtd-venda').textContent) || 0;
-        const valorCabeca = parseFloat(row.querySelector('.valor-cabeca').value) || 0;
-        const reposicaoTipo = row.querySelector('.reposicao-tipo').value || 'NAO_REP';
+        const percVendaInput = row.querySelector('.perc-venda');
+        const qtdVendaSpan = row.querySelector('.qtd-venda');
+        const valorCabecaInput = row.querySelector('.valor-cabeca');
+        const reposicaoTipoSelect = row.querySelector('.reposicao-tipo');
         const origemFazendaSelect = row.querySelector('.fazenda-origem');
-        const origemFazendaId = origemFazendaSelect ? origemFazendaSelect.value : null;
-        const qtdTransferir = parseInt(row.querySelector('.qtd-transferir')?.textContent || '0') || 0;
+        const qtdTransferirSpan = row.querySelector('.qtd-transferir');
+        
+        if (!percVendaInput || !qtdVendaSpan || !valorCabecaInput || !reposicaoTipoSelect) {
+            console.warn(`Linha ${index} (categoria ${categoriaId}) está faltando elementos necessários`);
+            return;
+        }
+        
+        const percVenda = parseFloat(percVendaInput.value) || 0;
+        const qtdVenda = parseInt(qtdVendaSpan.textContent.trim()) || 0;
+        const valorCabeca = parseFloat(valorCabecaInput.value) || 0;
+        const reposicaoTipo = reposicaoTipoSelect.value || 'NAO_REP';
+        const origemFazendaId = origemFazendaSelect ? (origemFazendaSelect.value || null) : null;
+        const qtdTransferir = qtdTransferirSpan ? (parseInt(qtdTransferirSpan.textContent.trim()) || 0) : 0;
         const saldoOrigem = estado.saldosOrigem[categoriaId] || 0;
         
         let qtdTransferirReal = 0;
@@ -587,26 +665,50 @@ function processarDados() {
             } else if (saldoOrigem < qtdVenda) {
                 qtdTransferirReal = saldoOrigem;
                 qtdComprar = qtdVenda - saldoOrigem;
+                reposicaoTipoFinal = 'AMBOS';
             } else {
                 qtdTransferirReal = qtdVenda;
             }
         }
         
+        // Incluir mesmo se percentual for 0, para manter todas as categorias
         politicaVendasData.push({
             categoria_id: parseInt(categoriaId),
             percentual_venda: percVenda,
             quantidade_venda: qtdVenda,
             valor_por_cabeca_personalizado: valorCabeca,
-            usar_valor_personalizado: false,
+            usar_valor_personalizado: valorCabeca > 0,
             reposicao_tipo: reposicaoTipoFinal,
             origem_fazenda: origemFazendaId,
             quantidade_transferir: qtdTransferirReal,
             quantidade_comprar: qtdComprar
         });
+        
+        console.log(`Categoria ${categoriaId}: ${percVenda}% venda, ${qtdVenda} qtd, ${reposicaoTipoFinal} reposição`);
     });
     
-    document.getElementById('politica-vendas-data').value = JSON.stringify(politicaVendasData);
-    document.getElementById('form-parametros').submit();
+    const jsonData = JSON.stringify(politicaVendasData);
+    console.log('Dados processados:', jsonData);
+    
+    const hiddenInput = document.getElementById('politica-vendas-data');
+    if (!hiddenInput) {
+        console.error('Campo hidden politica-vendas-data não encontrado!');
+        alert('Erro: Campo de dados não encontrado. Recarregue a página e tente novamente.');
+        return;
+    }
+    
+    hiddenInput.value = jsonData;
+    console.log('Campo hidden preenchido com sucesso');
+    
+    const form = document.getElementById('form-parametros');
+    if (!form) {
+        console.error('Formulário form-parametros não encontrado!');
+        alert('Erro: Formulário não encontrado. Recarregue a página e tente novamente.');
+        return;
+    }
+    
+    console.log('Submetendo formulário...');
+    form.submit();
 }
 </script>
 {% endblock %}

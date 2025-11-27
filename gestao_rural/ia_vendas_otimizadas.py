@@ -526,11 +526,11 @@ class IAVendasOtimizadas:
         if score_final >= 85 and margem >= 20:
             return "🔥 VENDA RECOMENDADA! Ponto ideal, bom momento e boa margem."
         elif score_final >= 70:
-            return "✅ BOA OPORTUNIDADE. Considere vender."
+            return "[OPORTUNIDADE] BOA OPORTUNIDADE. Considere vender."
         elif score_final >= 50:
-            return "💡 Oportunidade regular. Avaliar urgência."
+            return "[OPORTUNIDADE] Oportunidade regular. Avaliar urgência."
         else:
-            return "⏳ AGUARDAR. Melhorar ponto ou esperar melhor momento."
+            return "[AGUARDAR] Melhorar ponto ou esperar melhor momento."
     
     def _calcular_score_venda(
         self,

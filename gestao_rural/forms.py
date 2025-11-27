@@ -35,14 +35,21 @@ class PropriedadeForm(forms.ModelForm):
     class Meta:
         model = Propriedade
         fields = [
-            'nome_propriedade', 'municipio', 'uf', 'area_total_ha', 'tipo_operacao',
+            'nome_propriedade', 'municipio', 'uf', 'endereco', 'cep', 'bairro', 
+            'latitude', 'longitude', 'ponto_referencia', 'area_total_ha', 'tipo_operacao',
             'tipo_ciclo_pecuario', 'tipo_propriedade', 'valor_hectare_proprio', 
-            'valor_mensal_hectare_arrendamento', 'nirf', 'incra', 'car'
+            'valor_mensal_hectare_arrendamento', 'nirf', 'incra', 'car', 'inscricao_estadual'
         ]
         widgets = {
             'nome_propriedade': forms.TextInput(attrs={'class': 'form-control'}),
             'municipio': forms.TextInput(attrs={'class': 'form-control'}),
             'uf': forms.Select(attrs={'class': 'form-control'}),
+            'endereco': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+            'cep': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '00000-000'}),
+            'bairro': forms.TextInput(attrs={'class': 'form-control'}),
+            'latitude': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.00000001'}),
+            'longitude': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.00000001'}),
+            'ponto_referencia': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
             'area_total_ha': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0.01'}),
             'tipo_operacao': forms.Select(attrs={'class': 'form-control'}),
             'tipo_propriedade': forms.Select(attrs={'class': 'form-control'}),
@@ -51,6 +58,7 @@ class PropriedadeForm(forms.ModelForm):
             'nirf': forms.TextInput(attrs={'class': 'form-control'}),
             'incra': forms.TextInput(attrs={'class': 'form-control'}),
             'car': forms.TextInput(attrs={'class': 'form-control'}),
+            'inscricao_estadual': forms.TextInput(attrs={'class': 'form-control'}),
         }
     
     def __init__(self, *args, **kwargs):

@@ -36,10 +36,102 @@
                     Crie e compare diferentes cenários de planejamento para avaliar impactos financeiros e operacionais.
                 </p>
             </div>
-            <div>
+            <div class="d-flex gap-2">
+                {% if planejamento %}
+                <a href="{% url 'gerar_vendas_todos_cenarios' propriedade.id %}?codigo={{ planejamento.codigo }}" 
+                   class="btn btn-success"
+                   onclick="return confirm('Gerar vendas para TODOS os cenários da projeção {{ planejamento.codigo }}?')"
+                   title="Gerar vendas para todos os cenários da projeção {{ planejamento.codigo }}">
+                    <i class="bi bi-cart-plus"></i> Gerar Vendas
+                </a>
+                <a href="{% url 'projeto_bancario_novo' propriedade.id %}?planejamento_id={{ planejamento.id }}" 
+                   class="btn btn-warning text-white"
+                   title="Criar projeto bancário vinculado à projeção {{ planejamento.codigo }}">
+                    <i class="bi bi-bank"></i> Criar Projeto Bancário
+                </a>
+                {% endif %}
+                <a href="{% url 'relatorio_vendas_projecao' propriedade.id %}" class="btn btn-info">
+                    <i class="bi bi-file-earmark-spreadsheet"></i> Relatório de Vendas
+                </a>
                 <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCriarCenario">
                     <i class="bi bi-plus-circle"></i> Novo Cenário
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Banner Informativo sobre ID de Projeção -->
+    {% if planejamento and planejamento.codigo %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-info border-start border-primary border-4 d-flex align-items-center" role="alert">
+                <div class="flex-shrink-0 me-3">
+                    <i class="bi bi-info-circle fs-3"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <h6 class="alert-heading mb-1">
+                        <i class="bi bi-hash me-2"></i>ID de Projeção Encontrado!
+                    </h6>
+                    <p class="mb-1">
+                        <strong>ID da Projeção:</strong> 
+                        <span class="badge bg-primary fs-6 ms-2">{{ planejamento.codigo }}</span>
+                        <button type="button" 
+                                class="btn btn-sm btn-outline-secondary ms-2" 
+                                onclick="copiarCodigo('{{ planejamento.codigo }}')"
+                                title="Copiar ID">
+                            <i class="bi bi-clipboard me-1"></i>Copiar ID
+                        </button>
+                    </p>
+                    <small class="text-muted">
+                        Use este ID para buscar esta projeção em qualquer momento ou vinculá-la a um Projeto Bancário. 
+                        O ID é gerado automaticamente quando você cria uma projeção na página "Projeções do Rebanho".
+                    </small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Busca por Código -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="content-card">
+                <div class="content-card-body">
+                    <form method="get" action="{% url 'analise_cenarios' propriedade.id %}" class="row g-3 align-items-end">
+                        <div class="col-md-4">
+                            <label for="codigo_busca" class="form-label">
+                                <i class="bi bi-search me-2"></i>Buscar por ID de Projeção
+                            </label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="codigo_busca" 
+                                   name="codigo" 
+                                   placeholder="Ex: PROJ-2025-0001" 
+                                   value="{{ codigo_busca }}"
+                                   style="text-transform: uppercase;">
+                            <small class="form-text text-muted">Digite o ID da projeção para buscar</small>
+                        </div>
+                        <div class="col-md-3">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="bi bi-search me-2"></i>Buscar
+                            </button>
+                        </div>
+                        <div class="col-md-5">
+                            {% if planejamentos_disponiveis %}
+                            <label class="form-label">Ou selecione uma projeção:</label>
+                            <select class="form-select" onchange="window.location.href='?codigo=' + this.value">
+                                <option value="">-- Selecione uma projeção --</option>
+                                {% for plan in planejamentos_disponiveis %}
+                                <option value="{{ plan.codigo }}" {% if plan.id == planejamento.id %}selected{% endif %}>
+                                    {{ plan.codigo }} - {{ plan.ano }} - {{ plan.get_status_display }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            {% endif %}
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
@@ -50,13 +142,39 @@
             <div class="content-card">
                 <div class="content-card-header">
                     <h5 class="mb-0 text-dark fw-semibold">
-                        <i class="bi bi-calendar-check me-2"></i>
-                        Planejamento: {{ planejamento.ano }}
+                        <i class="bi bi-hash me-2"></i>
+                        ID de Projeção:
+                        {% if planejamento.codigo %}
+                        <span class="badge bg-primary ms-2 fs-6">{{ planejamento.codigo }}</span>
+                        {% else %}
+                        <span class="text-muted ms-2">N/A</span>
+                        {% endif %}
+                        <span class="text-muted ms-3">({{ planejamento.ano }})</span>
                     </h5>
                 </div>
                 <div class="content-card-body">
                     <div class="row">
                         <div class="col-md-3">
+                            <small class="text-muted d-block">ID de Projeção</small>
+                            <span class="fw-bold text-primary d-flex align-items-center gap-2">
+                                {% if planejamento.codigo %}
+                                    <span class="fs-5">{{ planejamento.codigo }}</span>
+                                    <button type="button" 
+                                            class="btn btn-sm btn-outline-secondary p-1"
+                                            onclick="copiarCodigo('{{ planejamento.codigo }}')"
+                                            title="Copiar ID de Projeção">
+                                        <i class="bi bi-clipboard" style="font-size: 0.8rem;"></i>
+                                    </button>
+                                {% else %}
+                                    <span class="text-muted">N/A</span>
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="col-md-2">
+                            <small class="text-muted d-block">Ano</small>
+                            <span class="fw-bold">{{ planejamento.ano }}</span>
+                        </div>
+                        <div class="col-md-2">
                             <small class="text-muted d-block">Status</small>
                             <span class="badge bg-{% if planejamento.status == 'APROVADO' %}success{% elif planejamento.status == 'EM_ANDAMENTO' %}info{% elif planejamento.status == 'RASCUNHO' %}warning{% else %}secondary{% endif %}">
                                 {{ planejamento.get_status_display }}
@@ -66,13 +184,13 @@
                             <small class="text-muted d-block">Descrição</small>
                             <span>{{ planejamento.descricao|default:"Sem descrição" }}</span>
                         </div>
-                        <div class="col-md-3">
-                            <small class="text-muted d-block">Total de Cenários</small>
+                        <div class="col-md-1">
+                            <small class="text-muted d-block">Cenários</small>
                             <span class="fw-bold">{{ cenarios_data|length }}</span>
                         </div>
-                        <div class="col-md-3">
-                            <small class="text-muted d-block">Última Atualização</small>
-                            <span>{{ planejamento.data_atualizacao|date:"d/m/Y H:i" }}</span>
+                        <div class="col-md-1">
+                            <small class="text-muted d-block">Atualizado</small>
+                            <span class="small">{{ planejamento.data_atualizacao|date:"d/m/Y H:i" }}</span>
                         </div>
                     </div>
                 </div>
@@ -144,6 +262,12 @@
                                     </td>
                                     <td class="text-center">
                                         <div class="btn-group btn-group-sm">
+                                            <a href="{% url 'gerar_vendas_cenario' propriedade.id item.cenario.id %}" 
+                                               class="btn btn-outline-success" 
+                                               title="Gerar Vendas"
+                                               onclick="return confirm('Gerar vendas para este cenário?')">
+                                                <i class="bi bi-cart-plus"></i>
+                                            </a>
                                             <button type="button" class="btn btn-outline-primary" 
                                                     onclick="editarCenario({{ item.cenario.id }})"
                                                     title="Editar">
@@ -567,6 +691,22 @@ function excluirCenario(cenarioId, nome) {
         document.body.appendChild(form);
         form.submit();
     }
+}
+
+function copiarCodigo(codigo) {
+    navigator.clipboard.writeText(codigo).then(function() {
+        alert('ID de Projeção ' + codigo + ' copiado para a área de transferência!');
+    }, function(err) {
+        console.error('Erro ao copiar ID de Projeção:', err);
+        // Fallback para navegadores mais antigos
+        const textarea = document.createElement('textarea');
+        textarea.value = codigo;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        alert('ID de Projeção ' + codigo + ' copiado!');
+    });
 }
 </script>
 {% endblock %}

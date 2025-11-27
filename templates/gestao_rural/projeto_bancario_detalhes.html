@@ -1,44 +1,380 @@
-{% extends 'gestao_rural/submenu_page_base.html' %}
+{% extends 'base_modulos_unificado.html' %}
+{% load static %}
+{% load formatacao_br %}
 
 {% block title %}Detalhes do Projeto - {{ propriedade.nome_propriedade }}{% endblock %}
 
-{% with module_name='Projetos Bancários' module_icon='bi-clipboard-data' module_dashboard_url='projeto_bancario_dashboard' page_icon='bi-file-earmark-text' page_title='Detalhes do Projeto' %}
-{% endwith %}
-
-{% block page_description %}
-Informações e andamento do projeto bancário.
+{% block breadcrumb_extra %}
+    <li class="breadcrumb-item">
+        <a href="{% url 'projeto_bancario_dashboard' propriedade.id %}">
+            <i class="bi bi-clipboard-data"></i>
+            Projetos Bancários
+        </a>
+    </li>
+    <li class="breadcrumb-item active">
+        <i class="bi bi-file-earmark-text"></i>
+        Detalhes
+    </li>
 {% endblock %}
 
-{% block page_content %}
-<div class="content-card">
-    <div class="content-card-header"><strong>Informações do Projeto</strong></div>
-    <div class="content-card-body">
-        {% if projeto %}
-        <dl class="row mb-0">
-            <dt class="col-sm-3">Nome</dt><dd class="col-sm-9">{{ projeto.nome|default:'-' }}</dd>
-            <dt class="col-sm-3">Banco</dt><dd class="col-sm-9">{{ projeto.banco|default:'-' }}</dd>
-        </dl>
-        {% else %}
-        <div class="empty-state">
-            <i class="bi bi-inbox empty-state-icon"></i>
-            <h3 class="empty-state-title">Projeto não encontrado</h3>
-            <p class="empty-state-description">Placeholder exibido enquanto a estrutura é finalizada.</p>
+{% block extra_css %}
+<style>
+    .content-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+        margin-bottom: 1.5rem;
+    }
+    
+    .content-card-header {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid #e5e7eb;
+        background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);
+        border-radius: 8px 8px 0 0;
+        font-weight: 600;
+    }
+    
+    .content-card-body {
+        padding: 1.25rem;
+    }
+    
+    .info-row {
+        padding: 0.75rem 0;
+        border-bottom: 1px solid #f3f4f6;
+    }
+    
+    .info-row:last-child {
+        border-bottom: none;
+    }
+    
+    .status-badge {
+        padding: 0.375rem 0.75rem;
+        border-radius: 6px;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+    
+    .viabilidade-badge {
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-weight: 600;
+    }
+    
+    .viabilidade-ALTA {
+        background: #d1fae5;
+        color: #065f46;
+    }
+    
+    .viabilidade-MEDIA {
+        background: #fef3c7;
+        color: #92400e;
+    }
+    
+    .viabilidade-BAIXA {
+        background: #fed7aa;
+        color: #9a3412;
+    }
+    
+    .viabilidade-INVIAVEL {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">
+                <i class="bi bi-file-earmark-text me-2"></i>
+                {{ projeto.nome_projeto }}
+            </h2>
+            <p class="text-muted mb-0">Detalhes do projeto bancário</p>
         </div>
-        {% endif %}
+        <div class="d-flex gap-2">
+            <a href="{% url 'projeto_bancario_dashboard' propriedade.id %}" class="btn btn-light">
+                <i class="bi bi-arrow-left me-1"></i>Voltar
+            </a>
+            <a href="{% url 'projeto_bancario_editar' propriedade.id projeto.id %}" class="btn btn-primary">
+                <i class="bi bi-pencil me-1"></i>Editar
+            </a>
+            {% if projeto.planejamento %}
+            <a href="{% url 'projeto_bancario_analise_cenarios' propriedade.id projeto.id %}" class="btn btn-success">
+                <i class="bi bi-diagram-3 me-1"></i>Análise de Cenários
+            </a>
+            {% endif %}
+        </div>
     </div>
+
+    <!-- Informações do Projeto -->
+    <div class="row">
+        <div class="col-md-8">
+            <div class="content-card">
+                <div class="content-card-header">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Informações do Projeto
+                </div>
+                <div class="content-card-body">
+                    <div class="info-row">
+                        <div class="row">
+                            <div class="col-sm-4"><strong>Nome do Projeto:</strong></div>
+                            <div class="col-sm-8">{{ projeto.nome_projeto }}</div>
+                        </div>
+                    </div>
+                    <div class="info-row">
+                        <div class="row">
+                            <div class="col-sm-4"><strong>Tipo:</strong></div>
+                            <div class="col-sm-8">{{ projeto.get_tipo_projeto_display }}</div>
+                        </div>
+                    </div>
+                    <div class="info-row">
+                        <div class="row">
+                            <div class="col-sm-4"><strong>Banco:</strong></div>
+                            <div class="col-sm-8">{{ projeto.banco_solicitado }}</div>
+                        </div>
+                    </div>
+                    <div class="info-row">
+                        <div class="row">
+                            <div class="col-sm-4"><strong>Valor Solicitado:</strong></div>
+                            <div class="col-sm-8">{{ projeto.valor_solicitado|moeda_br }}</div>
+                        </div>
+                    </div>
+                    {% if projeto.valor_aprovado %}
+                    <div class="info-row">
+                        <div class="row">
+                            <div class="col-sm-4"><strong>Valor Aprovado:</strong></div>
+                            <div class="col-sm-8">{{ projeto.valor_aprovado|moeda_br }}</div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    <div class="info-row">
+                        <div class="row">
+                            <div class="col-sm-4"><strong>Prazo:</strong></div>
+                            <div class="col-sm-8">{{ projeto.prazo_pagamento }} meses</div>
+                        </div>
+                    </div>
+                    <div class="info-row">
+                        <div class="row">
+                            <div class="col-sm-4"><strong>Taxa de Juros:</strong></div>
+                            <div class="col-sm-8">{{ projeto.taxa_juros|floatformat:2 }}% a.a.</div>
+                        </div>
+                    </div>
+                    <div class="info-row">
+                        <div class="row">
+                            <div class="col-sm-4"><strong>Data de Solicitação:</strong></div>
+                            <div class="col-sm-8">{{ projeto.data_solicitacao|date:"d/m/Y" }}</div>
+                        </div>
+                    </div>
+                    {% if projeto.data_aprovacao %}
+                    <div class="info-row">
+                        <div class="row">
+                            <div class="col-sm-4"><strong>Data de Aprovação:</strong></div>
+                            <div class="col-sm-8">{{ projeto.data_aprovacao|date:"d/m/Y" }}</div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    <div class="info-row">
+                        <div class="row">
+                            <div class="col-sm-4"><strong>Status:</strong></div>
+                            <div class="col-sm-8">
+                                <span class="status-badge 
+                                    {% if projeto.status == 'APROVADO' %}bg-success text-white
+                                    {% elif projeto.status == 'EM_ANALISE' %}bg-warning text-dark
+                                    {% elif projeto.status == 'REJEITADO' %}bg-danger text-white
+                                    {% elif projeto.status == 'CONTRATADO' %}bg-info text-white
+                                    {% else %}bg-secondary text-white{% endif %}">
+                                    {{ projeto.get_status_display }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    {% if projeto.planejamento %}
+                    <div class="info-row">
+                        <div class="row">
+                            <div class="col-sm-4"><strong>Planejamento Vinculado:</strong></div>
+                            <div class="col-sm-8">
+                                <a href="{% url 'analise_cenarios' propriedade.id %}?codigo={{ projeto.planejamento.codigo }}" 
+                                   class="text-decoration-none">
+                                    <i class="bi bi-link-45deg me-1"></i>
+                                    {{ projeto.planejamento.codigo }} - {{ projeto.planejamento.ano }}
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if projeto.observacoes %}
+                    <div class="info-row">
+                        <div class="row">
+                            <div class="col-sm-4"><strong>Observações:</strong></div>
+                            <div class="col-sm-8">{{ projeto.observacoes|linebreaks }}</div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <!-- Resumo Rápido -->
+            <div class="content-card">
+                <div class="content-card-header">
+                    <i class="bi bi-calculator me-2"></i>
+                    Resumo Financeiro
+                </div>
+                <div class="content-card-body">
+                    {% if projeto.prazo_pagamento and projeto.valor_solicitado %}
+                        {% if cenarios_analise and cenarios_analise.0.valor_parcela_mensal %}
+                            <p class="mb-2"><strong>Parcela Mensal:</strong></p>
+                            <h4 class="text-primary mb-3">{{ cenarios_analise.0.valor_parcela_mensal|moeda_br }}</h4>
+                            <p class="mb-2"><strong>Parcela Anual:</strong></p>
+                            <h5 class="mb-3">{{ cenarios_analise.0.valor_parcela_anual|moeda_br }}</h5>
+                            <p class="mb-0 text-muted small">* Valores calculados considerando taxa de juros de {{ projeto.taxa_juros|floatformat:2 }}% a.a.</p>
+                        {% else %}
+                            <p class="text-muted">Complete os dados do financiamento para calcular as parcelas.</p>
+                        {% endif %}
+                    {% else %}
+                        <p class="text-muted">Complete os dados do financiamento para calcular as parcelas.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Análise de Cenários -->
+    {% if cenarios_analise %}
+    <div class="content-card">
+        <div class="content-card-header d-flex justify-content-between align-items-center">
+            <div>
+                <i class="bi bi-diagram-3 me-2"></i>
+                Análise de Cenários do Planejamento
+            </div>
+            <a href="{% url 'projeto_bancario_analise_cenarios' propriedade.id projeto.id %}" 
+               class="btn btn-sm btn-success">
+                <i class="bi bi-arrow-right me-1"></i>Ver Análise Completa
+            </a>
+        </div>
+        <div class="content-card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Cenário</th>
+                            <th class="text-end">Receitas (R$)</th>
+                            <th class="text-end">Custos (R$)</th>
+                            <th class="text-end">Lucro (R$)</th>
+                            <th class="text-end">Margem (%)</th>
+                            <th class="text-end">Capacidade Pagamento</th>
+                            <th class="text-center">Viabilidade</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in cenarios_analise %}
+                        <tr class="{% if item.cenario.is_baseline %}table-primary{% endif %}">
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    {% if item.cenario.is_baseline %}
+                                    <span class="badge bg-primary">Baseline</span>
+                                    {% endif %}
+                                    <strong>{{ item.cenario.nome }}</strong>
+                                </div>
+                                {% if item.cenario.descricao %}
+                                <small class="text-muted d-block">{{ item.cenario.descricao }}</small>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <span class="text-success fw-semibold">
+                                    {{ item.metricas.receitas_totais|moeda_br }}
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                <span class="text-danger fw-semibold">
+                                    {{ item.metricas.custos_totais|moeda_br }}
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                <span class="fw-bold {% if item.metricas.lucro >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                    {{ item.metricas.lucro|moeda_br }}
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                <span class="{% if item.metricas.margem >= 20 %}text-success{% elif item.metricas.margem >= 10 %}text-warning{% else %}text-danger{% endif %}">
+                                    {{ item.metricas.margem|floatformat:1 }}%
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                <span class="{% if item.capacidade_pagamento >= 0 %}text-success{% else %}text-danger{% endif %} fw-semibold">
+                                    {{ item.capacidade_pagamento|moeda_br }}
+                                </span>
+                                <small class="text-muted d-block">
+                                    Cobertura: {{ item.cobertura_parcela|floatformat:1 }}%
+                                </small>
+                            </td>
+                            <td class="text-center">
+                                <span class="viabilidade-badge viabilidade-{{ item.viabilidade }}">
+                                    {{ item.viabilidade }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% elif projeto.planejamento %}
+    <div class="content-card">
+        <div class="content-card-body text-center py-5">
+            <i class="bi bi-diagram-3 text-muted" style="font-size: 3rem;"></i>
+            <h5 class="mt-3">Nenhum cenário encontrado</h5>
+            <p class="text-muted">Este planejamento não possui cenários cadastrados ainda.</p>
+            <a href="{% url 'analise_cenarios' propriedade.id %}?codigo={{ projeto.planejamento.codigo }}" 
+               class="btn btn-primary">
+                <i class="bi bi-plus-circle me-1"></i>Criar Cenários
+            </a>
+        </div>
+    </div>
+    {% else %}
+    <div class="content-card">
+        <div class="content-card-body">
+            <div class="alert alert-info d-flex align-items-center">
+                <i class="bi bi-info-circle me-2 fs-4"></i>
+                <div>
+                    <strong>Vincule um planejamento</strong> para analisar cenários de projeção no contexto deste projeto bancário.
+                    <a href="{% url 'projeto_bancario_editar' propriedade.id projeto.id %}" class="alert-link ms-1">Editar projeto</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Documentos -->
+    {% if documentos %}
+    <div class="content-card">
+        <div class="content-card-header">
+            <i class="bi bi-file-earmark me-2"></i>
+            Documentos
+        </div>
+        <div class="content-card-body">
+            <div class="list-group">
+                {% for doc in documentos %}
+                <div class="list-group-item">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">{{ doc.nome_documento }}</h6>
+                            <small class="text-muted">{{ doc.get_tipo_documento_display }} - {{ doc.data_upload|date:"d/m/Y H:i" }}</small>
+                        </div>
+                        <a href="{{ doc.arquivo.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                            <i class="bi bi-download me-1"></i>Baixar
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}
-
-
-
-
-
-
-
-
-
-
-
-
-
-

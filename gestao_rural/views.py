@@ -219,7 +219,7 @@ from .models import (
     ParametrosProjecaoRebanho, MovimentacaoProjetada,
     ConfiguracaoVenda, TransferenciaPropriedade, PoliticaVendasCategoria,
     SCRBancoCentral, DividaBanco, ContratoDivida, AmortizacaoContrato,
-    ProjetoBancario, DocumentoProjeto
+    ProjetoBancario, DocumentoProjeto, PlanejamentoAnual
 )
 from .forms import (
     ProdutorRuralForm, PropriedadeForm, InventarioRebanhoForm,
@@ -721,6 +721,11 @@ def pecuaria_inventario(request, propriedade_id):
             erros = []
             
             with transaction.atomic():
+                # IMPORTANTE: Excluir todos os inventários anteriores desta propriedade
+                # para garantir que não haja duplicatas ao salvar várias vezes
+                # Isso garante que só existe um inventário por propriedade
+                InventarioRebanho.objects.filter(propriedade=propriedade).delete()
+                
                 for categoria in categorias:
                     quantidade_str = request.POST.get(f'quantidade_{categoria.id}', '').strip()
                     valor_str = request.POST.get(f'valor_por_cabeca_{categoria.id}', '').strip()
@@ -742,15 +747,13 @@ def pecuaria_inventario(request, propriedade_id):
                             erros.append(f'{categoria.nome}: Valor não pode ser negativo')
                             continue
                         
-                        # Salvar ou atualizar
-                        InventarioRebanho.objects.update_or_create(
+                        # Criar novo registro (já excluímos os anteriores)
+                        InventarioRebanho.objects.create(
                             propriedade=propriedade,
                             categoria=categoria,
                             data_inventario=data_inventario,
-                            defaults={
-                                'quantidade': quantidade,
-                                'valor_por_cabeca': valor_por_cabeca
-                            }
+                            quantidade=quantidade,
+                            valor_por_cabeca=valor_por_cabeca
                         )
                         itens_salvos += 1
                         
@@ -777,17 +780,42 @@ def pecuaria_inventario(request, propriedade_id):
     total_quantidade = 0
     total_valor = Decimal('0.00')
     
-    # Buscar inventário mais recente de cada categoria
-    inventario_dict = {}
-    inventarios_recentes = InventarioRebanho.objects.filter(
-        propriedade=propriedade,
-        categoria__in=categorias
-    ).select_related('categoria').order_by('categoria', '-data_inventario')
+    # Verificar se há uma data específica na URL (após salvar)
+    data_inventario_filtro = request.GET.get('data_inventario')
+    if data_inventario_filtro:
+        try:
+            from datetime import datetime
+            data_filtro = datetime.strptime(data_inventario_filtro, '%Y-%m-%d').date()
+        except ValueError:
+            data_filtro = None
+    else:
+        data_filtro = None
     
-    # Agrupar por categoria, mantendo apenas o mais recente de cada uma
+    # Buscar inventário - usar data específica se fornecida, senão buscar o mais recente de cada categoria
+    inventario_dict = {}
+    if data_filtro:
+        # Buscar inventário da data específica
+        inventarios_recentes = InventarioRebanho.objects.filter(
+            propriedade=propriedade,
+            categoria__in=categorias,
+            data_inventario=data_filtro
+        ).select_related('categoria').order_by('categoria')
+    else:
+        # Buscar inventário mais recente de cada categoria
+        inventarios_recentes = InventarioRebanho.objects.filter(
+            propriedade=propriedade,
+            categoria__in=categorias
+        ).select_related('categoria').order_by('categoria', '-data_inventario')
+    
+    # Agrupar por categoria, mantendo apenas o mais recente de cada uma (se não houver data específica)
     for inv in inventarios_recentes:
-        if inv.categoria_id not in inventario_dict:
+        if data_filtro:
+            # Com data específica, usar todos os itens dessa data
             inventario_dict[inv.categoria_id] = inv
+        else:
+            # Sem data específica, manter apenas o mais recente de cada categoria
+            if inv.categoria_id not in inventario_dict:
+                inventario_dict[inv.categoria_id] = inv
     
     for categoria in categorias:
         inventario = inventario_dict.get(categoria.id)
@@ -810,6 +838,18 @@ def pecuaria_inventario(request, propriedade_id):
     # Calcular valor médio por cabeça
     valor_medio = total_valor / total_quantidade if total_quantidade > 0 else Decimal('0.00')
     
+    # Determinar a data do inventário a ser exibida
+    # Prioridade: 1) Data na URL (após salvar), 2) Data do inventário mais recente
+    data_inventario_atual = data_filtro
+    
+    if not data_inventario_atual:
+        # Se não há data específica, buscar a data do inventário mais recente (se existir)
+        inventario_mais_recente = InventarioRebanho.objects.filter(
+            propriedade=propriedade
+        ).order_by('-data_inventario').first()
+        
+        data_inventario_atual = inventario_mais_recente.data_inventario if inventario_mais_recente else None
+    
     context = {
         'propriedade': propriedade,
         'categorias_com_inventario': categorias_com_inventario,
@@ -817,6 +857,7 @@ def pecuaria_inventario(request, propriedade_id):
         'total_valor': total_valor,
         'valor_medio': valor_medio,
         'tem_inventario': any(item['quantidade'] > 0 for item in categorias_com_inventario),
+        'data_inventario_atual': data_inventario_atual,
     }
     
     return render(request, 'gestao_rural/pecuaria_inventario.html', context)
@@ -1014,6 +1055,7 @@ def pecuaria_projecao(request, propriedade_id):
     propriedade = get_object_or_404(Propriedade, id=propriedade_id, produtor__usuario_responsavel=request.user)
     
     # Obter inventário mais recente
+    from django.db.models import Max
     data_inventario_recente = InventarioRebanho.objects.filter(
         propriedade=propriedade
     ).aggregate(Max('data_inventario'))['data_inventario__max']
@@ -1027,6 +1069,9 @@ def pecuaria_projecao(request, propriedade_id):
         inventario = InventarioRebanho.objects.filter(
             propriedade=propriedade
         ).select_related('categoria').order_by('categoria__nome')
+    
+    # Armazenar data do inventário para usar como início da projeção
+    data_inicio_projecao = data_inventario_recente
     
     parametros = ParametrosProjecaoRebanho.objects.filter(propriedade=propriedade).first()
     
@@ -1049,12 +1094,41 @@ def pecuaria_projecao(request, propriedade_id):
                 return redirect('pecuaria_projecao', propriedade_id=propriedade.id)
             
             logger.info(f"Gerando projeção para {propriedade.nome_propriedade} - {anos_projecao} anos")
-            gerar_projecao(propriedade, anos_projecao)
+            
+            # Sempre criar um NOVO planejamento com nova ID para cada geração
+            from django.utils import timezone
+            from .models import PlanejamentoAnual
+            from datetime import datetime
+            ano_atual = timezone.now().year
+            
+            # Criar novo planejamento sempre
+            planejamento = PlanejamentoAnual.objects.create(
+                propriedade=propriedade,
+                ano=ano_atual,
+                descricao=f'Planejamento {ano_atual} - Projeção do Rebanho - {datetime.now().strftime("%d/%m/%Y %H:%M")}',
+                status='RASCUNHO'
+            )
+            
+            # O código será gerado automaticamente no save()
+            logger.info(f"Novo planejamento criado: {planejamento.codigo}")
+            
+            # Obter data do inventário para iniciar a projeção
+            data_inventario = InventarioRebanho.objects.filter(
+                propriedade=propriedade
+            ).aggregate(Max('data_inventario'))['data_inventario__max']
+            
+            # Gerar projeção vinculada ao planejamento
+            gerar_projecao(propriedade, anos_projecao, data_inventario, planejamento=planejamento)
             
             # Invalidar cache
             cache.delete(f'projecao_{propriedade_id}')
             
-            messages.success(request, f'Projeção gerada com sucesso para {anos_projecao} anos!')
+            messages.success(
+                request, 
+                f'✅ Projeção gerada com sucesso para {anos_projecao} anos! '
+                f'ID da Projeção: {planejamento.codigo}. '
+                f'Use este ID para buscar a projeção na página de Cenários ou vinculá-la a um Projeto Bancário.'
+            )
             return redirect('pecuaria_projecao', propriedade_id=propriedade.id)
             
         except ValueError as e:
@@ -1074,8 +1148,11 @@ def pecuaria_projecao(request, propriedade_id):
             .select_related('categoria')
             .order_by('data_movimentacao')
         )
+        logger.info(f"Movimentações encontradas no banco: {len(movimentacoes)}")
         if movimentacoes:
             cache.set(cache_key, movimentacoes, 1800)
+        else:
+            logger.warning(f"Nenhuma movimentação encontrada para propriedade {propriedade_id}")
     
     # Processar dados da projeção
     resumo_projecao_por_ano = {}
@@ -1083,8 +1160,15 @@ def pecuaria_projecao(request, propriedade_id):
     
     if movimentacoes:
         try:
-            resumo_projecao_por_ano = gerar_resumo_projecao_por_ano(movimentacoes, inventario)
-            evolucao_detalhada = gerar_evolucao_detalhada_rebanho(movimentacoes, inventario)
+            logger.info(f"Processando {len(movimentacoes)} movimentações para resumo por ano")
+            logger.info(f"Inventário inicial: {len(inventario)} itens")
+            # Converter inventário para lista se necessário
+            inventario_lista = list(inventario) if not isinstance(inventario, list) else inventario
+            resumo_projecao_por_ano = gerar_resumo_projecao_por_ano(movimentacoes, inventario_lista, propriedade)
+            logger.info(f"Resumo gerado com {len(resumo_projecao_por_ano)} anos")
+            # Extrair ano da primeira movimentação se disponível
+            ano_projecao = movimentacoes[0].data_movimentacao.year if movimentacoes else None
+            evolucao_detalhada = gerar_evolucao_detalhada_rebanho(movimentacoes, inventario_lista, propriedade, ano_projecao)
         except Exception as e:
             logger.error(f"Erro ao processar dados de projeção: {e}", exc_info=True)
     
@@ -1133,6 +1217,14 @@ def pecuaria_projecao(request, propriedade_id):
     else:
         resumo_projecao_por_ano_ordenado = {}
     
+    # Buscar planejamento mais recente para exibir o ID
+    from django.utils import timezone
+    from .models import PlanejamentoAnual
+    ano_atual = timezone.now().year
+    planejamento_atual = PlanejamentoAnual.objects.filter(
+        propriedade=propriedade
+    ).order_by('-ano', '-data_criacao').first()
+    
     context = {
         'propriedade': propriedade,
         'inventario': inventario,
@@ -1146,6 +1238,7 @@ def pecuaria_projecao(request, propriedade_id):
         'estatisticas': estatisticas,
         'evolucao_rebanho': evolucao_rebanho,
         'data_inventario_recente': data_inventario_recente,
+        'planejamento_atual': planejamento_atual,  # Adicionado para exibir ID
     }
     
     return render(request, 'gestao_rural/pecuaria_projecao.html', context)
@@ -1221,10 +1314,19 @@ def pecuaria_inventario_dados(request, propriedade_id):
     })
 
 
-def gerar_projecao(propriedade, anos):
-    """Função para gerar a projeção do rebanho com IA Inteligente"""
+def gerar_projecao(propriedade, anos, data_inicio_projecao=None, planejamento=None, cenario=None):
+    """Função para gerar a projeção do rebanho com IA Inteligente
+    
+    Args:
+        propriedade: Propriedade
+        anos: Número de anos para projetar
+        data_inicio_projecao: Data de início da projeção (opcional)
+        planejamento: PlanejamentoAnual para vincular as movimentações (opcional)
+        cenario: CenarioPlanejamento para vincular as movimentações (opcional)
+    """
     from .ia_movimentacoes_automaticas import sistema_movimentacoes
     from django.db import transaction
+    from datetime import date
     
     # Buscar inventário inicial
     inventario_inicial = InventarioRebanho.objects.filter(propriedade=propriedade)
@@ -1233,30 +1335,73 @@ def gerar_projecao(propriedade, anos):
     if not inventario_inicial.exists():
         raise ValueError(f"Inventário inicial não cadastrado para {propriedade.nome_propriedade}")
     
+    # Se não foi passada data de início, usar a data do inventário mais recente
+    from django.db.models import Max
+    if not data_inicio_projecao:
+        data_inicio_projecao = InventarioRebanho.objects.filter(
+            propriedade=propriedade
+        ).aggregate(Max('data_inventario'))['data_inventario__max']
+    
+    # Se ainda não tiver data, usar data atual
+    if not data_inicio_projecao:
+        data_inicio_projecao = date.today()
+    
     try:
         parametros = ParametrosProjecaoRebanho.objects.get(propriedade=propriedade)
     except ParametrosProjecaoRebanho.DoesNotExist:
         raise ValueError(f"Parâmetros de projeção não configurados para {propriedade.nome_propriedade}")
     
     logger.info(f"Iniciando geração de projeção INTELIGENTE para {propriedade.nome_propriedade}")
+    logger.info(f"Data de início da projeção: {data_inicio_projecao}")
+    logger.info(f"Planejamento: {planejamento.codigo if planejamento else 'Nenhum'}")
+    logger.info(f"Cenário: {cenario.nome if cenario else 'Nenhum'}")
     logger.info(f"Parâmetros: Natalidade={parametros.taxa_natalidade_anual}%, Mortalidade Bezerros={parametros.taxa_mortalidade_bezerros_anual}%, Mortalidade Adultos={parametros.taxa_mortalidade_adultos_anual}%")
     logger.info(f"Anos de projeção: {anos}")
     
     # Gerar movimentações com transação atômica
-    with transaction.atomic():
-        # Limpar projeções anteriores
-        MovimentacaoProjetada.objects.filter(propriedade=propriedade).delete()
-        
-        # Usar sistema inteligente para gerar todas as movimentações
-        movimentacoes = sistema_movimentacoes.gerar_movimentacoes_completas(
-            propriedade, parametros, inventario_inicial, anos
-        )
-        
-        # Salvar todas as movimentações no banco
-        for movimentacao in movimentacoes:
-            movimentacao.save()
+    try:
+        with transaction.atomic():
+            # Limpar projeções anteriores vinculadas ao planejamento/cenário se especificado
+            if planejamento:
+                # Limpar apenas movimentações do planejamento
+                MovimentacaoProjetada.objects.filter(
+                    propriedade=propriedade,
+                    planejamento=planejamento
+                ).delete()
+                logger.info(f"Projeções anteriores do planejamento {planejamento.codigo} limpas")
+            else:
+                # Limpar todas as projeções da propriedade (comportamento antigo)
+                MovimentacaoProjetada.objects.filter(propriedade=propriedade).delete()
+                logger.info("Projeções anteriores limpas")
+            
+            # Usar sistema inteligente para gerar todas as movimentações
+            movimentacoes = sistema_movimentacoes.gerar_movimentacoes_completas(
+                propriedade, parametros, inventario_inicial, anos, data_inicio_projecao
+            )
+            logger.info(f"Movimentações geradas: {len(movimentacoes)}")
+            
+            # Vincular movimentações ao planejamento/cenário
+            for movimentacao in movimentacoes:
+                if planejamento:
+                    movimentacao.planejamento = planejamento
+                if cenario:
+                    movimentacao.cenario = cenario
+            
+            # Salvar todas as movimentações no banco
+            movimentacoes_salvas = 0
+            for movimentacao in movimentacoes:
+                try:
+                    movimentacao.save()
+                    movimentacoes_salvas += 1
+                except Exception as e:
+                    logger.error(f"Erro ao salvar movimentação {movimentacao}: {e}", exc_info=True)
+                    raise  # Re-raise para fazer rollback da transação
+            
+            logger.info(f"Total de movimentações INTELIGENTES geradas e salvas: {movimentacoes_salvas}/{len(movimentacoes)}")
+    except Exception as e:
+        logger.error(f"Erro ao gerar projeção: {e}", exc_info=True)
+        raise  # Re-raise para que a view possa tratar o erro
     
-    logger.info(f"Total de movimentações INTELIGENTES geradas e salvas: {len(movimentacoes)}")
     return movimentacoes
 
 
@@ -1388,7 +1533,7 @@ def gerar_evolucao_categorias_tabela(movimentacoes, inventario_inicial):
     return resultado, periodos_ordenados
 
 
-def gerar_evolucao_detalhada_rebanho(movimentacoes, inventario_inicial):
+def gerar_evolucao_detalhada_rebanho(movimentacoes, inventario_inicial, propriedade=None, ano=None):
     """Gera evolução detalhada do rebanho com todas as movimentações do período completo"""
     from collections import defaultdict
     
@@ -1498,7 +1643,11 @@ def gerar_evolucao_detalhada_rebanho(movimentacoes, inventario_inicial):
                 # Usar valor padrão se não encontrar no inventário
                 try:
                     categoria_obj = CategoriaAnimal.objects.get(nome=categoria)
-                    valor_unitario = obter_valor_padrao_por_categoria(categoria_obj)
+                    # Extrair ano da primeira movimentação se disponível
+                    ano_categoria = ano
+                    if not ano_categoria and movimentacoes:
+                        ano_categoria = movimentacoes[0].data_movimentacao.year
+                    valor_unitario = obter_valor_padrao_por_categoria(categoria_obj, propriedade, ano_categoria)
                     logger.debug(f"{categoria}: Usando valor padrão = R$ {valor_unitario}")
                 except CategoriaAnimal.DoesNotExist:
                     valor_unitario = Decimal('2000.00')  # Valor padrão genérico
@@ -1683,21 +1832,28 @@ def transferencia_excluir(request, transferencia_id):
     return render(request, 'gestao_rural/transferencia_excluir.html', context)
 
 
-def gerar_resumo_projecao_por_ano(movimentacoes, inventario_inicial):
+def gerar_resumo_projecao_por_ano(movimentacoes, inventario_inicial, propriedade=None):
     """Gera resumo da projeção organizado por ano no mesmo formato da Evolução Detalhada"""
     from collections import defaultdict
     from datetime import datetime
     from .models import CategoriaAnimal
     
+    logger.info(f"=== INICIANDO gerar_resumo_projecao_por_ano ===")
+    logger.info(f"Total de movimentações recebidas: {len(movimentacoes)}")
+    logger.info(f"Total de itens no inventário inicial: {len(inventario_inicial)}")
+    
     # Buscar todas as categorias ativas
     todas_categorias = CategoriaAnimal.objects.filter(ativo=True).order_by('sexo', 'idade_minima_meses')
     nomes_categorias = [cat.nome for cat in todas_categorias]
+    logger.info(f"Total de categorias ativas: {len(nomes_categorias)}")
     
     # Agrupar movimentações por ano
     movimentacoes_por_ano = defaultdict(list)
     for mov in movimentacoes:
         ano = mov.data_movimentacao.year
         movimentacoes_por_ano[ano].append(mov)
+    
+    logger.info(f"Movimentações agrupadas por {len(movimentacoes_por_ano)} anos: {list(movimentacoes_por_ano.keys())}")
     
     # Inicializar com inventário inicial
     categorias_inicial = {}
@@ -1710,6 +1866,7 @@ def gerar_resumo_projecao_por_ano(movimentacoes, inventario_inicial):
     
     for ano in sorted(movimentacoes_por_ano.keys()):
         movimentacoes_ano = movimentacoes_por_ano[ano]
+        logger.info(f"Processando ano {ano} com {len(movimentacoes_ano)} movimentações")
         
         # Agrupar movimentações por categoria para o ano
         movimentacoes_por_categoria = defaultdict(lambda: {
@@ -1733,18 +1890,19 @@ def gerar_resumo_projecao_por_ano(movimentacoes, inventario_inicial):
                 movimentacoes_por_categoria[categoria]['compras'] += mov.quantidade
             elif mov.tipo_movimentacao == 'VENDA':
                 movimentacoes_por_categoria[categoria]['vendas'] += mov.quantidade
+            elif mov.tipo_movimentacao == 'PROMOCAO_ENTRADA' or (mov.tipo_movimentacao == 'TRANSFERENCIA_ENTRADA' and 'Promoção' in (mov.observacao or '')):
+                movimentacoes_por_categoria[categoria]['promocao_entrada'] += mov.quantidade
+            elif mov.tipo_movimentacao == 'PROMOCAO_SAIDA' or (mov.tipo_movimentacao == 'TRANSFERENCIA_SAIDA' and 'Promoção' in (mov.observacao or '')):
+                movimentacoes_por_categoria[categoria]['promocao_saida'] += mov.quantidade
             elif mov.tipo_movimentacao == 'TRANSFERENCIA_ENTRADA':
-                if 'Promoção' in mov.observacao:
-                    movimentacoes_por_categoria[categoria]['promocao_entrada'] += mov.quantidade
-                else:
-                    movimentacoes_por_categoria[categoria]['transferencias_entrada'] += mov.quantidade
+                movimentacoes_por_categoria[categoria]['transferencias_entrada'] += mov.quantidade
             elif mov.tipo_movimentacao == 'TRANSFERENCIA_SAIDA':
-                if 'Promoção' in mov.observacao:
-                    movimentacoes_por_categoria[categoria]['promocao_saida'] += mov.quantidade
-                else:
-                    movimentacoes_por_categoria[categoria]['transferencias_saida'] += mov.quantidade
+                movimentacoes_por_categoria[categoria]['transferencias_saida'] += mov.quantidade
             elif mov.tipo_movimentacao == 'MORTE':
                 movimentacoes_por_categoria[categoria]['mortes'] += mov.quantidade
+            else:
+                # Log de movimentações não reconhecidas para debug
+                logger.warning(f"Tipo de movimentação não reconhecido: {mov.tipo_movimentacao} para categoria {categoria}")
         
         # Calcular resultado para cada categoria do ano
         resultado_ano = {}
@@ -1814,7 +1972,7 @@ def gerar_resumo_projecao_por_ano(movimentacoes, inventario_inicial):
                     # Usar valor padrão se não encontrar no inventário
                     try:
                         categoria_obj = CategoriaAnimal.objects.get(nome=categoria_nome)
-                        valor_unitario = obter_valor_padrao_por_categoria(categoria_obj)
+                        valor_unitario = obter_valor_padrao_por_categoria(categoria_obj, propriedade, ano)
                     except CategoriaAnimal.DoesNotExist:
                         valor_unitario = Decimal('2000.00')  # Valor padrão genérico
             except (AttributeError, TypeError, ValueError, KeyError) as e:
@@ -1824,22 +1982,38 @@ def gerar_resumo_projecao_por_ano(movimentacoes, inventario_inicial):
             # Calcular valor total
             valor_total = valor_unitario * Decimal(str(saldo_final))
             
-            resultado_ano[categoria_nome] = {
-                'saldo_inicial': saldo_inicial,
-                'nascimentos': nascimentos_display,
-                'compras': movs['compras'],
-                'vendas': movs['vendas'],
-                'transferencias_entrada': movs['transferencias_entrada'],
-                'transferencias_saida': movs['transferencias_saida'],
-                'mortes': movs['mortes'],
-                'evolucao_categoria': evolucao_categoria,
-                'saldo_final': saldo_final,
-                'peso_medio_kg': peso_medio_kg,
-                'valor_unitario': valor_unitario,
-                'valor_total': valor_total
-            }
+            # Verificar se a categoria tem dados relevantes antes de incluir
+            tem_dados_relevantes = (
+                saldo_inicial > 0 or 
+                saldo_final > 0 or 
+                movs['nascimentos'] > 0 or 
+                movs['compras'] > 0 or 
+                movs['vendas'] > 0 or 
+                movs['mortes'] > 0 or 
+                movs['transferencias_entrada'] > 0 or 
+                movs['transferencias_saida'] > 0 or 
+                movs['promocao_entrada'] > 0 or 
+                movs['promocao_saida'] > 0
+            )
             
-            # Armazenar saldo final para usar como saldo inicial do próximo ano
+            # Só incluir categoria se tiver dados relevantes
+            if tem_dados_relevantes:
+                resultado_ano[categoria_nome] = {
+                    'saldo_inicial': saldo_inicial,
+                    'nascimentos': nascimentos_display,
+                    'compras': movs['compras'],
+                    'vendas': movs['vendas'],
+                    'transferencias_entrada': movs['transferencias_entrada'],
+                    'transferencias_saida': movs['transferencias_saida'],
+                    'mortes': movs['mortes'],
+                    'evolucao_categoria': evolucao_categoria,
+                    'saldo_final': saldo_final,
+                    'peso_medio_kg': peso_medio_kg,
+                    'valor_unitario': valor_unitario,
+                    'valor_total': valor_total
+                }
+            
+            # Armazenar saldo final para usar como saldo inicial do próximo ano (sempre, mesmo sem dados)
             saldos_finais_ano_anterior[categoria_nome] = saldo_final
         
         # Calcular totais do ano
@@ -1855,6 +2029,8 @@ def gerar_resumo_projecao_por_ano(movimentacoes, inventario_inicial):
             'valor_total_geral': Decimal('0.00'),
             'receitas_total': Decimal('0.00'),
             'custos_total': Decimal('0.00'),
+            'custos_compras': Decimal('0.00'),
+            'perdas_mortes': Decimal('0.00'),  # Perdas por mortes (não são custos)
             'total_femeas': 0,
             'total_machos': 0,
         }
@@ -1882,49 +2058,136 @@ def gerar_resumo_projecao_por_ano(movimentacoes, inventario_inicial):
             # Calcular valor_total manualmente
             quantidade = mov.quantidade if mov.quantidade else 0
             
-            # Buscar valor_por_cabeca do inventário (MovimentacaoProjetada não tem esse campo)
-            try:
-                inventario_item = InventarioRebanho.objects.filter(
-                    propriedade=mov.propriedade,
-                    categoria=mov.categoria
-                ).first()
-                
-                valor_unitario = inventario_item.valor_por_cabeca if inventario_item and inventario_item.valor_por_cabeca else Decimal('0')
-            except:
-                valor_unitario = Decimal('0')
+            # PRIORIDADE 1: Usar valor_por_cabeca já salvo na movimentação (se existir)
+            # PRIORIDADE 2: Usar valor_total já salvo na movimentação (se existir)
+            # PRIORIDADE 3: Buscar valor_por_cabeca do inventário
+            # PRIORIDADE 4: Usar valor padrão da categoria
             
-            valor_mov = Decimal(str(quantidade)) * Decimal(str(valor_unitario))
+            valor_mov = Decimal('0')
+            
+            if mov.valor_total:
+                # Se já tem valor_total calculado, usar diretamente
+                valor_mov = Decimal(str(mov.valor_total))
+            elif mov.valor_por_cabeca and quantidade > 0:
+                # Se tem valor_por_cabeca, calcular
+                valor_mov = Decimal(str(mov.valor_por_cabeca)) * Decimal(str(quantidade))
+            else:
+                # Buscar do inventário ou usar valor padrão
+                try:
+                    inventario_item = InventarioRebanho.objects.filter(
+                        propriedade=mov.propriedade,
+                        categoria=mov.categoria
+                    ).first()
+                    
+                    if inventario_item and inventario_item.valor_por_cabeca:
+                        valor_unitario = inventario_item.valor_por_cabeca
+                    else:
+                        # Usar valor padrão da categoria com CEPEA se disponível
+                        try:
+                            ano_mov = mov.data_movimentacao.year if mov.data_movimentacao else None
+                            valor_unitario = obter_valor_padrao_por_categoria(mov.categoria, mov.propriedade, ano_mov)
+                        except Exception as e:
+                            logger.warning(f"Erro ao obter valor padrão para categoria {mov.categoria.nome}: {e}")
+                            valor_unitario = Decimal('2000.00')  # Valor padrão genérico
+                    
+                    valor_mov = Decimal(str(quantidade)) * Decimal(str(valor_unitario))
+                except Exception as e:
+                    logger.warning(f"Erro ao calcular valor para movimentação {mov.id} ({mov.categoria.nome}): {e}")
+                    valor_mov = Decimal('0')
             
             if mov.tipo_movimentacao == 'VENDA':
                 totais_ano['receitas_total'] += valor_mov
-            elif mov.tipo_movimentacao in ['COMPRA', 'MORTE']:
+                logger.debug(f"Venda: {mov.categoria.nome} - {quantidade} cabeças - R$ {valor_mov:.2f}")
+            elif mov.tipo_movimentacao == 'COMPRA':
                 totais_ano['custos_total'] += valor_mov
+                totais_ano['custos_compras'] += valor_mov
+                logger.debug(f"Compra: {mov.categoria.nome} - {quantidade} cabeças - R$ {valor_mov:.2f}")
+            # MORTE não é custo, é perda - não incluir nos custos
         
-        # Adicionar linha de totais
-        resultado_ano['TOTAIS'] = {
-            'saldo_inicial': totais_ano['saldo_inicial_total'],
-            'nascimentos': totais_ano['nascimentos_total'],
-            'compras': totais_ano['compras_total'],
-            'vendas': totais_ano['vendas_total'],
-            'transferencias_entrada': totais_ano['transferencias_entrada_total'],
-            'transferencias_saida': totais_ano['transferencias_saida_total'],
-            'mortes': totais_ano['mortes_total'],
-            'evolucao_categoria': '-',
-            'saldo_final': totais_ano['saldo_final_total'],
-            'peso_medio_kg': Decimal('0.00'),
-            'valor_unitario': Decimal('0.00'),
-            'valor_total': totais_ano['valor_total_geral'],
-            'receitas': totais_ano['receitas_total'],
-            'custos': totais_ano['custos_total'],
-            'lucro': totais_ano['receitas_total'] - totais_ano['custos_total'],
-            'total_femeas': totais_ano['total_femeas'],
-            'total_machos': totais_ano['total_machos'],
-            'total_animais': totais_ano['saldo_final_total'],
+        logger.info(f"Ano {ano} - Receitas: R$ {totais_ano['receitas_total']:.2f}, Custos: R$ {totais_ano['custos_total']:.2f}, Lucro: R$ {totais_ano['receitas_total'] - totais_ano['custos_total']:.2f}")
+        
+        # Remover 'TOTAIS' do resultado_ano se existir
+        resultado_ano_sem_totais = {k: v for k, v in resultado_ano.items() if k != 'TOTAIS'}
+        
+        # Ordenar categorias: primeiro fêmeas (por idade), depois machos (por idade)
+        categorias_ordenadas = {}
+        categorias_para_ordenar = []
+        
+        for categoria_nome, dados_cat in resultado_ano_sem_totais.items():
+            try:
+                categoria_obj = CategoriaAnimal.objects.get(nome=categoria_nome)
+                # Determinar ordem de sexo: Fêmeas primeiro (1), Machos segundo (2), Indefinidos terceiro (3)
+                if categoria_obj.sexo == 'F':
+                    ordem_sexo = 1  # Fêmeas primeiro
+                elif categoria_obj.sexo == 'M':
+                    ordem_sexo = 2  # Machos segundo
+                else:
+                    ordem_sexo = 3  # Indefinidos
+                
+                # Idade mínima para ordenação (usar 999 se None para colocar no final)
+                idade_minima = categoria_obj.idade_minima_meses if categoria_obj.idade_minima_meses is not None else 999
+                idade_maxima = categoria_obj.idade_maxima_meses if categoria_obj.idade_maxima_meses is not None else 999
+            except CategoriaAnimal.DoesNotExist:
+                # Fallback: tentar determinar pelo nome
+                if 'fêmea' in categoria_nome.lower() or 'femea' in categoria_nome.lower() or categoria_nome.endswith(' F'):
+                    ordem_sexo = 1  # Fêmeas primeiro
+                elif 'macho' in categoria_nome.lower() or categoria_nome.endswith(' M') or 'bezerro(o)' in categoria_nome.lower() or 'garrote' in categoria_nome.lower() or 'boi' in categoria_nome.lower() or 'touro' in categoria_nome.lower():
+                    ordem_sexo = 2  # Machos segundo
+                else:
+                    ordem_sexo = 3  # Indefinidos
+                idade_minima = 999
+                idade_maxima = 999
+            
+            categorias_para_ordenar.append((ordem_sexo, idade_minima, idade_maxima, categoria_nome, dados_cat))
+        
+        # Ordenar: primeiro por sexo, depois por idade mínima, depois por idade máxima, depois por nome
+        categorias_para_ordenar.sort(key=lambda x: (x[0], x[1], x[2], x[3]))
+        
+        # Criar dicionário ordenado (Python 3.7+ mantém ordem de inserção)
+        for ordem_sexo, idade_minima, idade_maxima, categoria_nome, dados_cat in categorias_para_ordenar:
+            categorias_ordenadas[categoria_nome] = dados_cat
+        
+        logger.info(f"Ano {ano}: {len(categorias_ordenadas)} categorias processadas, Saldo Final Total: {totais_ano['saldo_final_total']}")
+        
+        # Calcular saldo final do ano anterior para exibição
+        saldo_final_ano_anterior = None
+        if ano > min(movimentacoes_por_ano.keys()):
+            ano_anterior = ano - 1
+            if ano_anterior in resumo_por_ano and 'totais' in resumo_por_ano[ano_anterior]:
+                saldo_final_ano_anterior = resumo_por_ano[ano_anterior]['totais']['saldo_final_total']
+        
+        # Estruturar dados no formato esperado pelo template
+        resumo_por_ano[ano] = {
+            'categorias': categorias_ordenadas,
+            'totais': {
+                'saldo_inicial_total': totais_ano['saldo_inicial_total'],
+                'nascimentos_total': totais_ano['nascimentos_total'],
+                'compras_total': totais_ano['compras_total'],
+                'vendas_total': totais_ano['vendas_total'],
+                'transferencias_entrada_total': totais_ano['transferencias_entrada_total'],
+                'transferencias_saida_total': totais_ano['transferencias_saida_total'],
+                'mortes_total': totais_ano['mortes_total'],
+                'saldo_final_total': totais_ano['saldo_final_total'],
+                'valor_total_geral': totais_ano['valor_total_geral'],
+                'receitas_total': totais_ano['receitas_total'],
+                'custos_total': totais_ano['custos_total'],
+                'custos_compras': totais_ano.get('custos_compras', Decimal('0.00')),
+                'perdas_mortes': totais_ano.get('perdas_mortes', Decimal('0.00')),
+                'lucro_total': totais_ano['receitas_total'] - totais_ano['custos_total'],
+                'total_femeas': totais_ano['total_femeas'],
+                'total_machos': totais_ano['total_machos'],
+                'total_animais': totais_ano['saldo_final_total'],
+            },
+            'saldo_final_ano_anterior': saldo_final_ano_anterior,
+            'ano_anterior': ano - 1 if ano > min(movimentacoes_por_ano.keys()) else None
         }
-        
-        resumo_por_ano[ano] = resultado_ano
     
-    logger.debug(f"Resumo por ano processado para {len(resumo_por_ano)} anos")
+    logger.info(f"Resumo por ano processado para {len(resumo_por_ano)} anos")
+    if resumo_por_ano:
+        primeiro_ano = list(resumo_por_ano.keys())[0]
+        logger.info(f"Primeiro ano: {primeiro_ano}, tem categorias: {'categorias' in resumo_por_ano[primeiro_ano]}, tem totais: {'totais' in resumo_por_ano[primeiro_ano]}")
+        if 'categorias' in resumo_por_ano[primeiro_ano]:
+            logger.info(f"Número de categorias no primeiro ano: {len(resumo_por_ano[primeiro_ano]['categorias'])}")
     return resumo_por_ano
 
 
@@ -2111,22 +2374,60 @@ def obter_saldo_atual_propriedade(propriedade, data_referencia):
     return saldo_por_categoria
 
 
-def obter_valor_padrao_por_categoria(categoria):
-    """Retorna valores padrão por categoria de animal"""
-    from decimal import Decimal
+def obter_valor_padrao_por_categoria(categoria, propriedade=None, ano=None):
+    """
+    Retorna valores padrão por categoria de animal
+    Se propriedade e ano forem fornecidos, tenta buscar preço CEPEA
     
-    # Valores padrão baseados no mercado brasileiro (R$ por cabeça)
+    Args:
+        categoria: Objeto CategoriaAnimal
+        propriedade: Objeto Propriedade (opcional)
+        ano: Ano de referência (opcional, usa ano atual se não fornecido)
+    
+    Returns:
+        Decimal com o valor unitário
+    """
+    from decimal import Decimal
+    from datetime import date
+    from gestao_rural.apis_integracao.api_cepea import CEPEAService
+    
+    # Se propriedade e ano fornecidos, tentar buscar CEPEA
+    if propriedade and propriedade.uf:
+        if not ano:
+            ano = date.today().year
+        
+        try:
+            cepea_service = CEPEAService()
+            tipo_cepea = cepea_service.mapear_categoria_para_cepea(categoria.nome)
+            
+            if tipo_cepea:
+                preco_cepea = cepea_service.obter_preco_por_categoria(
+                    uf=propriedade.uf,
+                    ano=ano,
+                    tipo_categoria=tipo_cepea
+                )
+                
+                if preco_cepea:
+                    return preco_cepea
+        except Exception as e:
+            logger.warning(f"Erro ao buscar preço CEPEA para {categoria.nome}: {e}")
+    
+    # Valores padrão baseados no mercado brasileiro (R$ por cabeça) - fallback
+    # IMPORTANTE: Bezerro desmamado é SEMPRE mais caro que bezerra (diferença de ~30-40%)
+    # Valores baseados em Scot Consultoria e mercado real
     valores_padrao = {
-        'bezerro': Decimal('800.00'),      # 0-12 meses
-        'bezerra': Decimal('1200.00'),     # 0-12 meses
-        'garrote': Decimal('1800.00'),     # 12-24 meses
-        'novilha': Decimal('2200.00'),     # 12-24 meses
-        'boi': Decimal('2800.00'),         # 24-36 meses
-        'boi_magro': Decimal('2500.00'),   # 24-36 meses (magro)
-        'primipara': Decimal('3000.00'),   # 24-36 meses
-        'multipara': Decimal('3500.00'),   # >36 meses
-        'vaca_descarte': Decimal('2000.00'), # vacas de descarte
-        'touro': Decimal('4000.00')        # reprodutores
+        'bezerro': Decimal('2200.00'),     # 0-12 meses (desmamado) - MAIS CARO
+        # Base: 6,5@ a R$ 390/@ = R$ 2.535 (Scot Consultoria 2024-2025)
+        'bezerra': Decimal('1500.00'),     # 0-12 meses - mais barata
+        # Base: ~R$ 1.075-1.200 (Scot Consultoria)
+        'garrote': Decimal('2800.00'),     # 12-24 meses (8-10@ a R$ 350-380/@)
+        'novilha': Decimal('3200.00'),     # 12-24 meses (8-10@ a R$ 400-420/@)
+        'boi': Decimal('4200.00'),         # 24-36 meses (15-18@ a R$ 280-300/@)
+        'boi_magro': Decimal('3800.00'),   # 24-36 meses (13-15@ a R$ 290/@)
+        'primipara': Decimal('4500.00'),   # 24-36 meses (reprodução)
+        'multipara': Decimal('5200.00'),   # >36 meses (reprodução)
+        'vaca_descarte': Decimal('2800.00'), # vacas de descarte (12-14@ a R$ 230-250/@)
+        'touro': Decimal('6500.00')        # reprodutores
     }
     
     nome_categoria = categoria.nome.lower()
@@ -2187,9 +2488,14 @@ def processar_compras_configuradas(propriedade, data_referencia, fator_inflacao=
             # Calcular valor com inflação
             valor_original = config.valor_animal_compra or Decimal('0')
             
-            # Se não há valor configurado, usar valor padrão
+            # Se não há valor configurado, usar valor padrão com CEPEA
             if valor_original == 0:
-                valor_original = obter_valor_padrao_por_categoria(config.categoria_compra)
+                ano_compra = data_referencia.year if data_referencia else None
+                valor_original = obter_valor_padrao_por_categoria(
+                    config.categoria_compra, 
+                    config.propriedade if hasattr(config, 'propriedade') else None,
+                    ano_compra
+                )
             
             valor_com_inflacao = valor_original * Decimal(str(fator_inflacao))
             
@@ -2984,22 +3290,40 @@ def projeto_bancario_novo(request, propriedade_id):
     propriedade = get_object_or_404(Propriedade, id=propriedade_id, produtor__usuario_responsavel=request.user)
     
     from .forms_projetos import ProjetoBancarioForm
+    
+    # Verificar se há um planejamento_id na URL (vindo da página de cenários)
+    planejamento_id = request.GET.get('planejamento_id')
+    planejamento = None
+    if planejamento_id:
+        try:
+            planejamento = PlanejamentoAnual.objects.get(id=planejamento_id, propriedade=propriedade)
+            messages.info(request, f'Projeção {planejamento.codigo} será vinculada ao projeto bancário.')
+        except PlanejamentoAnual.DoesNotExist:
+            messages.warning(request, 'Planejamento não encontrado.')
+    
     if request.method == 'POST':
-        form = ProjetoBancarioForm(request.POST, request.FILES)
+        form = ProjetoBancarioForm(request.POST, request.FILES, propriedade=propriedade)
         if form.is_valid():
             projeto = form.save(commit=False)
             projeto.propriedade = propriedade
             if not projeto.status:
                 projeto.status = 'RASCUNHO'
             projeto.save()
-            messages.success(request, 'Projeto bancário criado com sucesso!')
-            return redirect('projeto_bancario_dashboard', propriedade_id=propriedade.id)
+            messages.success(request, f'Projeto bancário criado com sucesso!{" A projeção foi vinculada." if projeto.planejamento else ""}')
+            return redirect('projeto_bancario_detalhes', propriedade_id=propriedade.id, projeto_id=projeto.id)
         else:
             messages.error(request, 'Corrija os erros do formulário.')
     else:
-        form = ProjetoBancarioForm()
+        form = ProjetoBancarioForm(propriedade=propriedade)
+        # Pré-selecionar o planejamento se veio da página de cenários
+        if planejamento:
+            form.fields['planejamento'].initial = planejamento.id
     
-    return render(request, 'gestao_rural/projeto_bancario_novo.html', {'propriedade': propriedade, 'form': form})
+    return render(request, 'gestao_rural/projeto_bancario_novo.html', {
+        'propriedade': propriedade, 
+        'form': form,
+        'planejamento_vinculado': planejamento
+    })
 
 
 @login_required
@@ -3010,13 +3334,168 @@ def projeto_bancario_detalhes(request, propriedade_id, projeto_id):
     
     documentos = DocumentoProjeto.objects.filter(projeto=projeto)
     
+    # Análise de cenários se houver planejamento vinculado
+    cenarios_analise = None
+    if projeto.planejamento:
+        from .views_cenarios import calcular_metricas_cenario
+        from .models import CenarioPlanejamento
+        
+        cenarios = CenarioPlanejamento.objects.filter(planejamento=projeto.planejamento).order_by('-is_baseline', 'nome')
+        cenarios_analise = []
+        
+        # Calcular parcela do empréstimo
+        valor_financiamento = projeto.valor_solicitado or projeto.valor_aprovado or Decimal('0')
+        taxa_juros_mensal = projeto.taxa_juros / 100 / 12 if projeto.taxa_juros else Decimal('0')
+        prazo_meses = projeto.prazo_pagamento or 1
+        
+        if valor_financiamento > 0 and prazo_meses > 0:
+            # Cálculo da parcela (Price)
+            if taxa_juros_mensal > 0:
+                fator = (1 + taxa_juros_mensal) ** prazo_meses
+                valor_parcela_mensal = valor_financiamento * (taxa_juros_mensal * fator) / (fator - 1)
+            else:
+                valor_parcela_mensal = valor_financiamento / prazo_meses
+        else:
+            valor_parcela_mensal = Decimal('0')
+        
+        valor_parcela_anual = valor_parcela_mensal * 12
+        
+        for cenario in cenarios:
+            metricas = calcular_metricas_cenario(projeto.planejamento, cenario)
+            
+            # Calcular capacidade de pagamento
+            lucro_anual = Decimal(str(metricas['lucro']))
+            capacidade_pagamento = lucro_anual - valor_parcela_anual
+            cobertura_parcela = (lucro_anual / valor_parcela_anual * 100) if valor_parcela_anual > 0 else Decimal('0')
+            
+            # Avaliar viabilidade
+            if capacidade_pagamento >= 0 and cobertura_parcela >= 150:
+                viabilidade = 'ALTA'
+            elif capacidade_pagamento >= 0 and cobertura_parcela >= 120:
+                viabilidade = 'MÉDIA'
+            elif capacidade_pagamento >= 0:
+                viabilidade = 'BAIXA'
+            else:
+                viabilidade = 'INVIÁVEL'
+            
+            cenarios_analise.append({
+                'cenario': cenario,
+                'metricas': metricas,
+                'valor_parcela_mensal': float(valor_parcela_mensal),
+                'valor_parcela_anual': float(valor_parcela_anual),
+                'capacidade_pagamento': float(capacidade_pagamento),
+                'cobertura_parcela': float(cobertura_parcela),
+                'viabilidade': viabilidade,
+            })
+    
     context = {
         'propriedade': propriedade,
         'projeto': projeto,
         'documentos': documentos,
+        'cenarios_analise': cenarios_analise,
     }
     
     return render(request, 'gestao_rural/projeto_bancario_detalhes.html', context)
+
+
+@login_required
+def projeto_bancario_analise_cenarios(request, propriedade_id, projeto_id):
+    """Análise detalhada de cenários para o projeto bancário"""
+    propriedade = get_object_or_404(Propriedade, id=propriedade_id, produtor__usuario_responsavel=request.user)
+    projeto = get_object_or_404(ProjetoBancario, id=projeto_id, propriedade=propriedade)
+    
+    if not projeto.planejamento:
+        messages.warning(request, 'Este projeto não possui um planejamento vinculado. Vincule um planejamento para analisar cenários.')
+        return redirect('projeto_bancario_detalhes', propriedade_id=propriedade.id, projeto_id=projeto.id)
+    
+    from .views_cenarios import calcular_metricas_cenario
+    from .models import CenarioPlanejamento
+    
+    planejamento = projeto.planejamento
+    cenarios = CenarioPlanejamento.objects.filter(planejamento=planejamento).order_by('-is_baseline', 'nome')
+    
+    # Calcular valores do financiamento
+    valor_financiamento = projeto.valor_solicitado or projeto.valor_aprovado or Decimal('0')
+    taxa_juros_mensal = projeto.taxa_juros / 100 / 12 if projeto.taxa_juros else Decimal('0')
+    prazo_meses = projeto.prazo_pagamento or 1
+    
+    if valor_financiamento > 0 and prazo_meses > 0:
+        # Cálculo da parcela (Price)
+        if taxa_juros_mensal > 0:
+            fator = (1 + taxa_juros_mensal) ** prazo_meses
+            valor_parcela_mensal = valor_financiamento * (taxa_juros_mensal * fator) / (fator - 1)
+        else:
+            valor_parcela_mensal = valor_financiamento / prazo_meses
+    else:
+        valor_parcela_mensal = Decimal('0')
+    
+    valor_parcela_anual = valor_parcela_mensal * 12
+    valor_total_pagamento = valor_parcela_mensal * prazo_meses
+    valor_total_juros = valor_total_pagamento - valor_financiamento
+    
+    # Analisar cada cenário
+    cenarios_analise = []
+    for cenario in cenarios:
+        metricas = calcular_metricas_cenario(planejamento, cenario)
+        
+        # Calcular capacidade de pagamento
+        lucro_anual = Decimal(str(metricas['lucro']))
+        capacidade_pagamento = lucro_anual - valor_parcela_anual
+        cobertura_parcela = (lucro_anual / valor_parcela_anual * 100) if valor_parcela_anual > 0 else Decimal('0')
+        
+        # Calcular margem de segurança
+        margem_seguranca = ((lucro_anual - valor_parcela_anual) / lucro_anual * 100) if lucro_anual > 0 else Decimal('0')
+        
+        # Calcular prazo de retorno considerando o financiamento
+        investimento_liquido = valor_financiamento - valor_total_juros if valor_financiamento > 0 else Decimal('0')
+        payback_anos = (investimento_liquido / capacidade_pagamento) if capacidade_pagamento > 0 else Decimal('0')
+        
+        # Avaliar viabilidade
+        if capacidade_pagamento >= 0 and cobertura_parcela >= 150 and margem_seguranca >= 30:
+            viabilidade = 'ALTA'
+            viabilidade_descricao = 'Excelente capacidade de pagamento e margem de segurança'
+        elif capacidade_pagamento >= 0 and cobertura_parcela >= 120 and margem_seguranca >= 20:
+            viabilidade = 'MÉDIA'
+            viabilidade_descricao = 'Boa capacidade de pagamento, mas margem de segurança moderada'
+        elif capacidade_pagamento >= 0 and cobertura_parcela >= 100:
+            viabilidade = 'BAIXA'
+            viabilidade_descricao = 'Capacidade de pagamento no limite, baixa margem de segurança'
+        else:
+            viabilidade = 'INVIÁVEL'
+            viabilidade_descricao = 'Lucro insuficiente para cobrir as parcelas do financiamento'
+        
+        cenarios_analise.append({
+            'cenario': cenario,
+            'metricas': metricas,
+            'valor_parcela_mensal': float(valor_parcela_mensal),
+            'valor_parcela_anual': float(valor_parcela_anual),
+            'capacidade_pagamento': float(capacidade_pagamento),
+            'cobertura_parcela': float(cobertura_parcela),
+            'margem_seguranca': float(margem_seguranca),
+            'payback_anos': float(payback_anos),
+            'viabilidade': viabilidade,
+            'viabilidade_descricao': viabilidade_descricao,
+        })
+    
+    # Calcular prazo em anos
+    prazo_anos = prazo_meses / 12 if prazo_meses > 0 else 0
+    
+    context = {
+        'propriedade': propriedade,
+        'projeto': projeto,
+        'planejamento': planejamento,
+        'cenarios_analise': cenarios_analise,
+        'valor_financiamento': float(valor_financiamento),
+        'valor_parcela_mensal': float(valor_parcela_mensal),
+        'valor_parcela_anual': float(valor_parcela_anual),
+        'valor_total_pagamento': float(valor_total_pagamento),
+        'valor_total_juros': float(valor_total_juros),
+        'prazo_meses': prazo_meses,
+        'prazo_anos': float(prazo_anos),
+        'taxa_juros': projeto.taxa_juros,
+    }
+    
+    return render(request, 'gestao_rural/projeto_bancario_analise_cenarios.html', context)
 
 
 @login_required
@@ -3027,7 +3506,7 @@ def projeto_bancario_editar(request, propriedade_id, projeto_id):
     
     from .forms_projetos import ProjetoBancarioForm
     if request.method == 'POST':
-        form = ProjetoBancarioForm(request.POST, request.FILES, instance=projeto)
+        form = ProjetoBancarioForm(request.POST, request.FILES, instance=projeto, propriedade=propriedade)
         if form.is_valid():
             form.save()
             messages.success(request, 'Projeto bancário atualizado com sucesso!')
@@ -3035,7 +3514,7 @@ def projeto_bancario_editar(request, propriedade_id, projeto_id):
         else:
             messages.error(request, 'Corrija os erros do formulário.')
     else:
-        form = ProjetoBancarioForm(instance=projeto)
+        form = ProjetoBancarioForm(instance=projeto, propriedade=propriedade)
     
     return render(request, 'gestao_rural/projeto_bancario_editar.html', {'propriedade': propriedade, 'projeto': projeto, 'form': form})
 
@@ -3099,10 +3578,53 @@ def api_valor_inventario(request, propriedade_id, categoria_id):
         })
         
     except Exception as e:
-        return JsonResponse({
-            'error': str(e),
-            'valor_por_cabeca': 0.0
-        }, status=400)
+        return JsonResponse({'error': str(e)}, status=400)
+
+
+@login_required
+def api_buscar_planejamento_por_codigo(request, propriedade_id):
+    """API para buscar planejamento por código"""
+    from django.http import JsonResponse
+    
+    try:
+        propriedade = get_object_or_404(Propriedade, id=propriedade_id, produtor__usuario_responsavel=request.user)
+        codigo = request.GET.get('codigo', '').strip().upper()
+        
+        if not codigo:
+            return JsonResponse({'error': 'Código não fornecido'}, status=400)
+        
+        try:
+            planejamento = PlanejamentoAnual.objects.get(
+                codigo=codigo,
+                propriedade=propriedade
+            )
+            
+            return JsonResponse({
+                'id': planejamento.id,
+                'codigo': planejamento.codigo,
+                'ano': planejamento.ano,
+                'descricao': planejamento.descricao,
+                'status': planejamento.status,
+                'status_display': planejamento.get_status_display()
+            })
+        except PlanejamentoAnual.DoesNotExist:
+            return JsonResponse({'error': f'Projeção com código {codigo} não encontrada'}, status=404)
+        except PlanejamentoAnual.MultipleObjectsReturned:
+            planejamento = PlanejamentoAnual.objects.filter(
+                codigo=codigo,
+                propriedade=propriedade
+            ).first()
+            return JsonResponse({
+                'id': planejamento.id,
+                'codigo': planejamento.codigo,
+                'ano': planejamento.ano,
+                'descricao': planejamento.descricao,
+                'status': planejamento.status,
+                'status_display': planejamento.get_status_display()
+            })
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 
 
 @login_required

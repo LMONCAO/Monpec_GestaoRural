@@ -78,7 +78,12 @@ urlpatterns = [
     path('propriedade/<int:propriedade_id>/pecuaria/cenarios/criar/', views_cenarios.criar_cenario, name='criar_cenario'),
     path('propriedade/<int:propriedade_id>/pecuaria/cenarios/<int:cenario_id>/editar/', views_cenarios.editar_cenario, name='editar_cenario'),
     path('propriedade/<int:propriedade_id>/pecuaria/cenarios/<int:cenario_id>/excluir/', views_cenarios.excluir_cenario, name='excluir_cenario'),
+    path('propriedade/<int:propriedade_id>/pecuaria/cenarios/<int:cenario_id>/gerar-vendas/', views_cenarios.gerar_vendas_cenario, name='gerar_vendas_cenario'),
+    path('propriedade/<int:propriedade_id>/pecuaria/cenarios/gerar-vendas-todos/', views_cenarios.gerar_vendas_todos_cenarios_view, name='gerar_vendas_todos_cenarios'),
     path('propriedade/<int:propriedade_id>/pecuaria/cenarios/api/comparar/', views_cenarios.comparar_cenarios_api, name='comparar_cenarios_api'),
+    path('propriedade/<int:propriedade_id>/pecuaria/vendas-projecao/', views_cenarios.relatorio_vendas_projecao, name='relatorio_vendas_projecao'),
+    path('propriedade/<int:propriedade_id>/pecuaria/vendas-projecao/<int:ano>/', views_cenarios.relatorio_vendas_anual, name='relatorio_vendas_anual'),
+    path('propriedade/<int:propriedade_id>/pecuaria/vendas-projecao/<int:ano>/<int:mes>/', views_cenarios.relatorio_vendas_mensal, name='relatorio_vendas_mensal'),
     path('propriedade/<int:propriedade_id>/pecuaria/inventario/dados/', views.pecuaria_inventario_dados, name='pecuaria_inventario_dados'),
     
     # Rastreabilidade (dentro de Pecuária) - Comentado pois as funções estão em views_rastreabilidade
@@ -260,6 +265,8 @@ urlpatterns = [
     path('propriedade/<int:propriedade_id>/projeto-bancario/novo/', views.projeto_bancario_novo, name='projeto_bancario_novo'),
     path('propriedade/<int:propriedade_id>/projeto-bancario/<int:projeto_id>/', views.projeto_bancario_detalhes, name='projeto_bancario_detalhes'),
     path('propriedade/<int:propriedade_id>/projeto-bancario/<int:projeto_id>/editar/', views.projeto_bancario_editar, name='projeto_bancario_editar'),
+    path('propriedade/<int:propriedade_id>/api/buscar-planejamento-por-codigo/', views.api_buscar_planejamento_por_codigo, name='api_buscar_planejamento_por_codigo'),
+    path('propriedade/<int:propriedade_id>/projeto-bancario/<int:projeto_id>/analise-cenarios/', views.projeto_bancario_analise_cenarios, name='projeto_bancario_analise_cenarios'),
     
     # Relatório Final
     path('propriedade/<int:propriedade_id>/relatorio-final/', views.relatorio_final, name='relatorio_final'),

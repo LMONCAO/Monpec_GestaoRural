@@ -37,7 +37,19 @@ def consolidar_dados_propriedade(propriedade):
     
     try:
         # 1. DADOS DO REBANHO (Pecuária)
-        inventario = InventarioRebanho.objects.filter(propriedade=propriedade)
+        # Buscar apenas o inventário mais recente para evitar duplicatas
+        from django.db.models import Max
+        data_inventario_recente = InventarioRebanho.objects.filter(
+            propriedade=propriedade
+        ).aggregate(Max('data_inventario'))['data_inventario__max']
+        
+        if data_inventario_recente:
+            inventario = InventarioRebanho.objects.filter(
+                propriedade=propriedade,
+                data_inventario=data_inventario_recente
+            )
+        else:
+            inventario = InventarioRebanho.objects.none()
         
         # Calcular valor_total manualmente (não é campo do banco, é property)
         valor_total_rebanho = sum(

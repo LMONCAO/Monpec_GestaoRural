@@ -11,12 +11,20 @@ echo "📁 Diretório do projeto: $PROJECT_DIR"
 
 # Parar processos existentes
 echo "⏹️ Parando processos existentes..."
-pkill -f "python.*manage.py"
-pkill -f gunicorn
+pkill -f "python.*manage.py" 2>/dev/null
+pkill -f gunicorn 2>/dev/null
+pkill -f python 2>/dev/null
 systemctl stop nginx 2>/dev/null
 
-# Aguardar
+# Aguardar e verificar se ainda há processos
 sleep 3
+if pgrep -f "python.*manage.py" > /dev/null; then
+    echo "⚠️  Ainda há processos Python rodando. Forçando parada..."
+    pkill -9 -f "python.*manage.py" 2>/dev/null
+    sleep 2
+fi
+
+echo "✅ Processos Python parados"
 
 # Ir para o diretório do projeto
 cd "$PROJECT_DIR"
@@ -40,12 +48,21 @@ else
 fi
 
 # Verificar configuração (detectar qual usar)
-if [ -f "sistema_rural/settings_producao.py" ]; then
-    SETTINGS="sistema_rural.settings_producao"
-    echo "🔍 Usando configurações de produção"
+# PADRÃO: Usar DESENVOLVIMENTO (sistema_rural.settings)
+# Verificar se deve usar produção (se variável de ambiente estiver definida)
+if [ "$DJANGO_ENV" = "production" ] || [ "$DJANGO_ENV" = "producao" ]; then
+    if [ -f "sistema_rural/settings_producao.py" ]; then
+        SETTINGS="sistema_rural.settings_producao"
+        echo "🔍 Usando configurações de PRODUÇÃO (forçado por variável de ambiente)"
+    else
+        echo "❌ ERRO: settings_producao.py não encontrado, mas DJANGO_ENV=production foi definido"
+        exit 1
+    fi
+# Por padrão, usar configurações de desenvolvimento
 else
     SETTINGS="sistema_rural.settings"
-    echo "🔍 Usando configurações padrão"
+    echo "🔍 Usando configurações de DESENVOLVIMENTO (padrão)"
+    echo "💡 Para usar produção, defina: export DJANGO_ENV=production"
 fi
 
 # Verificar configuração
@@ -80,11 +97,14 @@ echo ""
 echo "✅ SISTEMA INICIADO!"
 echo "==================="
 echo "📁 Diretório: $PROJECT_DIR"
-echo "⚙️  Settings: $SETTINGS"
+echo "⚙️  ⚙️  CONFIGURAÇÃO SELECIONADA: $SETTINGS ⚙️"
 echo "🌐 Acesse: http://localhost:8000"
 echo "📝 Logs: tail -f /tmp/django.log"
 echo ""
 echo "💡 Para verificar o IP externo:"
 echo "   hostname -I | awk '{print \$1}'"
+echo ""
+echo "🔍 Para verificar qual settings está rodando:"
+echo "   ps aux | grep 'manage.py' | grep settings"
 
 

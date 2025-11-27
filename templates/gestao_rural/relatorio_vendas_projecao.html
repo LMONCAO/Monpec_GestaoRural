@@ -1,0 +1,562 @@
+{% extends 'base_modulos_unificado.html' %}
+{% load static %}
+
+{% block title %}Relatório de Vendas da Projeção - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block breadcrumb_extra %}
+    <li class="breadcrumb-item">
+        <a href="{% url 'pecuaria_dashboard' propriedade.id %}">
+            <i class="bi bi-cow"></i>
+            Pecuária
+        </a>
+    </li>
+    <li class="breadcrumb-item">
+        <a href="{% url 'pecuaria_planejamento_dashboard' propriedade.id %}">
+            <i class="bi bi-calendar-check"></i>
+            Planejamento
+        </a>
+    </li>
+    <li class="breadcrumb-item">
+        <a href="{% url 'analise_cenarios' propriedade.id %}">
+            <i class="bi bi-diagram-3"></i>
+            Cenários
+        </a>
+    </li>
+    <li class="breadcrumb-item active">
+        <i class="bi bi-file-earmark-spreadsheet"></i>
+        Relatório de Vendas
+    </li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header da Página -->
+    <div class="submenu-page-header">
+        <div class="d-flex align-items-start gap-4">
+            <div class="submenu-page-icon">
+                <i class="bi bi-file-earmark-spreadsheet"></i>
+            </div>
+            <div class="flex-grow-1">
+                <h1 class="submenu-page-title">Relatório de Vendas da Projeção</h1>
+                <p class="submenu-page-description">
+                    Relatório detalhado de vendas projetadas por cenário, com consolidações mensais e anuais.
+                </p>
+            </div>
+            <div class="d-flex gap-2">
+                {% if cenarios %}
+                <div class="btn-group">
+                    <button type="button" class="btn btn-success dropdown-toggle" data-bs-toggle="dropdown">
+                        <i class="bi bi-cart-plus me-2"></i>
+                        Gerar Vendas
+                    </button>
+                    <ul class="dropdown-menu">
+                        {% for cenario in cenarios %}
+                        <li>
+                            <a class="dropdown-item" href="{% url 'gerar_vendas_cenario' propriedade.id cenario.id %}">
+                                <i class="bi bi-play-circle me-2"></i>
+                                Gerar para {{ cenario.nome }}
+                            </a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+                <a href="{% url 'analise_cenarios' propriedade.id %}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left me-2"></i>
+                    Voltar aos Cenários
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="content-card">
+                <div class="content-card-header">
+                    <h5 class="mb-0 text-dark fw-semibold">
+                        <i class="bi bi-funnel me-2"></i>
+                        Filtros
+                    </h5>
+                </div>
+                <div class="content-card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Cenário</label>
+                            <select name="cenario" class="form-select">
+                                <option value="">Todos os Cenários</option>
+                                {% for cenario in cenarios %}
+                                <option value="{{ cenario.id }}" {% if cenario_selecionado == cenario.id %}selected{% endif %}>
+                                    {{ cenario.nome }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Ano</label>
+                            <select name="ano" class="form-select">
+                                <option value="">Todos os anos ({{ anos_disponiveis|join:", " }})</option>
+                                {% for ano_opcao in anos_choices %}
+                                <option value="{{ ano_opcao }}" {% if ano_selecionado == ano_opcao %}selected{% endif %}>
+                                    {{ ano_opcao }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            {% if anos_disponiveis|length > 1 %}
+                            <small class="text-muted">Projeção de {{ anos_disponiveis|first }} a {{ anos_disponiveis|last }}</small>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Mês</label>
+                            <select name="mes" class="form-select">
+                                <option value="">Todos os meses</option>
+                                {% for i in "123456789101112"|make_list %}
+                                <option value="{{ i }}" {% if mes_selecionado == i|add:"0" %}selected{% endif %}>
+                                    {% cycle "Janeiro" "Fevereiro" "Março" "Abril" "Maio" "Junho" "Julho" "Agosto" "Setembro" "Outubro" "Novembro" "Dezembro" %}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-search me-2"></i>
+                                Filtrar
+                            </button>
+                            <a href="{% url 'relatorio_vendas_projecao' propriedade.id %}" class="btn btn-secondary ms-2">
+                                <i class="bi bi-x-circle me-2"></i>
+                                Limpar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Estatísticas Gerais -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="content-card">
+                <div class="content-card-body text-center">
+                    <h6 class="text-muted mb-2">Total de Vendas</h6>
+                    <h3 class="mb-0">{{ total_vendas }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="content-card">
+                <div class="content-card-body text-center">
+                    <h6 class="text-muted mb-2">Quantidade de Animais</h6>
+                    <h3 class="mb-0">{{ total_quantidade }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="content-card">
+                <div class="content-card-body text-center">
+                    <h6 class="text-muted mb-2">Valor Total (R$)</h6>
+                    <h3 class="mb-0 text-success">R$ {{ total_valor|floatformat:2 }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="content-card">
+                <div class="content-card-body text-center">
+                    <h6 class="text-muted mb-2">Peso Total (kg)</h6>
+                    <h3 class="mb-0">{{ total_peso|floatformat:2 }} kg</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabela de Vendas -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="content-card">
+                <div class="content-card-header">
+                    <h5 class="mb-0 text-dark fw-semibold">
+                        <i class="bi bi-table me-2"></i>
+                        Vendas Detalhadas
+                    </h5>
+                </div>
+                <div class="content-card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Cenário</th>
+                                    <th>Quantidade</th>
+                                    <th>Categoria</th>
+                                    <th>Cliente</th>
+                                    <th class="text-end">Peso (kg)</th>
+                                    <th class="text-end">Vlr por KG</th>
+                                    <th class="text-end">Vlr por Animal</th>
+                                    <th class="text-end">Valor Total</th>
+                                    <th>Data Recebimento</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for venda in vendas %}
+                                <tr>
+                                    <td>{{ venda.data_venda|date:"d/m/Y" }}</td>
+                                    <td>
+                                        {% if venda.cenario %}
+                                        <span class="badge bg-primary">{{ venda.cenario.nome }}</span>
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ venda.quantidade }}</td>
+                                    <td>{{ venda.categoria.nome }}</td>
+                                    <td>{{ venda.cliente_nome|default:"Cliente não definido" }}</td>
+                                    <td class="text-end">{{ venda.peso_total_kg|default:"-"|floatformat:2 }}</td>
+                                    <td class="text-end">R$ {{ venda.valor_por_kg|default:"-"|floatformat:2 }}</td>
+                                    <td class="text-end">R$ {{ venda.valor_por_animal|default:"-"|floatformat:2 }}</td>
+                                    <td class="text-end">
+                                        <strong class="text-success">R$ {{ venda.valor_total|floatformat:2 }}</strong>
+                                    </td>
+                                    <td>{{ venda.data_recebimento|date:"d/m/Y"|default:"-" }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="10" class="text-center text-muted py-4">
+                                        <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+                                        <p class="mt-2 mb-0">Nenhuma venda encontrada para os filtros selecionados.</p>
+                                        <small class="d-block mb-3">Gere vendas a partir dos cenários na página de Análise de Cenários.</small>
+                                        {% if cenarios %}
+                                        <div class="d-flex gap-2 justify-content-center">
+                                            {% for cenario in cenarios %}
+                                            <a href="{% url 'gerar_vendas_cenario' propriedade.id cenario.id %}" 
+                                               class="btn btn-sm btn-success"
+                                               onclick="return confirm('Gerar vendas para o cenário {{ cenario.nome }}?')">
+                                                <i class="bi bi-cart-plus me-1"></i>
+                                                Gerar Vendas - {{ cenario.nome }}
+                                            </a>
+                                            {% endfor %}
+                                        </div>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot class="table-light">
+                                <tr>
+                                    <th colspan="5" class="text-end">Total:</th>
+                                    <th class="text-end">{{ total_peso|floatformat:2 }} kg</th>
+                                    <th colspan="2"></th>
+                                    <th class="text-end text-success">R$ {{ total_valor|floatformat:2 }}</th>
+                                    <th></th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Planilha Consolidação por Ano e Mês -->
+    {% if vendas_por_ano %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="content-card">
+                <div class="content-card-header">
+                    <h5 class="mb-0 text-dark fw-semibold">
+                        <i class="bi bi-table me-2"></i>
+                        Planilha de Vendas - Anual e Mensal
+                    </h5>
+                </div>
+                <div class="content-card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-bordered mb-0" id="planilha-vendas">
+                            <thead class="table-light sticky-top" style="background-color: #f8f9fa !important;">
+                                <tr>
+                                    <th style="width: 200px; min-width: 200px;">
+                                        <i class="bi bi-calendar-year me-2"></i>Ano / Mês
+                                    </th>
+                                    <th class="text-end" style="min-width: 100px;">Quantidade</th>
+                                    <th class="text-end" style="min-width: 120px;">Peso Total (kg)</th>
+                                    <th class="text-end" style="min-width: 140px;">Valor Total (R$)</th>
+                                    <th class="text-center" style="width: 100px;">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item_ano in vendas_por_ano %}
+                                <!-- Linha do Ano - Clicável para expandir/recolher -->
+                                <tr class="ano-row" 
+                                    onclick="toggleAnoPlanilha({{ item_ano.ano }})"
+                                    style="cursor: pointer; background-color: #e3f2fd; font-weight: bold;"
+                                    onmouseover="this.style.backgroundColor='#bbdefb'"
+                                    onmouseout="if (!this.classList.contains('expanded')) this.style.backgroundColor='#e3f2fd';">
+                                    <td>
+                                        <i class="bi bi-chevron-right me-2" id="chevron-{{ item_ano.ano }}"></i>
+                                        <strong>{{ item_ano.ano }}</strong>
+                                    </td>
+                                    <td class="text-end">
+                                        <strong>{{ item_ano.total_quantidade }}</strong>
+                                    </td>
+                                    <td class="text-end">
+                                        <strong>{{ item_ano.total_peso|floatformat:2 }} kg</strong>
+                                    </td>
+                                    <td class="text-end">
+                                        <strong class="text-success">R$ {{ item_ano.total_valor|floatformat:2 }}</strong>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-primary">{{ item_ano.meses|length }} meses</span>
+                                    </td>
+                                </tr>
+                                <!-- Linhas dos Meses - Ocultas inicialmente -->
+                                {% for item_mes in item_ano.meses %}
+                                <tr class="mes-row d-none" 
+                                    data-ano="{{ item_ano.ano }}"
+                                    style="background-color: #f5f5f5;">
+                                    <td style="padding-left: 40px;">
+                                        <i class="bi bi-dot me-2"></i>
+                                        {{ item_mes.mes_nome }}/{{ item_ano.ano }}
+                                    </td>
+                                    <td class="text-end">{{ item_mes.total_quantidade }}</td>
+                                    <td class="text-end">{{ item_mes.total_peso|floatformat:2 }} kg</td>
+                                    <td class="text-end">
+                                        <span class="text-info">R$ {{ item_mes.total_valor|floatformat:2 }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <a href="{% url 'relatorio_vendas_mensal' propriedade.id item_ano.ano item_mes.mes %}{% if cenario_selecionado %}?cenario={{ cenario_selecionado }}{% endif %}" 
+                                           class="btn btn-xs btn-outline-primary"
+                                           onclick="event.stopPropagation();"
+                                           title="Ver detalhes do mês">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                {% endfor %}
+                            </tbody>
+                            <tfoot class="table-secondary">
+                                <tr style="font-weight: bold;">
+                                    <td>
+                                        <strong>TOTAL GERAL</strong>
+                                    </td>
+                                    <td class="text-end">
+                                        <strong>{{ total_quantidade }}</strong>
+                                    </td>
+                                    <td class="text-end">
+                                        <strong>{{ total_peso|floatformat:2 }} kg</strong>
+                                    </td>
+                                    <td class="text-end">
+                                        <strong class="text-success">R$ {{ total_valor|floatformat:2 }}</strong>
+                                    </td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Consolidação por Mês -->
+    {% if vendas_por_mes %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="content-card">
+                <div class="content-card-header">
+                    <h5 class="mb-0 text-dark fw-semibold">
+                        <i class="bi bi-calendar3 me-2"></i>
+                        Consolidação Mensal
+                    </h5>
+                </div>
+                <div class="content-card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Mês/Ano</th>
+                                    <th class="text-end">Quantidade</th>
+                                    <th class="text-end">Peso Total (kg)</th>
+                                    <th class="text-end">Valor Total (R$)</th>
+                                    <th class="text-center">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in vendas_por_mes %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ item.mes_nome }}/{{ item.ano }}</strong>
+                                    </td>
+                                    <td class="text-end">{{ item.total_quantidade }}</td>
+                                    <td class="text-end">{{ item.total_peso|floatformat:2 }} kg</td>
+                                    <td class="text-end">
+                                        <strong class="text-success">R$ {{ item.total_valor|floatformat:2 }}</strong>
+                                    </td>
+                                    <td class="text-center">
+                                        <a href="{% url 'relatorio_vendas_mensal' propriedade.id item.ano item.mes %}{% if cenario_selecionado %}?cenario={{ cenario_selecionado }}{% endif %}" 
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-eye me-1"></i>
+                                            Ver Detalhes
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Consolidação por Categoria -->
+    {% if vendas_por_categoria %}
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="content-card">
+                <div class="content-card-header">
+                    <h5 class="mb-0 text-dark fw-semibold">
+                        <i class="bi bi-tags me-2"></i>
+                        Por Categoria
+                    </h5>
+                </div>
+                <div class="content-card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Categoria</th>
+                                    <th class="text-end">Quantidade</th>
+                                    <th class="text-end">Valor Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for categoria, dados in vendas_por_categoria.items %}
+                                <tr>
+                                    <td>{{ categoria }}</td>
+                                    <td class="text-end">{{ dados.total_quantidade }}</td>
+                                    <td class="text-end">R$ {{ dados.total_valor|floatformat:2 }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="content-card">
+                <div class="content-card-header">
+                    <h5 class="mb-0 text-dark fw-semibold">
+                        <i class="bi bi-people me-2"></i>
+                        Por Cliente
+                    </h5>
+                </div>
+                <div class="content-card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Cliente</th>
+                                    <th class="text-end">Quantidade</th>
+                                    <th class="text-end">Valor Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for cliente, dados in vendas_por_cliente.items %}
+                                <tr>
+                                    <td>{{ cliente }}</td>
+                                    <td class="text-end">{{ dados.total_quantidade }}</td>
+                                    <td class="text-end">R$ {{ dados.total_valor|floatformat:2 }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Link para Relatório Anual -->
+    <div class="row">
+        <div class="col-12 text-center">
+            <a href="{% url 'relatorio_vendas_anual' propriedade.id planejamento.ano %}{% if cenario_selecionado %}?cenario={{ cenario_selecionado }}{% endif %}" 
+               class="btn btn-lg btn-primary">
+                <i class="bi bi-file-earmark-bar-graph me-2"></i>
+                Ver Relatório Anual Consolidado
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+#planilha-vendas {
+    font-size: 0.95rem;
+}
+
+#planilha-vendas .ano-row:hover {
+    background-color: #bbdefb !important;
+    transition: background-color 0.2s;
+}
+
+#planilha-vendas .mes-row {
+    transition: all 0.3s ease;
+}
+
+#planilha-vendas .mes-row:hover {
+    background-color: #e8e8e8 !important;
+}
+
+#planilha-vendas .ano-row.expanded {
+    background-color: #90caf9 !important;
+}
+
+#planilha-vendas .sticky-top {
+    z-index: 10;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.chevron-rotated {
+    transform: rotate(90deg);
+    transition: transform 0.3s ease;
+}
+</style>
+
+<script>
+function toggleAnoPlanilha(ano) {
+    const mesesRows = document.querySelectorAll(`.mes-row[data-ano="${ano}"]`);
+    const chevron = document.getElementById(`chevron-${ano}`);
+    const anoRow = event.currentTarget;
+    
+    if (!chevron || mesesRows.length === 0) return;
+    
+    // Verificar se está expandido (verificar se a primeira linha de mês está visível)
+    const isExpanded = !mesesRows[0].classList.contains('d-none');
+    
+    if (isExpanded) {
+        // Recolher - ocultar meses
+        mesesRows.forEach(row => {
+            row.classList.add('d-none');
+        });
+        chevron.classList.remove('chevron-rotated');
+        chevron.classList.remove('bi-chevron-down');
+        chevron.classList.add('bi-chevron-right');
+        anoRow.classList.remove('expanded');
+        anoRow.style.backgroundColor = '#e3f2fd';
+    } else {
+        // Expandir - mostrar meses
+        mesesRows.forEach(row => {
+            row.classList.remove('d-none');
+        });
+        chevron.classList.add('chevron-rotated');
+        chevron.classList.remove('bi-chevron-right');
+        chevron.classList.add('bi-chevron-down');
+        anoRow.classList.add('expanded');
+        anoRow.style.backgroundColor = '#90caf9';
+    }
+}
+</script>
+{% endblock %}
+

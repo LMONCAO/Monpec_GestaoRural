@@ -15,6 +15,8 @@ class GestaoRuralConfig(AppConfig):
             from . import models_reproducao  # noqa: F401
             from . import models_compras_financeiro  # noqa: F401
             from . import models_iatf_completo  # noqa: F401
+            # Importar models_cadastros apenas se necessário para evitar conflitos de Fornecedor
+            # O import será feito dinamicamente quando necessário
             from .services.provisionamento import registrar_workspaces_existentes
             
             # Criar categorias padrão se não existirem

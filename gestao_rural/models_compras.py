@@ -11,8 +11,8 @@ from decimal import Decimal
 from .models import Propriedade
 
 
-class Fornecedor(models.Model):
-    """Cadastro de fornecedores"""
+class FornecedorCompras(models.Model):
+    """Cadastro de fornecedores para compras"""
     TIPO_FORNECEDOR_CHOICES = [
         ('RACAO', 'Ração'),
         ('MEDICAMENTO', 'Medicamento'),
@@ -52,8 +52,8 @@ class Fornecedor(models.Model):
     data_cadastro = models.DateTimeField(auto_now_add=True, verbose_name="Data de Cadastro")
     
     class Meta:
-        verbose_name = "Fornecedor"
-        verbose_name_plural = "Fornecedores"
+        verbose_name = "Fornecedor Compras"
+        verbose_name_plural = "Fornecedores Compras"
         ordering = ['nome']
     
     def __str__(self):
@@ -99,7 +99,7 @@ class Insumo(models.Model):
         verbose_name="Unidade de Medida"
     )
     fornecedor_principal = models.ForeignKey(
-        Fornecedor,
+        'FornecedorCompras',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -228,7 +228,7 @@ class OrdemCompra(models.Model):
         verbose_name="Propriedade"
     )
     fornecedor = models.ForeignKey(
-        Fornecedor,
+        'FornecedorCompras',
         on_delete=models.CASCADE,
         related_name='ordens_compra',
         verbose_name="Fornecedor"

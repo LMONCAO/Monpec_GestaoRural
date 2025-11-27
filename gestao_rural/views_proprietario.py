@@ -36,9 +36,26 @@ def consolidar_dados_proprietario(produtor, propriedades):
         dados['total_hectares'] = sum(p.area_total_hectares for p in propriedades if p.area_total_hectares)
         
         # 2. INVENTÁRIO CONSOLIDADO
-        inventarios = InventarioRebanho.objects.filter(propriedade__in=propriedades)
-        dados['total_animais'] = sum(inv.quantidade for inv in inventarios)
-        dados['valor_total_rebanho'] = sum(inv.valor_total for inv in inventarios if inv.valor_total)
+        # Buscar apenas o inventário mais recente de cada propriedade para evitar duplicatas
+        from django.db.models import Max
+        total_animais = 0
+        valor_total_rebanho = Decimal('0.00')
+        
+        for propriedade in propriedades:
+            data_inventario_recente = InventarioRebanho.objects.filter(
+                propriedade=propriedade
+            ).aggregate(Max('data_inventario'))['data_inventario__max']
+            
+            if data_inventario_recente:
+                inventario_prop = InventarioRebanho.objects.filter(
+                    propriedade=propriedade,
+                    data_inventario=data_inventario_recente
+                )
+                total_animais += sum(inv.quantidade for inv in inventario_prop)
+                valor_total_rebanho += sum(inv.valor_total for inv in inventario_prop if inv.valor_total)
+        
+        dados['total_animais'] = total_animais
+        dados['valor_total_rebanho'] = valor_total_rebanho
         
         # 3. CUSTOS CONSOLIDADOS
         custos_fixos = CustoFixo.objects.filter(propriedade__in=propriedades, ativo=True)

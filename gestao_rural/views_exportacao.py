@@ -11,12 +11,12 @@ from django.shortcuts import get_object_or_404
 from django.contrib.auth.decorators import login_required
 from openpyxl import Workbook
 from openpyxl.chart import BarChart, Reference
-from openpyxl.styles import Font, Alignment, PatternFill
+from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from decimal import Decimal
-from reportlab.lib.pagesizes import A4
+from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.units import cm
 from reportlab.lib import colors
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak, KeepTogether
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak, KeepTogether, CondPageBreak, Image
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
 
@@ -33,23 +33,38 @@ def calcular_altura_tabela(table_data, font_size=10, padding=8):
     return altura_total
 
 
-def ajustar_tabela_para_pagina(table_data, col_widths, max_height_cm=25):
+def ajustar_tabela_para_pagina(table_data, col_widths, max_height_cm=20):
     """
     Ajusta uma tabela para caber na página, dividindo se necessário
+    Inclui cabeçalho em cada parte dividida
     """
-    altura_tabela = calcular_altura_tabela(table_data)
+    if len(table_data) <= 1:
+        return [table_data]
+    
+    # Altura máxima disponível (reduzida para evitar problemas)
     altura_maxima_pt = max_height_cm * 28.35  # Converter cm para pontos
     
-    if altura_tabela <= altura_maxima_pt:
-        return [table_data]  # Tabela cabe em uma página
+    # Calcular altura aproximada por linha (incluindo cabeçalho)
+    altura_linha = 25  # Altura aproximada por linha em pontos
+    altura_cabecalho = 40  # Altura do cabeçalho
     
-    # Dividir a tabela em partes menores
-    linhas_por_pagina = int(len(table_data) * (altura_maxima_pt / altura_tabela))
-    linhas_por_pagina = max(8, linhas_por_pagina)  # Mínimo de 8 linhas por página
+    # Calcular quantas linhas cabem (excluindo cabeçalho)
+    linhas_disponiveis = int((altura_maxima_pt - altura_cabecalho) / altura_linha)
+    linhas_disponiveis = max(5, linhas_disponiveis)  # Mínimo de 5 linhas por página
     
+    # Se a tabela cabe em uma página, retornar sem dividir
+    if len(table_data) <= linhas_disponiveis + 1:  # +1 para cabeçalho
+        return [table_data]
+    
+    # Dividir a tabela mantendo cabeçalho em cada parte
     tabelas_divididas = []
-    for i in range(0, len(table_data), linhas_por_pagina):
-        parte_tabela = table_data[i:i + linhas_por_pagina]
+    cabecalho = table_data[0]  # Primeira linha é o cabeçalho
+    dados = table_data[1:]  # Resto são os dados
+    
+    for i in range(0, len(dados), linhas_disponiveis):
+        parte_dados = dados[i:i + linhas_disponiveis]
+        # Incluir cabeçalho em cada parte
+        parte_tabela = [cabecalho] + parte_dados
         tabelas_divididas.append(parte_tabela)
     
     return tabelas_divididas
@@ -80,11 +95,14 @@ def calcular_larguras_dinamicas(table_data, num_colunas, largura_total_cm=27.7):
         # Tabela de inventário: 6 colunas
         percentuais = [25, 10, 12, 12, 12, 21]  # Categoria 25%, valores 10-12%, Total 21%
     elif num_colunas == 11:
-        # Tabela de evolução: 11 colunas
-        percentuais = [15, 8, 8, 8, 8, 10, 8, 8, 8, 8, 15]  # Categoria 15%, Total 15%
-    elif num_colunas == 12:
-        # Tabela de projeção por ano: 12 colunas
-        percentuais = [14, 7, 7, 7, 7, 9, 7, 7, 7, 7, 8, 13]  # Categoria 14%, Total 13%
+        # Verificar se é tabela de projeção por ano (tem "Saldo Inicial" no cabeçalho)
+        if table_data and len(table_data) > 0 and 'Saldo' in str(table_data[0]):
+            # Tabela de projeção por ano: 11 colunas (ajustado para cabeçalhos)
+            # Distribuir melhor para evitar quebra de linha nos cabeçalhos
+            percentuais = [16, 7, 8, 7, 7, 7, 9, 7, 7, 9, 15]  # Categoria 16%, Valores 7-9%, Total 15%
+        else:
+            # Tabela de evolução: 11 colunas
+            percentuais = [15, 8, 8, 8, 8, 10, 8, 8, 8, 8, 15]  # Categoria 15%, Total 15%
     else:
         # Distribuição padrão para outras tabelas
         percentuais = [100 / num_colunas] * num_colunas
@@ -104,63 +122,244 @@ def calcular_larguras_dinamicas(table_data, num_colunas, largura_total_cm=27.7):
 
 @login_required
 def exportar_inventario_excel(request, propriedade_id):
-    """Exporta inventário para Excel"""
+    """Exporta inventário para Excel com cabeçalho formatado"""
     from .models import InventarioRebanho, Propriedade
+    from datetime import datetime
     
     propriedade = get_object_or_404(Propriedade, id=propriedade_id, produtor__usuario_responsavel=request.user)
-    inventario = InventarioRebanho.objects.filter(propriedade=propriedade).select_related('categoria')
+    
+    # Buscar inventário mais recente
+    inventario_recente = InventarioRebanho.objects.filter(
+        propriedade=propriedade
+    ).select_related('categoria').order_by('-data_inventario').first()
+    
+    if not inventario_recente:
+        from django.contrib import messages
+        messages.warning(request, 'Nenhum inventário encontrado para exportar.')
+        from django.shortcuts import redirect
+        return redirect('pecuaria_inventario', propriedade_id=propriedade.id)
+    
+    data_inventario = inventario_recente.data_inventario
+    
+    # Buscar todos os itens do inventário na mesma data
+    inventario = InventarioRebanho.objects.filter(
+        propriedade=propriedade,
+        data_inventario=data_inventario
+    ).select_related('categoria').order_by('categoria__sexo', 'categoria__idade_minima_meses')
     
     # Criar workbook
     wb = Workbook()
     ws = wb.active
-    ws.title = "Inventário"
+    ws.title = "Inventário do Rebanho"
     
-    # Estilizar cabeçalho
-    header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
-    header_font = Font(bold=True, color="FFFFFF")
+    # Estilos
+    title_font = Font(name='Arial', size=18, bold=True, color='FFFFFF')
+    subtitle_font = Font(name='Arial', size=11, color='FFFFFF')
+    header_font = Font(name='Arial', size=11, bold=True, color='FFFFFF')
+    normal_font = Font(name='Arial', size=10)
+    bold_font = Font(name='Arial', size=10, bold=True)
+    total_font = Font(name='Arial', size=11, bold=True)
     
-    ws['A1'] = 'Categoria'
-    ws['B1'] = 'Quantidade'
-    ws['C1'] = 'Valor por Cabeça'
-    ws['D1'] = 'Valor Total'
-    ws['E1'] = 'Data Inventário'
+    # Cores
+    azul_escuro = PatternFill(start_color="1e3a5f", end_color="1e3a5f", fill_type="solid")
+    azul_medio = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+    cinza_claro = PatternFill(start_color="f2f2f2", end_color="f2f2f2", fill_type="solid")
+    verde_claro = PatternFill(start_color="d4edda", end_color="d4edda", fill_type="solid")
     
-    # Aplicar estilo ao cabeçalho
-    for cell in ws[1]:
-        cell.fill = header_fill
+    # ===== CABEÇALHO =====
+    # Título principal
+    ws['A1'] = 'RELATÓRIO DE INVENTÁRIO DO REBANHO'
+    ws['A1'].font = title_font
+    ws['A1'].fill = azul_escuro
+    ws.merge_cells('A1:F1')
+    ws['A1'].alignment = Alignment(horizontal='center', vertical='center')
+    ws.row_dimensions[1].height = 30
+    
+    # Informações da propriedade
+    ws['A2'] = f'Propriedade: {propriedade.nome_propriedade}'
+    ws['A2'].font = subtitle_font
+    ws['A2'].fill = azul_medio
+    ws.merge_cells('A2:F2')
+    ws['A2'].alignment = Alignment(horizontal='center', vertical='center')
+    ws.row_dimensions[2].height = 25
+    
+    # Localização e data
+    localizacao = f'{propriedade.municipio}/{propriedade.uf}' if propriedade.municipio else ''
+    ws['A3'] = f'{localizacao} | Data do Inventário: {data_inventario.strftime("%d/%m/%Y")} | Gerado em: {datetime.now().strftime("%d/%m/%Y %H:%M")}'
+    ws['A3'].font = Font(name='Arial', size=9, color='FFFFFF')
+    ws['A3'].fill = azul_medio
+    ws.merge_cells('A3:F3')
+    ws['A3'].alignment = Alignment(horizontal='center', vertical='center')
+    ws.row_dimensions[3].height = 20
+    
+    # Espaço
+    ws.row_dimensions[4].height = 10
+    
+    # ===== CABEÇALHO DA TABELA =====
+    headers = ['Categoria', 'Idade', 'Sexo', 'Quantidade', 'Valor por Cabeça (R$)', 'Valor Total (R$)']
+    for col, header in enumerate(headers, 1):
+        cell = ws.cell(row=5, column=col, value=header)
         cell.font = header_font
-        cell.alignment = Alignment(horizontal='center', vertical='center')
+        cell.fill = azul_medio
+        cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+        cell.border = Border(
+            left=Side(style='thin', color='FFFFFF'),
+            right=Side(style='thin', color='FFFFFF'),
+            top=Side(style='thin', color='FFFFFF'),
+            bottom=Side(style='thin', color='FFFFFF')
+        )
+    ws.row_dimensions[5].height = 30
     
-    # Preencher dados
-    row = 2
-    total_geral = Decimal('0')
+    # ===== DADOS DO INVENTÁRIO =====
+    row = 6
+    total_quantidade = 0
+    total_valor = Decimal('0.00')
+    
+    # Separar por sexo
+    femeas = []
+    machos = []
+    
     for item in inventario:
-        ws[f'A{row}'] = item.categoria.nome
-        ws[f'B{row}'] = item.quantidade
-        ws[f'C{row}'] = float(item.valor_por_cabeca)
-        valor_total = float(item.valor_total) if item.valor_total else 0
-        ws[f'D{row}'] = valor_total
-        total_geral += Decimal(str(valor_total))
-        ws[f'E{row}'] = item.data_inventario.strftime('%d/%m/%Y')
+        if item.categoria.sexo == 'F':
+            femeas.append(item)
+        elif item.categoria.sexo == 'M':
+            machos.append(item)
+        else:
+            femeas.append(item)  # Default
+    
+    # Fêmeas primeiro
+    for item in femeas:
+        idade_str = ''
+        if item.categoria.idade_minima_meses is not None and item.categoria.idade_maxima_meses is not None:
+            idade_str = f'{item.categoria.idade_minima_meses}-{item.categoria.idade_maxima_meses} M'
+        elif item.categoria.idade_minima_meses is not None:
+            idade_str = f'{item.categoria.idade_minima_meses}+ M'
+        elif item.categoria.idade_maxima_meses is not None:
+            idade_str = f'Até {item.categoria.idade_maxima_meses} M'
+        
+        sexo_str = item.categoria.get_sexo_display() if hasattr(item.categoria, 'get_sexo_display') else ('Fêmea' if item.categoria.sexo == 'F' else 'Macho')
+        
+        ws.cell(row=row, column=1, value=item.categoria.nome).font = normal_font
+        ws.cell(row=row, column=2, value=idade_str).font = normal_font
+        ws.cell(row=row, column=3, value=sexo_str).font = normal_font
+        ws.cell(row=row, column=4, value=item.quantidade).font = normal_font
+        ws.cell(row=row, column=5, value=float(item.valor_por_cabeca)).number_format = '#,##0.00'
+        ws.cell(row=row, column=5).font = normal_font
+        
+        valor_total = float(item.valor_total) if item.valor_total else 0.0
+        ws.cell(row=row, column=6, value=valor_total).number_format = '#,##0.00'
+        ws.cell(row=row, column=6).font = normal_font
+        
+        # Alternar cor de fundo
+        if row % 2 == 0:
+            for col in range(1, 7):
+                ws.cell(row=row, column=col).fill = cinza_claro
+        
+        # Bordas
+        for col in range(1, 7):
+            ws.cell(row=row, column=col).border = Border(
+                left=Side(style='thin'),
+                right=Side(style='thin'),
+                top=Side(style='thin'),
+                bottom=Side(style='thin')
+            )
+            ws.cell(row=row, column=col).alignment = Alignment(
+                horizontal='center' if col > 1 else 'left',
+                vertical='center'
+            )
+        
+        total_quantidade += item.quantidade
+        total_valor += Decimal(str(valor_total))
         row += 1
     
-    # Adicionar total
-    ws[f'C{row}'] = 'TOTAL:'
-    ws[f'D{row}'] = float(total_geral)
-    ws[f'D{row}'].font = Font(bold=True)
+    # Machos
+    for item in machos:
+        idade_str = ''
+        if item.categoria.idade_minima_meses is not None and item.categoria.idade_maxima_meses is not None:
+            idade_str = f'{item.categoria.idade_minima_meses}-{item.categoria.idade_maxima_meses} M'
+        elif item.categoria.idade_minima_meses is not None:
+            idade_str = f'{item.categoria.idade_minima_meses}+ M'
+        elif item.categoria.idade_maxima_meses is not None:
+            idade_str = f'Até {item.categoria.idade_maxima_meses} M'
+        
+        sexo_str = item.categoria.get_sexo_display() if hasattr(item.categoria, 'get_sexo_display') else ('Fêmea' if item.categoria.sexo == 'F' else 'Macho')
+        
+        ws.cell(row=row, column=1, value=item.categoria.nome).font = normal_font
+        ws.cell(row=row, column=2, value=idade_str).font = normal_font
+        ws.cell(row=row, column=3, value=sexo_str).font = normal_font
+        ws.cell(row=row, column=4, value=item.quantidade).font = normal_font
+        ws.cell(row=row, column=5, value=float(item.valor_por_cabeca)).number_format = '#,##0.00'
+        ws.cell(row=row, column=5).font = normal_font
+        
+        valor_total = float(item.valor_total) if item.valor_total else 0.0
+        ws.cell(row=row, column=6, value=valor_total).number_format = '#,##0.00'
+        ws.cell(row=row, column=6).font = normal_font
+        
+        # Alternar cor de fundo
+        if row % 2 == 0:
+            for col in range(1, 7):
+                ws.cell(row=row, column=col).fill = cinza_claro
+        
+        # Bordas
+        for col in range(1, 7):
+            ws.cell(row=row, column=col).border = Border(
+                left=Side(style='thin'),
+                right=Side(style='thin'),
+                top=Side(style='thin'),
+                bottom=Side(style='thin')
+            )
+            ws.cell(row=row, column=col).alignment = Alignment(
+                horizontal='center' if col > 1 else 'left',
+                vertical='center'
+            )
+        
+        total_quantidade += item.quantidade
+        total_valor += Decimal(str(valor_total))
+        row += 1
     
-    # Ajustar largura das colunas
-    ws.column_dimensions['A'].width = 25
-    ws.column_dimensions['B'].width = 12
-    ws.column_dimensions['C'].width = 18
-    ws.column_dimensions['D'].width = 18
-    ws.column_dimensions['E'].width = 15
+    # ===== LINHA DE TOTAIS =====
+    ws.row_dimensions[row].height = 25
+    ws.cell(row=row, column=1, value='TOTAIS').font = total_font
+    ws.cell(row=row, column=1).fill = verde_claro
+    ws.cell(row=row, column=2, value='-').font = total_font
+    ws.cell(row=row, column=2).fill = verde_claro
+    ws.cell(row=row, column=3, value='-').font = total_font
+    ws.cell(row=row, column=3).fill = verde_claro
+    ws.cell(row=row, column=4, value=total_quantidade).font = total_font
+    ws.cell(row=row, column=4).fill = verde_claro
+    ws.cell(row=row, column=5, value='-').font = total_font
+    ws.cell(row=row, column=5).fill = verde_claro
+    ws.cell(row=row, column=6, value=float(total_valor)).number_format = '#,##0.00'
+    ws.cell(row=row, column=6).font = total_font
+    ws.cell(row=row, column=6).fill = verde_claro
     
-    # Preparar resposta
+    # Bordas na linha de totais
+    for col in range(1, 7):
+        ws.cell(row=row, column=col).border = Border(
+            left=Side(style='medium'),
+            right=Side(style='medium'),
+            top=Side(style='medium'),
+            bottom=Side(style='medium')
+        )
+        ws.cell(row=row, column=col).alignment = Alignment(
+            horizontal='center' if col > 1 else 'left',
+            vertical='center'
+        )
+    
+    # ===== AJUSTAR LARGURAS DAS COLUNAS =====
+    ws.column_dimensions['A'].width = 35
+    ws.column_dimensions['B'].width = 15
+    ws.column_dimensions['C'].width = 12
+    ws.column_dimensions['D'].width = 15
+    ws.column_dimensions['E'].width = 22
+    ws.column_dimensions['F'].width = 22
+    
+    # ===== PREPARAR RESPOSTA =====
     response = HttpResponse(
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
-    response['Content-Disposition'] = f'attachment; filename="inventario_{propriedade.id}.xlsx"'
+    nome_arquivo = f'inventario_{propriedade.nome_propriedade.replace(" ", "_")}_{data_inventario.strftime("%Y%m%d")}.xlsx'
+    response['Content-Disposition'] = f'attachment; filename="{nome_arquivo}"'
     wb.save(response)
     return response
 
@@ -232,7 +431,7 @@ def exportar_projecao_excel(request, propriedade_id):
 @login_required
 def exportar_projecao_pdf(request, propriedade_id):
     """Exporta projeção para PDF em modo paisagem com todas as tabelas"""
-    from .models import MovimentacaoProjetada, Propriedade, InventarioRebanho, ParametrosProjecaoRebanho
+    from .models import MovimentacaoProjetada, Propriedade, InventarioRebanho, ParametrosProjecaoRebanho, CategoriaAnimal
     from .views import gerar_resumo_projecao_por_ano, gerar_evolucao_detalhada_rebanho
     from datetime import datetime
     from collections import defaultdict
@@ -255,8 +454,73 @@ def exportar_projecao_pdf(request, propriedade_id):
         return redirect('pecuaria_projecao', propriedade_id=propriedade.id)
     
     # Gerar resumo por ano
-    resumo_projecao_por_ano = gerar_resumo_projecao_por_ano(movimentacoes, inventario)
+    resumo_projecao_por_ano = gerar_resumo_projecao_por_ano(movimentacoes, inventario, propriedade)
     evolucao_detalhada = gerar_evolucao_detalhada_rebanho(movimentacoes, inventario)
+    
+    # Calcular evolução do rebanho para o gráfico
+    evolucao_rebanho = []
+    if resumo_projecao_por_ano:
+        for ano in sorted(resumo_projecao_por_ano.keys()):
+            dados = resumo_projecao_por_ano[ano]
+            evolucao_rebanho.append({
+                'ano': ano,
+                'saldo_inicial': dados.get('totais', {}).get('saldo_inicial_total', 0),
+                'saldo_final': dados.get('totais', {}).get('saldo_final_total', 0),
+            })
+    
+    # Gerar gráfico de evolução do rebanho
+    grafico_bytes = None
+    if evolucao_rebanho and len(evolucao_rebanho) > 0:
+        try:
+            import matplotlib
+            matplotlib.use('Agg')  # Backend não-interativo
+            import matplotlib.pyplot as plt
+            from io import BytesIO
+            import numpy as np
+            
+            # Preparar dados
+            anos = [item['ano'] for item in evolucao_rebanho]
+            saldos_inicial = [float(item['saldo_inicial']) for item in evolucao_rebanho]
+            saldos_final = [float(item['saldo_final']) for item in evolucao_rebanho]
+            
+            # Criar figura
+            fig, ax = plt.subplots(figsize=(12, 6))
+            
+            # Plotar linhas
+            ax.plot(anos, saldos_inicial, marker='o', linewidth=2.5, markersize=8, 
+                   label='Saldo Inicial', color='#36a2eb', linestyle='-')
+            ax.plot(anos, saldos_final, marker='s', linewidth=2.5, markersize=8, 
+                   label='Saldo Final', color='#4bc0c0', linestyle='-')
+            
+            # Preencher área entre as linhas
+            ax.fill_between(anos, saldos_inicial, alpha=0.2, color='#36a2eb')
+            ax.fill_between(anos, saldos_final, alpha=0.2, color='#4bc0c0')
+            
+            # Configurar gráfico
+            ax.set_xlabel('Ano', fontsize=12, fontweight='bold')
+            ax.set_ylabel('Quantidade de Animais', fontsize=12, fontweight='bold')
+            ax.set_title('Evolução do Rebanho por Ano', fontsize=14, fontweight='bold', pad=15)
+            ax.legend(loc='best', fontsize=11, framealpha=0.9)
+            ax.grid(True, alpha=0.3, linestyle='--')
+            ax.set_xticks(anos)
+            
+            # Formatar eixos
+            ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'{int(x):,}'.replace(',', '.')))
+            
+            # Ajustar layout
+            plt.tight_layout()
+            
+            # Salvar em BytesIO
+            buffer = BytesIO()
+            plt.savefig(buffer, format='png', dpi=150, bbox_inches='tight')
+            buffer.seek(0)
+            grafico_bytes = buffer
+            plt.close(fig)
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Erro ao gerar gráfico de evolução: {e}")
+            grafico_bytes = None
     
     # Criar resposta PDF
     response = HttpResponse(content_type='application/pdf')
@@ -339,7 +603,7 @@ def exportar_projecao_pdf(request, propriedade_id):
     ))
     story.append(logo_text)
     
-    subtitle_text = Paragraph("Sistema de Gestão Rural Inteligente", ParagraphStyle(
+    subtitle_text = Paragraph("MONITOR DA PECUARIA", ParagraphStyle(
         'SubtitleStyle',
         parent=styles['Normal'],
         fontSize=12,
@@ -359,7 +623,7 @@ def exportar_projecao_pdf(request, propriedade_id):
     story.append(Spacer(1, 0.3*cm))
     
     # Título principal
-    story.append(Paragraph("Relatório de Projeção do Rebanho", title_style))
+    story.append(Paragraph("Relatório de Gado", title_style))
     story.append(Spacer(1, 0.4*cm))
     
     # Informações detalhadas da propriedade
@@ -449,29 +713,246 @@ def exportar_projecao_pdf(request, propriedade_id):
     story.append(indicadores_table)
     story.append(Spacer(1, 0.5*cm))
     
-    # Índice/Sumário
-    story.append(Paragraph("ÍNDICE", section_style))
-    story.append(Spacer(1, 0.3*cm))
+    # Adicionar seção de Parâmetros e Resumo de Nascimentos
+    if parametros:
+        story.append(Paragraph("PARÂMETROS DE PROJEÇÃO", section_style))
+        story.append(Spacer(1, 0.3*cm))
+        
+        parametros_data = [
+            ['Parâmetro', 'Valor'],
+            ['Taxa de Natalidade Anual:', f"{parametros.taxa_natalidade_anual}%"],
+            ['Taxa de Mortalidade Bezerros:', f"{parametros.taxa_mortalidade_bezerros_anual}%"],
+            ['Taxa de Mortalidade Adultos:', f"{parametros.taxa_mortalidade_adultos_anual}%"],
+        ]
+        
+        if hasattr(parametros, 'taxa_inflacao_anual') and parametros.taxa_inflacao_anual:
+            parametros_data.append(['Taxa de Inflação Anual:', f"{parametros.taxa_inflacao_anual}%"])
+        
+        parametros_table = Table(parametros_data, colWidths=[12*cm, 12*cm])
+        parametros_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1e3a8a')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 11),
+            ('FONTNAME', (0, 1), (0, -1), 'Helvetica-Bold'),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('ALIGN', (1, 0), (-1, -1), 'RIGHT'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#cccccc')),
+            ('BOX', (0, 0), (-1, -1), 2, colors.HexColor('#1e3a8a')),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('LEFTPADDING', (0, 0), (-1, -1), 6),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f8f9fa')]),
+        ]))
+        story.append(parametros_table)
+        story.append(Spacer(1, 0.5*cm))
+    
+    # Resumo de Nascimentos por Ano
+    if resumo_projecao_por_ano:
+        story.append(Paragraph("RESUMO DE NASCIMENTOS", section_style))
+        story.append(Spacer(1, 0.3*cm))
+        
+        nascimentos_data = [['Ano', 'Total de Nascimentos', 'Bezerros (M)', 'Bezerras (F)']]
+        total_nascimentos_geral = 0
+        total_bezerros = 0
+        total_bezerras = 0
+        
+        for ano, dados_ano in sorted(resumo_projecao_por_ano.items()):
+            totais = dados_ano.get('totais', {})
+            nascimentos_ano = totais.get('nascimentos_total', 0)
+            
+            # Calcular bezerros e bezerras do ano
+            bezerros_ano = 0
+            bezerras_ano = 0
+            for mov in movimentacoes:
+                if mov.data_movimentacao.year == ano and mov.tipo_movimentacao == 'NASCIMENTO':
+                    categoria_nome = mov.categoria.nome
+                    # Verificar se é bezerro macho (o) ou bezerra fêmea (a)
+                    if 'Bezerro(o)' in categoria_nome or ('Bezerro' in categoria_nome and 'Bezerra' not in categoria_nome and 'Bezerro(a)' not in categoria_nome):
+                        bezerros_ano += mov.quantidade
+                    elif 'Bezerro(a)' in categoria_nome or 'Bezerra' in categoria_nome:
+                        bezerras_ano += mov.quantidade
+            
+            total_nascimentos_geral += nascimentos_ano
+            total_bezerros += bezerros_ano
+            total_bezerras += bezerras_ano
+            
+            nascimentos_data.append([
+                str(ano),
+                f"{nascimentos_ano:,}".replace(',', '.'),
+                f"{bezerros_ano:,}".replace(',', '.'),
+                f"{bezerras_ano:,}".replace(',', '.')
+            ])
+        
+        # Adicionar linha de totais (usar strings simples, não HTML)
+        nascimentos_data.append([
+            'TOTAL',
+            f"{total_nascimentos_geral:,}".replace(',', '.'),
+            f"{total_bezerros:,}".replace(',', '.'),
+            f"{total_bezerras:,}".replace(',', '.')
+        ])
+        
+        nascimentos_table = Table(nascimentos_data, colWidths=[4*cm, 6*cm, 6*cm, 6*cm])
+        nascimentos_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1e3a8a')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('FONTNAME', (0, 1), (-1, -2), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -2), 11),
+            ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, -1), (-1, -1), 12),
+            ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#e8f4fd')),
+            ('TEXTCOLOR', (0, -1), (-1, -1), colors.HexColor('#1e3a8a')),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#cccccc')),
+            ('BOX', (0, 0), (-1, -1), 2, colors.HexColor('#1e3a8a')),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('LEFTPADDING', (0, 0), (-1, -1), 6),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -2), [colors.white, colors.HexColor('#f8f9fa')]),
+        ]))
+        story.append(nascimentos_table)
+        story.append(Spacer(1, 0.5*cm))
+    
+    # Resumo de Reprodução (Primíparas e Matrizes)
+    if resumo_projecao_por_ano:
+        story.append(Paragraph("RESUMO DE REPRODUÇÃO", section_style))
+        story.append(Spacer(1, 0.3*cm))
+        
+        reproducao_data = [['Ano', 'Matrizes em Reprodução', 'Primíparas', '80% Primíparas em Reprodução', '20% Primíparas Vendidas']]
+        
+        for ano, dados_ano in sorted(resumo_projecao_por_ano.items()):
+            categorias = dados_ano.get('categorias', {})
+            
+            # Buscar matrizes e primíparas
+            matrizes = categorias.get('Vacas em Reprodução +36 M', {})
+            primiparas = categorias.get('Primíparas 24-36 M', {})
+            
+            saldo_matrizes = matrizes.get('saldo_final', 0) if matrizes else 0
+            saldo_primiparas = primiparas.get('saldo_final', 0) if primiparas else 0
+            primiparas_reproducao = int(saldo_primiparas * 0.80) if saldo_primiparas else 0
+            primiparas_vendidas = int(saldo_primiparas * 0.20) if saldo_primiparas else 0
+            
+            reproducao_data.append([
+                str(ano),
+                f"{saldo_matrizes:,}".replace(',', '.'),
+                f"{saldo_primiparas:,}".replace(',', '.'),
+                f"{primiparas_reproducao:,}".replace(',', '.'),
+                f"{primiparas_vendidas:,}".replace(',', '.')
+            ])
+        
+        reproducao_table = Table(reproducao_data, colWidths=[4*cm, 5*cm, 5*cm, 5*cm, 5*cm])
+        reproducao_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1e3a8a')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 11),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 10),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#cccccc')),
+            ('BOX', (0, 0), (-1, -1), 2, colors.HexColor('#1e3a8a')),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ('LEFTPADDING', (0, 0), (-1, -1), 4),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f8f9fa')]),
+        ]))
+        story.append(reproducao_table)
+        story.append(Spacer(1, 0.5*cm))
+    
+    # Resumo de Transferências (usar KeepTogether para manter título, tabela e total juntos)
+    if resumo_projecao_por_ano:
+        transferencias_section = []
+        transferencias_section.append(Paragraph("RESUMO DE TRANSFERÊNCIAS", section_style))
+        transferencias_section.append(Spacer(1, 0.3*cm))
+        
+        transferencias_data = [['Ano', 'Transferências Entrada', 'Transferências Saída', 'Saldo Líquido']]
+        total_entrada = 0
+        total_saida = 0
+        
+        for ano, dados_ano in sorted(resumo_projecao_por_ano.items()):
+            totais = dados_ano.get('totais', {})
+            entrada = totais.get('transferencias_entrada_total', 0)
+            saida = totais.get('transferencias_saida_total', 0)
+            saldo = entrada - saida
+            
+            total_entrada += entrada
+            total_saida += saida
+            
+            transferencias_data.append([
+                str(ano),
+                f"{entrada:,}".replace(',', '.'),
+                f"{saida:,}".replace(',', '.'),
+                f"{saldo:,}".replace(',', '.')
+            ])
+        
+        # Adicionar linha de totais (usar strings simples, não HTML)
+        transferencias_data.append([
+            'TOTAL',
+            f"{total_entrada:,}".replace(',', '.'),
+            f"{total_saida:,}".replace(',', '.'),
+            f"{total_entrada - total_saida:,}".replace(',', '.')
+        ])
+        
+        transferencias_table = Table(transferencias_data, colWidths=[4*cm, 6*cm, 6*cm, 6*cm])
+        transferencias_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1e3a8a')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('FONTNAME', (0, 1), (-1, -2), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -2), 11),
+            ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, -1), (-1, -1), 12),
+            ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#e8f4fd')),
+            ('TEXTCOLOR', (0, -1), (-1, -1), colors.HexColor('#1e3a8a')),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#cccccc')),
+            ('BOX', (0, 0), (-1, -1), 2, colors.HexColor('#1e3a8a')),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('LEFTPADDING', (0, 0), (-1, -1), 6),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -2), [colors.white, colors.HexColor('#f8f9fa')]),
+        ]))
+        transferencias_section.append(transferencias_table)
+        transferencias_section.append(Spacer(1, 0.3*cm))
+        
+        # Manter toda a seção junta
+        story.append(KeepTogether(transferencias_section))
+    
+    # Índice/Sumário - em página dedicada
+    # Quebra de página antes do índice para garantir página própria
+    story.append(PageBreak())
+    
+    # Criar seção do índice para manter junto
+    indice_section = []
+    indice_section.append(Paragraph("ÍNDICE", section_style))
+    indice_section.append(Spacer(1, 0.3*cm))
     
     indice_data = [['Seção', 'Página']]
     pagina_atual = 2  # Começando da página 2 (após resumo executivo)
     
-    if inventario.exists():
-        indice_data.append(['1. Inventário Inicial', str(pagina_atual)])
-        pagina_atual += 1
-    
-    if evolucao_detalhada:
-        indice_data.append(['2. Evolução Detalhada do Rebanho', str(pagina_atual)])
-        pagina_atual += 1
+    # Removido: Inventário Inicial e Evolução Detalhada conforme solicitado
     
     if resumo_projecao_por_ano:
-        indice_data.append(['3. Projeção por Ano', str(pagina_atual)])
+        indice_data.append(['1. Projeção por Ano', str(pagina_atual)])
         for ano in sorted(resumo_projecao_por_ano.keys()):
-            indice_data.append([f'   3.{ano}. Projeção {ano}', str(pagina_atual)])
+            indice_data.append([f'   1.{ano}. Projeção {ano}', str(pagina_atual)])
             pagina_atual += 1
     
     # Adicionar análise financeira ao índice
-    indice_data.append(['4. Análise Financeira', str(pagina_atual)])
+    indice_data.append(['2. Análise Financeira', str(pagina_atual)])
     
     indice_table = Table(indice_data, colWidths=[21*cm, 3*cm])
     indice_table.setStyle(TableStyle([
@@ -502,272 +983,479 @@ def exportar_projecao_pdf(request, propriedade_id):
         # Alternância de cores nas linhas
         ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f8f9fa')]),
     ]))
-    story.append(indice_table)
+    
+    # Adicionar tabela à seção
+    indice_section.append(indice_table)
+    
+    # Manter toda a seção do índice junta e em página própria
+    story.append(KeepTogether(indice_section))
+    
+    # Quebra de página após o índice para separar das próximas seções
     story.append(PageBreak())
     
-    # Adicionar Inventário Inicial se existir
-    if inventario.exists():
-        story.append(PageBreak())  # Nova página para Inventário Inicial
-        story.append(Paragraph("1. INVENTÁRIO INICIAL", section_style))
-        story.append(Spacer(1, 0.5*cm))
-        table_data = [['Categoria', 'Quantidade', 'Fêmeas', 'Machos', 'Valor/Cabeça', 'Valor Total']]
-        
-        for item in inventario:
-            femeas = item.quantidade if any(t in item.categoria.nome for t in ['Fêmea', 'Vaca', 'Bezerra', 'Novilha']) else 0
-            machos = item.quantidade if any(t in item.categoria.nome for t in ['Macho', 'Boi', 'Bezerro']) else 0
-            
-            table_data.append([
-                item.categoria.nome,  # Nome completo sem truncamento
-                str(item.quantidade),
-                str(femeas),
-                str(machos),
-                f"R$ {float(item.valor_por_cabeca):,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
-                f"R$ {float(item.valor_total or 0):,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
-            ])
-        
-        # Calcular totais
-        total_qtde = sum(item.quantidade for item in inventario)
-        total_femeas = sum(item.quantidade if any(t in item.categoria.nome for t in ['Fêmea', 'Vaca']) else 0 for item in inventario)
-        total_machos = sum(item.quantidade if any(t in item.categoria.nome for t in ['Macho', 'Boi']) else 0 for item in inventario)
-        total_valor = sum(float(item.valor_total or 0) for item in inventario)
-        
-        table_data.append([
-            'TOTAL',
-            str(total_qtde),
-            str(total_femeas),
-            str(total_machos),
-            '',
-            f"R$ {total_valor:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
-        ])
-        
-        # Calcular larguras dinamicamente
-        col_widths = calcular_larguras_dinamicas(table_data, 6)
-        
-        # Ajustar fonte baseado no conteúdo
-        fonte_tabela = ajustar_fonte_por_conteudo(table_data, 11)
-        fonte_cabecalho = fonte_tabela + 2
-        
-        # Dividir tabela se necessário
-        tabelas_divididas = ajustar_tabela_para_pagina(table_data, col_widths)
-        
-        for i, parte_tabela in enumerate(tabelas_divididas):
-            table = Table(parte_tabela, colWidths=col_widths)
-    table.setStyle(TableStyle([
-                # Cabeçalho da tabela
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1e3a8a')),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), fonte_cabecalho),
-                ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
-                ('VALIGN', (0, 0), (-1, 0), 'MIDDLE'),
-                
-                # Dados da tabela
-                ('FONTNAME', (0, 1), (-1, -2), 'Helvetica'),
-                ('FONTSIZE', (0, 1), (-1, -2), fonte_tabela),
-                ('FONTNAME', (0, 1), (0, -2), 'Helvetica-Bold'),  # Categoria em negrito
-                ('ALIGN', (0, 1), (0, -2), 'LEFT'),  # Categoria à esquerda
-                ('ALIGN', (1, 1), (-1, -2), 'CENTER'),  # Demais dados centralizados
-                ('VALIGN', (0, 1), (-1, -2), 'MIDDLE'),
-                
-                # Linha de totais (apenas na última parte)
-                ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, -1), (-1, -1), fonte_tabela + 1),
-                ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#e8f4fd')),
-                ('TEXTCOLOR', (0, -1), (-1, -1), colors.HexColor('#1e3a8a')),
-                ('ALIGN', (0, -1), (-1, -1), 'CENTER'),
-                ('VALIGN', (0, -1), (-1, -1), 'MIDDLE'),
-                
-                # Bordas e espaçamento
-                ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#cccccc')),
-                ('BOX', (0, 0), (-1, -1), 2, colors.HexColor('#1e3a8a')),  # Borda externa grossa
-                ('LINEBELOW', (0, 0), (-1, 0), 2, colors.HexColor('#1e3a8a')),  # Linha forte abaixo do cabeçalho
-                ('LINEBELOW', (0, -1), (-1, -1), 1.5, colors.HexColor('#1e3a8a')),  # Linha forte acima dos totais
-                ('TOPPADDING', (0, 0), (-1, -1), 10),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
-                ('LEFTPADDING', (0, 0), (-1, -1), 8),
-                ('RIGHTPADDING', (0, 0), (-1, -1), 8),
-                
-                # Alternância de cores nas linhas
-                ('ROWBACKGROUNDS', (0, 1), (-1, -2), [colors.white, colors.HexColor('#f8f9fa')]),
-    ]))
+    # Seções removidas conforme solicitado:
+    # - 1. INVENTÁRIO INICIAL
+    # - 2. EVOLUÇÃO DETALHADA DO REBANHO
     
-    story.append(table)
-    
-    # Adicionar quebra de página apenas se não for a última parte
-    if i < len(tabelas_divididas) - 1:
-        story.append(PageBreak())
-
-        # Quebra de página após Inventário Inicial
-    story.append(PageBreak())
-    
-    # Adicionar Evolução Detalhada do Rebanho
-    if evolucao_detalhada:
-        story.append(PageBreak())  # Nova página para Evolução Detalhada
-        story.append(Paragraph("2. EVOLUÇÃO DETALHADA DO REBANHO", section_style))
-        story.append(Spacer(1, 0.5*cm))
-        table_data = [['Categoria', 'Inicial', 'Nasc', 'Comp', 'Vend', 'Trans', 'Mort', 'Final', 'Peso (kg)', 'R$/Cabeça', 'Total (R$)']]
-        
-        for categoria, dados in evolucao_detalhada.items():
-            trans = f"+{dados.get('transferencias_entrada', 0)}/{dados.get('transferencias_saida', 0)}" if dados.get('transferencias_entrada', 0) > 0 or dados.get('transferencias_saida', 0) > 0 else "0"
-            
-            table_data.append([
-                categoria,  # Nome completo sem truncamento
-                str(dados.get('saldo_inicial', 0) or 0),
-                str(dados.get('nascimentos', 0) or 0),
-                str(dados.get('compras', 0) or 0),
-                str(dados.get('vendas', 0) or 0),
-                trans,
-                str(dados.get('mortes', 0) or 0),
-                str(dados.get('saldo_final', 0) or 0),
-                f"{float(dados.get('peso_medio_kg', 0) or 0):,.1f}",
-                f"R$ {float(dados.get('valor_unitario', 0) or 0):,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
-                f"R$ {float(dados.get('valor_total', 0) or 0):,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
-            ])
-        
-        # Calcular larguras dinamicamente
-        col_widths_evolucao = calcular_larguras_dinamicas(table_data, 11)
-        
-        # Ajustar fonte baseado no conteúdo
-        fonte_tabela = ajustar_fonte_por_conteudo(table_data, 10)
-        fonte_cabecalho = fonte_tabela + 2
-        
-        # Dividir tabela se necessário
-        tabelas_divididas = ajustar_tabela_para_pagina(table_data, col_widths_evolucao)
-        
-        for i, parte_tabela in enumerate(tabelas_divididas):
-            table = Table(parte_tabela, colWidths=col_widths_evolucao)
-            table.setStyle(TableStyle([
-                # Cabeçalho da tabela
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1e3a8a')),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), fonte_cabecalho),
-                ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
-                ('VALIGN', (0, 0), (-1, 0), 'MIDDLE'),
-                
-                # Dados da tabela
-                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-                ('FONTSIZE', (0, 1), (-1, -1), fonte_tabela),
-                ('FONTNAME', (0, 1), (0, -1), 'Helvetica-Bold'),  # Categoria em negrito
-                ('ALIGN', (0, 1), (0, -1), 'LEFT'),  # Categoria à esquerda
-                ('ALIGN', (1, 1), (-1, -1), 'CENTER'),  # Demais dados centralizados
-                ('VALIGN', (0, 1), (-1, -1), 'MIDDLE'),
-                
-                # Bordas e espaçamento
-                ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#cccccc')),
-                ('BOX', (0, 0), (-1, -1), 2, colors.HexColor('#1e3a8a')),  # Borda externa grossa
-                ('LINEBELOW', (0, 0), (-1, 0), 2, colors.HexColor('#1e3a8a')),
-                ('TOPPADDING', (0, 0), (-1, -1), 8),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-                ('LEFTPADDING', (0, 0), (-1, -1), 6),
-                ('RIGHTPADDING', (0, 0), (-1, -1), 6),
-                
-                # Alternância de cores nas linhas
-                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f8f9fa')]),
-            ]))
-            
-            story.append(table)
-            
-            # Adicionar quebra de página apenas se não for a última parte            if i < len(tabelas_divididas) - 1:        story.append(PageBreak())
-        
-        # Quebra de página após Evolução Detalhada        story.append(PageBreak())
-    
-    # Adicionar tabelas por ano
+    # Adicionar tabelas por ano (formato paginado igual à tela)
     if resumo_projecao_por_ano:
-        # Não adicionar título geral aqui, cada ano terá sua própria página
-        # story.append(Paragraph("3. PROJEÇÃO POR ANO", section_style))
-        # story.append(Spacer(1, 0.3*cm))
-        
-        for ano, dados_ano in sorted(resumo_projecao_por_ano.items()):
-            story.append(PageBreak())  # Nova página para cada ano
-            story.append(Spacer(1, 0.5*cm))
-            story.append(Paragraph(f"3.{ano}. PROJEÇÃO ANO {ano}", section_style))
+        anos_ordenados = sorted(resumo_projecao_por_ano.keys())
+        for idx, ano in enumerate(anos_ordenados):
+            dados_ano = resumo_projecao_por_ano[ano]
+            # Adicionar quebra de página apenas se não for o primeiro ano
+            # Se for o primeiro ano e há evolução detalhada, adicionar espaçador ao invés de quebra
+            # Usar CondPageBreak para evitar páginas em branco
+            if idx > 0:
+                story.append(CondPageBreak(5*cm))  # Quebra apenas se necessário
+            elif not evolucao_detalhada and idx == 0:
+                # Se não há evolução detalhada, adicionar quebra condicional antes do primeiro ano
+                story.append(CondPageBreak(5*cm))
+            else:
+                # Se há evolução detalhada e é o primeiro ano, adicionar espaçador maior
+                story.append(Spacer(1, 0.8*cm))
             story.append(Spacer(1, 0.3*cm))
             
-            table_data = [['Categoria', 'Inicial', 'Nasc', 'Comp', 'Vend', 'Trans', 'Mort', 'Evol', 'Final', 'Peso', 'R$/Cabeça', 'Total']]
+            # Cabeçalho do ano (igual à tela)
+            header_style = ParagraphStyle(
+                'YearHeader',
+                parent=styles['Heading1'],
+                fontSize=16,
+                textColor=colors.HexColor('#1e3a8a'),
+                spaceAfter=6,
+                spaceBefore=0,
+                fontName='Helvetica-Bold',
+                leading=20
+            )
             
-            for categoria, dados in dados_ano.items():
-                trans = f"+{dados.get('transferencias_entrada', 0)}/{dados.get('transferencias_saida', 0)}" if dados.get('transferencias_entrada', 0) > 0 or dados.get('transferencias_saida', 0) > 0 else "0"
+            # Criar seção do ano (cabeçalho + tabela) para manter junto
+            ano_section = []
+            
+            # Montar cabeçalho com informações do proprietário e propriedade
+            header_text = f"Projeção do Ano {ano}"
+            if propriedade.produtor:
+                header_text = f"{propriedade.produtor.nome} - {propriedade.nome_propriedade} - {header_text}"
+                if propriedade.inscricao_estadual:
+                    header_text += f" (IE: {propriedade.inscricao_estadual})"
+                elif propriedade.produtor.cpf_cnpj:
+                    header_text += f" (CPF/CNPJ: {propriedade.produtor.cpf_cnpj})"
+            else:
+                header_text = f"{propriedade.nome_propriedade} - {header_text}"
+            
+            ano_section.append(Paragraph(header_text, header_style))
+            ano_section.append(Spacer(1, 0.2*cm))
+            
+            # Informação sobre saldo inicial
+            info_style = ParagraphStyle(
+                'InfoStyle',
+                parent=styles['Normal'],
+                fontSize=10,
+                textColor=colors.HexColor('#666666'),
+                spaceAfter=8,
+                spaceBefore=0
+            )
+            
+            if dados_ano.get('ano_anterior'):
+                saldo_anterior = dados_ano.get('saldo_final_ano_anterior', 0)
+                info_text = f"<b>Saldo Inicial:</b> Baseado no saldo final do ano {dados_ano.get('ano_anterior')} ({int(saldo_anterior):,} cabeças)".replace(',', '.')
+            else:
+                saldo_inicial = dados_ano.get('totais', {}).get('saldo_inicial_total', 0)
+                info_text = f"<b>Saldo Inicial:</b> Baseado no inventário cadastrado ({int(saldo_inicial):,} cabeças)".replace(',', '.')
+            
+            ano_section.append(Paragraph(info_text, info_style))
+            ano_section.append(Spacer(1, 0.3*cm))
+            
+            # Tabela de dados com cabeçalhos - "Saldo Inicial" quebra em duas linhas
+            table_data = [[
+                'Categoria', 
+                'Saldo<br/>Inicial', 
+                'Nascimentos', 
+                'Compras', 
+                'Vendas', 
+                'Mortes', 
+                'Transferências', 
+                'Evolução', 
+                'Saldo Final', 
+                'Valor Unit. (R$)', 
+                'Valor Total (R$)'
+            ]]
+            
+            # Usar estrutura correta: dados_ano['categorias']
+            categorias_ano = dados_ano.get('categorias', {})
+            
+            # Filtrar categorias que não têm dados relevantes (saldo inicial = 0, saldo final = 0, sem movimentações)
+            # e ordenar: fêmeas primeiro, depois machos, depois por idade
+            categorias_filtradas = []
+            for categoria, dados in categorias_ano.items():
+                saldo_inicial = dados.get('saldo_inicial', 0) or 0
+                saldo_final = dados.get('saldo_final', 0) or 0
+                nascimentos = dados.get('nascimentos', 0) or 0
+                compras = dados.get('compras', 0) or 0
+                vendas = dados.get('vendas', 0) or 0
+                mortes = dados.get('mortes', 0) or 0
+                trans_entrada = dados.get('transferencias_entrada', 0) or 0
+                trans_saida = dados.get('transferencias_saida', 0) or 0
+                evolucao = dados.get('evolucao_categoria', 0) or 0
                 
-        table_data.append([
-                    categoria,  # Nome completo sem truncamento
-                    str(dados.get('saldo_inicial', 0) or 0),
-                    str(dados.get('nascimentos', 0) or 0),
-                    str(dados.get('compras', 0) or 0),
-                    str(dados.get('vendas', 0) or 0),
+                # Incluir categoria se tiver qualquer dado relevante
+                # IMPORTANTE: Excluir "Bezerro(a) 0-12 M" que não deveria existir (é duplicado de "Bezerro(o) 0-12 M")
+                tem_dados = (saldo_inicial > 0 or saldo_final > 0 or nascimentos > 0 or 
+                            compras > 0 or vendas > 0 or mortes > 0 or 
+                            trans_entrada > 0 or trans_saida > 0 or evolucao != 0)
+                
+                # Excluir categoria "Bezerro(a) 0-12 M" que não deveria existir
+                if categoria == 'Bezerro(a) 0-12 M':
+                    continue  # Pular esta categoria
+                
+                if tem_dados:
+                    # Buscar categoria no banco para obter sexo e idade
+                    try:
+                        categoria_obj = CategoriaAnimal.objects.get(nome=categoria)
+                        # Determinar ordem de sexo: Fêmeas primeiro (1), Machos segundo (2), Indefinidos terceiro (3)
+                        if categoria_obj.sexo == 'F':
+                            ordem_sexo = 1  # Fêmeas primeiro
+                        elif categoria_obj.sexo == 'M':
+                            ordem_sexo = 2  # Machos segundo
+                        else:
+                            ordem_sexo = 3  # Indefinidos
+                        
+                        # Idade mínima para ordenação (usar 999 se None para colocar no final)
+                        idade_minima = categoria_obj.idade_minima_meses if categoria_obj.idade_minima_meses is not None else 999
+                        idade_maxima = categoria_obj.idade_maxima_meses if categoria_obj.idade_maxima_meses is not None else 999
+                    except CategoriaAnimal.DoesNotExist:
+                        # Fallback: tentar determinar pelo nome
+                        if 'fêmea' in categoria.lower() or 'femea' in categoria.lower() or categoria.endswith(' F'):
+                            ordem_sexo = 1  # Fêmeas primeiro
+                        elif 'macho' in categoria.lower() or categoria.endswith(' M') or 'bezerro(o)' in categoria.lower() or 'garrote' in categoria.lower() or 'boi' in categoria.lower() or 'touro' in categoria.lower():
+                            ordem_sexo = 2  # Machos segundo
+                        else:
+                            ordem_sexo = 3  # Indefinidos
+                        idade_minima = 999
+                        idade_maxima = 999
+                    
+                    categorias_filtradas.append((ordem_sexo, idade_minima, idade_maxima, categoria, dados))
+            
+            # Ordenar: primeiro por sexo, depois por idade mínima, depois por idade máxima, depois por nome
+            categorias_filtradas.sort(key=lambda x: (x[0], x[1], x[2], x[3]))
+            
+            for ordem_sexo, idade_minima, idade_maxima, categoria, dados in categorias_filtradas:
+                # Formatar transferências
+                trans_entrada = dados.get('transferencias_entrada', 0) or 0
+                trans_saida = dados.get('transferencias_saida', 0) or 0
+                if trans_entrada > 0 or trans_saida > 0:
+                    trans = f"+{int(trans_entrada)}/-{int(trans_saida)}"
+                else:
+                    trans = "-"
+                
+                # Formatar evolução
+                evol = dados.get('evolucao_categoria', '-') or '-'
+                
+                # Formatar valores monetários
+                valor_unitario = float(dados.get('valor_unitario', 0) or 0)
+                valor_total = float(dados.get('valor_total', 0) or 0)
+                
+                # Formatar valores com cores conforme a tela
+                nascimentos_val = int(dados.get('nascimentos', 0) or 0)
+                compras_val = int(dados.get('compras', 0) or 0)
+                vendas_val = int(dados.get('vendas', 0) or 0)
+                mortes_val = int(dados.get('mortes', 0) or 0)
+                
+                # Aplicar cores conforme a tela HTML
+                nascimentos_str = f'<font color="#28a745">+{nascimentos_val}</font>' if nascimentos_val > 0 else '-'
+                compras_str = f'<font color="#17a2b8">+{compras_val}</font>' if compras_val > 0 else '-'
+                vendas_str = f'<font color="#dc3545">-{vendas_val}</font>' if vendas_val > 0 else '-'
+                mortes_str = f'<font color="#6c757d">-{mortes_val}</font>' if mortes_val > 0 else '-'
+                
+                # Formatar transferências com cores
+                if trans_entrada > 0 or trans_saida > 0:
+                    trans_parts = []
+                    if trans_entrada > 0:
+                        trans_parts.append(f'<font color="#28a745">+{int(trans_entrada)}</font>')
+                    if trans_saida > 0:
+                        trans_parts.append(f'<font color="#dc3545">-{int(trans_saida)}</font>')
+                    trans = '/'.join(trans_parts)
+                else:
+                    trans = '-'
+                
+                # Formatar evolução com cor amarela/laranja
+                if evol != '-' and str(evol).strip() != '':
+                    evol_str = f'<font color="#ffc107">{str(evol)}</font>'
+                else:
+                    evol_str = '-'
+                
+                table_data.append([
+                    categoria,
+                    str(int(dados.get('saldo_inicial', 0) or 0)),
+                    nascimentos_str,
+                    compras_str,
+                    vendas_str,
+                    mortes_str,
                     trans,
-                    str(dados.get('mortes', 0) or 0),
-                    str(dados.get('evolucao_categoria', '-') or '-'),
-                    str(dados.get('saldo_final', 0) or 0),
-                    f"{float(dados.get('peso_medio_kg', 0) or 0):,.1f}",
-                    f"R$ {float(dados.get('valor_unitario', 0) or 0):,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
-                    f"R$ {float(dados.get('valor_total', 0) or 0):,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+                    evol_str,
+                    str(int(dados.get('saldo_final', 0) or 0)),
+                    f"R$ {valor_unitario:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
+                    f"R$ {valor_total:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
                 ])
-        
-        # Calcular larguras dinamicamente
-        col_widths_projecao = calcular_larguras_dinamicas(table_data, 12)
-        
-        # Ajustar fonte baseado no conteúdo
-        fonte_tabela = ajustar_fonte_por_conteudo(table_data, 9)
-        fonte_cabecalho = fonte_tabela + 2
-        
-        # Dividir tabela se necessário
-        tabelas_divididas = ajustar_tabela_para_pagina(table_data, col_widths_projecao)
-        
-        for j, parte_tabela in enumerate(tabelas_divididas):
-            table = Table(parte_tabela, colWidths=col_widths_projecao)
-            table.setStyle(TableStyle([
-                    # Cabeçalho da tabela
-                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#6495ed')),
-                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                    ('FONTSIZE', (0, 0), (-1, 0), fonte_cabecalho),
-                    ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
-                    ('VALIGN', (0, 0), (-1, 0), 'MIDDLE'),
-                    
-                    # Dados da tabela
-                    ('FONTNAME', (0, 1), (-1, -2), 'Helvetica'),
-                    ('FONTSIZE', (0, 1), (-1, -2), fonte_tabela),
-                    ('FONTNAME', (0, 1), (0, -2), 'Helvetica-Bold'),  # Categoria em negrito
-                    ('ALIGN', (0, 1), (0, -2), 'LEFT'),  # Categoria à esquerda
-                    ('ALIGN', (1, 1), (-1, -2), 'CENTER'),  # Demais dados centralizados
-                    ('VALIGN', (0, 1), (-1, -2), 'MIDDLE'),
-                    
-                    # Linha de totais (apenas na última parte)
-                    ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
-                    ('FONTSIZE', (0, -1), (-1, -1), fonte_tabela + 1),
-                    ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#e8f4fd')),
-                    ('TEXTCOLOR', (0, -1), (-1, -1), colors.HexColor('#6495ed')),
-                    ('ALIGN', (0, -1), (-1, -1), 'CENTER'),
-                    ('VALIGN', (0, -1), (-1, -1), 'MIDDLE'),
-                    
-                    # Bordas e espaçamento
-                    ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#cccccc')),
-                    ('BOX', (0, 0), (-1, -1), 2, colors.HexColor('#6495ed')),  # Borda externa grossa
-                    ('LINEBELOW', (0, 0), (-1, 0), 2, colors.HexColor('#6495ed')),
-                    ('LINEBELOW', (0, -1), (-1, -1), 1.5, colors.HexColor('#6495ed')),
-                    ('TOPPADDING', (0, 0), (-1, -1), 8),
-                    ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-                    ('LEFTPADDING', (0, 0), (-1, -1), 6),
-                    ('RIGHTPADDING', (0, 0), (-1, -1), 6),
-                    
-                    # Alternância de cores nas linhas
-                    ('ROWBACKGROUNDS', (0, 1), (-1, -2), [colors.white, colors.HexColor('#f8f9fa')]),
-                ]))
             
-            story.append(table)
+            # Adicionar linha de totais
+            totais = dados_ano.get('totais', {})
+            if totais:
+                trans_entrada_total = totais.get('transferencias_entrada_total', 0) or 0
+                trans_saida_total = totais.get('transferencias_saida_total', 0) or 0
+                if trans_entrada_total > 0 or trans_saida_total > 0:
+                    trans_parts = []
+                    if trans_entrada_total > 0:
+                        trans_parts.append(f'<font color="#28a745">+{int(trans_entrada_total)}</font>')
+                    if trans_saida_total > 0:
+                        trans_parts.append(f'<font color="#dc3545">-{int(trans_saida_total)}</font>')
+                    trans_total = '/'.join(trans_parts)
+                else:
+                    trans_total = '-'
+                
+                valor_total_geral = float(totais.get('valor_total_geral', 0) or 0)
+                
+                # Formatar totais com cores
+                nascimentos_total = int(totais.get('nascimentos_total', 0) or 0)
+                compras_total = int(totais.get('compras_total', 0) or 0)
+                vendas_total = int(totais.get('vendas_total', 0) or 0)
+                mortes_total = int(totais.get('mortes_total', 0) or 0)
+                
+                nascimentos_total_str = f'<font color="#28a745">{nascimentos_total}</font>' if nascimentos_total > 0 else '0'
+                compras_total_str = f'<font color="#17a2b8">{compras_total}</font>' if compras_total > 0 else '0'
+                vendas_total_str = f'<font color="#dc3545">{vendas_total}</font>' if vendas_total > 0 else '0'
+                mortes_total_str = f'<font color="#6c757d">{mortes_total}</font>' if mortes_total > 0 else '0'
+                
+                table_data.append([
+                    '<b>TOTAL</b>',
+                    str(int(totais.get('saldo_inicial_total', 0) or 0)),
+                    nascimentos_total_str,
+                    compras_total_str,
+                    vendas_total_str,
+                    mortes_total_str,
+                    trans_total,
+                    '-',
+                    str(int(totais.get('saldo_final_total', 0) or 0)),
+                    '-',
+                    f"R$ {valor_total_geral:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+                ])
             
-            # Adicionar quebra de página apenas se não for a última parte da última tabela
-            if j < len(tabelas_divididas) - 1:
-                story.append(PageBreak())
+            # Calcular larguras dinamicamente
+            col_widths_projecao = calcular_larguras_dinamicas(table_data, 11)
             
-            # Quebra de página após cada ano (exceto o último)
+            # Ajustar fonte baseado no conteúdo - reduzir um pouco para evitar quebra de linha
+            fonte_tabela = ajustar_fonte_por_conteudo(table_data, 8)
+            fonte_cabecalho = min(fonte_tabela + 1, 10)  # Limitar tamanho do cabeçalho
+            
+            # Dividir tabela se necessário
+            tabelas_divididas = ajustar_tabela_para_pagina(table_data, col_widths_projecao)
+            
+            for j, parte_tabela in enumerate(tabelas_divididas):
+                # Converter células com HTML para Paragraph
+                parte_tabela_formatada = []
+                for row_idx, row in enumerate(parte_tabela):
+                    row_formatada = []
+                    for col_idx, cell in enumerate(row):
+                        if row_idx == 0:
+                            # Cabeçalho: permitir quebra de linha com <br/> para "Saldo<br/>Inicial"
+                            cell_text = str(cell)
+                            # Manter <br/> para quebra de linha intencional (não remover)
+                            row_formatada.append(Paragraph(cell_text, ParagraphStyle(
+                                'Header',
+                                fontName='Helvetica-Bold',
+                                fontSize=max(8, fonte_cabecalho - 1),  # Reduzir fonte do cabeçalho
+                                textColor=colors.HexColor('#1e3a8a'),
+                                alignment=TA_CENTER,
+                                leading=max(9, fonte_cabecalho),
+                                wordWrap='CJK'  # Evitar quebra de palavras
+                            )))
+                        elif isinstance(cell, str) and ('<font' in cell or '<b>' in cell):
+                            # Células com formatação HTML
+                            # Verificar se é coluna de valor monetário (últimas 2 colunas)
+                            if col_idx >= len(row) - 2:
+                                # Colunas de valor: alinhar à direita
+                                row_formatada.append(Paragraph(str(cell), ParagraphStyle(
+                                    'Cell',
+                                    fontName='Helvetica-Bold' if '<b>' in cell else 'Helvetica',
+                                    fontSize=fonte_tabela,
+                                    alignment=TA_LEFT if col_idx == 0 else TA_CENTER if col_idx < len(row) - 2 else TA_LEFT,
+                                    leading=fonte_tabela + 1
+                                )))
+                            else:
+                                # Outras colunas: centralizar
+                                row_formatada.append(Paragraph(str(cell), ParagraphStyle(
+                                    'Cell',
+                                    fontName='Helvetica',
+                                    fontSize=fonte_tabela,
+                                    alignment=TA_CENTER,
+                                    leading=fonte_tabela + 1
+                                )))
+                        elif isinstance(cell, str) and cell.startswith('R$'):
+                            # Valores monetários sem HTML: alinhar à direita
+                            row_formatada.append(Paragraph(str(cell), ParagraphStyle(
+                                'Cell',
+                                fontName='Helvetica-Bold' if row_idx == len(parte_tabela) - 1 else 'Helvetica',
+                                fontSize=fonte_tabela,
+                                alignment=TA_LEFT,
+                                leading=fonte_tabela + 1
+                            )))
+                        else:
+                            row_formatada.append(cell)
+                    parte_tabela_formatada.append(row_formatada)
+                
+                table = Table(parte_tabela_formatada, colWidths=col_widths_projecao, repeatRows=1)
+                table.setStyle(TableStyle([
+                        # Cabeçalho da tabela - fundo claro como na tela (table-light)
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#f8f9fa')),
+                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#1e3a8a')),
+                        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                        ('FONTSIZE', (0, 0), (-1, 0), max(8, fonte_cabecalho - 1)),  # Fonte menor para cabeçalho
+                        ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                        ('VALIGN', (0, 0), (-1, 0), 'MIDDLE'),
+                        ('TOPPADDING', (0, 0), (-1, 0), 6),  # Reduzir padding do cabeçalho
+                        ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
+                        
+                        # Dados da tabela
+                        ('FONTNAME', (0, 1), (-1, -2), 'Helvetica'),
+                        ('FONTSIZE', (0, 1), (-1, -2), fonte_tabela),
+                        ('FONTNAME', (0, 1), (0, -2), 'Helvetica-Bold'),  # Categoria em negrito
+                        ('ALIGN', (0, 1), (0, -2), 'LEFT'),  # Categoria à esquerda
+                        ('ALIGN', (1, 1), (8, -2), 'CENTER'),  # Dados centralizados (colunas 1-8)
+                        ('ALIGN', (9, 1), (10, -2), 'RIGHT'),  # Valores monetários à direita (colunas 9-10)
+                        ('VALIGN', (0, 1), (-1, -2), 'MIDDLE'),
+                        
+                        # Linha de totais (apenas na última parte)
+                        ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+                        ('FONTSIZE', (0, -1), (-1, -1), fonte_tabela + 1),
+                        ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#e8f4fd')),
+                        ('TEXTCOLOR', (0, -1), (-1, -1), colors.HexColor('#1e3a8a')),
+                        ('ALIGN', (0, -1), (8, -1), 'CENTER'),  # Totais centralizados (colunas 0-8)
+                        ('ALIGN', (9, -1), (9, -1), 'CENTER'),  # "-" centralizado
+                        ('ALIGN', (10, -1), (10, -1), 'RIGHT'),  # Valor total à direita
+                        ('VALIGN', (0, -1), (-1, -1), 'MIDDLE'),
+                        
+                        # Bordas e espaçamento
+                        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#cccccc')),
+                        ('BOX', (0, 0), (-1, -1), 2, colors.HexColor('#1e3a8a')),  # Borda externa grossa
+                        ('LINEBELOW', (0, 0), (-1, 0), 2, colors.HexColor('#1e3a8a')),
+                        ('LINEBELOW', (0, -1), (-1, -1), 1.5, colors.HexColor('#1e3a8a')),
+                        ('TOPPADDING', (0, 0), (-1, -1), 8),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+                        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                        
+                        # Alternância de cores nas linhas
+                        ('ROWBACKGROUNDS', (0, 1), (-1, -2), [colors.white, colors.HexColor('#f8f9fa')]),
+                    ]))
+                
+                ano_section.append(table)
+                
+                # Adicionar quebra de página apenas se não for a última parte da última tabela
+                # Usar CondPageBreak para evitar páginas em branco
+                if j < len(tabelas_divididas) - 1:
+                    ano_section.append(CondPageBreak(3*cm))
+            
+            # Adicionar resumo financeiro do ano
+            if totais:
+                ano_section.append(Spacer(1, 0.4*cm))
+                resumo_financeiro_style = ParagraphStyle(
+                    'ResumoFinanceiro',
+                    parent=styles['Normal'],
+                    fontSize=11,
+                    textColor=colors.HexColor('#1e3a8a'),
+                    spaceAfter=4,
+                    spaceBefore=0,
+                    fontName='Helvetica-Bold'
+                )
+                
+                receitas = float(totais.get('receitas_total', 0) or 0)
+                custos = float(totais.get('custos_total', 0) or 0)  # Apenas compras
+                perdas_mortes = float(totais.get('perdas_mortes', 0) or 0)  # Perdas por mortes (não são custos)
+                lucro = float(totais.get('lucro_total', 0) or 0)
+                
+                # Formatar valores monetários
+                def formatar_moeda(valor):
+                    return f"{valor:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+                
+                # Resumo financeiro simplificado: apenas receitas e custos (compras)
+                resumo_text = (
+                    f"<b>Receitas:</b> R$ {formatar_moeda(receitas)} | "
+                    f"<b>Custos (Compras):</b> R$ {formatar_moeda(custos)} | "
+                    f"<b>Lucro:</b> R$ {formatar_moeda(lucro)}"
+                )
+                ano_section.append(Paragraph(resumo_text, resumo_financeiro_style))
+                
+                # Adicionar resumo discreto de vendas do ano
+                ano_section.append(Spacer(1, 0.3*cm))
+                resumo_vendas_style = ParagraphStyle(
+                    'ResumoVendasStyle',
+                    parent=styles['Normal'],
+                    fontSize=8,
+                    textColor=colors.HexColor('#666666'),
+                    spaceAfter=2,
+                    spaceBefore=0,
+                    leading=10
+                )
+                
+                # Coletar vendas por categoria
+                vendas_por_categoria = []
+                for ordem_sexo, idade_minima, idade_maxima, categoria_nome, dados_cat in categorias_filtradas:
+                    vendas_qtd = dados_cat.get('vendas', 0) or 0
+                    if vendas_qtd > 0:
+                        # Calcular valor total das vendas e valor médio
+                        valor_unitario = dados_cat.get('valor_unitario', 0) or 0
+                        valor_total_vendas = float(vendas_qtd) * float(valor_unitario)
+                        valor_medio = float(valor_unitario)
+                        
+                        # Formato: categoria (quantidade CBS TOTAL valor_total VLR MEDIO valor_medio)
+                        # Exemplo: Bezerro(o) 0-12 M (384 CBS TOTAL R$ 930.009,60 VLR MEDIO R$ 2.424,40)
+                        linha_venda = (
+                            f"{categoria_nome} ({int(vendas_qtd)} CBS TOTAL R$ {formatar_moeda(valor_total_vendas)} "
+                            f"VLR MEDIO R$ {formatar_moeda(valor_medio)})"
+                        )
+                        vendas_por_categoria.append((ordem_sexo, idade_minima, idade_maxima, linha_venda))
+                
+                # Ordenar vendas (fêmeas primeiro, depois machos, por idade)
+                vendas_por_categoria.sort(key=lambda x: (x[0], x[1], x[2]))
+                
+                # Criar texto do resumo (tudo em uma linha, separado por |)
+                if vendas_por_categoria:
+                    linhas_vendas = [v[3] for v in vendas_por_categoria]
+                    resumo_vendas_texto = " | ".join(linhas_vendas)
+                    ano_section.append(Paragraph(f"<b>RESUMO DE VENDAS:</b> {resumo_vendas_texto}", resumo_vendas_style))
+            
+            # Adicionar seção do ano sem KeepTogether completo (pode causar páginas em branco)
+            # Adicionar elementos individualmente
+            for elemento in ano_section:
+                story.append(elemento)
+            
+            # Quebra de página após cada ano (exceto o último) - usar CondPageBreak
             if ano != max(resumo_projecao_por_ano.keys()):
-                story.append(PageBreak())
+                story.append(CondPageBreak(3*cm))
+    
+    # Gráfico de Evolução do Rebanho - SEMPRE DEPOIS DO ÚLTIMO ANO PROJETADO
+    if grafico_bytes:
+        # Quebra de página condicional antes do gráfico
+        story.append(CondPageBreak(10*cm))  # Quebra apenas se não houver espaço suficiente
+        story.append(Paragraph("EVOLUÇÃO DO REBANHO", section_style))
+        story.append(Spacer(1, 0.3*cm))
+        
+        # Adicionar gráfico
+        try:
+            img = Image(grafico_bytes, width=16*cm, height=8*cm)
+            story.append(img)
+            story.append(Spacer(1, 0.5*cm))
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Erro ao adicionar gráfico ao PDF: {e}")
+            story.append(Paragraph("Gráfico de evolução não disponível.", normal_style))
+            story.append(Spacer(1, 0.3*cm))
     
     # Análise Financeira
-    story.append(PageBreak())  # Nova página para Análise Financeira
-    story.append(Paragraph("4. ANÁLISE FINANCEIRA", section_style))
+    # Adicionar quebra de página apenas se houver projeções (para separar do gráfico ou último ano)
+    # Usar CondPageBreak para evitar página em branco se houver espaço suficiente
+    if resumo_projecao_por_ano:
+        story.append(CondPageBreak(6*cm))  # Quebra apenas se não houver espaço suficiente
+    story.append(Paragraph("2. ANÁLISE FINANCEIRA", section_style))
     story.append(Spacer(1, 0.3*cm))
     
     # Calcular receitas e despesas por ano
@@ -777,9 +1465,11 @@ def exportar_projecao_pdf(request, propriedade_id):
     despesa_total_periodo = 0
     
     for ano, dados_ano in sorted(resumo_projecao_por_ano.items()):
-        receitas_ano = sum(float(dados.get('valor_total', 0) or 0) for dados in dados_ano.values() if dados.get('vendas', 0) > 0)
-        despesas_ano = sum(float(dados.get('valor_total', 0) or 0) for dados in dados_ano.values() if dados.get('compras', 0) > 0)
-        lucro_ano = receitas_ano - despesas_ano
+        # Usar estrutura correta: dados_ano['totais']
+        totais_ano = dados_ano.get('totais', {})
+        receitas_ano = float(totais_ano.get('receitas_total', 0) or 0)
+        despesas_ano = float(totais_ano.get('custos_total', 0) or 0)
+        lucro_ano = float(totais_ano.get('lucro_total', 0) or 0)
         margem_ano = (lucro_ano / receitas_ano * 100) if receitas_ano > 0 else 0
         roi_ano = (lucro_ano / valor_total_rebanho * 100) if valor_total_rebanho > 0 else 0
         
@@ -1480,70 +2170,267 @@ def exportar_iatf_pdf(request, propriedade_id):
 
 @login_required
 def exportar_inventario_pdf(request, propriedade_id):
-    """Exporta inventário para PDF"""
+    """Exporta inventário para PDF com cabeçalho formatado"""
     from .models import InventarioRebanho, Propriedade
     from datetime import datetime
     
     propriedade = get_object_or_404(Propriedade, id=propriedade_id, produtor__usuario_responsavel=request.user)
-    inventario = InventarioRebanho.objects.filter(propriedade=propriedade).select_related('categoria')
+    
+    # Buscar inventário mais recente
+    inventario_recente = InventarioRebanho.objects.filter(
+        propriedade=propriedade
+    ).select_related('categoria').order_by('-data_inventario').first()
+    
+    if not inventario_recente:
+        from django.contrib import messages
+        messages.warning(request, 'Nenhum inventário encontrado para exportar.')
+        from django.shortcuts import redirect
+        return redirect('pecuaria_inventario', propriedade_id=propriedade.id)
+    
+    data_inventario = inventario_recente.data_inventario
+    
+    # Buscar todos os itens do inventário na mesma data
+    inventario = InventarioRebanho.objects.filter(
+        propriedade=propriedade,
+        data_inventario=data_inventario
+    ).select_related('categoria').order_by('categoria__sexo', 'categoria__idade_minima_meses')
     
     # Criar resposta PDF
     response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="inventario_{propriedade.id}.pdf"'
+    nome_arquivo = f'inventario_{propriedade.nome_propriedade.replace(" ", "_")}_{data_inventario.strftime("%Y%m%d")}.pdf'
+    response['Content-Disposition'] = f'attachment; filename="{nome_arquivo}"'
     
-    # Criar documento PDF
-    doc = SimpleDocTemplate(response, pagesize=A4)
+    # Criar documento PDF em formato paisagem
+    doc = SimpleDocTemplate(response, pagesize=landscape(A4), 
+                           rightMargin=1.5*cm, leftMargin=1.5*cm,
+                           topMargin=1.5*cm, bottomMargin=1.5*cm)
     story = []
     
     # Estilos
     styles = getSampleStyleSheet()
+    
+    # Cores
+    azul_escuro = colors.HexColor('#1e3a5f')
+    azul_medio = colors.HexColor('#366092')
+    verde_claro = colors.HexColor('#d4edda')
+    cinza_claro = colors.HexColor('#f2f2f2')
+    
+    # Estilo do título principal
     title_style = ParagraphStyle(
         'CustomTitle',
         parent=styles['Heading1'],
-        fontSize=18,
-        textColor=colors.HexColor('#366092'),
-        spaceAfter=12,
-        alignment=TA_CENTER
+        fontSize=20,
+        textColor=colors.white,
+        spaceAfter=0,
+        alignment=TA_CENTER,
+        fontName='Helvetica-Bold',
+        backColor=azul_escuro,
+        leading=24
     )
     
-    # Título
-    story.append(Paragraph("Inventário do Rebanho", title_style))
-    story.append(Paragraph(f"<b>Propriedade:</b> {propriedade.nome_propriedade}", styles['Normal']))
-    story.append(Paragraph(f"<b>Data:</b> {datetime.now().strftime('%d/%m/%Y')}", styles['Normal']))
+    # Estilo do subtítulo
+    subtitle_style = ParagraphStyle(
+        'CustomSubtitle',
+        parent=styles['Normal'],
+        fontSize=12,
+        textColor=colors.white,
+        spaceAfter=0,
+        alignment=TA_CENTER,
+        fontName='Helvetica',
+        backColor=azul_medio,
+        leading=18
+    )
+    
+    # Estilo da informação
+    info_style = ParagraphStyle(
+        'CustomInfo',
+        parent=styles['Normal'],
+        fontSize=9,
+        textColor=colors.white,
+        spaceAfter=12,
+        alignment=TA_CENTER,
+        fontName='Helvetica',
+        backColor=azul_medio,
+        leading=14
+    )
+    
+    # ===== CABEÇALHO =====
+    # Título principal com fundo (ajustado para paisagem)
+    largura_pagina = landscape(A4)[0] - 3*cm  # Largura total menos margens
+    titulo_box = Table(
+        [[Paragraph('RELATÓRIO DE INVENTÁRIO DO REBANHO', title_style)]],
+        colWidths=[largura_pagina],
+        rowHeights=[1.2*cm]
+    )
+    titulo_box.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), azul_escuro),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('BOX', (0, 0), (-1, -1), 0, colors.white),
+    ]))
+    story.append(titulo_box)
+    
+    # Informações da propriedade
+    propriedade_box = Table(
+        [[Paragraph(f'Propriedade: {propriedade.nome_propriedade}', subtitle_style)]],
+        colWidths=[largura_pagina],
+        rowHeights=[0.8*cm]
+    )
+    propriedade_box.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), azul_medio),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('BOX', (0, 0), (-1, -1), 0, colors.white),
+    ]))
+    story.append(propriedade_box)
+    
+    # Localização e data
+    localizacao = f'{propriedade.municipio}/{propriedade.uf}' if propriedade.municipio else ''
+    info_texto = f'{localizacao} | Data do Inventário: {data_inventario.strftime("%d/%m/%Y")} | Gerado em: {datetime.now().strftime("%d/%m/%Y %H:%M")}'
+    info_box = Table(
+        [[Paragraph(info_texto, info_style)]],
+        colWidths=[largura_pagina],
+        rowHeights=[0.6*cm]
+    )
+    info_box.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), azul_medio),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('BOX', (0, 0), (-1, -1), 0, colors.white),
+    ]))
+    story.append(info_box)
+    
     story.append(Spacer(1, 0.5*cm))
     
-    # Tabela de inventário
-    table_data = [['Categoria', 'Quantidade', 'Valor por Cabeça', 'Valor Total']]
-    total_geral = Decimal('0')
+    # ===== TABELA DE INVENTÁRIO =====
+    # Cabeçalho da tabela
+    headers = ['Categoria', 'Idade', 'Sexo', 'Quantidade', 'Valor por Cabeça (R$)', 'Valor Total (R$)']
+    table_data = [headers]
+    
+    total_quantidade = 0
+    total_valor = Decimal('0.00')
+    
+    # Separar por sexo
+    femeas = []
+    machos = []
     
     for item in inventario:
-        valor_total = float(item.valor_total) if item.valor_total else 0
-        total_geral += Decimal(str(valor_total))
+        if item.categoria.sexo == 'F':
+            femeas.append(item)
+        elif item.categoria.sexo == 'M':
+            machos.append(item)
+        else:
+            femeas.append(item)  # Default
+    
+    # Fêmeas primeiro
+    for item in femeas:
+        idade_str = ''
+        if item.categoria.idade_minima_meses is not None and item.categoria.idade_maxima_meses is not None:
+            idade_str = f'{item.categoria.idade_minima_meses}-{item.categoria.idade_maxima_meses} M'
+        elif item.categoria.idade_minima_meses is not None:
+            idade_str = f'{item.categoria.idade_minima_meses}+ M'
+        elif item.categoria.idade_maxima_meses is not None:
+            idade_str = f'Até {item.categoria.idade_maxima_meses} M'
+        
+        sexo_str = item.categoria.get_sexo_display() if hasattr(item.categoria, 'get_sexo_display') else ('Fêmea' if item.categoria.sexo == 'F' else 'Macho')
+        
+        valor_total = float(item.valor_total) if item.valor_total else 0.0
+        total_quantidade += item.quantidade
+        total_valor += Decimal(str(valor_total))
+        
         table_data.append([
             item.categoria.nome,
+            idade_str,
+            sexo_str,
             str(item.quantidade),
-            f"R$ {float(item.valor_por_cabeca):,.2f}",
-            f"R$ {valor_total:,.2f}"
+            f"R$ {float(item.valor_por_cabeca):,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
+            f"R$ {valor_total:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
         ])
     
-    # Adicionar total
-    table_data.append(['TOTAL', '', '', f"R$ {float(total_geral):,.2f}"])
+    # Machos
+    for item in machos:
+        idade_str = ''
+        if item.categoria.idade_minima_meses is not None and item.categoria.idade_maxima_meses is not None:
+            idade_str = f'{item.categoria.idade_minima_meses}-{item.categoria.idade_maxima_meses} M'
+        elif item.categoria.idade_minima_meses is not None:
+            idade_str = f'{item.categoria.idade_minima_meses}+ M'
+        elif item.categoria.idade_maxima_meses is not None:
+            idade_str = f'Até {item.categoria.idade_maxima_meses} M'
+        
+        sexo_str = item.categoria.get_sexo_display() if hasattr(item.categoria, 'get_sexo_display') else ('Fêmea' if item.categoria.sexo == 'F' else 'Macho')
+        
+        valor_total = float(item.valor_total) if item.valor_total else 0.0
+        total_quantidade += item.quantidade
+        total_valor += Decimal(str(valor_total))
+        
+        table_data.append([
+            item.categoria.nome,
+            idade_str,
+            sexo_str,
+            str(item.quantidade),
+            f"R$ {float(item.valor_por_cabeca):,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'),
+            f"R$ {valor_total:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+        ])
     
-    table = Table(table_data)
-    table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#366092')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+    # Linha de totais
+    total_valor_float = float(total_valor)
+    total_valor_formatado = f"R$ {total_valor_float:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+    table_data.append(['TOTAIS', '-', '-', str(total_quantidade), '-', total_valor_formatado])
+    
+    # Criar tabela (ajustada para paisagem - colunas mais largas)
+    # Largura total disponível menos margens
+    largura_disponivel = landscape(A4)[0] - 3*cm
+    # Distribuir largura proporcionalmente
+    col_widths = [
+        6*cm,      # Categoria (mais larga)
+        2.5*cm,    # Idade
+        2*cm,      # Sexo
+        2.5*cm,    # Quantidade
+        3.5*cm,    # Valor por Cabeça
+        3.5*cm     # Valor Total
+    ]
+    # Ajustar se necessário para caber na página
+    soma_larguras = sum(col_widths)
+    if soma_larguras > largura_disponivel:
+        fator = largura_disponivel / soma_larguras
+        col_widths = [w * fator for w in col_widths]
+    
+    table = Table(table_data, colWidths=col_widths, repeatRows=1)
+    
+    # Estilizar tabela
+    table_style = [
+        # Cabeçalho
+        ('BACKGROUND', (0, 0), (-1, 0), azul_medio),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 11),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('BACKGROUND', (0, 1), (-1, -2), colors.white),
-        ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#d3d3d3')),
+        ('FONTSIZE', (0, 0), (-1, 0), 10),
+        ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, 0), 'MIDDLE'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+        ('TOPPADDING', (0, 0), (-1, 0), 10),
+        
+        # Dados - linhas alternadas
+        ('FONTNAME', (0, 1), (-1, -2), 'Helvetica'),
+        ('FONTSIZE', (0, 1), (-1, -2), 9),
+        ('ALIGN', (0, 1), (0, -2), 'LEFT'),  # Categoria alinhada à esquerda
+        ('ALIGN', (1, 1), (-1, -2), 'CENTER'),  # Resto centralizado
+        ('VALIGN', (0, 1), (-1, -2), 'MIDDLE'),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -2), [colors.white, cinza_claro]),
+        
+        # Linha de totais
+        ('BACKGROUND', (0, -1), (-1, -1), verde_claro),
         ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, -1), (-1, -1), 11),
-        ('GRID', (0, 0), (-1, -1), 1, colors.grey),
-    ]))
+        ('FONTSIZE', (0, -1), (-1, -1), 10),
+        ('ALIGN', (0, -1), (0, -1), 'LEFT'),
+        ('ALIGN', (1, -1), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, -1), (-1, -1), 'MIDDLE'),
+        ('TOPPADDING', (0, -1), (-1, -1), 8),
+        ('BOTTOMPADDING', (0, -1), (-1, -1), 8),
+        
+        # Bordas
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('LINEBELOW', (0, 0), (-1, 0), 1, colors.white),
+        ('LINEABOVE', (0, -1), (-1, -1), 2, colors.HexColor('#28a745')),
+    ]
     
+    table.setStyle(TableStyle(table_style))
     story.append(table)
     
     # Construir PDF

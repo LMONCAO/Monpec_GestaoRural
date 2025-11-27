@@ -17,7 +17,7 @@ from decimal import Decimal, InvalidOperation
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db.models import Q, Count, Sum, F
+from django.db.models import Q, Count, Sum, F, Max
 from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
@@ -112,7 +112,21 @@ def pecuaria_completa_dashboard(request, propriedade_id):
     mes_atual = date.today().replace(day=1)
     
     # ========== PECUÁRIA ==========
-    inventario = InventarioRebanho.objects.filter(propriedade=propriedade)
+    # Buscar apenas o inventário mais recente de cada categoria para evitar duplicatas
+    # Primeiro, obter a data mais recente
+    data_inventario_recente = InventarioRebanho.objects.filter(
+        propriedade=propriedade
+    ).aggregate(Max('data_inventario'))['data_inventario__max']
+    
+    if data_inventario_recente:
+        # Buscar apenas inventários da data mais recente
+        inventario = InventarioRebanho.objects.filter(
+            propriedade=propriedade,
+            data_inventario=data_inventario_recente
+        )
+    else:
+        inventario = InventarioRebanho.objects.none()
+    
     total_animais_inventario = sum(item.quantidade for item in inventario)
     valor_total_rebanho = sum(item.valor_total or 0 for item in inventario)
     
@@ -966,10 +980,24 @@ def dashboard_consulta_api(request, propriedade_id):
     
     else:
         # Resposta genérica
+        # Buscar inventário mais recente
+        data_inventario_recente = InventarioRebanho.objects.filter(
+            propriedade=propriedade
+        ).aggregate(Max('data_inventario'))['data_inventario__max']
+        
+        if data_inventario_recente:
+            inventario = InventarioRebanho.objects.filter(
+                propriedade=propriedade,
+                data_inventario=data_inventario_recente
+            )
+            total_animais = sum(item.quantidade for item in inventario)
+        else:
+            total_animais = 0
+        
         resposta['titulo'] = 'Informações Gerais'
         resposta['dados'] = [{
             'item': 'Total de Animais',
-            'valor': sum(item.quantidade for item in InventarioRebanho.objects.filter(propriedade=propriedade))
+            'valor': total_animais
         }]
         resposta['insights'].append('Faça perguntas específicas como: "Mostre o inventário", "Qual a situação financeira?", "Como está a nutrição?"')
     

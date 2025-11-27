@@ -451,7 +451,7 @@ class Frigorifico(TimeStampedModel):
 # FORNECEDOR MELHORADO (Integração com outros cadastros)
 # ============================================================================
 
-class Fornecedor(TimeStampedModel):
+class FornecedorCadastro(TimeStampedModel):
     """Cadastro melhorado de fornecedores com inter-relações"""
     TIPO_CHOICES = [
         ('RACAO', 'Ração/Insumos'),
@@ -530,7 +530,7 @@ class Fornecedor(TimeStampedModel):
     
     # Relacionamento com Centro de Custo e Plano de Contas
     centro_custo_padrao = models.ForeignKey(
-        'models_financeiro.CentroCusto',
+        'gestao_rural.CentroCusto',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -538,7 +538,7 @@ class Fornecedor(TimeStampedModel):
         verbose_name="Centro de Custo Padrão"
     )
     plano_conta_padrao = models.ForeignKey(
-        'models_financeiro.PlanoConta',
+        'gestao_rural.PlanoConta',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -584,8 +584,8 @@ class Fornecedor(TimeStampedModel):
     )
     
     class Meta:
-        verbose_name = "Fornecedor"
-        verbose_name_plural = "Fornecedores"
+        verbose_name = "Fornecedor Cadastro"
+        verbose_name_plural = "Fornecedores Cadastro"
         ordering = ['nome']
         indexes = [
             models.Index(fields=['cpf_cnpj']),
@@ -637,7 +637,7 @@ class RelacionamentoCadastros(TimeStampedModel):
     
     # Relacionamentos flexíveis
     fornecedor = models.ForeignKey(
-        Fornecedor,
+        'FornecedorCadastro',
         on_delete=models.CASCADE,
         null=True,
         blank=True,

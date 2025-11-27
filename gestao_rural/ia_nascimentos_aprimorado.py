@@ -139,19 +139,19 @@ class IANascimentosAprimorada:
                     bezerras - bezerras_sobreviventes
                 ))
             
-            print(f"    👶 Nascimentos Inteligentes:")
-            print(f"       • {bezerros_sobreviventes} bezerros (♂)")
-            print(f"       • {bezerras_sobreviventes} bezerras (♀)")
-            print(f"       • Total: {bezerros_sobreviventes + bezerras_sobreviventes}")
-            print(f"       • Taxa natalidade: {taxa_natalidade*100:.1f}%")
-            print(f"       • Época: {'Alta' if data_referencia.month in self.MESES_NASCIMENTO_ALTO else 'Normal'}")
+            print(f"    [NASCIMENTOS] Nascimentos Inteligentes:")
+            print(f"       - {bezerros_sobreviventes} bezerros (M)")
+            print(f"       - {bezerras_sobreviventes} bezerras (F)")
+            print(f"       - Total: {bezerros_sobreviventes + bezerras_sobreviventes}")
+            print(f"       - Taxa natalidade: {taxa_natalidade*100:.1f}%")
+            print(f"       - Epoca: {'Alta' if data_referencia.month in self.MESES_NASCIMENTO_ALTO else 'Normal'}")
             
             if (bezerros + bezerras) != (bezerros_sobreviventes + bezerras_sobreviventes):
                 mortes = (bezerros + bezerras) - (bezerros_sobreviventes + bezerras_sobreviventes)
-                print(f"       ⚠️ Mortalidade neonatal: {mortes} ({mortes/(bezerros+bezerras)*100:.1f}%)")
+                print(f"       [AVISO] Mortalidade neonatal: {mortes} ({mortes/(bezerros+bezerras)*100:.1f}%)")
         
         except CategoriaAnimal.DoesNotExist:
-            print("    ⚠️ Categorias de bezerros não encontradas")
+            print("    [AVISO] Categorias de bezerros não encontradas")
         
         return nascimentos
     

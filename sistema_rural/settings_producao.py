@@ -4,7 +4,13 @@ Django settings for sistema_rural project - PRODUÇÃO LOCAWEB
 Configurações específicas para produção no servidor Locaweb.
 """
 import os
+import platform
+from pathlib import Path
 from .settings import *
+
+# Detectar sistema operacional
+IS_WINDOWS = platform.system() == 'Windows'
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Configurações de produção
 DEBUG = False
@@ -27,17 +33,27 @@ CSRF_TRUSTED_ORIGINS = [
     'http://localhost:8000',
 ]
 
-# Banco de dados PostgreSQL para produção
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DB_NAME', 'monpec_db'),
-        'USER': os.getenv('DB_USER', 'monpec_user'),
-        'PASSWORD': os.getenv('DB_PASSWORD', 'Monpec2025!'),
-        'HOST': os.getenv('DB_HOST', 'localhost'),
-        'PORT': os.getenv('DB_PORT', '5432'),
+# Banco de dados
+if IS_WINDOWS:
+    # Windows: usar SQLite para desenvolvimento local
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
     }
-}
+else:
+    # Linux: usar PostgreSQL para produção
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv('DB_NAME', 'monpec_db'),
+            'USER': os.getenv('DB_USER', 'monpec_user'),
+            'PASSWORD': os.getenv('DB_PASSWORD', 'Monpec2025!'),
+            'HOST': os.getenv('DB_HOST', 'localhost'),
+            'PORT': os.getenv('DB_PORT', '5432'),
+        }
+    }
 
 # Configurações de segurança
 # ⚠️ ATENÇÃO: Desabilitado temporariamente para permitir acesso HTTP pelo celular
@@ -52,10 +68,30 @@ X_FRAME_OPTIONS = 'DENY'
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Arquivos estáticos e mídia
-STATIC_ROOT = '/var/www/monpec.com.br/static'
-MEDIA_ROOT = '/var/www/monpec.com.br/media'
+if IS_WINDOWS:
+    # Windows: usar diretórios locais
+    STATIC_ROOT = BASE_DIR / 'staticfiles'
+    MEDIA_ROOT = BASE_DIR / 'media'
+    # Criar diretórios se não existirem
+    STATIC_ROOT.mkdir(parents=True, exist_ok=True)
+    MEDIA_ROOT.mkdir(parents=True, exist_ok=True)
+else:
+    # Linux: usar caminhos do servidor
+    STATIC_ROOT = '/var/www/monpec.com.br/static'
+    MEDIA_ROOT = '/var/www/monpec.com.br/media'
 
 # Configuração de logs
+if IS_WINDOWS:
+    # Windows: usar diretório local para logs
+    LOG_DIR = BASE_DIR / 'logs'
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+    LOG_FILE = LOG_DIR / 'django.log'
+else:
+    # Linux: usar diretório do sistema
+    LOG_DIR = Path('/var/log/monpec')
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+    LOG_FILE = LOG_DIR / 'django.log'
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -69,7 +105,7 @@ LOGGING = {
         'file': {
             'level': 'INFO',
             'class': 'logging.FileHandler',
-            'filename': '/var/log/monpec/django.log',
+            'filename': str(LOG_FILE),
             'formatter': 'verbose',
         },
         'console': {
