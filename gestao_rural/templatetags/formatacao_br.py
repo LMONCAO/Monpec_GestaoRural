@@ -317,3 +317,48 @@ def extrair_manejo_sisbov(codigo_sisbov):
         return codigo_limpo[:-1][-7:]
     
     return ''
+
+
+@register.filter(name='div')
+def div(valor, divisor):
+    """
+    Divide um valor por outro.
+    Uso: {{ valor|div:divisor }}
+    Exemplo: {{ 100|div:2 }} retorna 50.0
+    """
+    try:
+        if valor is None or divisor is None:
+            return 0
+        
+        valor_decimal = Decimal(str(valor))
+        divisor_decimal = Decimal(str(divisor))
+        
+        if divisor_decimal == 0:
+            return 0
+        
+        resultado = valor_decimal / divisor_decimal
+        return float(resultado)
+    
+    except (ValueError, TypeError, AttributeError, InvalidOperation, ZeroDivisionError):
+        return 0
+
+
+@register.filter(name='mul')
+def mul(valor, multiplicador):
+    """
+    Multiplica um valor por outro.
+    Uso: {{ valor|mul:multiplicador }}
+    Exemplo: {{ 100|mul:2 }} retorna 200.0
+    """
+    try:
+        if valor is None or multiplicador is None:
+            return 0
+        
+        valor_decimal = Decimal(str(valor))
+        multiplicador_decimal = Decimal(str(multiplicador))
+        
+        resultado = valor_decimal * multiplicador_decimal
+        return float(resultado)
+    
+    except (ValueError, TypeError, AttributeError, InvalidOperation):
+        return 0
