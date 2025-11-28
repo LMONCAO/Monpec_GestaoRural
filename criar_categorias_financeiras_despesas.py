@@ -170,3 +170,4 @@ def criar_categorias_financeiras_despesas():
 if __name__ == '__main__':
     criar_categorias_financeiras_despesas()
 
+

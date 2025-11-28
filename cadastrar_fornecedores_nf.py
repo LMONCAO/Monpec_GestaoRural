@@ -403,3 +403,4 @@ def cadastrar_fornecedores():
 if __name__ == '__main__':
     cadastrar_fornecedores()
 
+

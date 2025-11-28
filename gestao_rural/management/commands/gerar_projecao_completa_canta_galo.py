@@ -49,6 +49,57 @@ def adicionar_meses(data, meses):
     return date(ano, mes, dia)
 
 
+def calcular_rebanho_por_movimentacoes(propriedade, data_referencia):
+    """
+    Calcula o rebanho atual baseado no inventário inicial + movimentações projetadas.
+    Similar à lógica usada nas projeções da Fazenda Canta Galo.
+    """
+    from collections import defaultdict
+    
+    # Buscar inventário inicial (mais recente antes da data de referência)
+    inventario_inicial = InventarioRebanho.objects.filter(
+        propriedade=propriedade,
+        data_inventario__lte=data_referencia
+    ).order_by('-data_inventario').first()
+    
+    if not inventario_inicial:
+        return {}
+    
+    # Buscar todos os inventários da mesma data
+    data_inventario = inventario_inicial.data_inventario
+    inventarios = InventarioRebanho.objects.filter(
+        propriedade=propriedade,
+        data_inventario=data_inventario
+    ).select_related('categoria')
+    
+    # Inicializar saldos com inventário inicial
+    saldos = defaultdict(int)
+    for inv in inventarios:
+        saldos[inv.categoria.nome] = inv.quantidade
+    
+    # Aplicar todas as movimentações até a data de referência
+    movimentacoes = MovimentacaoProjetada.objects.filter(
+        propriedade=propriedade,
+        data_movimentacao__gt=data_inventario,
+        data_movimentacao__lte=data_referencia
+    ).select_related('categoria')
+    
+    for mov in movimentacoes:
+        categoria = mov.categoria.nome
+        
+        if mov.tipo_movimentacao in ['NASCIMENTO', 'COMPRA', 'TRANSFERENCIA_ENTRADA', 'PROMOCAO_ENTRADA']:
+            saldos[categoria] += mov.quantidade
+        elif mov.tipo_movimentacao in ['VENDA', 'MORTE', 'TRANSFERENCIA_SAIDA', 'PROMOCAO_SAIDA']:
+            saldos[categoria] -= mov.quantidade
+            # Garantir que não fique negativo
+            if saldos[categoria] < 0:
+                saldos[categoria] = 0
+    
+    return dict(saldos)
+    
+    return date(ano, mes, dia)
+
+
 class Command(BaseCommand):
     help = 'Gera projeções completas baseadas nas regras específicas da Fazenda Canta Galo'
 
@@ -188,19 +239,26 @@ class Command(BaseCommand):
                             self.stdout.write(f'  [MES {mes:02d}] Transferencias: {transf["quantidade"]} {transf["categoria"]}')
                 
                 # 6. Processar transferências e vendas nas outras fazendas
+                # IMPORTANTE: Calcular saldos das outras fazendas antes de processar
                 if invernada_grande and ano <= 2023:
+                    # Calcular saldos da Invernada Grande
+                    saldos_invernada = calcular_rebanho_por_movimentacoes(invernada_grande, data_mes)
                     self._processar_invernada_grande(
-                        invernada_grande, data_mes, categorias, ano
+                        invernada_grande, data_mes, categorias, ano, saldos_invernada
                     )
                 
                 if favo_mel and ano >= 2024:
+                    # Calcular saldos do Favo de Mel
+                    saldos_favo_mel = calcular_rebanho_por_movimentacoes(favo_mel, data_mes)
                     self._processar_favo_mel(
-                        favo_mel, data_mes, categorias, ano
+                        favo_mel, data_mes, categorias, ano, saldos_favo_mel
                     )
                 
                 if girassol:
+                    # Calcular saldos do Girassol
+                    saldos_girassol = calcular_rebanho_por_movimentacoes(girassol, data_mes)
                     self._processar_girassol(
-                        girassol, data_mes, categorias, ano
+                        girassol, data_mes, categorias, ano, saldos_girassol
                     )
 
         self.stdout.write('')
@@ -359,7 +417,7 @@ class Command(BaseCommand):
         return nascimentos
 
     def _processar_mortes(self, propriedade, data, saldos, categorias, ano):
-        """Processa mortes: 9% dos nascimentos, 2% dos adultos acima de 12 meses (TAXAS ANUAIS, distribuídas mensalmente)"""
+        """Processa mortes: 9% dos nascimentos, 2% dos adultos acima de 12 meses (TAXAS ANUAIS, distribuídas mensalmente) - SEMPRE verifica estoque"""
         mortes = []
         
         # IMPORTANTE: As taxas são ANUAIS, então dividimos por 12 para aplicar mensalmente
@@ -371,41 +429,47 @@ class Command(BaseCommand):
         if total_nascimentos > 0:
             # Taxa anual de 9% = 0.75% mensal (9% / 12)
             taxa_morte_nascimentos_mensal = Decimal('0.09') / Decimal('12')
-            mortes_nascimentos = int(total_nascimentos * taxa_morte_nascimentos_mensal)
+            mortes_nascimentos_calc = int(total_nascimentos * taxa_morte_nascimentos_mensal)
             
-            if mortes_nascimentos > 0:
+            if mortes_nascimentos_calc > 0:
                 # Distribuir proporcionalmente
                 if total_nascimentos > 0:
-                    mortes_bezerros = int(mortes_nascimentos * (bezerros / total_nascimentos))
-                    mortes_bezerras = mortes_nascimentos - mortes_bezerros
+                    mortes_bezerros_calc = int(mortes_nascimentos_calc * (bezerros / total_nascimentos))
+                    mortes_bezerras_calc = mortes_nascimentos_calc - mortes_bezerros_calc
                 else:
-                    mortes_bezerros = 0
-                    mortes_bezerras = 0
+                    mortes_bezerros_calc = 0
+                    mortes_bezerras_calc = 0
                 
                 cat_bezerro = categorias.get('bezerro')
                 cat_bezerra = categorias.get('bezerra')
                 
-                if cat_bezerro and mortes_bezerros > 0:
-                    MovimentacaoProjetada.objects.create(
-                        propriedade=propriedade,
-                        categoria=cat_bezerro,
-                        data_movimentacao=data,
-                        tipo_movimentacao='MORTE',
-                        quantidade=mortes_bezerros,
-                        observacao=f'Mortes automáticas - {mortes_bezerros} bezerros (9% anual = 0.75% mensal dos nascimentos)'
-                    )
-                    mortes.append({'categoria': cat_bezerro.nome, 'quantidade': mortes_bezerros})
+                if cat_bezerro and mortes_bezerros_calc > 0:
+                    # CRÍTICO: Verificar se há estoque suficiente - NUNCA deixar negativo
+                    mortes_bezerros = min(mortes_bezerros_calc, bezerros)
+                    if mortes_bezerros > 0:
+                        MovimentacaoProjetada.objects.create(
+                            propriedade=propriedade,
+                            categoria=cat_bezerro,
+                            data_movimentacao=data,
+                            tipo_movimentacao='MORTE',
+                            quantidade=mortes_bezerros,
+                            observacao=f'Mortes automáticas - {mortes_bezerros} bezerros (9% anual = 0.75% mensal) - Estoque disponível: {bezerros}'
+                        )
+                        mortes.append({'categoria': cat_bezerro.nome, 'quantidade': mortes_bezerros})
                 
-                if cat_bezerra and mortes_bezerras > 0:
-                    MovimentacaoProjetada.objects.create(
-                        propriedade=propriedade,
-                        categoria=cat_bezerra,
-                        data_movimentacao=data,
-                        tipo_movimentacao='MORTE',
-                        quantidade=mortes_bezerras,
-                        observacao=f'Mortes automáticas - {mortes_bezerras} bezerras (9% anual = 0.75% mensal dos nascimentos)'
-                    )
-                    mortes.append({'categoria': cat_bezerra.nome, 'quantidade': mortes_bezerras})
+                if cat_bezerra and mortes_bezerras_calc > 0:
+                    # CRÍTICO: Verificar se há estoque suficiente - NUNCA deixar negativo
+                    mortes_bezerras = min(mortes_bezerras_calc, bezerras)
+                    if mortes_bezerras > 0:
+                        MovimentacaoProjetada.objects.create(
+                            propriedade=propriedade,
+                            categoria=cat_bezerra,
+                            data_movimentacao=data,
+                            tipo_movimentacao='MORTE',
+                            quantidade=mortes_bezerras,
+                            observacao=f'Mortes automáticas - {mortes_bezerras} bezerras (9% anual = 0.75% mensal) - Estoque disponível: {bezerras}'
+                        )
+                        mortes.append({'categoria': cat_bezerra.nome, 'quantidade': mortes_bezerras})
         
         # 2. Mortes de adultos acima de 12 meses (2% ANUAL = 0.167% mensal)
         # Taxa anual de 2% = 0.167% mensal (2% / 12)
@@ -418,9 +482,11 @@ class Command(BaseCommand):
         
         for cat in categorias_adultos:
             if cat:
-                quantidade = saldos.get(cat.nome, 0)
-                if quantidade > 0:
-                    mortes_adultos = int(quantidade * taxa_morte_adultos_mensal)
+                estoque = saldos.get(cat.nome, 0)
+                if estoque > 0:
+                    mortes_adultos_calc = int(estoque * taxa_morte_adultos_mensal)
+                    # CRÍTICO: Verificar se há estoque suficiente - NUNCA deixar negativo
+                    mortes_adultos = min(mortes_adultos_calc, estoque)
                     if mortes_adultos > 0:
                         MovimentacaoProjetada.objects.create(
                             propriedade=propriedade,
@@ -428,7 +494,7 @@ class Command(BaseCommand):
                             data_movimentacao=data,
                             tipo_movimentacao='MORTE',
                             quantidade=mortes_adultos,
-                            observacao=f'Mortes automáticas - {mortes_adultos} adultos (2% anual = 0.167% mensal dos adultos acima de 12 meses)'
+                            observacao=f'Mortes automáticas - {mortes_adultos} adultos (2% anual = 0.167% mensal) - Estoque disponível: {estoque}'
                         )
                         mortes.append({'categoria': cat.nome, 'quantidade': mortes_adultos})
         
@@ -569,7 +635,7 @@ class Command(BaseCommand):
         return evolucoes
 
     def _processar_vendas(self, propriedade, data, saldos, categorias, ano, nascimentos_ano):
-        """Processa vendas: 20% dos nascimentos do ANO, 20% das nulíparas"""
+        """Processa vendas: 20% dos nascimentos do ANO, 20% das nulíparas - SEMPRE verifica estoque"""
         vendas = []
         
         # 1. Vendas de 20% dos nascimentos do ANO (distribuído ao longo do ano após nascimentos)
@@ -594,12 +660,12 @@ class Command(BaseCommand):
                 if cat_bezerro and nascimentos_ano.get(cat_bezerro.nome, 0) > 0:
                     bezerros_nascidos = nascimentos_ano.get(cat_bezerro.nome, 0)
                     proporcao_bezerros = Decimal(str(bezerros_nascidos)) / Decimal(str(total_nascimentos_ano)) if total_nascimentos_ano > 0 else Decimal('0.50')
-                    vendas_bezerros = int(vendas_mes * proporcao_bezerros)
+                    vendas_bezerros_calc = int(vendas_mes * proporcao_bezerros)
                     
-                    if vendas_bezerros > 0:
-                        # Verificar se há estoque suficiente
+                    if vendas_bezerros_calc > 0:
+                        # CRÍTICO: Verificar se há estoque suficiente - NUNCA deixar negativo
                         estoque_bezerros = saldos.get(cat_bezerro.nome, 0)
-                        vendas_bezerros = min(vendas_bezerros, estoque_bezerros)
+                        vendas_bezerros = min(vendas_bezerros_calc, estoque_bezerros)
                         
                         if vendas_bezerros > 0:
                             self._criar_venda(
@@ -610,19 +676,19 @@ class Command(BaseCommand):
                                 cliente_nome='Cliente',
                                 valor_por_kg=Decimal('8.00'),
                                 peso_medio_kg=Decimal('200.00'),
-                                observacao='Venda de 20% dos nascimentos do ano (bezerros)'
+                                observacao=f'Venda de 20% dos nascimentos do ano (bezerros) - Estoque disponível: {estoque_bezerros}'
                             )
                             vendas.append({'categoria': cat_bezerro.nome, 'quantidade': vendas_bezerros})
                 
                 if cat_bezerra and nascimentos_ano.get(cat_bezerra.nome, 0) > 0:
                     bezerras_nascidas = nascimentos_ano.get(cat_bezerra.nome, 0)
                     proporcao_bezerras = Decimal(str(bezerras_nascidas)) / Decimal(str(total_nascimentos_ano)) if total_nascimentos_ano > 0 else Decimal('0.50')
-                    vendas_bezerras = int(vendas_mes * proporcao_bezerras)
+                    vendas_bezerras_calc = int(vendas_mes * proporcao_bezerras)
                     
-                    if vendas_bezerras > 0:
-                        # Verificar se há estoque suficiente
+                    if vendas_bezerras_calc > 0:
+                        # CRÍTICO: Verificar se há estoque suficiente - NUNCA deixar negativo
                         estoque_bezerras = saldos.get(cat_bezerra.nome, 0)
-                        vendas_bezerras = min(vendas_bezerras, estoque_bezerras)
+                        vendas_bezerras = min(vendas_bezerras_calc, estoque_bezerras)
                         
                         if vendas_bezerras > 0:
                             self._criar_venda(
@@ -633,16 +699,19 @@ class Command(BaseCommand):
                                 cliente_nome='Cliente',
                                 valor_por_kg=Decimal('8.00'),
                                 peso_medio_kg=Decimal('200.00'),
-                                observacao='Venda de 20% dos nascimentos do ano (bezerras)'
+                                observacao=f'Venda de 20% dos nascimentos do ano (bezerras) - Estoque disponível: {estoque_bezerras}'
                             )
                             vendas.append({'categoria': cat_bezerra.nome, 'quantidade': vendas_bezerras})
         
         # 2. Vendas de 20% das nulíparas (descarte) - apenas em julho
         cat_nulipara = categorias.get('nulipara')
         if cat_nulipara and data.month == 7:
-            nuliparas = saldos.get(cat_nulipara.nome, 0)
-            if nuliparas > 0:
-                vendas_nuliparas = int(nuliparas * Decimal('0.20'))
+            estoque_nuliparas = saldos.get(cat_nulipara.nome, 0)
+            if estoque_nuliparas > 0:
+                vendas_nuliparas_calc = int(estoque_nuliparas * Decimal('0.20'))
+                # CRÍTICO: Verificar se há estoque suficiente - NUNCA deixar negativo
+                vendas_nuliparas = min(vendas_nuliparas_calc, estoque_nuliparas)
+                
                 if vendas_nuliparas > 0:
                     self._criar_venda(
                         propriedade=propriedade,
@@ -652,7 +721,7 @@ class Command(BaseCommand):
                         cliente_nome='Cliente',
                         valor_por_kg=Decimal('7.00'),
                         peso_medio_kg=Decimal('350.00'),
-                        observacao='Venda de 20% das nulíparas (descarte)'
+                        observacao=f'Venda de 20% das nulíparas (descarte) - Estoque disponível: {estoque_nuliparas}'
                     )
                     vendas.append({'categoria': cat_nulipara.nome, 'quantidade': vendas_nuliparas})
         
@@ -660,7 +729,7 @@ class Command(BaseCommand):
 
     def _processar_transferencias(self, propriedade, data, saldos, categorias, ano,
                                    invernada_grande, favo_mel, girassol):
-        """Processa transferências: 20% das vacas em reprodução → descarte → transferir"""
+        """Processa transferências: 20% das vacas em reprodução → descarte → transferir - SEMPRE verifica estoque"""
         transferencias = []
         
         cat_vaca_reproducao = categorias.get('vaca_reproducao')
@@ -669,12 +738,15 @@ class Command(BaseCommand):
         if not cat_vaca_reproducao:
             return transferencias
         
-        vacas_reproducao = saldos.get(cat_vaca_reproducao.nome, 0)
-        if vacas_reproducao == 0:
+        estoque_vacas_reproducao = saldos.get(cat_vaca_reproducao.nome, 0)
+        if estoque_vacas_reproducao == 0:
             return transferencias
         
         # Descarte: 20% das vacas em reprodução
-        descarte_quantidade = int(vacas_reproducao * Decimal('0.20'))
+        descarte_quantidade_calc = int(estoque_vacas_reproducao * Decimal('0.20'))
+        # CRÍTICO: Verificar se há estoque suficiente - NUNCA deixar negativo
+        descarte_quantidade = min(descarte_quantidade_calc, estoque_vacas_reproducao)
+        
         if descarte_quantidade == 0:
             return transferencias
         
@@ -685,7 +757,7 @@ class Command(BaseCommand):
             data_movimentacao=data,
             tipo_movimentacao='PROMOCAO_SAIDA',
             quantidade=descarte_quantidade,
-            observacao=f'Descarte de 20% das vacas em reprodução'
+            observacao=f'Descarte de 20% das vacas em reprodução - Estoque disponível: {estoque_vacas_reproducao}'
         )
         
         if cat_vaca_descarte:
@@ -695,32 +767,36 @@ class Command(BaseCommand):
                 data_movimentacao=data,
                 tipo_movimentacao='PROMOCAO_ENTRADA',
                 quantidade=descarte_quantidade,
-                observacao=f'Descarte de 20% das vacas em reprodução'
+                observacao=f'Descarte de 20% das vacas em reprodução - Estoque disponível: {estoque_vacas_reproducao}'
             )
         
+        # Verificar estoque de descarte antes de transferir
+        estoque_descarte = saldos.get(cat_vaca_descarte.nome if cat_vaca_descarte else cat_vaca_reproducao.nome, 0)
+        quantidade_transferir_descarte = min(descarte_quantidade, estoque_descarte)
+        
         # Transferir para destino conforme o ano
-        if ano <= 2023 and invernada_grande:
+        if ano <= 2023 and invernada_grande and quantidade_transferir_descarte > 0:
             # Transferir para Invernada Grande
             self._criar_transferencia(
                 origem=propriedade,
                 destino=invernada_grande,
                 categoria=cat_vaca_descarte or cat_vaca_reproducao,
-                quantidade=descarte_quantidade,
+                quantidade=quantidade_transferir_descarte,
                 data=data,
-                observacao='Transferência de vacas de descarte para engorda'
+                observacao=f'Transferência de vacas de descarte para engorda - Estoque disponível: {estoque_descarte}'
             )
-            transferencias.append({'categoria': cat_vaca_descarte.nome if cat_vaca_descarte else cat_vaca_reproducao.nome, 'quantidade': descarte_quantidade})
-        elif ano >= 2024 and favo_mel:
+            transferencias.append({'categoria': cat_vaca_descarte.nome if cat_vaca_descarte else cat_vaca_reproducao.nome, 'quantidade': quantidade_transferir_descarte})
+        elif ano >= 2024 and favo_mel and quantidade_transferir_descarte > 0:
             # Transferir para Favo de Mel
             self._criar_transferencia(
                 origem=propriedade,
                 destino=favo_mel,
                 categoria=cat_vaca_descarte or cat_vaca_reproducao,
-                quantidade=descarte_quantidade,
+                quantidade=quantidade_transferir_descarte,
                 data=data,
-                observacao='Transferência de vacas de descarte para recria'
+                observacao=f'Transferência de vacas de descarte para recria - Estoque disponível: {estoque_descarte}'
             )
-            transferencias.append({'categoria': cat_vaca_descarte.nome if cat_vaca_descarte else cat_vaca_reproducao.nome, 'quantidade': descarte_quantidade})
+            transferencias.append({'categoria': cat_vaca_descarte.nome if cat_vaca_descarte else cat_vaca_reproducao.nome, 'quantidade': quantidade_transferir_descarte})
         
         # Transferir machos 12-24 para Favo de Mel
         # IMPORTANTE: Transferir apenas os que foram gerados no ano anterior (que evoluíram de bezerros)
@@ -735,7 +811,7 @@ class Command(BaseCommand):
             ).aggregate(total=Sum('quantidade'))['total'] or 0
             
             if machos_gerados_ano_anterior > 0:
-                # Verificar estoque disponível
+                # CRÍTICO: Verificar estoque disponível - NUNCA deixar negativo
                 estoque_machos = saldos.get(cat_macho_12_24.nome, 0)
                 quantidade_transferir = min(machos_gerados_ano_anterior, estoque_machos)
                 
@@ -746,7 +822,7 @@ class Command(BaseCommand):
                         categoria=cat_macho_12_24,
                         quantidade=quantidade_transferir,
                         data=data,
-                        observacao=f'Transferência de machos 12-24 para recria (gerados em {ano-1})'
+                        observacao=f'Transferência de machos 12-24 para recria (gerados em {ano-1}) - Estoque disponível: {estoque_machos}'
                     )
                     transferencias.append({'categoria': cat_macho_12_24.nome, 'quantidade': quantidade_transferir})
         
@@ -777,8 +853,8 @@ class Command(BaseCommand):
                 observacao='Venda de vacas gordas para JBS (lote de 60)'
             )
 
-    def _processar_favo_mel(self, propriedade, data, categorias, ano):
-        """Processa transferências e vendas no Favo de Mel"""
+    def _processar_favo_mel(self, propriedade, data, categorias, ano, saldos):
+        """Processa transferências e vendas no Favo de Mel - SEMPRE verifica estoque"""
         if ano < 2024:
             return
         
@@ -789,32 +865,42 @@ class Command(BaseCommand):
         if cat_macho_12_24 and girassol:
             # Verificar se é mês de transferência (a cada 3 meses, começando em abril)
             if data.month in [4, 7, 10] and data.day == 15:
-                self._criar_transferencia(
-                    origem=propriedade,
-                    destino=girassol,
-                    categoria=cat_macho_12_24,
-                    quantidade=300,
-                    data=data,
-                    observacao='Transferência de machos 12-24 para engorda em Girassol (lote de 300)'
-                )
+                # CRÍTICO: Verificar estoque disponível - NUNCA deixar negativo
+                estoque_machos = saldos.get(cat_macho_12_24.nome, 0)
+                quantidade_transferir = min(300, estoque_machos)
+                
+                if quantidade_transferir > 0:
+                    self._criar_transferencia(
+                        origem=propriedade,
+                        destino=girassol,
+                        categoria=cat_macho_12_24,
+                        quantidade=quantidade_transferir,
+                        data=data,
+                        observacao=f'Transferência de machos 12-24 para engorda em Girassol (lote de {quantidade_transferir}) - Estoque disponível: {estoque_machos}'
+                    )
         
         # Vender vacas gordas a cada 3 meses (lotes de 100)
         cat_vaca_gorda = categorias.get('vaca_gorda')
         if cat_vaca_gorda:
             if data.month in [4, 7, 10] and data.day == 15:
-                self._criar_venda(
-                    propriedade=propriedade,
-                    categoria=cat_vaca_gorda,
-                    quantidade=100,
-                    data_venda=data,
-                    cliente_nome='Frigorífico',
-                    valor_por_kg=Decimal('6.50'),
-                    peso_medio_kg=Decimal('450.00'),
-                    observacao='Venda de vacas gordas após 3 meses (lote de 100)'
-                )
+                # CRÍTICO: Verificar estoque disponível - NUNCA deixar negativo
+                estoque_vacas_gordas = saldos.get(cat_vaca_gorda.nome, 0)
+                quantidade_venda = min(100, estoque_vacas_gordas)
+                
+                if quantidade_venda > 0:
+                    self._criar_venda(
+                        propriedade=propriedade,
+                        categoria=cat_vaca_gorda,
+                        quantidade=quantidade_venda,
+                        data_venda=data,
+                        cliente_nome='Frigorífico',
+                        valor_por_kg=Decimal('6.50'),
+                        peso_medio_kg=Decimal('450.00'),
+                        observacao=f'Venda de vacas gordas após 3 meses (lote de {quantidade_venda}) - Estoque disponível: {estoque_vacas_gordas}'
+                    )
 
-    def _processar_girassol(self, propriedade, data, categorias, ano):
-        """Processa engorda e vendas no Girassol: vender a cada 90 dias"""
+    def _processar_girassol(self, propriedade, data, categorias, ano, saldos):
+        """Processa engorda e vendas no Girassol: vender a cada 90 dias - SEMPRE verifica estoque"""
         cat_macho_12_24 = categorias.get('macho_12_24')
         cat_boi_gordo = categorias.get('boi_gordo_24_36')
         
@@ -828,16 +914,57 @@ class Command(BaseCommand):
         # Verificar se é data de venda (a cada 90 dias aproximadamente)
         # Simplificado: vender em meses específicos após receber transferências
         if data.month in [7, 10] and data.day == 15:  # Aproximadamente 90 dias após abril e julho
-            self._criar_venda(
-                propriedade=propriedade,
-                categoria=cat_boi_gordo,
-                quantidade=300,
-                data_venda=data,
-                cliente_nome='Frigorífico',
-                valor_por_kg=Decimal('7.00'),
-                peso_medio_kg=Decimal('500.00'),
-                observacao='Venda de gado gordo após 90 dias de engorda (lote de 300)'
-            )
+            # CRÍTICO: Verificar estoque disponível - NUNCA deixar negativo
+            # Primeiro verificar se há bois gordos, senão verificar machos 12-24
+            estoque_bois_gordos = saldos.get(cat_boi_gordo.nome, 0)
+            estoque_machos = saldos.get(cat_macho_12_24.nome, 0)
+            
+            # Se houver bois gordos, vender eles. Senão, verificar se pode evoluir machos
+            if estoque_bois_gordos > 0:
+                quantidade_venda = min(300, estoque_bois_gordos)
+                if quantidade_venda > 0:
+                    self._criar_venda(
+                        propriedade=propriedade,
+                        categoria=cat_boi_gordo,
+                        quantidade=quantidade_venda,
+                        data_venda=data,
+                        cliente_nome='Frigorífico',
+                        valor_por_kg=Decimal('7.00'),
+                        peso_medio_kg=Decimal('500.00'),
+                        observacao=f'Venda de gado gordo após 90 dias de engorda (lote de {quantidade_venda}) - Estoque disponível: {estoque_bois_gordos}'
+                    )
+            elif estoque_machos >= 300:
+                # Evoluir machos para bois gordos e vender
+                quantidade_evoluir = min(300, estoque_machos)
+                if quantidade_evoluir > 0:
+                    # Criar evolução
+                    MovimentacaoProjetada.objects.create(
+                        propriedade=propriedade,
+                        categoria=cat_macho_12_24,
+                        data_movimentacao=data,
+                        tipo_movimentacao='PROMOCAO_SAIDA',
+                        quantidade=quantidade_evoluir,
+                        observacao=f'Evolução: Machos 12-24 → Bois Gordos 24-36 (após 90 dias)'
+                    )
+                    MovimentacaoProjetada.objects.create(
+                        propriedade=propriedade,
+                        categoria=cat_boi_gordo,
+                        data_movimentacao=data,
+                        tipo_movimentacao='PROMOCAO_ENTRADA',
+                        quantidade=quantidade_evoluir,
+                        observacao=f'Evolução: Machos 12-24 → Bois Gordos 24-36 (após 90 dias)'
+                    )
+                    # Vender imediatamente
+                    self._criar_venda(
+                        propriedade=propriedade,
+                        categoria=cat_boi_gordo,
+                        quantidade=quantidade_evoluir,
+                        data_venda=data,
+                        cliente_nome='Frigorífico',
+                        valor_por_kg=Decimal('7.00'),
+                        peso_medio_kg=Decimal('500.00'),
+                        observacao=f'Venda de gado gordo após 90 dias de engorda (lote de {quantidade_evoluir}) - Estoque disponível: {estoque_machos}'
+                    )
 
     def _criar_transferencia(self, origem, destino, categoria, quantidade, data, observacao=''):
         """Cria movimentações de transferência"""
