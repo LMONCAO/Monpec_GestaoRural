@@ -39,3 +39,4 @@ echo - Descricoes = detalhes do que foi vendido (categoria, quantidade, cliente)
 echo.
 pause
 
+

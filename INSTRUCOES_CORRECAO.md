@@ -85,3 +85,4 @@ Este script mostra:
 - Processos Python rodando
 - Porta 8000 em uso
 
+

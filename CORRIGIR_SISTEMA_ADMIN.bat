@@ -87,3 +87,4 @@ echo O servidor sera iniciado automaticamente no proximo login.
 echo.
 pause
 
+

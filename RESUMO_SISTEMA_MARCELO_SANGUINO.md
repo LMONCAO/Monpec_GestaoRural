@@ -94,3 +94,4 @@
 - Corrigido cálculo de despesas operacionais detalhadas
 - Ajustado filtro de propriedades para usar `produtor` ao invés de `prodriedade`
 
+
