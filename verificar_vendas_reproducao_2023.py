@@ -63,3 +63,4 @@ print(f"\nTotal promovido para descarte em 2023: {total_promocoes}")
 
 
 
+

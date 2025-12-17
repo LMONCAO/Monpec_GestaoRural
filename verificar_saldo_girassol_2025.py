@@ -56,3 +56,4 @@ print(f'\nInventario 2026: {inventario_2026.quantidade if inventario_2026 else "
 
 
 
+

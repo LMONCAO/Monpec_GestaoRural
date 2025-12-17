@@ -162,3 +162,4 @@ A regra está ativa e será aplicada automaticamente quando houver vendas de bez
 
 
 
+

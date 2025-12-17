@@ -254,3 +254,4 @@ Altere para:
 4. **Espaçamentos** (vários locais, procure por `padding` e `margin`)
 5. **Tamanhos de fonte** (procure por `font-size`)
 
+

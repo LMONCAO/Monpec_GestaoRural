@@ -14,3 +14,4 @@ class Migration(migrations.Migration):
         # Esta migração não realiza alterações no banco de dados
     ]
 
+
