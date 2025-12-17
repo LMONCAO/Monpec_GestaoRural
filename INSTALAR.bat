@@ -1,124 +1,125 @@
 @echo off
 chcp 65001 >nul
-echo ==========================================
-echo INSTALADOR MONPEC GESTAO RURAL
-echo ==========================================
+title MONPEC - INSTALADOR WINDOWS
+color 0A
+
+echo ========================================
+echo   MONPEC - INSTALADOR WINDOWS
+echo   Sistema de Gestão Rural
+echo ========================================
 echo.
 
-REM Verificar se Python está instalado
-python --version >nul 2>&1
-if errorlevel 1 (
-    echo [ERRO] Python nao encontrado!
-    echo Por favor, instale Python 3.8 ou superior.
-    echo Download: https://www.python.org/downloads/
-    pause
-    exit /b 1
-)
-
-echo [OK] Python encontrado
-python --version
+cd /d "%~dp0"
+echo [INFO] Diretório: %CD%
 echo.
 
-REM Criar ambiente virtual (opcional, mas recomendado)
-if not exist "venv" (
-    echo [INFO] Criando ambiente virtual...
-    python -m venv venv
+REM ========================================
+REM VERIFICAR PYTHON
+REM ========================================
+echo [1/6] Verificando Python...
+if exist "python311\python.exe" (
+    set PYTHON_CMD=python311\python.exe
+    echo [OK] Python local encontrado
+) else (
+    python --version >nul 2>&1
     if errorlevel 1 (
-        echo [AVISO] Nao foi possivel criar ambiente virtual. Continuando sem ele...
-    ) else (
-        echo [OK] Ambiente virtual criado
-        echo [INFO] Ativando ambiente virtual...
-        call venv\Scripts\activate.bat
+        echo [ERRO] Python não encontrado!
+        echo.
+        echo Por favor, instale o Python 3.11 ou superior
+        echo Ou coloque o Python portátil na pasta python311
+        pause
+        exit /b 1
     )
+    set PYTHON_CMD=python
+    echo [OK] Python do sistema encontrado
+)
+
+%PYTHON_CMD% --version
+echo.
+
+REM ========================================
+REM INSTALAR DEPENDÊNCIAS
+REM ========================================
+echo [2/6] Instalando dependências...
+if exist "requirements.txt" (
+    %PYTHON_CMD% -m pip install --upgrade pip --quiet
+    %PYTHON_CMD% -m pip install -r requirements.txt --quiet
+    if errorlevel 1 (
+        echo [ERRO] Falha ao instalar dependências!
+        pause
+        exit /b 1
+    )
+    echo [OK] Dependências instaladas
 ) else (
-    echo [INFO] Ambiente virtual ja existe. Ativando...
-    call venv\Scripts\activate.bat
+    echo [AVISO] Arquivo requirements.txt não encontrado
 )
 echo.
 
-REM Atualizar pip
-echo [INFO] Atualizando pip...
-python -m pip install --upgrade pip
+REM ========================================
+REM VERIFICAR BANCO DE DADOS
+REM ========================================
+echo [3/6] Verificando banco de dados...
+if not exist "db.sqlite3" (
+    echo [INFO] Banco de dados não encontrado, será criado nas migrações
+) else (
+    echo [OK] Banco de dados encontrado
+)
 echo.
 
-REM Instalar dependências
-echo [INFO] Instalando dependencias do projeto...
-pip install -r requirements.txt
+REM ========================================
+REM EXECUTAR MIGRAÇÕES
+REM ========================================
+echo [4/6] Executando migrações...
+%PYTHON_CMD% manage.py migrate --noinput
 if errorlevel 1 (
-    echo [ERRO] Falha ao instalar dependencias!
+    echo [ERRO] Falha ao executar migrações!
     pause
     exit /b 1
 )
-echo [OK] Dependencias instaladas
+echo [OK] Migrações aplicadas
 echo.
 
-REM Verificar se arquivo .env existe
-if not exist ".env" (
-    echo [INFO] Arquivo .env nao encontrado. Criando arquivo de exemplo...
-    (
-        echo # Configuracoes do Sistema
-        echo DEBUG=True
-        echo SECRET_KEY=django-insecure-change-in-production
-        echo ALLOWED_HOSTS=127.0.0.1,localhost
-        echo.
-        echo # Banco de Dados - SQLite ^(padrao para desenvolvimento^)
-        echo DB_ENGINE=sqlite3
-        echo.
-        echo # Para usar PostgreSQL, descomente e configure:
-        echo # DB_ENGINE=postgresql
-        echo # DB_NAME=sistema_rural
-        echo # DB_USER=django_user
-        echo # DB_PASSWORD=sua_senha
-        echo # DB_HOST=localhost
-        echo # DB_PORT=5432
-    ) > .env
-    echo [OK] Arquivo .env criado. Configure conforme necessario.
-) else (
-    echo [OK] Arquivo .env ja existe
-)
-echo.
-
-REM Verificar se banco de dados existe
-if exist "db.sqlite3" (
-    echo [INFO] Banco de dados SQLite encontrado
-) else (
-    echo [INFO] Banco de dados nao encontrado. Criando...
-)
-
-REM Executar migrações
-echo [INFO] Executando migracoes do banco de dados...
-python manage.py migrate
+REM ========================================
+REM COLETAR ARQUIVOS ESTÁTICOS
+REM ========================================
+echo [5/6] Coletando arquivos estáticos...
+%PYTHON_CMD% manage.py collectstatic --noinput --clear
 if errorlevel 1 (
-    echo [ERRO] Falha ao executar migracoes!
-    pause
-    exit /b 1
-)
-echo [OK] Migracoes executadas
-echo.
-
-REM Coletar arquivos estáticos
-echo [INFO] Coletando arquivos estaticos...
-python manage.py collectstatic --noinput
-if errorlevel 1 (
-    echo [AVISO] Nao foi possivel coletar arquivos estaticos. Continuando...
+    echo [AVISO] Falha ao coletar arquivos estáticos (pode ser normal)
+) else (
+    echo [OK] Arquivos estáticos coletados
 )
 echo.
 
-REM Criar superusuário (se não existir)
-echo [INFO] Verificando se existe superusuario...
-python manage.py shell -c "from django.contrib.auth import get_user_model; User = get_user_model(); print('Superusuario existe' if User.objects.filter(is_superuser=True).exists() else 'Nenhum superusuario encontrado')" 2>nul
+REM ========================================
+REM CRIAR SUPERUSUÁRIO
+REM ========================================
+echo [6/6] Verificando superusuário...
+%PYTHON_CMD% -c "import os, django; os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'sistema_rural.settings'); django.setup(); from django.contrib.auth.models import User; u, created = User.objects.get_or_create(username='admin', defaults={'email': 'admin@monpec.com.br', 'is_staff': True, 'is_superuser': True}); u.set_password('admin'); u.save(); print('[OK] Superusuário admin criado/atualizado' if created else '[OK] Superusuário admin já existe')"
 echo.
 
-echo ==========================================
-echo INSTALACAO CONCLUIDA!
-echo ==========================================
+REM ========================================
+REM CONFIGURAR BANCO MARCELO SANGUINO
+REM ========================================
+echo [EXTRA] Configurando banco Marcelo Sanguino...
+if exist "configurar_banco_marcelo_sanguino.py" (
+    %PYTHON_CMD% configurar_banco_marcelo_sanguino.py
+    echo [OK] Banco configurado
+) else (
+    echo [AVISO] Script de configuração não encontrado
+)
 echo.
-echo Para iniciar o servidor, execute:
-echo   INICIAR.bat
+
+echo ========================================
+echo   INSTALAÇÃO CONCLUÍDA!
+echo ========================================
 echo.
-echo Ou manualmente:
-echo   python manage.py runserver
+echo Próximos passos:
+echo 1. Execute INICIAR.bat para iniciar o servidor
+echo 2. Acesse http://localhost:8000 no navegador
+echo 3. Login: admin / Senha: admin
 echo.
+echo ========================================
 pause
 
 

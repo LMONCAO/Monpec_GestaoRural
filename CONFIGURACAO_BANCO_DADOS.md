@@ -1,177 +1,264 @@
-# Configuração do Banco de Dados para Múltiplas Máquinas
+# Configuração de Banco de Dados - MONPEC
 
-## Problema
-O sistema estava usando SQLite (banco local), o que impede o uso em múltiplas máquinas.
+Este guia explica como configurar o banco de dados, incluindo banco remoto.
 
-## Solução
-O sistema agora suporta três tipos de banco de dados configuráveis via variáveis de ambiente:
+## 🗄️ Banco de Dados Padrão (SQLite)
 
-1. **SQLite** (padrão - desenvolvimento local)
-2. **PostgreSQL** (recomendado para produção/múltiplas máquinas)
-3. **MySQL** (alternativa)
+O sistema usa SQLite por padrão, que é um banco de dados embutido.
 
-## Como Configurar
+### Localização
 
-### Opção 1: SQLite (Desenvolvimento Local)
-Não precisa fazer nada! O sistema usa SQLite por padrão.
+- **Arquivo**: `db.sqlite3`
+- **Localização**: Raiz do projeto
 
-### Opção 2: PostgreSQL (Recomendado para Produção)
+### Vantagens
 
-1. **Instale o PostgreSQL** na máquina servidor:
-   ```bash
-   # Windows (usando Chocolatey)
-   choco install postgresql
-   
-   # Linux (Ubuntu/Debian)
-   sudo apt-get install postgresql postgresql-contrib
-   ```
+- Não requer instalação adicional
+- Fácil backup (apenas copiar o arquivo)
+- Ideal para desenvolvimento e uso local
 
-2. **Crie o banco de dados**:
-   ```sql
-   CREATE DATABASE sistema_rural;
-   CREATE USER django_user WITH PASSWORD 'sua_senha_segura';
-   GRANT ALL PRIVILEGES ON DATABASE sistema_rural TO django_user;
-   ```
+### Desvantagens
 
-3. **Crie o arquivo `.env`** na raiz do projeto:
-   ```env
-   DEBUG=True
-   SECRET_KEY=sua-chave-secreta-aqui
-   ALLOWED_HOSTS=127.0.0.1,localhost,seu-ip-aqui
-   
-   DB_ENGINE=postgresql
-   DB_NAME=sistema_rural
-   DB_USER=django_user
-   DB_PASSWORD=sua_senha_segura
-   DB_HOST=localhost
-   DB_PORT=5432
-   ```
+- Não suporta múltiplos usuários simultâneos
+- Limitado para grandes volumes de dados
 
-4. **Instale as dependências**:
-   ```bash
-   pip install -r requirements.txt
-   ```
+## 🔧 Configuração de Banco Remoto (PostgreSQL/MySQL)
 
-5. **Execute as migrações**:
-   ```bash
-   python manage.py migrate
-   ```
+Para produção ou uso com múltiplos usuários, recomenda-se PostgreSQL ou MySQL.
 
-### Opção 3: MySQL
+### PostgreSQL
 
-1. **Instale o MySQL** na máquina servidor
+#### 1. Instalar PostgreSQL
 
-2. **Crie o banco de dados**:
-   ```sql
-   CREATE DATABASE sistema_rural CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-   CREATE USER 'django_user'@'localhost' IDENTIFIED BY 'sua_senha_segura';
-   GRANT ALL PRIVILEGES ON sistema_rural.* TO 'django_user'@'localhost';
-   FLUSH PRIVILEGES;
-   ```
+**Windows:**
+- Baixe do site oficial: https://www.postgresql.org/download/windows/
 
-3. **Crie o arquivo `.env`**:
-   ```env
-   DB_ENGINE=mysql
-   DB_NAME=sistema_rural
-   DB_USER=django_user
-   DB_PASSWORD=sua_senha_segura
-   DB_HOST=localhost
-   DB_PORT=3306
-   ```
-
-4. **Instale as dependências**:
-   ```bash
-   pip install mysqlclient
-   pip install -r requirements.txt
-   ```
-
-## Usando em Múltiplas Máquinas
-
-### Cenário 1: Banco de Dados na Nuvem
-Use um serviço como:
-- **AWS RDS** (PostgreSQL/MySQL)
-- **Google Cloud SQL**
-- **Azure Database**
-- **ElephantSQL** (PostgreSQL gratuito)
-
-Configure o `.env` com as credenciais do serviço:
-```env
-DB_ENGINE=postgresql
-DB_NAME=seu_banco
-DB_USER=seu_usuario
-DB_PASSWORD=sua_senha
-DB_HOST=seu-host.rds.amazonaws.com
-DB_PORT=5432
-```
-
-### Cenário 2: Servidor Dedicado
-1. Instale PostgreSQL/MySQL em um servidor
-2. Configure firewall para permitir conexões
-3. Em cada máquina cliente, configure o `.env` apontando para o servidor:
-```env
-DB_HOST=192.168.1.100  # IP do servidor
-DB_PORT=5432
-```
-
-## Migração de Dados
-
-Se você já tem dados no SQLite e quer migrar para PostgreSQL:
-
-1. **Exporte os dados do SQLite**:
-   ```bash
-   python manage.py dumpdata > backup.json
-   ```
-
-2. **Configure o PostgreSQL** no `.env`
-
-3. **Crie as tabelas no PostgreSQL**:
-   ```bash
-   python manage.py migrate
-   ```
-
-4. **Importe os dados**:
-   ```bash
-   python manage.py loaddata backup.json
-   ```
-
-## Segurança
-
-⚠️ **IMPORTANTE**:
-- **NUNCA** commite o arquivo `.env` no Git
-- Use senhas fortes para o banco de dados
-- Em produção, use SSL/TLS para conexões com o banco
-- Configure firewall adequadamente
-
-## Arquivo .env de Exemplo
-
-Crie um arquivo `.env` na raiz do projeto com este conteúdo:
-
-```env
-# Desenvolvimento
-DEBUG=True
-SECRET_KEY=django-insecure-change-in-production
-ALLOWED_HOSTS=127.0.0.1,localhost
-
-# Banco de dados (SQLite - padrão)
-DB_ENGINE=sqlite3
-
-# Para PostgreSQL, descomente e configure:
-# DB_ENGINE=postgresql
-# DB_NAME=sistema_rural
-# DB_USER=django_user
-# DB_PASSWORD=sua_senha
-# DB_HOST=localhost
-# DB_PORT=5432
-```
-
-## Verificação
-
-Para verificar se está funcionando:
+**Linux:**
 ```bash
-python manage.py dbshell
+sudo apt-get install postgresql postgresql-contrib
 ```
 
-Se conectar ao banco, está tudo OK!
+**Mac:**
+```bash
+brew install postgresql
+```
+
+#### 2. Criar Banco de Dados
+
+```sql
+CREATE DATABASE monpec_db;
+CREATE USER monpec_user WITH PASSWORD 'sua_senha';
+GRANT ALL PRIVILEGES ON DATABASE monpec_db TO monpec_user;
+```
+
+#### 3. Configurar Django
+
+Edite `sistema_rural/settings.py`:
+
+```python
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'monpec_db',
+        'USER': 'monpec_user',
+        'PASSWORD': 'sua_senha',
+        'HOST': 'localhost',
+        'PORT': '5432',
+    }
+}
+```
+
+#### 4. Instalar Driver
+
+```bash
+pip install psycopg2-binary
+```
+
+### MySQL
+
+#### 1. Instalar MySQL
+
+**Windows:**
+- Baixe do site oficial: https://dev.mysql.com/downloads/installer/
+
+**Linux:**
+```bash
+sudo apt-get install mysql-server
+```
+
+**Mac:**
+```bash
+brew install mysql
+```
+
+#### 2. Criar Banco de Dados
+
+```sql
+CREATE DATABASE monpec_db;
+CREATE USER 'monpec_user'@'localhost' IDENTIFIED BY 'sua_senha';
+GRANT ALL PRIVILEGES ON monpec_db.* TO 'monpec_user'@'localhost';
+FLUSH PRIVILEGES;
+```
+
+#### 3. Configurar Django
+
+Edite `sistema_rural/settings.py`:
+
+```python
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'monpec_db',
+        'USER': 'monpec_user',
+        'PASSWORD': 'sua_senha',
+        'HOST': 'localhost',
+        'PORT': '3306',
+    }
+}
+```
+
+#### 4. Instalar Driver
+
+```bash
+pip install mysqlclient
+```
+
+## 🔄 Migrar de SQLite para Banco Remoto
+
+### 1. Fazer Backup do SQLite
+
+```batch
+EXPORTAR_DADOS.bat
+```
+
+### 2. Configurar Novo Banco
+
+Configure o banco remoto conforme instruções acima.
+
+### 3. Aplicar Migrações
+
+```batch
+python manage.py migrate
+```
+
+### 4. Importar Dados (Opcional)
+
+Se você exportou dados em JSON:
+
+```batch
+python manage.py loaddata dados_exportados.json
+```
+
+## 💾 Backup e Restauração
+
+### Backup Automático
+
+**Windows:**
+```batch
+EXPORTAR_DADOS.bat
+```
+
+**Linux/Mac:**
+```bash
+./EXPORTAR_DADOS.sh
+```
+
+### Backup Manual
+
+#### SQLite
+
+```batch
+copy db.sqlite3 backup_db_%date%.sqlite3
+```
+
+#### PostgreSQL
+
+```bash
+pg_dump -U monpec_user monpec_db > backup.sql
+```
+
+#### MySQL
+
+```bash
+mysqldump -u monpec_user -p monpec_db > backup.sql
+```
+
+### Restauração
+
+#### SQLite
+
+```batch
+copy backup_db.sqlite3 db.sqlite3
+```
+
+#### PostgreSQL
+
+```bash
+psql -U monpec_user monpec_db < backup.sql
+```
+
+#### MySQL
+
+```bash
+mysql -u monpec_user -p monpec_db < backup.sql
+```
+
+## 🔐 Segurança
+
+### Boas Práticas
+
+1. **Use senhas fortes** para o banco de dados
+2. **Limite acesso** apenas ao necessário
+3. **Faça backups regulares**
+4. **Use SSL/TLS** para conexões remotas
+5. **Mantenha o banco atualizado**
+
+### Variáveis de Ambiente
+
+Para maior segurança, use variáveis de ambiente:
+
+```python
+import os
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.environ.get('DB_NAME'),
+        'USER': os.environ.get('DB_USER'),
+        'PASSWORD': os.environ.get('DB_PASSWORD'),
+        'HOST': os.environ.get('DB_HOST', 'localhost'),
+        'PORT': os.environ.get('DB_PORT', '5432'),
+    }
+}
+```
+
+## 🐛 Solução de Problemas
+
+### Erro: Não é possível conectar ao banco
+
+**Soluções:**
+- Verifique se o servidor está rodando
+- Confirme usuário e senha
+- Verifique firewall e permissões
+
+### Erro: Tabela não existe
+
+**Solução:**
+```batch
+python manage.py migrate
+```
+
+### Erro: Permissão negada
+
+**Solução:**
+- Verifique permissões do usuário do banco
+- Garanta que o usuário tem privilégios necessários
+
+## 📚 Recursos Adicionais
+
+- [Documentação Django - Databases](https://docs.djangoproject.com/en/stable/ref/databases/)
+- [PostgreSQL Documentation](https://www.postgresql.org/docs/)
+- [MySQL Documentation](https://dev.mysql.com/doc/)
 
 
 

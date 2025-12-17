@@ -1,38 +1,84 @@
 #!/bin/bash
+# ========================================
+# MONPEC - EXPORTAR DADOS (Linux/Mac)
+# ========================================
 
-echo "=========================================="
-echo "EXPORTAR DADOS DO SISTEMA"
-echo "=========================================="
-echo ""
+echo "========================================"
+echo "  MONPEC - EXPORTAR DADOS"
+echo "  Sistema de Gestão Rural"
+echo "========================================"
+echo
 
-# Verificar se Python está instalado
-if ! command -v python3 &> /dev/null; then
-    echo "[ERRO] Python 3 não encontrado!"
-    exit 1
+cd "$(dirname "$0")"
+
+# ========================================
+# VERIFICAR PYTHON
+# ========================================
+if command -v python3 &> /dev/null; then
+    PYTHON_CMD=python3
+else
+    PYTHON_CMD=python
 fi
 
-# Ativar ambiente virtual se existir
-if [ -d "venv" ]; then
-    source venv/bin/activate
-fi
+# ========================================
+# CRIAR PASTA DE BACKUP
+# ========================================
+BACKUP_DIR="backups/export_$(date +%Y%m%d_%H%M%S)"
 
-# Criar diretório de backup se não existir
 mkdir -p backups
+mkdir -p "$BACKUP_DIR"
 
-# Gerar nome do arquivo com data e hora
-filename="backup_$(date +%Y%m%d_%H%M%S).json"
+echo "[INFO] Exportando dados para: $BACKUP_DIR"
+echo
 
-echo "[INFO] Exportando dados para: backups/$filename"
-python manage.py dumpdata --indent 2 > "backups/$filename"
-
-if [ $? -ne 0 ]; then
-    echo "[ERRO] Falha ao exportar dados!"
-    exit 1
+# ========================================
+# EXPORTAR BANCO DE DADOS
+# ========================================
+echo "[1/3] Exportando banco de dados..."
+if [ -f "db.sqlite3" ]; then
+    cp "db.sqlite3" "$BACKUP_DIR/db.sqlite3"
+    echo "[OK] Banco de dados exportado"
+else
+    echo "[AVISO] Banco de dados não encontrado"
 fi
+echo
 
-echo "[OK] Dados exportados com sucesso!"
-echo "[INFO] Arquivo salvo em: backups/$filename"
-echo ""
+# ========================================
+# EXPORTAR DADOS VIA DJANGO
+# ========================================
+echo "[2/3] Exportando dados do sistema..."
+$PYTHON_CMD manage.py dumpdata --indent 2 --output "$BACKUP_DIR/dados_exportados.json" >/dev/null 2>&1
+if [ $? -ne 0 ]; then
+    echo "[AVISO] Falha ao exportar dados JSON"
+else
+    echo "[OK] Dados exportados em JSON"
+fi
+echo
+
+# ========================================
+# CRIAR ARQUIVO DE INFORMAÇÕES
+# ========================================
+echo "[3/3] Criando arquivo de informações..."
+cat > "$BACKUP_DIR/INFO_EXPORTACAO.txt" << EOF
+Data da Exportação: $(date)
+Sistema: MONPEC Gestão Rural
+
+Arquivos exportados:
+- db.sqlite3
+- dados_exportados.json
+
+Para importar, use ./IMPORTAR_DADOS.sh
+EOF
+echo "[OK] Arquivo de informações criado"
+echo
+
+echo "========================================"
+echo "  EXPORTAÇÃO CONCLUÍDA!"
+echo "========================================"
+echo
+echo "Dados exportados para: $BACKUP_DIR"
+echo
+echo "========================================"
 
 
 

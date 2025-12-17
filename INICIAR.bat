@@ -1,43 +1,86 @@
 @echo off
 chcp 65001 >nul
-echo ==========================================
-echo INICIANDO MONPEC GESTAO RURAL
-echo ==========================================
+title MONPEC - SERVIDOR
+color 0A
+
+echo ========================================
+echo   MONPEC - INICIAR SERVIDOR
+echo   Sistema de Gestão Rural
+echo ========================================
 echo.
 
-REM Verificar se Python está instalado
-python --version >nul 2>&1
+cd /d "%~dp0"
+echo [INFO] Diretório: %CD%
+echo.
+
+REM ========================================
+REM PARAR SERVIDORES ANTERIORES
+REM ========================================
+echo [1/4] Parando servidores anteriores...
+taskkill /F /IM python.exe >nul 2>&1
+taskkill /F /IM python311\python.exe >nul 2>&1
+timeout /t 2 /nobreak >nul
+echo [OK] Servidores anteriores parados
+echo.
+
+REM ========================================
+REM VERIFICAR PYTHON
+REM ========================================
+echo [2/4] Verificando Python...
+if exist "python311\python.exe" (
+    set PYTHON_CMD=python311\python.exe
+    echo [OK] Usando Python local
+) else (
+    python --version >nul 2>&1
+    if errorlevel 1 (
+        echo [ERRO] Python não encontrado!
+        pause
+        exit /b 1
+    )
+    set PYTHON_CMD=python
+    echo [OK] Usando Python do sistema
+)
+
+%PYTHON_CMD% --version
+echo.
+
+REM ========================================
+REM VERIFICAR SISTEMA
+REM ========================================
+echo [3/4] Verificando sistema...
+%PYTHON_CMD% manage.py check --deploy >nul 2>&1
 if errorlevel 1 (
-    echo [ERRO] Python nao encontrado!
-    pause
-    exit /b 1
+    echo [AVISO] Alguns avisos encontrados (pode ser normal)
+) else (
+    echo [OK] Sistema verificado
 )
+echo.
 
-REM Ativar ambiente virtual se existir
-if exist "venv\Scripts\activate.bat" (
-    echo [INFO] Ativando ambiente virtual...
-    call venv\Scripts\activate.bat
-)
-
-REM Verificar se .env existe
-if not exist ".env" (
-    echo [AVISO] Arquivo .env nao encontrado!
-    echo Execute INSTALAR.bat primeiro para configurar o sistema.
-    pause
-    exit /b 1
-)
-
-REM Verificar se banco de dados existe
-if not exist "db.sqlite3" (
-    echo [INFO] Banco de dados nao encontrado. Executando migracoes...
-    python manage.py migrate
-)
-
-echo [INFO] Iniciando servidor Django...
-echo [INFO] Acesse: http://127.0.0.1:8000
+REM ========================================
+REM INICIAR SERVIDOR
+REM ========================================
+echo [4/4] Iniciando servidor Django...
+echo.
+echo ========================================
+echo   SERVIDOR INICIANDO
+echo ========================================
+echo.
+echo [INFO] Servidor: http://localhost:8000
+echo [INFO] Login: admin / Senha: admin
+echo.
 echo [INFO] Pressione Ctrl+C para parar o servidor
 echo.
-python manage.py runserver
+echo ========================================
+echo.
+
+%PYTHON_CMD% manage.py runserver 0.0.0.0:8000
+
+if errorlevel 1 (
+    echo.
+    echo [ERRO] Servidor parou com erro!
+    echo.
+    pause
+)
 
 
 

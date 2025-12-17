@@ -1,71 +1,119 @@
 @echo off
 chcp 65001 >nul
-echo ==========================================
-echo IMPORTAR DADOS PARA O SISTEMA
-echo ==========================================
+title MONPEC - IMPORTAR DADOS
+color 0D
+
+echo ========================================
+echo   MONPEC - IMPORTAR DADOS
+echo   Sistema de Gestão Rural
+echo ========================================
 echo.
 
-REM Verificar se Python está instalado
-python --version >nul 2>&1
-if errorlevel 1 (
-    echo [ERRO] Python nao encontrado!
-    pause
-    exit /b 1
+cd /d "%~dp0"
+
+REM ========================================
+REM VERIFICAR PYTHON
+REM ========================================
+if exist "python311\python.exe" (
+    set PYTHON_CMD=python311\python.exe
+) else (
+    set PYTHON_CMD=python
 )
 
-REM Ativar ambiente virtual se existir
-if exist "venv\Scripts\activate.bat" (
-    call venv\Scripts\activate.bat
-)
+REM ========================================
+REM LISTAR BACKUPS DISPONÍVEIS
+REM ========================================
+echo [INFO] Procurando backups disponíveis...
+echo.
 
-REM Verificar se diretório de backups existe
 if not exist "backups" (
-    echo [ERRO] Diretorio de backups nao encontrado!
-    echo Execute EXPORTAR_DADOS.bat primeiro.
+    echo [ERRO] Pasta de backups não encontrada!
     pause
     exit /b 1
 )
 
-echo [INFO] Arquivos de backup disponiveis:
+echo Backups disponíveis:
 echo.
-dir /b backups\*.json 2>nul
+dir /B /AD backups\export_* 2>nul
 if errorlevel 1 (
-    echo [ERRO] Nenhum arquivo de backup encontrado!
-    pause
-    exit /b 1
-)
-echo.
-
-set /p arquivo="Digite o nome do arquivo de backup (ex: backup_20250101_120000.json): "
-
-if not exist "backups\%arquivo%" (
-    echo [ERRO] Arquivo nao encontrado: backups\%arquivo%
+    echo [AVISO] Nenhum backup encontrado na pasta backups
+    echo.
+    echo Você pode:
+    echo 1. Copiar um arquivo db.sqlite3 para a raiz do projeto
+    echo 2. Ou usar um arquivo JSON de dados
+    echo.
     pause
     exit /b 1
 )
 
 echo.
-echo [AVISO] Esta operacao vai substituir os dados atuais do banco!
-set /p confirmar="Tem certeza que deseja continuar? (S/N): "
+set /p BACKUP_SELECIONADO="Digite o nome do backup (ou pressione Enter para usar db.sqlite3 da raiz): "
 
-if /i not "%confirmar%"=="S" (
-    echo [INFO] Operacao cancelada.
-    pause
-    exit /b 0
-)
-
+REM ========================================
+REM IMPORTAR BANCO DE DADOS
+REM ========================================
 echo.
-echo [INFO] Importando dados de: backups\%arquivo%
-python manage.py loaddata backups\%arquivo%
+echo [1/2] Importando banco de dados...
 
-if errorlevel 1 (
-    echo [ERRO] Falha ao importar dados!
-    pause
-    exit /b 1
+if not "%BACKUP_SELECIONADO%"=="" (
+    if exist "backups\%BACKUP_SELECIONADO%\db.sqlite3" (
+        echo [INFO] Fazendo backup do banco atual...
+        if exist "db.sqlite3" (
+            copy /Y "db.sqlite3" "db.sqlite3.backup_%date:~-4,4%%date:~-7,2%%date:~-10,2%" >nul 2>&1
+        )
+        copy /Y "backups\%BACKUP_SELECIONADO%\db.sqlite3" "db.sqlite3"
+        echo [OK] Banco de dados importado
+    ) else (
+        echo [ERRO] Backup não encontrado!
+        pause
+        exit /b 1
+    )
+) else (
+    if exist "db.sqlite3" (
+        echo [INFO] Usando db.sqlite3 da raiz do projeto
+        echo [OK] Banco de dados encontrado
+    ) else (
+        echo [ERRO] Nenhum banco de dados encontrado!
+        pause
+        exit /b 1
+    )
 )
-
-echo [OK] Dados importados com sucesso!
 echo.
+
+REM ========================================
+REM IMPORTAR DADOS JSON (OPCIONAL)
+REM ========================================
+echo [2/2] Verificando dados JSON para importar...
+if not "%BACKUP_SELECIONADO%"=="" (
+    if exist "backups\%BACKUP_SELECIONADO%\dados_exportados.json" (
+        echo [INFO] Importando dados JSON...
+        %PYTHON_CMD% manage.py loaddata "backups\%BACKUP_SELECIONADO%\dados_exportados.json" >nul 2>&1
+        if errorlevel 1 (
+            echo [AVISO] Falha ao importar dados JSON (pode ser normal)
+        ) else (
+            echo [OK] Dados JSON importados
+        )
+    )
+)
+echo.
+
+REM ========================================
+REM APLICAR MIGRAÇÕES
+REM ========================================
+echo [EXTRA] Aplicando migrações...
+%PYTHON_CMD% manage.py migrate --noinput
+echo [OK] Migrações aplicadas
+echo.
+
+echo ========================================
+echo   IMPORTAÇÃO CONCLUÍDA!
+echo ========================================
+echo.
+echo Próximos passos:
+echo 1. Execute INICIAR.bat para iniciar o servidor
+echo 2. Verifique se os dados foram importados corretamente
+echo.
+echo ========================================
 pause
 
 
