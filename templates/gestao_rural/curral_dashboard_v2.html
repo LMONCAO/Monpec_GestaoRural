@@ -1148,10 +1148,15 @@ window.carregarStatusReprodutivoV4 = async function(animalId) {
     } 
     // Se for FÊMEA
     else if (sexo === 'F') {
+      // Priorizar status_reprodutivo do animalInfo (vindo da API)
       const statusReprodutivo = animalInfo.status_reprodutivo || (animalAtual && animalAtual.status_reprodutivo) || null;
       
-      // Se for jovem ou não tiver status reprodutivo
-      if (isJovem || !statusReprodutivo || statusReprodutivo === 'INDEFINIDO' || statusReprodutivo === null) {
+      console.log('📊 [FICHA V4] Status reprodutivo:', statusReprodutivo, 'Tipo:', typeof statusReprodutivo);
+      
+      // Se NÃO tiver status reprodutivo (ou for INDEFINIDO), mostrar mensagem
+      // IMPORTANTE: Mesmo sendo jovem, se tiver status reprodutivo, devemos mostrar
+      if (!statusReprodutivo || statusReprodutivo === 'INDEFINIDO' || statusReprodutivo === null || statusReprodutivo === '') {
+        console.log('📊 [FICHA V4] Mostrando "Animal sem status reprodutivo"');
         html += `<div style="font-size: 0.85rem; color: #999; text-align: center; padding: 8px 0;">
           Animal sem status reprodutivo
         </div>`;
@@ -1162,6 +1167,7 @@ window.carregarStatusReprodutivoV4 = async function(animalId) {
           </div>`;
         }
       } else {
+        console.log('📊 [FICHA V4] Status reprodutivo encontrado, exibindo:', statusReprodutivo);
         // Status reprodutivo existente
         const statusLabels = {
           'PRENHE': 'Prenha',
@@ -2243,13 +2249,48 @@ window.abrirFichaCompletaV4 = function() {
     gap: 16px;
   }
   
-  /* Wrapper para reduzir largura da pesagem e manejos em 50% */
+  /* Wrapper para pesagem e manejos - layout horizontal */
   .pesagem-manejos-wrapper {
-    max-width: 85%;
     width: 100%;
     display: flex;
     flex-direction: column;
     gap: 16px;
+  }
+  
+  /* Grid horizontal para os cards de manejo - ajustado para não ultrapassar */
+  .pesagem-manejos-wrapper .row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin: 0;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    padding: 0;
+  }
+  
+  .pesagem-manejos-wrapper .row .col-md-6 {
+    width: 100%;
+    max-width: 100%;
+    flex: 0 0 100%;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  /* Garantir que o card ANIMAIS NA SESSÃO respeite o container */
+  .curral-v2-wrapper > .card-curral:last-child {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    clear: both;
+    margin-left: 0;
+    margin-right: 0;
+  }
+  
+  /* Garantir que o layout não ultrapasse */
+  .curral-v4-layout {
+    max-width: 100%;
+    box-sizing: border-box;
   }
   
   /* Ajustar cards do painel esquerdo para ocupar todo o espaço disponível */
@@ -2257,9 +2298,15 @@ window.abrirFichaCompletaV4 = function() {
     width: 100%;
   }
   
-  @media (max-width: 1400px) {
-    .pesagem-manejos-wrapper {
-      max-width: 100%;
+  @media (max-width: 1600px) {
+    .pesagem-manejos-wrapper .row {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  
+  @media (max-width: 1200px) {
+    .pesagem-manejos-wrapper .row {
+      grid-template-columns: 1fr;
     }
   }
 
@@ -6710,10 +6757,10 @@ window.abrirFichaCompletaV4 = function() {
         </div>
       </div>
 
-      <!-- Cards de Manejos -->
-      <div class="row g-2">
+      <!-- Cards de Manejos - Grid horizontal -->
+      <div class="row g-2" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 0;">
         <!-- Manejo Sanitário -->
-        <div class="col-md-6">
+        <div style="width: 100%;">
           <div class="card-curral">
             <div class="card-curral-header">
               <h2><i class="fas fa-syringe"></i> Manejo Sanitário</h2>
@@ -6725,7 +6772,7 @@ window.abrirFichaCompletaV4 = function() {
         </div>
 
         <!-- IATF / REPRODUÇÃO -->
-        <div class="col-md-6">
+        <div style="width: 100%;">
           <div class="card-curral">
             <div class="card-curral-header">
               <h2><i class="fas fa-baby-carriage"></i> IATF / REPRODUÇÃO</h2>
@@ -6737,7 +6784,7 @@ window.abrirFichaCompletaV4 = function() {
         </div>
 
         <!-- MOVIMENTAÇÃO -->
-        <div class="col-md-6">
+        <div style="width: 100%;">
           <div class="card-curral">
             <div class="card-curral-header">
               <h2><i class="fas fa-exchange-alt"></i> MOVIMENTAÇÃO</h2>
@@ -6749,7 +6796,7 @@ window.abrirFichaCompletaV4 = function() {
         </div>
 
         <!-- NUTRIÇÃO -->
-        <div class="col-md-6">
+        <div style="width: 100%;">
           <div class="card-curral">
             <div class="card-curral-header">
               <h2><i class="fas fa-seedling"></i> NUTRIÇÃO</h2>
@@ -6771,7 +6818,7 @@ window.abrirFichaCompletaV4 = function() {
   </div>
 
   <!-- Tabela ANIMAIS NA SESSÃO -->
-  <div class="card-curral" style="margin-top: 20px;">
+  <div class="card-curral" style="margin-top: 20px; width: 100%; max-width: 100%; box-sizing: border-box; overflow-x: hidden;">
     <div class="card-curral-header">
       <h2><i class="fas fa-table"></i> ANIMAIS NA SESSÃO</h2>
       <button type="button" class="btn btn-sm btn-outline-secondary" onclick="limparTabelaAnimaisRegistrados()" title="Limpar tabela">

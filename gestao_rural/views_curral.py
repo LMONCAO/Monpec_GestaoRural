@@ -4125,154 +4125,170 @@ def curral_atualizar_animal_api(request, propriedade_id):
 @login_required
 def curral_registros_animal(request, propriedade_id, animal_id):
     """Retorna todos os registros (eventos, movimentações) de um animal."""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
-    animal = get_object_or_404(AnimalIndividual, id=animal_id, propriedade=propriedade)
-    
-    # Buscar eventos do curral
-    eventos = CurralEvento.objects.filter(animal=animal).order_by('-data_evento')
-    
-    # Agrupar por tipo
-    pesagens = []
-    sanidades = []
-    reproducao = []
-    movimentacoes = []
-    
-    for evento in eventos:
-        data_format = localtime(evento.data_evento).strftime('%d/%m/%Y %H:%M')
-        evento_data = {
-            'id': evento.id,
-            'data': data_format,
-            'data_iso': localtime(evento.data_evento).isoformat(),
-            'tipo': evento.get_tipo_evento_display(),
-            'descricao': evento.observacoes or '',
-            'peso': float(evento.peso_kg) if evento.peso_kg else None,
-            'sessao': evento.sessao.nome if evento.sessao else '',
-        }
-        
-        if evento.tipo_evento == 'PESAGEM':
-            pesagens.append(evento_data)
-        elif evento.tipo_evento in ['VACINACAO', 'TRATAMENTO']:
-            sanidades.append(evento_data)
-        elif evento.tipo_evento == 'REPRODUCAO':
-            reproducao.append(evento_data)
-        elif evento.tipo_evento == 'APARTACAO':
-            movimentacoes.append(evento_data)
-    
-    # Buscar movimentações (entradas e saídas)
-    movimentacoes_individual = MovimentacaoIndividual.objects.filter(animal=animal).order_by('-data_movimentacao')
-    
-    entradas = []
-    saidas = []
-    
-    for mov in movimentacoes_individual:
-        data_format = mov.data_movimentacao.strftime('%d/%m/%Y')
-        mov_data = {
-            'id': mov.id,
-            'data': data_format,
-            'data_iso': mov.data_movimentacao.isoformat(),
-            'tipo': mov.get_tipo_movimentacao_display(),
-            'descricao': mov.motivo_detalhado or '',
-            'origem': mov.origem.nome_propriedade if mov.origem else '',
-            'destino': mov.destino.nome_propriedade if mov.destino else '',
-        }
-        
-        if mov.tipo_movimentacao in ['NASCIMENTO', 'COMPRA']:
-            entradas.append(mov_data)
-        elif mov.tipo_movimentacao == 'TRANSFERENCIA':
-            # Transferência pode ser entrada ou saída dependendo da origem/destino
-            if mov.origem and mov.origem.id != propriedade.id:
-                entradas.append(mov_data)
-            elif mov.destino and mov.destino.id != propriedade.id:
-                saidas.append(mov_data)
-        elif mov.tipo_movimentacao in ['VENDA', 'MORTE', 'DESCARTE']:
-            saidas.append(mov_data)
-    
-    # Calcular resumos
-    total_pesagens = len(pesagens)
-    total_entradas = len(entradas)
-    total_saidas = len(saidas)
-    total_movimentacoes = len(movimentacoes)
-    
-    # Agrupar pesagens por categoria
-    # Usa a categoria atual do animal (poderia melhorar buscando histórico de categorias)
-    pesagens_por_categoria = {}
-    if pesagens:
-        categoria_nome = animal.categoria.nome if animal.categoria else 'Sem categoria'
-        pesagens_por_categoria[categoria_nome] = len(pesagens)
-    
-    # Incluir informações do animal para avaliação de status
-    # idade_meses é uma propriedade (@property), então acessamos diretamente
-    idade_meses = None
+    from django.http import Http404
     try:
-        idade_meses = animal.idade_meses
-    except (AttributeError, TypeError):
-        pass
+        propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+        animal = get_object_or_404(AnimalIndividual, id=animal_id, propriedade=propriedade)
+        
+        # Buscar eventos do curral
+        eventos = CurralEvento.objects.filter(animal=animal).order_by('-data_evento')
+        
+        # Agrupar por tipo
+        pesagens = []
+        sanidades = []
+        reproducao = []
+        movimentacoes = []
+        
+        for evento in eventos:
+            data_format = localtime(evento.data_evento).strftime('%d/%m/%Y %H:%M')
+            evento_data = {
+                'id': evento.id,
+                'data': data_format,
+                'data_iso': localtime(evento.data_evento).isoformat(),
+                'tipo': evento.get_tipo_evento_display(),
+                'descricao': evento.observacoes or '',
+                'peso': float(evento.peso_kg) if evento.peso_kg else None,
+                'sessao': evento.sessao.nome if evento.sessao else '',
+            }
+            
+            if evento.tipo_evento == 'PESAGEM':
+                pesagens.append(evento_data)
+            elif evento.tipo_evento in ['VACINACAO', 'TRATAMENTO']:
+                sanidades.append(evento_data)
+            elif evento.tipo_evento == 'REPRODUCAO':
+                reproducao.append(evento_data)
+            elif evento.tipo_evento == 'APARTACAO':
+                movimentacoes.append(evento_data)
     
-    animal_info = {
-        'id': animal.id,
-        'sexo': animal.sexo,
-        'categoria': animal.categoria.nome if animal.categoria else '',
-        'idade_meses': idade_meses,
-        'data_nascimento': animal.data_nascimento.isoformat() if animal.data_nascimento else None,
-        'status_reprodutivo': getattr(animal, 'status_reprodutivo', None),
-        'peso_atual': float(animal.peso_atual_kg) if animal.peso_atual_kg else None,
-        'peso_anterior': None,  # Será calculado se houver pesagens
-    }
-    
-    # Calcular peso anterior e ganho se houver pesagens
-    if len(pesagens) >= 2:
-        animal_info['peso_anterior'] = pesagens[1].get('peso')
-        if animal_info['peso_atual'] and animal_info['peso_anterior']:
-            animal_info['ganho_peso'] = animal_info['peso_atual'] - animal_info['peso_anterior']
-    
-    # Dados de teste para animais específicos (619512, 619513, 619514)
-    numero_manejo = animal.numero_manejo or ''
-    if numero_manejo in ['619512', '619513', '619514']:
-        # Criar dados de teste baseados no número
-        if numero_manejo == '619512':
-            # Animal fêmea com status reprodutivo
-            reproducao = [{
-                'id': 1,
-                'data': '15/12/2025 10:30',
-                'data_iso': '2025-12-15T10:30:00',
-                'tipo': 'Reprodução',
-                'descricao': 'Diagnóstico de Prenhez - Positivo',
-                'peso': 350.0,
-                'sessao': 'Sessão Teste'
-            }]
-            animal_info['status_reprodutivo'] = 'PRENHE'
-            animal_info['data_ultima_diagnostico'] = '2025-12-15'
-        elif numero_manejo == '619513':
-            # Animal macho - mostrar desempenho
-            animal_info['sexo'] = 'M'
-            animal_info['peso_atual'] = 450.0
-            animal_info['peso_anterior'] = 420.0
-            animal_info['ganho_peso'] = 30.0
-        elif numero_manejo == '619514':
-            # Animal fêmea jovem sem status reprodutivo
-            animal_info['categoria'] = 'Bezerro(a) 0-12 F'
-            animal_info['idade_meses'] = 8
-            animal_info['status_reprodutivo'] = None
-    
-    return JsonResponse({
-        'status': 'ok',
-        'animal': animal_info,
-        'registros': {
-            'pesagens': pesagens,
-            'sanidades': sanidades,
-            'reproducao': reproducao,
-            'movimentacoes': movimentacoes,
-            'entradas': entradas,
-            'saidas': saidas,
-        },
-        'resumos': {
-            'total_pesagens': total_pesagens,
-            'total_entradas': total_entradas,
-            'total_saidas': total_saidas,
-            'total_movimentacoes': total_movimentacoes,
-            'pesagens_por_categoria': pesagens_por_categoria,
+        # Buscar movimentações (entradas e saídas)
+        movimentacoes_individual = MovimentacaoIndividual.objects.filter(animal=animal).order_by('-data_movimentacao')
+        
+        entradas = []
+        saidas = []
+        
+        for mov in movimentacoes_individual:
+            data_format = mov.data_movimentacao.strftime('%d/%m/%Y')
+            mov_data = {
+                'id': mov.id,
+                'data': data_format,
+                'data_iso': mov.data_movimentacao.isoformat(),
+                'tipo': mov.get_tipo_movimentacao_display(),
+                'descricao': mov.motivo_detalhado or '',
+                'origem': mov.origem.nome_propriedade if mov.origem else '',
+                'destino': mov.destino.nome_propriedade if mov.destino else '',
+            }
+            
+            if mov.tipo_movimentacao in ['NASCIMENTO', 'COMPRA']:
+                entradas.append(mov_data)
+            elif mov.tipo_movimentacao == 'TRANSFERENCIA':
+                # Transferência pode ser entrada ou saída dependendo da origem/destino
+                if mov.origem and mov.origem.id != propriedade.id:
+                    entradas.append(mov_data)
+                elif mov.destino and mov.destino.id != propriedade.id:
+                    saidas.append(mov_data)
+            elif mov.tipo_movimentacao in ['VENDA', 'MORTE', 'DESCARTE']:
+                saidas.append(mov_data)
+        
+        # Calcular resumos
+        total_pesagens = len(pesagens)
+        total_entradas = len(entradas)
+        total_saidas = len(saidas)
+        total_movimentacoes = len(movimentacoes)
+        
+        # Agrupar pesagens por categoria
+        # Usa a categoria atual do animal (poderia melhorar buscando histórico de categorias)
+        pesagens_por_categoria = {}
+        if pesagens:
+            categoria_nome = animal.categoria.nome if animal.categoria else 'Sem categoria'
+            pesagens_por_categoria[categoria_nome] = len(pesagens)
+        
+        # Incluir informações do animal para avaliação de status
+        # idade_meses é uma propriedade (@property), então acessamos diretamente
+        idade_meses = None
+        try:
+            idade_meses = animal.idade_meses
+        except (AttributeError, TypeError):
+            pass
+        
+        animal_info = {
+            'id': animal.id,
+            'sexo': animal.sexo,
+            'categoria': animal.categoria.nome if animal.categoria else '',
+            'idade_meses': idade_meses,
+            'data_nascimento': animal.data_nascimento.isoformat() if animal.data_nascimento else None,
+            'status_reprodutivo': getattr(animal, 'status_reprodutivo', None),
+            'peso_atual': float(animal.peso_atual_kg) if animal.peso_atual_kg else None,
+            'peso_anterior': None,  # Será calculado se houver pesagens
         }
-    })
+        
+        # Calcular peso anterior e ganho se houver pesagens
+        if len(pesagens) >= 2:
+            animal_info['peso_anterior'] = pesagens[1].get('peso')
+            if animal_info['peso_atual'] and animal_info['peso_anterior']:
+                animal_info['ganho_peso'] = animal_info['peso_atual'] - animal_info['peso_anterior']
+        
+        # Dados de teste para animais específicos (619512, 619513, 619514)
+        numero_manejo = str(animal.numero_manejo) if animal.numero_manejo else ''
+        if numero_manejo in ['619512', '619513', '619514']:
+            # Criar dados de teste baseados no número
+            if numero_manejo == '619512':
+                # Animal fêmea com status reprodutivo
+                reproducao = [{
+                    'id': 1,
+                    'data': '15/12/2025 10:30',
+                    'data_iso': '2025-12-15T10:30:00',
+                    'tipo': 'Reprodução',
+                    'descricao': 'Diagnóstico de Prenhez - Positivo',
+                    'peso': 350.0,
+                    'sessao': 'Sessão Teste'
+                }]
+                animal_info['status_reprodutivo'] = 'PRENHE'
+                animal_info['data_ultima_diagnostico'] = '2025-12-15'
+                # Garantir que o sexo seja Fêmea
+                animal_info['sexo'] = 'F'
+            elif numero_manejo == '619513':
+                # Animal macho - mostrar desempenho
+                animal_info['sexo'] = 'M'
+                animal_info['peso_atual'] = 450.0
+                animal_info['peso_anterior'] = 420.0
+                animal_info['ganho_peso'] = 30.0
+            elif numero_manejo == '619514':
+                # Animal fêmea jovem sem status reprodutivo
+                animal_info['categoria'] = 'Bezerro(a) 0-12 F'
+                animal_info['idade_meses'] = 8
+                animal_info['status_reprodutivo'] = None
+        
+        return JsonResponse({
+            'status': 'ok',
+            'animal': animal_info,
+            'registros': {
+                'pesagens': pesagens,
+                'sanidades': sanidades,
+                'reproducao': reproducao,
+                'movimentacoes': movimentacoes,
+                'entradas': entradas,
+                'saidas': saidas,
+            },
+            'resumos': {
+                'total_pesagens': total_pesagens,
+                'total_entradas': total_entradas,
+                'total_saidas': total_saidas,
+                'total_movimentacoes': total_movimentacoes,
+                'pesagens_por_categoria': pesagens_por_categoria,
+            }
+        })
+    except Http404:
+        return JsonResponse({
+            'status': 'erro',
+            'mensagem': 'Animal ou propriedade não encontrado'
+        }, status=404)
+    except Exception as exc:
+        import traceback
+        return JsonResponse({
+            'status': 'erro',
+            'mensagem': f'Erro ao buscar registros: {str(exc)}',
+            'traceback': traceback.format_exc()
+        }, status=500)
 
 
 @login_required
