@@ -39,3 +39,14 @@ echo [INFO] Pressione Ctrl+C para parar o servidor
 echo.
 python manage.py runserver
 
+
+
+
+
+
+
+
+
+
+
+

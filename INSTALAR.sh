@@ -116,3 +116,14 @@ echo "Ou manualmente:"
 echo "  python manage.py runserver"
 echo ""
 
+
+
+
+
+
+
+
+
+
+
+

@@ -173,3 +173,14 @@ python manage.py dbshell
 
 Se conectar ao banco, está tudo OK!
 
+
+
+
+
+
+
+
+
+
+
+

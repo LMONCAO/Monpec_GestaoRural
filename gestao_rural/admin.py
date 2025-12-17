@@ -7,8 +7,7 @@ from .models import (
     CustoFixo, CustoVariavel, FluxoCaixa, AnimalIndividual,
     AnimalPesagem, AnimalVacinaAplicada, AnimalTratamento,
     AnimalReproducaoEvento, AnimalHistoricoEvento, AnimalDocumento,
-    PlanoAssinatura, AssinaturaCliente, CurralLote, TenantWorkspace, TenantUsuario,
-    PrecoCEPEA
+    PlanoAssinatura, AssinaturaCliente, CurralLote, TenantWorkspace, TenantUsuario
 )
 from .models_auditoria import LogAuditoria, VerificacaoEmail, SessaoSegura
 from .models_compras_financeiro import (
@@ -467,29 +466,4 @@ class SessaoSeguraAdmin(admin.ModelAdmin):
     list_filter = ['ativo', 'ultima_atividade', 'criado_em']
     search_fields = ['usuario__username', 'ip_address']
     readonly_fields = ['session_key', 'criado_em', 'ultima_atividade']
-
-
-@admin.register(PrecoCEPEA)
-class PrecoCEPEAAdmin(admin.ModelAdmin):
-    list_display = ['uf', 'ano', 'tipo_categoria', 'preco_medio', 'preco_minimo', 'preco_maximo', 'fonte', 'data_atualizacao']
-    list_filter = ['uf', 'ano', 'tipo_categoria', 'fonte', 'data_atualizacao']
-    search_fields = ['uf', 'ano', 'tipo_categoria', 'fonte']
-    readonly_fields = ['data_atualizacao']
-    fieldsets = (
-        ('Informações Básicas', {
-            'fields': ('uf', 'ano', 'tipo_categoria', 'fonte')
-        }),
-        ('Preços', {
-            'fields': ('preco_medio', 'preco_minimo', 'preco_maximo')
-        }),
-        ('Observações', {
-            'fields': ('observacoes',),
-            'classes': ('collapse',)
-        }),
-        ('Sistema', {
-            'fields': ('data_atualizacao',),
-            'classes': ('collapse',)
-        }),
-    )
-    ordering = ['-ano', 'uf', 'tipo_categoria']
 

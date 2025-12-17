@@ -86,3 +86,14 @@ Este script mostra:
 - Porta 8000 em uso
 
 
+
+
+
+
+
+
+
+
+
+
+

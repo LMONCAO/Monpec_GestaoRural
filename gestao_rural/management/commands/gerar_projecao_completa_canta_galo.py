@@ -1,10 +1,33 @@
 # -*- coding: utf-8 -*-
 """
 Comando para gerar projeções completas baseadas nas regras específicas:
-- Fazenda Canta Galo: Nascimentos 70%, Mortes 9%/2%, Vendas 20%/20%, Transferências
+- Fazenda Canta Galo: Nascimentos 80%, Mortes 9%/2%, Vendas 30%/20%, Transferências
 - Fazenda Invernada Grande (2022-2023): Recebe descarte, vende lotes de 60
-- Fazenda Favo de Mel (2024+): Recebe descarte e machos, transfere para Girassol
+- Fazenda Favo de Mel (2024+): Recebe descarte e machos, transfere 480 cabeças para Girassol a cada 90 dias
 - Fazenda Girassol: Recebe machos, engorda, vende a cada 90 dias
+
+================================================================================
+REGRAS PERMANENTES - CONFIGURAÇÃO PADRÃO CANTA GALO:
+================================================================================
+
+1. TRANSFERÊNCIAS DE VACAS DESCARTE:
+   - REGRA CRÍTICA: NÃO TRANSFERIR SE SALDO FOR NEGATIVO OU ZERO
+   - Sempre verificar saldo REAL após promoções antes de criar transferência
+   - Transferir apenas se houver saldo disponível suficiente
+   - Anos permitidos: 2022-2023 (Invernada Grande), 2024+ (Favo de Mel)
+
+2. TAXA DE NATALIDADE:
+   - Padrão: 80% das matrizes (alterado de 70% para 80%)
+
+3. VENDAS:
+   - Bezerras Fêmeas: 30% (alterado de 20% para 30%)
+   - Bezerros Machos: 20% (mantido)
+
+4. EVOLUÇÕES:
+   - Todas as promoções devem ser criadas ANTES das transferências
+   - Saldo após promoções deve ser verificado antes de transferir
+
+================================================================================
 """
 from django.core.management.base import BaseCommand
 from django.db import transaction
@@ -188,7 +211,7 @@ class Command(BaseCommand):
             for mes in range(1, 13):
                 data_mes = date(ano, mes, 15)
                 
-                # 1. NASCIMENTOS (70% das matrizes) - apenas julho a dezembro
+                # 1. NASCIMENTOS (80% das matrizes) - apenas julho a dezembro
                 if mes >= 7:
                     nascimentos = self._processar_nascimentos(
                         canta_galo, data_mes, saldos, categorias, ano
@@ -312,7 +335,7 @@ class Command(BaseCommand):
             'macho_12_24': ['Macho 12-24', 'Macho 12 a 24', 'Garrote 12-24 M', 'Garrote'],
             'boi_gordo_24_36': ['Boi Gordo 24-36', 'Boi 24-36 M', 'Boi Gordo', 'Boi Engordado'],
             'bezerro': ['Bezerro', 'Bezerro(o) 0-12 M', 'Bezerros (0-12m)'],
-            'bezerra': ['Bezerra', 'Bezerro(a) 0-12 M', 'Bezerras (0-12m)'],
+            'bezerra': ['Bezerra', 'Bezerro(a) 0-12 F', 'Bezerras (0-12m)'],
         }
         
         for key, nomes in mapeamento.items():
@@ -359,7 +382,7 @@ class Command(BaseCommand):
         return saldos
 
     def _processar_nascimentos(self, propriedade, data, saldos, categorias, ano):
-        """Processa nascimentos: 70% das matrizes (apenas julho a dezembro)"""
+        """Processa nascimentos: 80% das matrizes (apenas julho a dezembro)"""
         nascimentos = []
         
         # Buscar matrizes (Vacas em Reprodução)
@@ -372,8 +395,8 @@ class Command(BaseCommand):
         if matrizes == 0:
             return nascimentos
         
-        # Calcular nascimentos: 70% das matrizes, distribuído em 6 meses (julho a dezembro)
-        taxa_natalidade = Decimal('0.70')
+        # Calcular nascimentos: 80% das matrizes, distribuído em 6 meses (julho a dezembro)
+        taxa_natalidade = Decimal('0.80')
         total_nascimentos_ano = int(matrizes * taxa_natalidade)
         nascimentos_por_mes = total_nascimentos_ano // 6
         
@@ -399,7 +422,7 @@ class Command(BaseCommand):
                     data_movimentacao=data,
                     tipo_movimentacao='NASCIMENTO',
                     quantidade=bezerros,
-                    observacao=f'Nascimentos automáticos - {bezerros} bezerros (70% das matrizes)'
+                    observacao=f'Nascimentos automáticos - {bezerros} bezerros (80% das matrizes)'
                 )
                 nascimentos.append({'categoria': cat_bezerro.nome, 'quantidade': bezerros})
             
@@ -410,7 +433,7 @@ class Command(BaseCommand):
                     data_movimentacao=data,
                     tipo_movimentacao='NASCIMENTO',
                     quantidade=bezerras,
-                    observacao=f'Nascimentos automáticos - {bezerras} bezerras (70% das matrizes)'
+                    observacao=f'Nascimentos automáticos - {bezerras} bezerras (80% das matrizes)'
                 )
                 nascimentos.append({'categoria': cat_bezerra.nome, 'quantidade': bezerras})
         
@@ -729,7 +752,11 @@ class Command(BaseCommand):
 
     def _processar_transferencias(self, propriedade, data, saldos, categorias, ano,
                                    invernada_grande, favo_mel, girassol):
-        """Processa transferências: 20% das vacas em reprodução → descarte → transferir - SEMPRE verifica estoque"""
+        """Processa descarte: 20% das vacas em reprodução → descarte → VENDER na própria fazenda - SEMPRE verifica estoque
+        
+        REGRA ATUALIZADA: Vacas descarte são VENDIDAS na fazenda Canta Galo a R$ 3.500,00 por animal
+        ao invés de serem transferidas para outras fazendas.
+        """
         transferencias = []
         
         cat_vaca_reproducao = categorias.get('vaca_reproducao')
@@ -770,33 +797,58 @@ class Command(BaseCommand):
                 observacao=f'Descarte de 20% das vacas em reprodução - Estoque disponível: {estoque_vacas_reproducao}'
             )
         
-        # Verificar estoque de descarte antes de transferir
-        estoque_descarte = saldos.get(cat_vaca_descarte.nome if cat_vaca_descarte else cat_vaca_reproducao.nome, 0)
-        quantidade_transferir_descarte = min(descarte_quantidade, estoque_descarte)
+        # ========================================================================
+        # REGRA ATUALIZADA - CONFIGURAÇÃO PADRÃO CANTA GALO:
+        # VACAS DESCARTE SÃO VENDIDAS NA PRÓPRIA FAZENDA
+        # Valor: R$ 3.500,00 por animal
+        # Esta regra substitui a transferência para outras fazendas
+        # ========================================================================
+        # CRÍTICO: Calcular saldo REAL de descarte após a promoção criada acima
+        # Usar a função que calcula o saldo considerando todas as movimentações
+        saldos_reais = calcular_rebanho_por_movimentacoes(propriedade, data)
+        estoque_descarte_real = saldos_reais.get(cat_vaca_descarte.nome if cat_vaca_descarte else cat_vaca_reproducao.nome, 0)
         
-        # Transferir para destino conforme o ano
-        if ano <= 2023 and invernada_grande and quantidade_transferir_descarte > 0:
-            # Transferir para Invernada Grande
-            self._criar_transferencia(
-                origem=propriedade,
-                destino=invernada_grande,
-                categoria=cat_vaca_descarte or cat_vaca_reproducao,
-                quantidade=quantidade_transferir_descarte,
-                data=data,
-                observacao=f'Transferência de vacas de descarte para engorda - Estoque disponível: {estoque_descarte}'
+        # REGRA SIMPLES: NÃO VENDER SE SALDO FOR NEGATIVO OU ZERO
+        if estoque_descarte_real <= 0:
+            return transferencias
+        
+        # Só vender se houver saldo disponível (não pode ser negativo)
+        quantidade_vender_descarte = min(descarte_quantidade, estoque_descarte_real)
+        
+        # IMPORTANTE: Se não há saldo suficiente, não vender
+        if quantidade_vender_descarte <= 0:
+            return transferencias
+        
+        # VENDER vacas descarte na própria fazenda Canta Galo
+        # Valor: R$ 3.500,00 por animal
+        categoria_venda = cat_vaca_descarte or cat_vaca_reproducao
+        
+        # Obter peso médio da categoria (padrão: 450 kg para vacas descarte)
+        peso_medio_kg = Decimal('450.00')
+        if categoria_venda and categoria_venda.peso_medio_kg:
+            peso_medio_kg = categoria_venda.peso_medio_kg
+        
+        # Calcular valor por kg baseado no valor por animal (R$ 3.500,00)
+        valor_por_animal = Decimal('3500.00')
+        valor_por_kg = valor_por_animal / peso_medio_kg if peso_medio_kg > 0 else Decimal('7.78')
+        
+        # Criar venda das vacas descarte
+        self._criar_venda(
+            propriedade=propriedade,
+            categoria=categoria_venda,
+            quantidade=quantidade_vender_descarte,
+            data_venda=data,
+            cliente_nome='Venda de Vacas Descarte',
+            valor_por_kg=valor_por_kg,
+            peso_medio_kg=peso_medio_kg,
+            observacao=f'Venda de vacas de descarte - {quantidade_vender_descarte} cabeças a R$ {valor_por_animal:,.2f} por animal - Estoque disponível: {estoque_descarte_real}'
+        )
+        
+        self.stdout.write(
+            self.style.SUCCESS(
+                f'  [VENDA DESCARTE] {quantidade_vender_descarte} vacas descarte vendidas a R$ {valor_por_animal:,.2f} por animal (Total: R$ {valor_por_animal * Decimal(str(quantidade_vender_descarte)):,.2f})'
             )
-            transferencias.append({'categoria': cat_vaca_descarte.nome if cat_vaca_descarte else cat_vaca_reproducao.nome, 'quantidade': quantidade_transferir_descarte})
-        elif ano >= 2024 and favo_mel and quantidade_transferir_descarte > 0:
-            # Transferir para Favo de Mel
-            self._criar_transferencia(
-                origem=propriedade,
-                destino=favo_mel,
-                categoria=cat_vaca_descarte or cat_vaca_reproducao,
-                quantidade=quantidade_transferir_descarte,
-                data=data,
-                observacao=f'Transferência de vacas de descarte para recria - Estoque disponível: {estoque_descarte}'
-            )
-            transferencias.append({'categoria': cat_vaca_descarte.nome if cat_vaca_descarte else cat_vaca_reproducao.nome, 'quantidade': quantidade_transferir_descarte})
+        )
         
         # Transferir machos 12-24 para Favo de Mel
         # IMPORTANTE: Transferir apenas os que foram gerados no ano anterior (que evoluíram de bezerros)
@@ -828,8 +880,8 @@ class Command(BaseCommand):
         
         return transferencias
 
-    def _processar_invernada_grande(self, propriedade, data, categorias, ano):
-        """Processa vendas na Invernada Grande: lotes de 60 a cada 2 meses"""
+    def _processar_invernada_grande(self, propriedade, data, categorias, ano, saldos=None):
+        """Processa vendas na Invernada Grande: lotes de 60 a cada 2 meses - SEMPRE verifica estoque"""
         if ano > 2023:
             return
         
@@ -840,25 +892,65 @@ class Command(BaseCommand):
         
         # Verificar se é mês de venda (a cada 2 meses, começando em março)
         if data.month % 2 == 1 and data.month >= 3:  # Março, maio, julho, setembro, novembro
-            # Buscar estoque atual (simplificado - na prática, calcularia baseado em movimentações)
-            # Por enquanto, vamos criar vendas baseadas em transferências recebidas
-            self._criar_venda(
-                propriedade=propriedade,
-                categoria=cat_vaca_gorda,
-                quantidade=60,
-                data_venda=data,
-                cliente_nome='JBS',
-                valor_por_kg=Decimal('6.50'),
-                peso_medio_kg=Decimal('450.00'),
-                observacao='Venda de vacas gordas para JBS (lote de 60)'
-            )
+            # IMPORTANTE: Verificar estoque disponível antes de criar venda
+            quantidade_desejada = 60
+            estoque_disponivel = 0
+            
+            if saldos:
+                # Buscar estoque da categoria de vaca gorda
+                categoria_nome = cat_vaca_gorda.nome if hasattr(cat_vaca_gorda, 'nome') else str(cat_vaca_gorda)
+                estoque_disponivel = saldos.get(categoria_nome, 0)
+            else:
+                # Se não foram fornecidos saldos, calcular baseado em movimentações
+                saldos_calculados = calcular_rebanho_por_movimentacoes(propriedade, data)
+                categoria_nome = cat_vaca_gorda.nome if hasattr(cat_vaca_gorda, 'nome') else str(cat_vaca_gorda)
+                estoque_disponivel = saldos_calculados.get(categoria_nome, 0)
+            
+            # IMPORTANTE: Não vender se não houver estoque suficiente
+            if estoque_disponivel <= 0:
+                self.stdout.write(
+                    self.style.WARNING(
+                        f'  [AVISO] Sem estoque disponível para venda na Invernada Grande. '
+                        f'Categoria: {categoria_nome}, Estoque: {estoque_disponivel}'
+                    )
+                )
+                return
+            
+            # Limitar quantidade de venda ao estoque disponível
+            quantidade_venda = min(quantidade_desejada, estoque_disponivel)
+            
+            if quantidade_venda > 0:
+                self._criar_venda(
+                    propriedade=propriedade,
+                    categoria=cat_vaca_gorda,
+                    quantidade=quantidade_venda,
+                    data_venda=data,
+                    cliente_nome='JBS',
+                    valor_por_kg=Decimal('6.50'),
+                    peso_medio_kg=Decimal('450.00'),
+                    observacao=f'Venda de vacas gordas para JBS (lote de {quantidade_venda} - estoque disponível: {estoque_disponivel})'
+                )
+                self.stdout.write(
+                    self.style.SUCCESS(
+                        f'  [OK] Vendidas {quantidade_venda} vacas gordas para JBS em {data.strftime("%d/%m/%Y")} '
+                        f'(Estoque disponível: {estoque_disponivel})'
+                    )
+                )
+            else:
+                self.stdout.write(
+                    self.style.WARNING(
+                        f'  [AVISO] Não foi possível criar venda na Invernada Grande. '
+                        f'Estoque insuficiente: {estoque_disponivel}'
+                    )
+                )
 
     def _processar_favo_mel(self, propriedade, data, categorias, ano, saldos):
         """Processa transferências e vendas no Favo de Mel - SEMPRE verifica estoque"""
         if ano < 2024:
             return
         
-        # Transferir machos 12-24 para Girassol a cada 3 meses (lotes de 300)
+        # Transferir machos 12-24 para Girassol a cada 90 dias (lotes de 480)
+        # CONFIGURAÇÃO PADRÃO: 480 cabeças a cada 90 dias, respeitando saldo disponível
         cat_macho_12_24 = categorias.get('macho_12_24')
         girassol = Propriedade.objects.filter(nome_propriedade__icontains='Girassol').first()
         
@@ -867,7 +959,8 @@ class Command(BaseCommand):
             if data.month in [4, 7, 10] and data.day == 15:
                 # CRÍTICO: Verificar estoque disponível - NUNCA deixar negativo
                 estoque_machos = saldos.get(cat_macho_12_24.nome, 0)
-                quantidade_transferir = min(300, estoque_machos)
+                # CONFIGURAÇÃO PADRÃO: 480 cabeças (alterado de 300 para 480)
+                quantidade_transferir = min(480, estoque_machos)
                 
                 if quantidade_transferir > 0:
                     self._criar_transferencia(
@@ -876,7 +969,7 @@ class Command(BaseCommand):
                         categoria=cat_macho_12_24,
                         quantidade=quantidade_transferir,
                         data=data,
-                        observacao=f'Transferência de machos 12-24 para engorda em Girassol (lote de {quantidade_transferir}) - Estoque disponível: {estoque_machos}'
+                        observacao=f'Transferência de machos 12-24 para engorda em Girassol (lote de {quantidade_transferir}) - Estoque disponível: {estoque_machos} - CONFIGURACAO PADRAO: 480 a cada 90 dias'
                     )
         
         # Vender vacas gordas a cada 3 meses (lotes de 100)
@@ -920,8 +1013,9 @@ class Command(BaseCommand):
             estoque_machos = saldos.get(cat_macho_12_24.nome, 0)
             
             # Se houver bois gordos, vender eles. Senão, verificar se pode evoluir machos
+            # CONFIGURAÇÃO PADRÃO: 480 cabeças a cada 90 dias (alterado de 300 para 480)
             if estoque_bois_gordos > 0:
-                quantidade_venda = min(300, estoque_bois_gordos)
+                quantidade_venda = min(480, estoque_bois_gordos)  # CONFIGURAÇÃO PADRÃO: 480
                 if quantidade_venda > 0:
                     self._criar_venda(
                         propriedade=propriedade,
@@ -931,11 +1025,11 @@ class Command(BaseCommand):
                         cliente_nome='Frigorífico',
                         valor_por_kg=Decimal('7.00'),
                         peso_medio_kg=Decimal('500.00'),
-                        observacao=f'Venda de gado gordo após 90 dias de engorda (lote de {quantidade_venda}) - Estoque disponível: {estoque_bois_gordos}'
+                        observacao=f'Venda de gado gordo após 90 dias de engorda (lote de {quantidade_venda}) - Estoque disponível: {estoque_bois_gordos} - CONFIGURACAO PADRAO: 480 a cada 90 dias'
                     )
-            elif estoque_machos >= 300:
+            elif estoque_machos >= 480:
                 # Evoluir machos para bois gordos e vender
-                quantidade_evoluir = min(300, estoque_machos)
+                quantidade_evoluir = min(480, estoque_machos)  # CONFIGURAÇÃO PADRÃO: 480
                 if quantidade_evoluir > 0:
                     # Criar evolução
                     MovimentacaoProjetada.objects.create(

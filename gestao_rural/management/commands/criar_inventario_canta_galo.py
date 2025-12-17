@@ -80,7 +80,7 @@ class Command(BaseCommand):
             'Vacas Descarte +36 M',
             'Primíparas 24-36 M',
             'Novilha 12-24 M',
-            'Bezerro(a) 0-12 M',
+            'Bezerro(a) 0-12 F',
             'Bezerro(o) 0-12 M',
             'Garrote 12-24 M',
             'Boi 24-36 M',
@@ -146,7 +146,7 @@ class Command(BaseCommand):
         
         # 6. Valores por cabeça (estimativas realistas em R$)
         valores_por_cabeca = {
-            'Bezerro(a) 0-12 M': Decimal('1200.00'),
+            'Bezerro(a) 0-12 F': Decimal('1200.00'),
             'Bezerro(o) 0-12 M': Decimal('1100.00'),
             'Novilha 12-24 M': Decimal('1800.00'),
             'Garrote 12-24 M': Decimal('2000.00'),
@@ -173,7 +173,7 @@ class Command(BaseCommand):
             'Vacas Descarte +36 M': vacas_descarte,
             'Primíparas 24-36 M': primiparas_24_36,
             'Novilha 12-24 M': novilhas_12_24,
-            'Bezerro(a) 0-12 M': bezerras_0_12,
+            'Bezerro(a) 0-12 F': bezerras_0_12,
             'Bezerro(o) 0-12 M': bezerros_0_12,
             'Garrote 12-24 M': garrotes_12_24,
             'Boi 24-36 M': boi_24_36,
@@ -225,6 +225,7 @@ class Command(BaseCommand):
         self.stdout.write(f'📋 Itens criados/atualizados: {itens_criados}')
         self.stdout.write(self.style.SUCCESS('='*60))
         self.stdout.write(self.style.SUCCESS('\n✅ Inventário criado com sucesso!'))
+
 
 
 

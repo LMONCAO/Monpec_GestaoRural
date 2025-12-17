@@ -69,3 +69,14 @@ O sistema está instalado e rodando. Para mais detalhes, consulte:
 - [README_INSTALACAO.md](README_INSTALACAO.md) - Instalação detalhada
 - [CONFIGURACAO_BANCO_DADOS.md](CONFIGURACAO_BANCO_DADOS.md) - Configuração de banco remoto
 
+
+
+
+
+
+
+
+
+
+
+

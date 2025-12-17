@@ -381,14 +381,14 @@
     padding: 16px;
     padding-top: 60px; /* Espaço para o header fixo reduzido */
     display: grid;
-    grid-template-columns: 1.6fr 1.2fr 0.8fr;
+    grid-template-columns: 1.4fr 1fr 1.2fr;
     gap: 24px;
   }
 
   /* ========== RESPONSIVIDADE ========== */
   @media (max-width: 1400px) {
     .curral-v3-content {
-      grid-template-columns: 1.4fr 1fr 0.7fr;
+      grid-template-columns: 1.3fr 0.9fr 1.1fr;
       gap: 20px;
       padding: 20px;
       padding-top: 60px;
@@ -510,8 +510,13 @@
   }
 
   .card-pesagem {
-    max-width: 90%;
+    max-width: 100%;
     margin: 0 auto;
+    min-height: 600px;
+  }
+  
+  .card-pesagem .card-curral-body {
+    padding: 24px;
   }
 
   .card-curral-header {
@@ -1198,10 +1203,24 @@
   /* ========== TABELA ANIMAIS ========== */
   .animais-registrados {
     grid-column: 1 / -1;
+    max-height: 400px;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .animais-registrados .card-curral-body {
+    padding: 12px;
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
 
   .table-wrapper {
     overflow-x: auto;
+    overflow-y: auto;
+    flex: 1;
+    max-height: 350px;
   }
 
   .table-animais {
@@ -2621,21 +2640,21 @@
                 width: 100%;
                 max-width: 400px;
               ">
-                <div class="legenda-item" style="display: flex; align-items: center; gap: 8px; justify-content: flex-start;">
-                  <div class="legenda-cor" style="width: 20px; height: 20px; border-radius: 4px; background: linear-gradient(90deg, #FF6B6B 0%, #FF5722 100%); flex-shrink: 0;"></div>
-                  <span style="color: #000000 !important; font-size: 1.1rem !important; font-weight: 700 !important; text-align: left;">Ruim: &lt; 0.4 kg/dia</span>
+                <div class="legenda-item" style="display: flex; align-items: center; gap: 8px;">
+                  <div class="legenda-cor" style="width: 20px; height: 20px; border-radius: 4px; background: linear-gradient(90deg, #FF6B6B 0%, #FF5722 100%);"></div>
+                  <span style="color: #FFFFFF !important; font-size: 1.1rem !important;">Ruim: &lt; 0.4 kg/dia</span>
                 </div>
-                <div class="legenda-item" style="display: flex; align-items: center; gap: 8px; justify-content: flex-start;">
-                  <div class="legenda-cor" style="width: 20px; height: 20px; border-radius: 4px; background: linear-gradient(90deg, #FFD93D 0%, #FFC107 100%); flex-shrink: 0;"></div>
-                  <span style="color: #000000 !important; font-size: 1.1rem !important; font-weight: 700 !important; text-align: left;">Regular: 0.4 - 0.7</span>
+                <div class="legenda-item" style="display: flex; align-items: center; gap: 8px;">
+                  <div class="legenda-cor" style="width: 20px; height: 20px; border-radius: 4px; background: linear-gradient(90deg, #FFD93D 0%, #FFC107 100%);"></div>
+                  <span style="color: #FFFFFF !important; font-size: 1.1rem !important;">Regular: 0.4 - 0.7</span>
                 </div>
-                <div class="legenda-item" style="display: flex; align-items: center; gap: 8px; justify-content: flex-start;">
-                  <div class="legenda-cor" style="width: 20px; height: 20px; border-radius: 4px; background: linear-gradient(90deg, #4DABF7 0%, #2196F3 100%); flex-shrink: 0;"></div>
-                  <span style="color: #000000 !important; font-size: 1.1rem !important; font-weight: 700 !important; text-align: left;">Bom: 0.7 - 1.0</span>
+                <div class="legenda-item" style="display: flex; align-items: center; gap: 8px;">
+                  <div class="legenda-cor" style="width: 20px; height: 20px; border-radius: 4px; background: linear-gradient(90deg, #4DABF7 0%, #2196F3 100%);"></div>
+                  <span style="color: #FFFFFF !important; font-size: 1.1rem !important;">Bom: 0.7 - 1.0</span>
                 </div>
-                <div class="legenda-item" style="display: flex; align-items: center; gap: 8px; justify-content: flex-start;">
-                  <div class="legenda-cor" style="width: 20px; height: 20px; border-radius: 4px; background: linear-gradient(90deg, #69DB7C 0%, #4CAF50 100%); flex-shrink: 0;"></div>
-                  <span style="color: #000000 !important; font-size: 1.1rem !important; font-weight: 700 !important; text-align: left;">Ótimo: &gt; 1.0</span>
+                <div class="legenda-item" style="display: flex; align-items: center; gap: 8px;">
+                  <div class="legenda-cor" style="width: 20px; height: 20px; border-radius: 4px; background: linear-gradient(90deg, #69DB7C 0%, #4CAF50 100%);"></div>
+                  <span style="color: #FFFFFF !important; font-size: 1.1rem !important;">Ótimo: &gt; 1.0</span>
                 </div>
               </div>
             </div>
@@ -3656,7 +3675,8 @@ window.iniciarSimulador = function() {
   // ========== FUNÇÃO PARA ATUALIZAR CARD DE PESAGEM EM TEMPO REAL ==========
   function atualizarCardPesagemEmTempoReal() {
     const pesoInput = document.getElementById('pesoValorV3');
-    if (!pesoInput) {
+    if (!pesoInput || !animalAtualV3) {
+      // Limpar campos se não houver animal
       limparCamposPesagem();
       atualizarGaugeEficiencia(0);
       return;
@@ -3672,65 +3692,58 @@ window.iniciarSimulador = function() {
       return;
     }
     
-    // Atualizar "Peso Registrado" - SEMPRE preencher quando houver peso
+    // Atualizar "Peso Registrado"
     const pesoRegistrado = document.getElementById('pesoRegistradoV3');
     if (pesoRegistrado) {
       pesoRegistrado.textContent = `${pesoNumero.toFixed(1).replace('.', ',')} kg`;
     }
     
-    // Atualizar "Data última pesagem" com a data atual - SEMPRE preencher
+    // Atualizar "Data última pesagem" com a data atual
     const pesoUltimoData = document.getElementById('pesoUltimoDataV3');
     if (pesoUltimoData) {
       const hoje = new Date();
       pesoUltimoData.textContent = hoje.toLocaleDateString('pt-BR');
     }
     
-    // Tentar obter peso anterior do animal atual ou dos campos da interface
-    let pesoAnterior = 0;
-    let dataPesoAnterior = null;
+    // Calcular ganho total baseado no peso digitado e peso anterior
+    const pesoAnterior = parseFloat(animalAtualV3.peso_atual || animalAtualV3.peso_anterior || 0);
     
-    if (animalAtualV3) {
-      pesoAnterior = parseFloat(animalAtualV3.peso_atual || animalAtualV3.peso_anterior || 0);
-      dataPesoAnterior = animalAtualV3.data_peso_atual || animalAtualV3.data_peso_anterior;
-    } else {
-      // Tentar obter do campo de resumo do scanner
-      const pesoAnteriorEl = document.getElementById('scannerPesoAnteriorV3');
-      const pesoAtualEl = document.getElementById('scannerPesoAtualV3');
-      
-      if (pesoAnteriorEl && pesoAnteriorEl.textContent && pesoAnteriorEl.textContent !== '—') {
-        const pesoAnteriorStr = pesoAnteriorEl.textContent.replace(/[^\d,.-]/g, '').replace(',', '.');
-        pesoAnterior = parseFloat(pesoAnteriorStr) || 0;
-      } else if (pesoAtualEl && pesoAtualEl.textContent && pesoAtualEl.textContent !== '—') {
-        const pesoAtualStr = pesoAtualEl.textContent.replace(/[^\d,.-]/g, '').replace(',', '.');
-        pesoAnterior = parseFloat(pesoAtualStr) || 0;
+    if (!pesoAnterior || pesoAnterior <= 0) {
+      // Se não há peso anterior, limpar campos de ganho
+      const pesoGanhoTotal = document.getElementById('pesoGanhoTotalV3');
+      const pesoGanhoDia = document.getElementById('pesoGanhoDiaV3');
+      if (pesoGanhoTotal) {
+        pesoGanhoTotal.textContent = '—';
+        pesoGanhoTotal.classList.remove('ganho-positivo', 'ganho-negativo');
       }
+      if (pesoGanhoDia) {
+        pesoGanhoDia.textContent = '—';
+      }
+      atualizarGaugeEficiencia(0);
+      return;
     }
     
-    // Calcular ganho total
-    const ganhoTotal = pesoAnterior > 0 ? pesoNumero - pesoAnterior : 0;
+    const ganhoTotal = pesoNumero - pesoAnterior;
     
     // Atualizar "Ganho total" com cores dinâmicas
     const pesoGanhoTotal = document.getElementById('pesoGanhoTotalV3');
     if (pesoGanhoTotal) {
-      if (pesoAnterior > 0) {
-        pesoGanhoTotal.textContent = `${ganhoTotal > 0 ? '+' : ''}${ganhoTotal.toFixed(2).replace('.', ',')} kg`;
-        pesoGanhoTotal.classList.remove('ganho-positivo', 'ganho-negativo');
-        if (ganhoTotal > 0) {
-          pesoGanhoTotal.classList.add('ganho-positivo');
-        } else if (ganhoTotal < 0) {
-          pesoGanhoTotal.classList.add('ganho-negativo');
-        }
-      } else {
-        pesoGanhoTotal.textContent = '—';
-        pesoGanhoTotal.classList.remove('ganho-positivo', 'ganho-negativo');
+      pesoGanhoTotal.textContent = `${ganhoTotal > 0 ? '+' : ''}${ganhoTotal.toFixed(2).replace('.', ',')} kg`;
+      pesoGanhoTotal.classList.remove('ganho-positivo', 'ganho-negativo');
+      if (ganhoTotal > 0) {
+        pesoGanhoTotal.classList.add('ganho-positivo');
+      } else if (ganhoTotal < 0) {
+        pesoGanhoTotal.classList.add('ganho-negativo');
       }
     }
     
     // Calcular dias desde última pesagem
     let dias = 30; // Padrão: 30 dias se não houver data
-    if (dataPesoAnterior) {
+    if (animalAtualV3.data_peso_atual || animalAtualV3.data_peso_anterior) {
       try {
-        const dataAnterior = new Date(dataPesoAnterior);
+        const dataAnterior = animalAtualV3.data_peso_anterior 
+          ? new Date(animalAtualV3.data_peso_anterior) 
+          : (animalAtualV3.data_peso_atual ? new Date(animalAtualV3.data_peso_atual) : new Date());
         const dataAtual = new Date();
         const diffTime = Math.abs(dataAtual - dataAnterior);
         dias = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
@@ -3739,24 +3752,20 @@ window.iniciarSimulador = function() {
       }
     }
     
-    // Atualizar "Dias desde a última" - SEMPRE preencher
+    // Atualizar "Dias desde a última"
     const pesoDias = document.getElementById('pesoDiasV3');
     if (pesoDias) {
       pesoDias.textContent = `${dias} ${dias === 1 ? 'dia' : 'dias'}`;
     }
     
     // Calcular e atualizar "Ganho diário médio"
-    const ganhoDiario = pesoAnterior > 0 && dias > 0 ? ganhoTotal / dias : 0;
+    const ganhoDiario = ganhoTotal / dias;
     const pesoGanhoDia = document.getElementById('pesoGanhoDiaV3');
     if (pesoGanhoDia) {
-      if (pesoAnterior > 0 && dias > 0) {
-        pesoGanhoDia.textContent = `${ganhoDiario > 0 ? '+' : ''}${ganhoDiario.toFixed(2).replace('.', ',')} kg/dia`;
-      } else {
-        pesoGanhoDia.textContent = '—';
-      }
+      pesoGanhoDia.textContent = `${ganhoDiario > 0 ? '+' : ''}${ganhoDiario.toFixed(2).replace('.', ',')} kg/dia`;
     }
     
-    // Atualizar gauge - SEMPRE atualizar quando houver ganho diário
+    // Atualizar gauge
     atualizarGaugeEficiencia(ganhoDiario);
   }
   
@@ -3786,20 +3795,114 @@ window.iniciarSimulador = function() {
   // ========== FUNÇÃO PARA ATUALIZAR PESO EM TEMPO REAL ==========
   // Esta função é chamada quando o usuário digita o peso, antes de gravar
   function atualizarPesoEmTempoReal() {
-    // Usar a função mais completa que já calcula todos os campos
-    atualizarCardPesagemEmTempoReal();
-    
-    // Determinar apartação em tempo real e mostrar visualmente
     const pesoInput = document.getElementById('pesoValorV3');
     if (!pesoInput) return;
     
+    // Obter valor do peso digitado (substituir vírgula por ponto)
     const pesoStr = pesoInput.value.replace(',', '.').trim();
     const pesoNovo = parseFloat(pesoStr);
     
+    // Se não há peso válido, limpar campos
     if (!pesoStr || isNaN(pesoNovo) || pesoNovo <= 0) {
+      limparCamposPesagem();
+      // Resetar gráfico
+      if (typeof atualizarGaugeEficiencia === 'function') {
+        atualizarGaugeEficiencia(0);
+      }
       return;
     }
     
+    console.log('⚡ Atualizando em tempo real - Peso digitado:', pesoNovo);
+    
+    // Obter dados do animal atual (se houver)
+    const pesoAnteriorEl = document.getElementById('scannerPesoAnteriorV3');
+    const pesoAtualEl = document.getElementById('scannerPesoAtualV3');
+    const dataPesoAnteriorEl = document.getElementById('pesoUltimoDataV3');
+    
+    let pesoAnterior = null;
+    let dataPesoAnterior = null;
+    
+    // Tentar obter peso anterior do campo de resumo
+    if (pesoAnteriorEl && pesoAnteriorEl.textContent && pesoAnteriorEl.textContent !== '—') {
+      const pesoAnteriorStr = pesoAnteriorEl.textContent.replace(/[^\d,.-]/g, '').replace(',', '.');
+      pesoAnterior = parseFloat(pesoAnteriorStr);
+    } else if (pesoAtualEl && pesoAtualEl.textContent && pesoAtualEl.textContent !== '—') {
+      // Se não tem peso anterior, usar peso atual como anterior
+      const pesoAtualStr = pesoAtualEl.textContent.replace(/[^\d,.-]/g, '').replace(',', '.');
+      pesoAnterior = parseFloat(pesoAtualStr);
+    }
+    
+    // Obter data da última pesagem
+    if (dataPesoAnteriorEl && dataPesoAnteriorEl.textContent && dataPesoAnteriorEl.textContent !== '—') {
+      dataPesoAnterior = dataPesoAnteriorEl.textContent;
+    }
+    
+    // Atualizar campo "Peso Registrado" em tempo real
+    const pesoRegistradoEl = document.getElementById('pesoRegistradoV3');
+    if (pesoRegistradoEl) {
+      pesoRegistradoEl.textContent = pesoNovo.toFixed(1).replace('.', ',') + ' kg';
+    }
+    
+    // Calcular ganho total
+    let ganhoTotal = 0;
+    if (pesoAnterior && !isNaN(pesoAnterior)) {
+      ganhoTotal = pesoNovo - pesoAnterior;
+    }
+    
+    // Atualizar campo de ganho total
+    const ganhoTotalEl = document.getElementById('pesoGanhoTotalV3');
+    if (ganhoTotalEl) {
+      if (pesoAnterior && !isNaN(pesoAnterior)) {
+        ganhoTotalEl.textContent = `${ganhoTotal > 0 ? '+' : ''}${ganhoTotal.toFixed(2).replace('.', ',')} kg`;
+        ganhoTotalEl.classList.remove('ganho-positivo', 'ganho-negativo');
+        if (ganhoTotal > 0) {
+          ganhoTotalEl.classList.add('ganho-positivo');
+        } else if (ganhoTotal < 0) {
+          ganhoTotalEl.classList.add('ganho-negativo');
+        }
+      } else {
+        ganhoTotalEl.textContent = '—';
+        ganhoTotalEl.classList.remove('ganho-positivo', 'ganho-negativo');
+      }
+    }
+    
+    // Calcular ganho diário
+    let ganhoDiario = 0;
+    if (pesoAnterior && !isNaN(pesoAnterior) && dataPesoAnterior) {
+      try {
+        // Tentar parsear data (formato DD/MM/YYYY)
+        const partesData = dataPesoAnterior.split('/');
+        if (partesData.length === 3) {
+          const dataAnterior = new Date(parseInt(partesData[2]), parseInt(partesData[1]) - 1, parseInt(partesData[0]));
+          const dataAtual = new Date();
+          const diffTime = Math.abs(dataAtual - dataAnterior);
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          
+          if (diffDays > 0) {
+            ganhoDiario = ganhoTotal / diffDays;
+          }
+        }
+      } catch (e) {
+        console.warn('Erro ao calcular ganho diário:', e);
+      }
+    }
+    
+    // Atualizar campo de ganho diário
+    const ganhoDiaEl = document.getElementById('pesoGanhoDiaV3');
+    if (ganhoDiaEl) {
+      if (ganhoDiario !== 0 && !isNaN(ganhoDiario)) {
+        ganhoDiaEl.textContent = `${ganhoDiario > 0 ? '+' : ''}${ganhoDiario.toFixed(2).replace('.', ',')} kg/dia`;
+      } else {
+        ganhoDiaEl.textContent = '—';
+      }
+    }
+    
+    // Atualizar gráfico de eficiência em tempo real
+    if (typeof atualizarGaugeEficiencia === 'function') {
+      atualizarGaugeEficiencia(ganhoDiario);
+    }
+    
+    // Determinar apartação em tempo real e mostrar visualmente
     const apartacaoBadge = document.getElementById('apartacaoTempoRealV3');
     if (typeof determinarApartacao === 'function') {
       const apartacao = determinarApartacao(pesoNovo);
@@ -5413,6 +5516,7 @@ window.iniciarSimulador = function() {
             } else {
               statMediaPeso.textContent = '—';
             }
+
           }
           
           if (statCategorias && data.por_categoria !== undefined) {

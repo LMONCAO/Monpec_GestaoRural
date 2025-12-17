@@ -25,7 +25,7 @@ class Command(BaseCommand):
         categorias_padrao = [
             # FÊMEAS (5 categorias)
             {
-                'nome': 'Bezerro(a) 0-12 M',
+                'nome': 'Bezerro(a) 0-12 F',
                 'idade_minima_meses': 0,
                 'idade_maxima_meses': 12,
                 'sexo': 'F',

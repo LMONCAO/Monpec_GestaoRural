@@ -56,8 +56,8 @@ class SistemaMovimentacoesAutomaticas:
             }
             print(f"[PERFIL] Usando perfil padrao: {perfil.value}")
         
-        # Limpar movimentações existentes
-        MovimentacaoProjetada.objects.filter(propriedade=propriedade).delete()
+        # NÃO limpar movimentações aqui - isso será feito na função gerar_projecao
+        # MovimentacaoProjetada.objects.filter(propriedade=propriedade).delete()
         
         movimentacoes = []
         
@@ -130,11 +130,12 @@ class SistemaMovimentacoesAutomaticas:
                 movimentacoes.extend(compras)
                 
                 # 8. TRANSFERÊNCIAS (entre fazendas do mesmo produtor)
-                # IMPORTANTE: Transferências apenas no início do ano (janeiro) usando saldo inicial do ano
-                # Apenas transferir o que está no estoque inicial, não o que foi criado durante o ano
+                # IMPORTANTE: Transferências apenas no início do ano (janeiro)
+                # CRÍTICO: Usar saldo APÓS promoções (saldo_pos_evolucao) para considerar saldo real disponível
                 transferencias = []
                 if mes == 1:  # Apenas em janeiro de cada ano
-                    transferencias = self._gerar_transferencias_automaticas(propriedade, data_referencia, saldos_iniciais_ano, perfil, ano_atual)
+                    # Passar saldo após promoções para verificar saldo real disponível
+                    transferencias = self._gerar_transferencias_automaticas(propriedade, data_referencia, saldo_pos_evolucao, perfil, ano_atual)
                 movimentacoes.extend(transferencias)
                 
                 # 9. CALCULAR SALDO FINAL APÓS TODAS AS MOVIMENTAÇÕES
@@ -347,7 +348,7 @@ class SistemaMovimentacoesAutomaticas:
                         categoria_bezerros = CategoriaAnimal.objects.get(nome='Bezerros (0-12m)')
                     
                     try:
-                        categoria_bezerras = CategoriaAnimal.objects.get(nome='Bezerro(a) 0-12 M')
+                        categoria_bezerras = CategoriaAnimal.objects.get(nome='Bezerro(a) 0-12 F')
                     except CategoriaAnimal.DoesNotExist:
                         categoria_bezerras = CategoriaAnimal.objects.get(nome='Bezerras (0-12m)')
                     
@@ -427,6 +428,9 @@ class SistemaMovimentacoesAutomaticas:
         
         # Calcular descarte: 20% das matrizes
         total_descarte = int(matrizes * 0.20)
+        
+        # IMPORTANTE: Validar estoque - não vender mais do que está disponível
+        total_descarte = min(total_descarte, matrizes)
         
         print(f"    [MATRIZES] Total de matrizes: {matrizes}")
         print(f"    [DESCARTE] Descarte calculado (20% das matrizes): {total_descarte}")
@@ -519,6 +523,9 @@ class SistemaMovimentacoesAutomaticas:
         # Calcular venda: 20% das primíparas (as que não ficaram prenhas)
         total_venda = int(primiparas_total * 0.20)
         
+        # IMPORTANTE: Validar estoque - não vender mais do que está disponível
+        total_venda = min(total_venda, primiparas_total)
+        
         print(f"    [PRIMIPARAS] Total de primiparas: {primiparas_total}")
         print(f"    [VENDA] Venda de primiparas nao prenhas (20%): {total_venda}")
         print(f"    [REPRODUCAO] Primiparas que ficam em reproducao (80%): {primiparas_total - total_venda}")
@@ -584,7 +591,19 @@ class SistemaMovimentacoesAutomaticas:
         # Aplicar vendas
         for mov in vendas:
             categoria = mov.categoria.nome
-            saldo_final[categoria] = saldo_final.get(categoria, 0) - mov.quantidade
+            saldo_antes = saldo_final.get(categoria, 0)
+            saldo_final[categoria] = saldo_antes - mov.quantidade
+            
+            # IMPORTANTE: Validar se a venda não deixou saldo negativo
+            if saldo_final[categoria] < 0:
+                print(f"    [ERRO] Venda de {mov.quantidade} {categoria} deixaria saldo negativo! Saldo antes: {saldo_antes}, Saldo após: {saldo_final[categoria]}")
+                # Ajustar quantidade de venda para não deixar negativo
+                quantidade_ajustada = saldo_antes
+                saldo_final[categoria] = 0
+                print(f"    [AJUSTE] Quantidade de venda ajustada de {mov.quantidade} para {quantidade_ajustada} para evitar saldo negativo")
+                # Atualizar a quantidade na movimentação se possível
+                if hasattr(mov, 'quantidade'):
+                    mov.quantidade = quantidade_ajustada
         
         # Aplicar compras
         for mov in compras:
@@ -597,11 +616,24 @@ class SistemaMovimentacoesAutomaticas:
             if mov.tipo_movimentacao == 'TRANSFERENCIA_ENTRADA':
                 saldo_final[categoria] = saldo_final.get(categoria, 0) + mov.quantidade
             elif mov.tipo_movimentacao == 'TRANSFERENCIA_SAIDA':
-                saldo_final[categoria] = saldo_final.get(categoria, 0) - mov.quantidade
+                saldo_antes = saldo_final.get(categoria, 0)
+                saldo_final[categoria] = saldo_antes - mov.quantidade
+                
+                # IMPORTANTE: Validar se a transferência não deixou saldo negativo
+                if saldo_final[categoria] < 0:
+                    print(f"    [ERRO] Transferência de {mov.quantidade} {categoria} deixaria saldo negativo! Saldo antes: {saldo_antes}, Saldo após: {saldo_final[categoria]}")
+                    # Ajustar quantidade de transferência para não deixar negativo
+                    quantidade_ajustada = saldo_antes
+                    saldo_final[categoria] = 0
+                    print(f"    [AJUSTE] Quantidade de transferência ajustada de {mov.quantidade} para {quantidade_ajustada} para evitar saldo negativo")
+                    # Atualizar a quantidade na movimentação se possível
+                    if hasattr(mov, 'quantidade'):
+                        mov.quantidade = quantidade_ajustada
         
-        # Garantir que não há saldos negativos
+        # Garantir que não há saldos negativos (última verificação de segurança)
         for categoria in list(saldo_final.keys()):
             if saldo_final[categoria] < 0:
+                print(f"    [AVISO] Saldo negativo detectado para {categoria}: {saldo_final[categoria]}. Ajustando para 0.")
                 saldo_final[categoria] = 0
         
         return saldo_final
@@ -615,7 +647,7 @@ class SistemaMovimentacoesAutomaticas:
         evolucoes = [
             # Nomes novos (padrão do sistema)
             ('Bezerro(o) 0-12 M', 'Garrote 12-24 M'),
-            ('Bezerro(a) 0-12 M', 'Novilha 12-24 M'),
+            ('Bezerro(a) 0-12 F', 'Novilha 12-24 M'),
             ('Garrote 12-24 M', 'Boi 24-36 M'),
             ('Novilha 12-24 M', 'Primíparas 24-36 M'),
             ('Primíparas 24-36 M', 'Vacas em Reprodução +36 M'),
@@ -829,6 +861,9 @@ class SistemaMovimentacoesAutomaticas:
                     # Calcular quantidade baseada no percentual (sobre saldo inicial do ano, excluindo nascimentos)
                     quantidade_venda = int(quantidade_disponivel * politica.percentual_venda / 100)
                     
+                    # IMPORTANTE: Validar estoque - não vender mais do que está disponível
+                    quantidade_venda = min(quantidade_venda, quantidade_disponivel)
+                    
                     if quantidade_venda > 0:
                         # Determinar valor por cabeça
                         valor_por_cabeca = None
@@ -866,6 +901,8 @@ class SistemaMovimentacoesAutomaticas:
                         ))
                         
                         print(f"    [VENDA] Venda configurada: {quantidade_venda} {categoria_nome} ({politica.percentual_venda}% de {quantidade_disponivel} disponiveis)")
+                    else:
+                        print(f"    [AVISO] Sem estoque suficiente para venda de {categoria_nome}. Disponivel: {quantidade_disponivel}, Necessario: {int(quantidade_disponivel * politica.percentual_venda / 100)}")
         else:
             # Fallback para estratégias automáticas baseadas no perfil
             print(f"    [VENDA] Usando estrategias automaticas (perfil: {perfil.value})")
@@ -894,6 +931,9 @@ class SistemaMovimentacoesAutomaticas:
                     if self._verificar_momento_venda(data_referencia, categoria, perfil):
                         quantidade_venda = int(quantidade_disponivel * percentual_venda)
                         
+                        # IMPORTANTE: Validar estoque - não vender mais do que está disponível
+                        quantidade_venda = min(quantidade_venda, quantidade_disponivel)
+                        
                         if quantidade_venda > 0:
                             try:
                                 categoria_obj = CategoriaAnimal.objects.get(nome=categoria)
@@ -911,6 +951,8 @@ class SistemaMovimentacoesAutomaticas:
                                 
                             except CategoriaAnimal.DoesNotExist:
                                 print(f"    [AVISO] Categoria nao encontrada: {categoria}")
+                        else:
+                            print(f"    [AVISO] Sem estoque suficiente para venda de {categoria}. Disponivel: {quantidade_disponivel}")
         
         return vendas
     
@@ -1002,6 +1044,15 @@ class SistemaMovimentacoesAutomaticas:
         Vacas de descarte e garrotes são transferências, não vendas.
         IMPORTANTE: Apenas transfere o estoque inicial do ano (não animais criados durante o ano).
         Executado apenas em janeiro de cada ano.
+        
+        ========================================================================
+        REGRA PERMANENTE - CONFIGURAÇÃO PADRÃO CANTA GALO:
+        NÃO TRANSFERIR SE SALDO FOR NEGATIVO OU ZERO
+        ========================================================================
+        Esta regra garante que transferências só ocorram quando há saldo
+        disponível suficiente, evitando saldos negativos na projeção.
+        O saldo passado como parâmetro já considera promoções criadas.
+        ========================================================================
         """
         from .models import CategoriaAnimal, ConfiguracaoVenda
         
@@ -1028,12 +1079,16 @@ class SistemaMovimentacoesAutomaticas:
         )
         
         for categoria_nome in categorias_transferencia:
-            # IMPORTANTE: Usar apenas o saldo inicial do ano (estoque inicial)
-            # Não transferir animais que foram criados/evoluídos durante o ano
+            # ====================================================================
+            # REGRA PERMANENTE - CONFIGURAÇÃO PADRÃO CANTA GALO:
+            # NÃO TRANSFERIR SE SALDO FOR NEGATIVO OU ZERO
+            # ====================================================================
+            # CRÍTICO: saldos_iniciais_ano agora já vem com saldo após promoções
+            # Esta regra é PERMANENTE e não deve ser alterada
             quantidade_disponivel = saldos_iniciais_ano.get(categoria_nome, 0)
             
             if quantidade_disponivel <= 0:
-                print(f"    [AVISO] Sem estoque inicial de {categoria_nome} para transferencia")
+                print(f"    [AVISO] Sem saldo disponivel de {categoria_nome} para transferencia (saldo: {quantidade_disponivel}) - REGRA PERMANENTE")
                 continue
             
             print(f"    [ESTOQUE] Estoque inicial de {categoria_nome}: {quantidade_disponivel} cabeças")
@@ -1061,6 +1116,16 @@ class SistemaMovimentacoesAutomaticas:
                         categoria=categoria_obj,
                         quantidade=quantidade_transferencia,
                         observacao=f'Transferência automática do estoque inicial do ano {ano_atual} - {categoria_nome} → {config.fazenda_destino.nome_propriedade}'
+                    ))
+                    
+                    # Transferência de entrada (na fazenda destino) - IMPORTANTE: criar também a entrada
+                    transferencias.append(MovimentacaoProjetada(
+                        propriedade=config.fazenda_destino,
+                        data_movimentacao=data_referencia,
+                        tipo_movimentacao='TRANSFERENCIA_ENTRADA',
+                        categoria=categoria_obj,
+                        quantidade=quantidade_transferencia,
+                        observacao=f'Transferência automática do estoque inicial do ano {ano_atual} - {categoria_nome} de {propriedade.nome_propriedade}'
                     ))
                     
                     print(f"    [TRANSFERENCIA] Transferencia configurada (estoque inicial): {quantidade_transferencia}/{quantidade_disponivel} {categoria_nome} -> {config.fazenda_destino.nome_propriedade}")

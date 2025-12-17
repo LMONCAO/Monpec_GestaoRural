@@ -20,8 +20,6 @@ from . import views_seguranca
 from . import views_relatorios_customizados
 from . import views_demo
 from . import views_whatsapp
-from . import views_relatorios_consolidados
-from . import views_justificativa_endividamento
 
 urlpatterns = [
     # Autenticação
@@ -86,13 +84,6 @@ urlpatterns = [
     path('propriedade/<int:propriedade_id>/pecuaria/vendas-projecao/', views_cenarios.relatorio_vendas_projecao, name='relatorio_vendas_projecao'),
     path('propriedade/<int:propriedade_id>/pecuaria/vendas-projecao/<int:ano>/', views_cenarios.relatorio_vendas_anual, name='relatorio_vendas_anual'),
     path('propriedade/<int:propriedade_id>/pecuaria/vendas-projecao/<int:ano>/<int:mes>/', views_cenarios.relatorio_vendas_mensal, name='relatorio_vendas_mensal'),
-    path('propriedade/<int:propriedade_id>/pecuaria/venda/<int:venda_id>/editar-cliente/', views_cenarios.editar_cliente_venda, name='editar_cliente_venda'),
-    path('propriedade/<int:propriedade_id>/pecuaria/clientes/buscar/', views_cenarios.buscar_clientes_ajax, name='buscar_clientes_ajax'),
-    path('propriedade/<int:propriedade_id>/pecuaria/venda/<int:venda_id>/atualizar-peso-unitario/', views_cenarios.atualizar_peso_unitario_venda, name='atualizar_peso_unitario_venda'),
-    path('propriedade/<int:propriedade_id>/pecuaria/venda/<int:venda_id>/atualizar-valor-por-kg/', views_cenarios.atualizar_valor_por_kg_venda, name='atualizar_valor_por_kg_venda'),
-    path('propriedade/<int:propriedade_id>/pecuaria/vendas-projecao/relatorio-consolidado-pdf/', views_cenarios.relatorio_vendas_consolidado_pdf, name='relatorio_vendas_consolidado_pdf'),
-    path('propriedade/<int:propriedade_id>/pecuaria/vendas-projecao/exportar-pdf/', views_cenarios.exportar_relatorio_vendas_pdf, name='exportar_relatorio_vendas_pdf'),
-    path('propriedade/<int:propriedade_id>/pecuaria/vendas-projecao/exportar-excel/', views_cenarios.exportar_relatorio_vendas_excel, name='exportar_relatorio_vendas_excel'),
     path('propriedade/<int:propriedade_id>/pecuaria/inventario/dados/', views.pecuaria_inventario_dados, name='pecuaria_inventario_dados'),
     
     # Rastreabilidade (dentro de Pecuária) - Comentado pois as funções estão em views_rastreabilidade
@@ -129,8 +120,9 @@ urlpatterns = [
 
     # Super Tela de Curral / Manejo
     # Rotas específicas devem vir ANTES da rota genérica
-    # NOTA: curral/v3/ está definido em sistema_rural/urls.py para garantir prioridade
+    # NOTA: curral/v3/ e curral/v4/ estão definidos em sistema_rural/urls.py para garantir prioridade
     # Mas também adicionamos aqui como backup
+    path('propriedade/<int:propriedade_id>/curral/v4/', views_curral.curral_dashboard_v4, name='curral_dashboard_v4'),
     path('propriedade/<int:propriedade_id>/curral/v3/', views_curral.curral_dashboard_v3, name='curral_dashboard_v3'),
     path('propriedade/<int:propriedade_id>/curral/painel/', views_curral.curral_painel, name='curral_painel'),
     path('propriedade/<int:propriedade_id>/curral/tela-unica/', views_curral.curral_tela_unica, name='curral_tela_unica'),
@@ -248,27 +240,6 @@ urlpatterns = [
     path('propriedade/<int:propriedade_id>/financeiro/lcdpr/', views_financeiro_avancado.lcdpr, name='financeiro_lcdpr'),
     path('propriedade/<int:propriedade_id>/financeiro/lcdpr/exportar/pdf/', views_financeiro_avancado.lcdpr_exportar_pdf, name='financeiro_lcdpr_exportar_pdf'),
     path('propriedade/<int:propriedade_id>/financeiro/lcdpr/exportar/excel/', views_financeiro_avancado.lcdpr_exportar_excel, name='financeiro_lcdpr_exportar_excel'),
-    
-    # Gestão de Despesas Fixas e Variáveis
-    path('propriedade/<int:propriedade_id>/financeiro/despesas/grupos/', views_financeiro.despesas_grupos_lista, name='financeiro_despesas_grupos'),
-    path('propriedade/<int:propriedade_id>/financeiro/despesas/grupos/novo/', views_financeiro.despesas_grupo_novo, name='financeiro_despesas_grupo_novo'),
-    path('propriedade/<int:propriedade_id>/financeiro/despesas/grupos/<int:grupo_id>/editar/', views_financeiro.despesas_grupo_editar, name='financeiro_despesas_grupo_editar'),
-    path('propriedade/<int:propriedade_id>/financeiro/despesas/configuradas/', views_financeiro.despesas_configuradas_lista, name='financeiro_despesas_configuradas'),
-    path('propriedade/<int:propriedade_id>/financeiro/despesas/configuradas/nova/', views_financeiro.despesa_configurada_nova, name='financeiro_despesa_configurada_nova'),
-    path('propriedade/<int:propriedade_id>/financeiro/despesas/configuradas/<int:despesa_id>/editar/', views_financeiro.despesa_configurada_editar, name='financeiro_despesa_configurada_editar'),
-    path('propriedade/<int:propriedade_id>/financeiro/receitas/anuais/', views_financeiro.receitas_anuais_lista, name='financeiro_receitas_anuais'),
-    path('propriedade/<int:propriedade_id>/financeiro/receitas/anuais/nova/', views_financeiro.receita_anual_nova, name='financeiro_receita_anual_nova'),
-    path('propriedade/<int:propriedade_id>/financeiro/receitas/anuais/<int:receita_id>/editar/', views_financeiro.receita_anual_editar, name='financeiro_receita_anual_editar'),
-    
-    # Relatórios Financeiros
-    path('propriedade/<int:propriedade_id>/financeiro/relatorios/fluxo-caixa/', views_financeiro.relatorio_fluxo_caixa, name='financeiro_relatorio_fluxo_caixa'),
-    path('propriedade/<int:propriedade_id>/financeiro/relatorios/balanco-dre/', views_financeiro.relatorio_balanco_dre, name='financeiro_relatorio_balanco_dre'),
-    path('propriedade/<int:propriedade_id>/financeiro/relatorios/balanco-dre/exportar/pdf/', views_financeiro.exportar_dre_pdf, name='financeiro_exportar_dre_pdf'),
-    path('propriedade/<int:propriedade_id>/financeiro/integrar-vendas/', views_financeiro.integrar_vendas_financeiro, name='financeiro_integrar_vendas'),
-    path('propriedade/<int:propriedade_id>/financeiro/saldos-consolidados/', views_financeiro.saldos_consolidados_anuais, name='financeiro_saldos_consolidados'),
-    path('propriedade/<int:propriedade_id>/financeiro/planilha-despesas/', views_financeiro.planilha_despesas_porcentual, name='financeiro_planilha_despesas'),
-    path('propriedade/<int:propriedade_id>/financeiro/planilha-despesas/atualizar-porcentual/', views_financeiro.atualizar_porcentual_despesa_ajax, name='financeiro_atualizar_porcentual_ajax'),
-    path('propriedade/<int:propriedade_id>/financeiro/planilha-despesas/gerar-lancamentos/', views_financeiro.gerar_lancamentos_planilha, name='financeiro_gerar_lancamentos_planilha'),
     
     # Exportações DRE
     path('propriedade/<int:propriedade_id>/financeiro/dre/exportar/pdf/', views_financeiro_avancado.dre_exportar_pdf, name='financeiro_dre_exportar_pdf'),
@@ -409,19 +380,4 @@ urlpatterns = [
     path('whatsapp/processar-audio/', views_whatsapp.whatsapp_processar_audio, name='whatsapp_processar_audio'),
     path('propriedade/<int:propriedade_id>/whatsapp/mensagens/', views_whatsapp.whatsapp_mensagens_lista, name='whatsapp_mensagens_lista'),
     path('whatsapp/mensagem/<int:mensagem_id>/reprocessar/', views_whatsapp.whatsapp_reprocessar, name='whatsapp_reprocessar'),
-    
-    # Relatórios Consolidados Multi-Propriedade (Sistema Marcelo Sanguino)
-    path('relatorios-consolidados/', views_relatorios_consolidados.dashboard_consolidado, name='relatorios_consolidados_dashboard'),
-    path('relatorios-consolidados/cenarios/', views_relatorios_consolidados.cenarios_consolidados, name='cenarios_consolidados'),
-    path('relatorios-consolidados/rebanho/', views_relatorios_consolidados.relatorio_rebanho_consolidado, name='relatorio_rebanho_consolidado'),
-    path('relatorios-consolidados/bens/', views_relatorios_consolidados.relatorio_bens_consolidado, name='relatorio_bens_consolidado'),
-    path('relatorios-consolidados/dre/', views_relatorios_consolidados.relatorio_dre_consolidado, name='relatorio_dre_consolidado'),
-    path('relatorios-consolidados/fluxo-caixa/', views_relatorios_consolidados.relatorio_fluxo_caixa_consolidado, name='relatorio_fluxo_caixa_consolidado'),
-    path('relatorios-consolidados/completo-emprestimo/', views_relatorios_consolidados.relatorio_completo_emprestimo, name='relatorio_completo_emprestimo'),
-    path('relatorios-consolidados/completo-emprestimo/exportar/pdf/', views_relatorios_consolidados.exportar_relatorio_completo_pdf, name='exportar_relatorio_completo_pdf'),
-    
-    # Justificativa de Endividamento
-    path('justificativa-endividamento/', views_justificativa_endividamento.justificativa_endividamento, name='justificativa_endividamento'),
-    path('justificativa-endividamento/relatorio-completo/', views_justificativa_endividamento.relatorio_justificativa_completo, name='relatorio_justificativa_completo'),
-    path('justificativa-endividamento/importar-scr/', views_justificativa_endividamento.importar_scr, name='importar_scr'),
 ]

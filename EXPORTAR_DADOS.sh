@@ -34,3 +34,14 @@ echo "[OK] Dados exportados com sucesso!"
 echo "[INFO] Arquivo salvo em: backups/$filename"
 echo ""
 
+
+
+
+
+
+
+
+
+
+
+

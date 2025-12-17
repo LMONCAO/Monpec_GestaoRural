@@ -41,3 +41,14 @@ echo [INFO] Arquivo salvo em: backups\%filename%
 echo.
 pause
 
+
+
+
+
+
+
+
+
+
+
+

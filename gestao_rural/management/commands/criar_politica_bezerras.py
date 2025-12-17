@@ -20,7 +20,7 @@ class Command(BaseCommand):
         
         # Buscar categoria de bezerras
         try:
-            bezerras = CategoriaAnimal.objects.get(nome='Bezerro(a) 0-12 M')
+            bezerras = CategoriaAnimal.objects.get(nome='Bezerro(a) 0-12 F')
             self.stdout.write(f'Categoria encontrada: {bezerras.nome}')
             
             # Criar ou atualizar política
@@ -40,7 +40,7 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS(f'Politica {status}: {politica.categoria.nome} - {politica.percentual_venda}%'))
             
         except CategoriaAnimal.DoesNotExist:
-            self.stdout.write(self.style.ERROR('Categoria Bezerro(a) 0-12 M nao encontrada!'))
+            self.stdout.write(self.style.ERROR('Categoria Bezerro(a) 0-12 F nao encontrada!'))
             return
         
         # Listar todas as políticas
@@ -48,6 +48,7 @@ class Command(BaseCommand):
         politicas = PoliticaVendasCategoria.objects.filter(propriedade=propriedade).order_by('categoria__nome')
         for p in politicas:
             self.stdout.write(f'  - {p.categoria.nome}: {p.percentual_venda}%')
+
 
 
 

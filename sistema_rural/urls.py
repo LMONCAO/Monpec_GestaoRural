@@ -29,7 +29,8 @@ urlpatterns = [
     # LANDING PAGE COM VÍDEO - DEVE VIR PRIMEIRO (página inicial)
     path('', gestao_views.landing_page, name='landing_page'),
     
-    # Curral Dashboard v3 - DEVE VIR PRIMEIRO para garantir que seja encontrado
+    # Curral Dashboard v3 e v4 - DEVE VIR PRIMEIRO para garantir que seja encontrado
+    path('propriedade/<int:propriedade_id>/curral/v4/', views_curral.curral_dashboard_v4, name='curral_dashboard_v4'),
     path('propriedade/<int:propriedade_id>/curral/v3/', views_curral.curral_dashboard_v3, name='curral_dashboard_v3'),
     
     # Logout deve vir antes do admin para garantir que use nossa view personalizada

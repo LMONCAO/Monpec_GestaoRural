@@ -202,3 +202,14 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING('\nNenhum lançamento novo foi criado.'))
 
 
+
+
+
+
+
+
+
+
+
+
+

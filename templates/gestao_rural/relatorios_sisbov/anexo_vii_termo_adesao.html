@@ -1,0 +1,55 @@
+{% extends "base_modulos_unificado.html" %}
+
+{% block title %}Anexo VII - Termo de Adesão - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-file-signature"></i> ANEXO VII - TERMO DE ADESÃO À NORMA OPERACIONAL DO SISBOV
+                    </h4>
+                    <small>Conforme Instrução Normativa MAPA nº 17/2006</small>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <h5 class="mb-3">TERMO DE ADESÃO</h5>
+                            <p><strong>Propriedade:</strong> {{ propriedade.nome_propriedade }}</p>
+                            <p><strong>Município:</strong> {{ propriedade.municipio }} - {{ propriedade.uf }}</p>
+                            <p><strong>CNPJ/CPF:</strong> {{ propriedade.produtor_rural.cpf_cnpj|default:"—" }}</p>
+                            <p><strong>Data:</strong> {{ data_emissao|date:"d/m/Y" }}</p>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-info-circle"></i> Declaração</h6>
+                        <p class="mb-0">
+                            Declaro que adiro à Norma Operacional do Sistema Brasileiro de Identificação e 
+                            Certificação de Origem Bovina e Bubalina (SISBOV), comprometendo-me a cumprir 
+                            todas as exigências estabelecidas na Instrução Normativa MAPA nº 17/2006.
+                        </p>
+                    </div>
+
+                    <div class="mt-4 text-center">
+                        <a href="{% url 'relatorio_sisbov_anexo_vii_pdf' propriedade.id %}" class="btn btn-danger">
+                            <i class="fas fa-file-pdf"></i> Exportar PDF
+                        </a>
+                        <a href="{% url 'relatorios_sisbov_menu' propriedade.id %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Voltar
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+
+
+

@@ -1,0 +1,88 @@
+{% extends "base_modulos_unificado.html" %}
+
+{% block title %}Relatórios SISBOV - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<style>
+    @media (min-width: 1200px) {
+        .anexo-card-container {
+            flex: 0 0 12.5% !important;
+            max-width: 12.5% !important;
+        }
+    }
+    @media (max-width: 1199px) and (min-width: 992px) {
+        .anexo-card-container {
+            flex: 0 0 16.666667% !important;
+            max-width: 16.666667% !important;
+        }
+    }
+    @media (max-width: 991px) and (min-width: 768px) {
+        .anexo-card-container {
+            flex: 0 0 25% !important;
+            max-width: 25% !important;
+        }
+    }
+    @media (max-width: 767px) and (min-width: 576px) {
+        .anexo-card-container {
+            flex: 0 0 33.333333% !important;
+            max-width: 33.333333% !important;
+        }
+    }
+    @media (max-width: 575px) {
+        .anexo-card-container {
+            flex: 0 0 50% !important;
+            max-width: 50% !important;
+        }
+    }
+</style>
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-clipboard-list"></i> Relatórios Oficiais SISBOV
+                    </h4>
+                    <small>Conforme Instrução Normativa MAPA nº 17/2006</small>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-4">
+                        Selecione o relatório oficial que deseja visualizar ou exportar em PDF.
+                    </p>
+                    
+                    <div class="row">
+                        {% for anexo in anexos %}
+                        <div class="anexo-card-container mb-4">
+                            <div class="card h-100 border-left-primary shadow-sm">
+                                <div class="card-body">
+                                    <h5 class="card-title" style="font-size: 0.95rem;">
+                                        <i class="fas fa-file-alt text-primary"></i>
+                                        Anexo {{ anexo.numero }}
+                                    </h5>
+                                    <h6 class="card-subtitle mb-2 text-muted" style="font-size: 0.85rem; font-weight: 600;">{{ anexo.nome }}</h6>
+                                    <p class="card-text" style="font-size: 0.75rem; line-height: 1.3;">{{ anexo.descricao }}</p>
+                                    {% if anexo.obrigatorio %}
+                                    <span class="badge badge-warning badge-sm" style="font-size: 0.7rem;">Obrigatório</span>
+                                    {% endif %}
+                                </div>
+                                <div class="card-footer bg-transparent p-2">
+                                    <div class="d-flex flex-column">
+                                        <a href="{% url anexo.url propriedade.id %}" class="btn btn-primary btn-sm mb-1" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">
+                                            <i class="fas fa-eye"></i> Visualizar
+                                        </a>
+                                        <a href="{% url anexo.url_pdf propriedade.id %}" class="btn btn-danger btn-sm" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">
+                                            <i class="fas fa-file-pdf"></i> PDF
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

@@ -169,24 +169,41 @@ def verificar_email_token(token: str) -> Tuple[bool, Optional[User], str]:
 
 def registrar_sessao_segura(usuario: User, session_key: str, ip_address: str, user_agent: str = ''):
     """Registra sessão segura do usuário"""
+    import time
     from django.db import OperationalError
-    try:
-        SessaoSegura.objects.update_or_create(
-            session_key=session_key,
-            defaults={
-                'usuario': usuario,
-                'ip_address': ip_address,
-                'user_agent': user_agent,
-                'ativo': True,
-            }
-        )
-    except OperationalError:
-        # Tabela não existe ainda - ignora silenciosamente
-        pass
+    
+    max_retries = 3
+    retry_delay = 0.1  # 100ms
+    
+    for attempt in range(max_retries):
+        try:
+            SessaoSegura.objects.update_or_create(
+                session_key=session_key,
+                defaults={
+                    'usuario': usuario,
+                    'ip_address': ip_address,
+                    'user_agent': user_agent,
+                    'ativo': True,
+                }
+            )
+            break  # Sucesso, sair do loop
+        except OperationalError as e:
+            if "database is locked" in str(e).lower() and attempt < max_retries - 1:
+                # Aguardar antes de tentar novamente
+                time.sleep(retry_delay * (attempt + 1))
+                continue
+            else:
+                # Se for o último attempt ou erro diferente (ex: tabela não existe),
+                # ignora silenciosamente para não bloquear a requisição
+                pass
+                break
 
 
 def verificar_sessao_segura(usuario: User, session_key: str, ip_address: str) -> bool:
     """Verifica se a sessão é segura e válida"""
+    import time
+    from django.db import OperationalError
+    
     try:
         sessao = SessaoSegura.objects.get(
             usuario=usuario,
@@ -204,19 +221,49 @@ def verificar_sessao_segura(usuario: User, session_key: str, ip_address: str) ->
                 nivel_severidade=LogAuditoria.NivelSeveridade.ALTO,
                 sucesso=False,
             )
-            # Invalidar sessão antiga
+            # Invalidar sessão antiga com retry
             sessao.ativo = False
-            sessao.save(update_fields=['ativo'])
+            max_retries = 3
+            retry_delay = 0.1  # 100ms
+            for attempt in range(max_retries):
+                try:
+                    sessao.save(update_fields=['ativo'])
+                    break
+                except OperationalError as e:
+                    if "database is locked" in str(e).lower() and attempt < max_retries - 1:
+                        time.sleep(retry_delay * (attempt + 1))
+                        continue
+                    else:
+                        # Se for o último attempt ou erro diferente, ignora silenciosamente
+                        # para não bloquear a requisição
+                        pass
             return False
         
-        # Atualizar última atividade
+        # Atualizar última atividade com retry
         sessao.ultima_atividade = timezone.now()
-        sessao.save(update_fields=['ultima_atividade'])
+        max_retries = 3
+        retry_delay = 0.1  # 100ms
+        for attempt in range(max_retries):
+            try:
+                sessao.save(update_fields=['ultima_atividade'])
+                break
+            except OperationalError as e:
+                if "database is locked" in str(e).lower() and attempt < max_retries - 1:
+                    time.sleep(retry_delay * (attempt + 1))
+                    continue
+                else:
+                    # Se for o último attempt ou erro diferente, ignora silenciosamente
+                    # para não bloquear a requisição - a próxima requisição tentará novamente
+                    pass
         
         return True
     except SessaoSegura.DoesNotExist:
         # Sessão não existe ainda - será criada pelo middleware
         return True  # Permite criar na primeira vez
+    except OperationalError:
+        # Se houver erro de banco de dados, permite continuar para não bloquear a requisição
+        # A próxima requisição tentará novamente
+        return True
 
 
 def invalidar_sessao_segura(session_key: str):
