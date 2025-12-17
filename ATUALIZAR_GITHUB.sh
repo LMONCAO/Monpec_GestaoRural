@@ -119,3 +119,5 @@ echo "2. Ou execute ./ATUALIZAR_E_INICIAR.sh para atualizar e iniciar"
 echo
 echo "========================================"
 
+
+

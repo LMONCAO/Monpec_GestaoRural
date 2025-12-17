@@ -30,3 +30,5 @@ echo [2/2] Iniciando servidor...
 echo.
 call INICIAR.bat
 
+
+
