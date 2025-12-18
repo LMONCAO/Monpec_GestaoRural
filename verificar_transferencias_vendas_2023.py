@@ -92,3 +92,12 @@ print(f"\n[OK] Verificacao concluida!")
 
 
 
+
+
+
+
+
+
+
+
+

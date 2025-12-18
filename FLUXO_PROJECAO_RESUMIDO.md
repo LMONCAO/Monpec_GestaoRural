@@ -159,3 +159,12 @@ MÊS → Nascimentos → Mortes → Evolução → Vendas → Compras → Transf
 
 
 
+
+
+
+
+
+
+
+
+

@@ -1403,6 +1403,8 @@ def curral_identificar_codigo(request, propriedade_id):
                     'status_reprodutivo': status_reprodutivo,
                     'origem_reprodutiva': origem_reprodutiva,
                     'origem_cadastro': origem_cadastro_display,
+                    'cota_hilton': getattr(animal, 'cota_hilton', None) or getattr(animal, 'classificacao_zootecnica', '') or '',
+                    'classificacao_zootecnica': getattr(animal, 'classificacao_zootecnica', '') or '',
                 },
                 'mensagem': 'Animal localizado no rebanho.',
             }

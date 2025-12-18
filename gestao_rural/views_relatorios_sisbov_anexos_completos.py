@@ -542,3 +542,12 @@ def relatorio_sisbov_anexo_xii_pdf(request, propriedade_id):
 
 
 
+
+
+
+
+
+
+
+
+

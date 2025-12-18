@@ -87,3 +87,12 @@ print(f"Diferenca: {total_evolucoes - total_vendas}")
 
 
 
+
+
+
+
+
+
+
+
+
