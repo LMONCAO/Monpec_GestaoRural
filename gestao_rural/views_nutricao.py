@@ -16,6 +16,7 @@ from decimal import Decimal
 from datetime import date, datetime
 
 from .models import Propriedade
+from .decorators import obter_propriedade_com_permissao
 from .models_operacional import (
     EstoqueSuplementacao, CompraSuplementacao, DistribuicaoSuplementacao
 )
@@ -31,7 +32,7 @@ from .forms_completos import (
 @login_required
 def nutricao_dashboard(request, propriedade_id):
     """Dashboard consolidado de Nutrição"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     # ========== SUPLEMENTAÇÃO ==========
     estoques = EstoqueSuplementacao.objects.filter(propriedade=propriedade)
@@ -86,7 +87,7 @@ def nutricao_dashboard(request, propriedade_id):
 @login_required
 def estoque_suplementacao_lista(request, propriedade_id):
     """Lista de estoques de suplementação"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     estoques = EstoqueSuplementacao.objects.filter(propriedade=propriedade).order_by('tipo_suplemento')
     
     context = {
@@ -100,7 +101,7 @@ def estoque_suplementacao_lista(request, propriedade_id):
 @login_required
 def compra_suplementacao_nova(request, propriedade_id):
     """Registrar compra de suplementação"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     estoques = EstoqueSuplementacao.objects.filter(propriedade=propriedade)
 
     form = CompraSuplementacaoForm(request.POST or None)
@@ -136,7 +137,7 @@ def compra_suplementacao_nova(request, propriedade_id):
 @login_required
 def distribuicao_suplementacao_nova(request, propriedade_id):
     """Registrar distribuição de suplementação"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     estoques = EstoqueSuplementacao.objects.filter(propriedade=propriedade)
     pastagens = Pastagem.objects.filter(propriedade=propriedade)
 
@@ -184,7 +185,7 @@ def distribuicao_suplementacao_nova(request, propriedade_id):
 @login_required
 def cochos_lista(request, propriedade_id):
     """Lista de cochos"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     cochos = Cocho.objects.filter(propriedade=propriedade).select_related('pastagem').order_by('nome')
     
     context = {
@@ -198,7 +199,7 @@ def cochos_lista(request, propriedade_id):
 @login_required
 def controle_cocho_novo(request, propriedade_id):
     """Registrar controle de cocho"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     cochos = Cocho.objects.filter(propriedade=propriedade, status='ATIVO')
     
     if request.method == 'POST':

@@ -62,6 +62,21 @@ if IS_CLOUD_RUN:
     cloud_run_host = os.getenv('CLOUD_RUN_HOST', '')
     if cloud_run_host:
         CSRF_TRUSTED_ORIGINS.append(f'https://{cloud_run_host}')
+    
+    # Adicionar URL padrão do Cloud Run se disponível
+    project_id = os.getenv('GOOGLE_CLOUD_PROJECT', os.getenv('GCP_PROJECT', ''))
+    service_name = os.getenv('K_SERVICE', 'monpec')
+    region = os.getenv('REGION', 'us-central1')
+    
+    if project_id and service_name:
+        # Adicionar ambos os formatos possíveis do Cloud Run
+        default_cloud_run_url1 = f'https://{service_name}-{project_id}.{region}.run.app'
+        default_cloud_run_url2 = f'https://{service_name}-{project_id}.{region}.a.run.app'
+        
+        if default_cloud_run_url1 not in CSRF_TRUSTED_ORIGINS:
+            CSRF_TRUSTED_ORIGINS.append(default_cloud_run_url1)
+        if default_cloud_run_url2 not in CSRF_TRUSTED_ORIGINS:
+            CSRF_TRUSTED_ORIGINS.append(default_cloud_run_url2)
 
 # Banco de dados - Cloud SQL via Unix Socket (App Engine/Cloud Run/Cloud Run Jobs)
 CLOUD_SQL_CONNECTION_NAME = os.getenv('CLOUD_SQL_CONNECTION_NAME', '')

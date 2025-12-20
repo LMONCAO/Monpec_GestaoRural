@@ -1,0 +1,460 @@
+{% extends "base_modulos_unificado.html" %}
+{% load formatacao_br %}
+
+{% block title %}Emitir NF-e de Saída - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'compras_dashboard' propriedade.id %}">Compras</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'notas_fiscais_lista' propriedade.id %}">Notas Fiscais</a></li>
+            <li class="breadcrumb-item active">Emitir NF-e</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+        <div>
+            <h2 class="mb-0"><i class="bi bi-receipt-cutoff text-success me-2"></i>Emitir NF-e de Saída</h2>
+            <small class="text-muted">Emita nota fiscal eletrônica para suas vendas</small>
+        </div>
+    </div>
+
+    <form method="post" id="form-nfe">
+        {% csrf_token %}
+        
+        <div class="row">
+            <div class="col-xl-8">
+                <!-- Dados da NF-e -->
+                <div class="card mb-3">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="bi bi-file-earmark-text me-2"></i>Dados da Nota Fiscal</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Cliente *</label>
+                                {{ form.cliente }}
+                                {% if form.cliente.errors %}
+                                    <div class="text-danger small">{{ form.cliente.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Número da NF-e</label>
+                                <input type="text" class="form-control" value="{{ proximo_numero }}" disabled>
+                                <small class="text-muted">Número será gerado automaticamente</small>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Série *</label>
+                                {{ form.serie }}
+                                {% if form.serie.errors %}
+                                    <div class="text-danger small">{{ form.serie.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Data de Emissão *</label>
+                                {{ form.data_emissao }}
+                                {% if form.data_emissao.errors %}
+                                    <div class="text-danger small">{{ form.data_emissao.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Data de Saída</label>
+                                {{ form.data_entrada }}
+                                {% if form.data_entrada.errors %}
+                                    <div class="text-danger small">{{ form.data_entrada.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Itens da NF-e -->
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-list-ul me-2"></i>Itens da Nota Fiscal</h5>
+                    </div>
+                    <div class="card-body">
+                        {{ formset.management_form }}
+                        <div id="itens-container">
+                            {% for item_form in formset %}
+                            <div class="item-form border rounded p-3 mb-3" data-item-index="{{ forloop.counter0 }}">
+                                <div class="row g-3">
+                                    <div class="col-md-12">
+                                        <label class="form-label">Buscar Produto Cadastrado</label>
+                                        <div class="input-group">
+                                            <input type="text" 
+                                                   class="form-control produto-busca" 
+                                                   placeholder="Digite código, descrição ou NCM do produto..."
+                                                   data-item-index="{{ forloop.counter0 }}"
+                                                   autocomplete="off">
+                                            <button type="button" class="btn btn-outline-secondary" onclick="limparProduto({{ forloop.counter0 }})">
+                                                <i class="bi bi-x-circle"></i> Limpar
+                                            </button>
+                                        </div>
+                                        <div class="list-group produto-sugestoes" id="sugestoes-{{ forloop.counter0 }}" style="display: none; position: absolute; z-index: 1000; max-height: 200px; overflow-y: auto; width: 100%;"></div>
+                                    </div>
+                                    <div class="col-md-12">
+                                        <label class="form-label">Produto *</label>
+                                        {{ item_form.produto }}
+                                        <small class="text-muted">Selecione um produto cadastrado ou preencha manualmente abaixo</small>
+                                    </div>
+                                    <div class="col-md-12">
+                                        <label class="form-label">Descrição do Produto/Serviço *</label>
+                                        {{ item_form.descricao }}
+                                        {% if item_form.descricao.errors %}
+                                            <div class="text-danger small">{{ item_form.descricao.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Código do Produto</label>
+                                        {{ item_form.codigo_produto }}
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">NCM</label>
+                                        {{ item_form.ncm }}
+                                        <small class="text-muted">Ex: 0102.29.00</small>
+                                        <button type="button" class="btn btn-sm btn-outline-info mt-1" onclick="consultarNCM({{ forloop.counter0 }})">
+                                            <i class="bi bi-search"></i> Validar
+                                        </button>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">CFOP</label>
+                                        {{ item_form.cfop }}
+                                        <small class="text-muted">Ex: 5102</small>
+                                        <button type="button" class="btn btn-sm btn-outline-info mt-1" onclick="validarCFOP({{ forloop.counter0 }})">
+                                            <i class="bi bi-search"></i> Validar
+                                        </button>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Unidade</label>
+                                        {{ item_form.unidade_medida }}
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Quantidade *</label>
+                                        {{ item_form.quantidade }}
+                                        {% if item_form.quantidade.errors %}
+                                            <div class="text-danger small">{{ item_form.quantidade.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Valor Unitário (R$) *</label>
+                                        {{ item_form.valor_unitario }}
+                                        {% if item_form.valor_unitario.errors %}
+                                            <div class="text-danger small">{{ item_form.valor_unitario.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Valor Total (R$)</label>
+                                        <input type="text" class="form-control" id="valor-total-{{ forloop.counter0 }}" readonly>
+                                    </div>
+                                    {% if item_form.DELETE %}
+                                    <div class="col-md-12">
+                                        <div class="form-check">
+                                            {{ item_form.DELETE }}
+                                            <label class="form-check-label" for="{{ item_form.DELETE.id_for_label }}">
+                                                Remover este item
+                                            </label>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {{ item_form.id }}
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <button type="button" class="btn btn-outline-primary btn-sm" id="adicionar-item">
+                            <i class="bi bi-plus-circle me-1"></i>Adicionar Item
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Valores Totais -->
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-calculator me-2"></i>Valores</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Valor dos Produtos (R$) *</label>
+                                {{ form.valor_produtos }}
+                                {% if form.valor_produtos.errors %}
+                                    <div class="text-danger small">{{ form.valor_produtos.errors }}</div>
+                                {% endif %}
+                                <small class="text-muted">Será calculado automaticamente pelos itens</small>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Valor do Frete (R$)</label>
+                                {{ form.valor_frete }}
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Valor do Seguro (R$)</label>
+                                {{ form.valor_seguro }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Valor do Desconto (R$)</label>
+                                {{ form.valor_desconto }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Outras Despesas (R$)</label>
+                                {{ form.valor_outros }}
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label">Observações</label>
+                                {{ form.observacoes }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2 mb-4">
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-circle me-1"></i>Emitir NF-e
+                    </button>
+                    <a href="{% url 'notas_fiscais_lista' propriedade.id %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle me-1"></i>Cancelar
+                    </a>
+                </div>
+            </div>
+
+            <div class="col-xl-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Informações</h6>
+                    </div>
+                    <div class="card-body small text-muted">
+                        <ul class="mb-3">
+                            <li>A NF-e será criada e enviada para autorização na SEFAZ.</li>
+                            <li>Certifique-se de que o cliente está cadastrado corretamente.</li>
+                            <li>Os valores serão calculados automaticamente baseado nos itens.</li>
+                            <li>Após a autorização, a chave de acesso será gerada.</li>
+                        </ul>
+                        <p class="mb-0">
+                            <strong>Nota:</strong> Para emissão automática, configure:
+                            <ul class="mb-0 mt-2">
+                                <li><strong>Opção 1:</strong> Integração direta com SEFAZ (certificado digital) - Configure <code>NFE_SEFAZ</code> nas settings</li>
+                                <li><strong>Opção 2:</strong> API terceira (Focus NFe, NFe.io) - Configure <code>API_NFE</code> nas settings</li>
+                            </ul>
+                            Sem configuração, a NF-e será criada com status "PENDENTE" para emissão manual posterior.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+let timeoutBusca = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Calcular valor total dos itens
+    function calcularValorTotal(index) {
+        const quantidade = parseFloat(document.querySelector(`#id_form-${index}-quantidade`).value) || 0;
+        const valorUnitario = parseFloat(document.querySelector(`#id_form-${index}-valor_unitario`).value) || 0;
+        const valorTotal = quantidade * valorUnitario;
+        document.querySelector(`#valor-total-${index}`).value = valorTotal.toFixed(2);
+        
+        // Recalcular valor total dos produtos
+        recalcularValorProdutos();
+    }
+    
+    function recalcularValorProdutos() {
+        let total = 0;
+        document.querySelectorAll('[id^="valor-total-"]').forEach(input => {
+            total += parseFloat(input.value) || 0;
+        });
+        document.querySelector('#id_valor_produtos').value = total.toFixed(2);
+    }
+    
+    // Adicionar listeners para cálculo automático
+    document.querySelectorAll('[id^="id_form-"][id$="-quantidade"], [id^="id_form-"][id$="-valor_unitario"]').forEach(input => {
+        input.addEventListener('input', function() {
+            const match = this.id.match(/id_form-(\d+)-/);
+            if (match) {
+                calcularValorTotal(match[1]);
+            }
+        });
+    });
+    
+    // Calcular valores iniciais
+    document.querySelectorAll('[id^="valor-total-"]').forEach((input, index) => {
+        calcularValorTotal(index);
+    });
+    
+    // Busca de produtos
+    document.querySelectorAll('.produto-busca').forEach(input => {
+        input.addEventListener('input', function() {
+            const index = this.dataset.itemIndex;
+            const termo = this.value.trim();
+            
+            clearTimeout(timeoutBusca);
+            
+            if (termo.length < 2) {
+                document.getElementById(`sugestoes-${index}`).style.display = 'none';
+                return;
+            }
+            
+            timeoutBusca = setTimeout(() => {
+                buscarProdutos(termo, index);
+            }, 300);
+        });
+        
+        // Fechar sugestões ao clicar fora
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.item-form')) {
+                document.querySelectorAll('.produto-sugestoes').forEach(el => {
+                    el.style.display = 'none';
+                });
+            }
+        });
+    });
+    
+    // Listener para mudança de produto selecionado
+    document.querySelectorAll('.produto-select').forEach(select => {
+        select.addEventListener('change', function() {
+            if (this.value) {
+                carregarDadosProduto(this.value, this);
+            }
+        });
+    });
+});
+
+function buscarProdutos(termo, index) {
+    fetch(`/ajax/buscar-produtos/?termo=${encodeURIComponent(termo)}`)
+        .then(response => response.json())
+        .then(data => {
+            const sugestoes = document.getElementById(`sugestoes-${index}`);
+            sugestoes.innerHTML = '';
+            
+            if (data.produtos && data.produtos.length > 0) {
+                data.produtos.forEach(produto => {
+                    const item = document.createElement('a');
+                    item.href = '#';
+                    item.className = 'list-group-item list-group-item-action';
+                    item.innerHTML = `
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">${produto.codigo} - ${produto.descricao}</h6>
+                        </div>
+                        <small class="text-muted">NCM: ${produto.ncm} | ${produto.categoria}</small>
+                    `;
+                    item.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        selecionarProduto(produto, index);
+                    });
+                    sugestoes.appendChild(item);
+                });
+                sugestoes.style.display = 'block';
+            } else {
+                sugestoes.style.display = 'none';
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao buscar produtos:', error);
+        });
+}
+
+function selecionarProduto(produto, index) {
+    // Preencher campos do formulário
+    document.querySelector(`#id_form-${index}-produto`).value = produto.id;
+    document.querySelector(`#id_form-${index}-codigo_produto`).value = produto.codigo;
+    document.querySelector(`#id_form-${index}-descricao`).value = produto.descricao;
+    document.querySelector(`#id_form-${index}-ncm`).value = produto.ncm;
+    document.querySelector(`#id_form-${index}-unidade_medida`).value = produto.unidade_medida;
+    
+    // Determinar CFOP baseado no tipo de operação (simplificado - pode melhorar)
+    // Por padrão, usar CFOP de saída estadual
+    if (produto.cfop_saida_estadual) {
+        document.querySelector(`#id_form-${index}-cfop`).value = produto.cfop_saida_estadual;
+    }
+    
+    // Preencher preço se disponível
+    if (produto.preco_venda && parseFloat(produto.preco_venda) > 0) {
+        document.querySelector(`#id_form-${index}-valor_unitario`).value = parseFloat(produto.preco_venda).toFixed(2);
+    }
+    
+    // Esconder sugestões
+    document.getElementById(`sugestoes-${index}`).style.display = 'none';
+    document.querySelector(`[data-item-index="${index}"].produto-busca`).value = `${produto.codigo} - ${produto.descricao}`;
+    
+    // Recalcular valores
+    calcularValorTotal(index);
+}
+
+function limparProduto(index) {
+    document.querySelector(`#id_form-${index}-produto`).value = '';
+    document.querySelector(`[data-item-index="${index}"].produto-busca`).value = '';
+    document.getElementById(`sugestoes-${index}`).style.display = 'none';
+}
+
+function carregarDadosProduto(produtoId, selectElement) {
+    // Buscar dados do produto selecionado
+    fetch(`/ajax/buscar-produtos/?termo=${produtoId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.produtos && data.produtos.length > 0) {
+                const produto = data.produtos.find(p => p.id == produtoId);
+                if (produto) {
+                    const index = selectElement.closest('.item-form').dataset.itemIndex;
+                    selecionarProduto(produto, index);
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao carregar produto:', error);
+        });
+}
+
+function consultarNCM(index) {
+    const ncm = document.querySelector(`#id_form-${index}-ncm`).value;
+    if (!ncm) {
+        alert('Informe o NCM para consultar');
+        return;
+    }
+    
+    fetch(`/ajax/consultar-ncm/?ncm=${encodeURIComponent(ncm)}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.sucesso) {
+                if (data.descricao) {
+                    alert(`NCM válido!\n\nDescrição: ${data.descricao}`);
+                } else {
+                    alert(`NCM validado localmente.\n\n${data.aviso || ''}`);
+                }
+            } else {
+                alert(`Erro: ${data.erro}`);
+            }
+        })
+        .catch(error => {
+            alert('Erro ao consultar NCM');
+            console.error(error);
+        });
+}
+
+function validarCFOP(index) {
+    const cfop = document.querySelector(`#id_form-${index}-cfop`).value;
+    if (!cfop) {
+        alert('Informe o CFOP para validar');
+        return;
+    }
+    
+    fetch(`/ajax/validar-cfop/?cfop=${encodeURIComponent(cfop)}&tipo=SAIDA`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.sucesso) {
+                alert(`CFOP válido!\n\n${data.descricao}\n\n${data.aviso || ''}`);
+            } else {
+                alert(`Erro: ${data.erro}`);
+            }
+        })
+        .catch(error => {
+            alert('Erro ao validar CFOP');
+            console.error(error);
+        });
+}
+</script>
+{% endblock %}
+

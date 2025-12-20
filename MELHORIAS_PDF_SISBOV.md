@@ -181,3 +181,7 @@ def relatorio_sisbov_anexo_vi_pdf(request, propriedade_id):
 
 
 
+
+
+
+

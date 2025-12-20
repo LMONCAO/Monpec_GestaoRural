@@ -27,8 +27,13 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Google Fonts - Padrão Unificado MONPEC -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Tipografia Unificada -->
+    <link rel="stylesheet" href="{% static 'css/tipografia_unificada.css' %}">
     
     <style>
         :root {
@@ -50,9 +55,10 @@
         }
 
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Poppins', 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif !important;
             color: var(--texto-escuro);
             line-height: 1.6;
+            font-size: 0.95rem;
             overflow-x: hidden;
             background: var(--fundo-cinza);
         }
@@ -290,7 +296,7 @@
             background-repeat: no-repeat;
             z-index: 0;
             opacity: 0;
-            transition: opacity 1.5s ease-in-out;
+            transition: opacity 2s ease-in-out;
             /* Melhorar qualidade de renderização das imagens */
             image-rendering: -webkit-optimize-contrast;
             image-rendering: crisp-edges;
@@ -308,10 +314,13 @@
             /* Melhorar nitidez da imagem */
             filter: contrast(1.02) brightness(1.01);
             -webkit-filter: contrast(1.02) brightness(1.01);
+            /* Garantir que o slide esteja visível quando ativo */
+            pointer-events: none;
         }
 
         .video-hero-section .background-slide.active {
-            opacity: 1;
+            opacity: 1 !important;
+            z-index: 1;
         }
 
         /* Overlay escuro para melhorar legibilidade do texto */
@@ -335,98 +344,9 @@
             z-index: 2;
         }
 
-        .video-wrapper-hero {
-            position: relative;
-            width: 100%;
-            padding-bottom: 35%; /* Proporção ainda mais horizontal para vídeo maior */
-            background: rgba(0, 0, 0, 0.1);
-            border-radius: 20px;
-            overflow: hidden;
-            box-shadow: 0 25px 70px rgba(0, 0, 0, 0.4), 0 10px 20px rgba(0, 0, 0, 0.3);
-            /* Melhorar renderização do container */
-            transform: translateZ(0);
-            -webkit-transform: translateZ(0);
-            will-change: contents;
-        }
+        /* Removido: video-wrapper-hero e video - não são mais necessários com slideshow de fotos */
 
-        .video-wrapper-hero video {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            object-position: center;
-            border-radius: 20px;
-            /* Forçar renderização em alta qualidade */
-            transform: translateZ(0) scale(1);
-            -webkit-transform: translateZ(0) scale(1);
-            will-change: transform;
-            /* Aceleração de hardware para melhor performance */
-            -webkit-backface-visibility: hidden;
-            backface-visibility: hidden;
-            -webkit-perspective: 1000;
-            perspective: 1000;
-            /* Melhorar qualidade de interpolação */
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-            /* Forçar alta qualidade de renderização */
-            image-rendering: -webkit-optimize-contrast;
-            image-rendering: auto;
-            /* Melhorar nitidez e contraste */
-            filter: contrast(1.08) brightness(1.03) saturate(1.02);
-            -webkit-filter: contrast(1.08) brightness(1.03) saturate(1.02);
-            /* Otimizar para qualidade máxima */
-            -webkit-transform-style: preserve-3d;
-            transform-style: preserve-3d;
-            /* Forçar renderização nativa sem compressão */
-            -webkit-image-rendering: -webkit-optimize-contrast;
-            image-rendering: -webkit-optimize-contrast;
-            /* Desabilitar interação com o vídeo */
-            pointer-events: none;
-            user-select: none;
-            -webkit-user-select: none;
-        }
-
-        /* Botão customizado para ativar/desativar som */
-        .sound-toggle-btn {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: rgba(0, 0, 0, 0.6);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            color: white;
-            font-size: 20px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 100;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-            pointer-events: auto;
-            -webkit-user-select: none;
-            user-select: none;
-        }
-
-        .sound-toggle-btn:hover {
-            background: rgba(0, 0, 0, 0.8);
-            border-color: rgba(255, 255, 255, 0.5);
-            transform: scale(1.1);
-        }
-
-        .sound-toggle-btn:active {
-            transform: scale(0.95);
-        }
-
-        .sound-toggle-btn i {
-            transition: all 0.3s ease;
-            pointer-events: none;
-        }
+        /* Removido: sound-toggle-btn - não é mais necessário sem vídeo */
 
         .hero-content {
             position: absolute;
@@ -1033,7 +953,7 @@
             border: 2px solid rgba(79, 195, 247, 0.2);
             border-radius: 12px;
             font-size: 15px;
-            font-family: 'Inter', sans-serif;
+            font-family: 'Poppins', 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif !important;
             color: var(--texto-muito-escuro);
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             background: white;
@@ -1134,18 +1054,7 @@
             color: rgba(255,255,255,0.6);
         }
 
-        /* ========== POPUP OFERTA ========== */
-        .popup-oferta-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.85);
-            z-index: 10000;
-            animation: fadeIn 0.3s ease;
-        }
+        /* CSS do popup de promoção removido */
 
         .popup-oferta-overlay.show {
             display: flex;
@@ -1415,6 +1324,7 @@
                 line-height: 1.2;
             }
         }
+        */
 
         /* ========== RESPONSIVIDADE ========== */
         @media (max-width: 768px) {
@@ -1438,15 +1348,7 @@
                 max-width: 100%;
             }
 
-            .video-wrapper-hero {
-                padding-bottom: 45%;
-                border-radius: 15px;
-            }
-
-            .video-wrapper-hero video {
-                /* Manter qualidade em mobile */
-                image-rendering: auto;
-            }
+            /* Removido: video-wrapper-hero - não é mais necessário com slideshow de fotos */
 
             .hero-content {
                 width: 95%;
@@ -1550,36 +1452,17 @@
         </div>
     </header>
 
-    <!-- Hero Section com Vídeo -->
+    <!-- Hero Section com Slideshow de Fotos -->
     <section class="hero-section video-hero-section" id="inicio">
-        <!-- Slideshow de fundo -->
+        <!-- Slideshow de fundo com todas as fotos -->
         <div class="background-slide active" style="background-image: url('{% static 'site/foto1.jpeg' %}');"></div>
         <div class="background-slide" style="background-image: url('{% static 'site/foto2.jpeg' %}');"></div>
+        <div class="background-slide" style="background-image: url('{% static 'site/foto3.jpeg' %}');"></div>
+        <div class="background-slide" style="background-image: url('{% static 'site/foto4.jpeg' %}');"></div>
+        <div class="background-slide" style="background-image: url('{% static 'site/foto5.jpeg' %}');"></div>
+        <div class="background-slide" style="background-image: url('{% static 'site/foto6.jpeg' %}');"></div>
         
         <div class="video-container-hero">
-            <div class="video-wrapper-hero">
-                <video 
-                    id="heroVideo"
-                    autoplay 
-                    muted 
-                    loop 
-                    playsinline 
-                    preload="auto"
-                    webkit-playsinline="true"
-                    x-webkit-airplay="allow"
-                    style="width: 100%; height: 100%;"
-                    poster=""
-                    disablePictureInPicture
-                    controlsList="nodownload nofullscreen noremoteplayback">
-                    <source src="{% static 'site/video.mp4' %}" type="video/mp4">
-                    Seu navegador não suporta a tag de vídeo.
-                </video>
-                <!-- Botão customizado apenas para ativar/desativar som -->
-                <button id="toggleSound" class="sound-toggle-btn" aria-label="Ativar/Desativar som">
-                    <i class="fas fa-volume-mute" id="soundIcon"></i>
-                </button>
-            </div>
-            
             <div class="hero-content">
                 <div class="hero-badge">GESTÃO RURAL INTELIGENTE</div>
                 <h1 class="hero-title">Controle completo da sua fazenda:<br>rebanho, custos, produção<br>e projetos bancários</h1>
@@ -1840,50 +1723,7 @@
         <i class="fab fa-whatsapp"></i>
     </a>
 
-    <!-- Popup Oferta Especial -->
-    <div class="popup-oferta-overlay" id="popupOferta">
-        <div class="popup-oferta-content">
-            <button class="popup-oferta-close" onclick="fecharPopup()">&times;</button>
-            
-            <div class="countdown-container">
-                <div class="countdown-title">Oferta por Tempo Limitado</div>
-                <div class="countdown-timer">
-                    <div class="countdown-item">
-                        <div class="countdown-number" id="dias">00</div>
-                        <div class="countdown-label">Dias</div>
-                    </div>
-                    <div class="countdown-item">
-                        <div class="countdown-number" id="horas">00</div>
-                        <div class="countdown-label">Horas</div>
-                    </div>
-                    <div class="countdown-item">
-                        <div class="countdown-number" id="minutos">00</div>
-                        <div class="countdown-label">Minutos</div>
-                    </div>
-                    <div class="countdown-item">
-                        <div class="countdown-number" id="segundos">00</div>
-                        <div class="countdown-label">Segundos</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="popup-oferta-info">
-                <h3>SISTEMA SERÁ LIBERADO EM: 05/12/2025</h3>
-                <p>Garanta seu acesso com desconto especial de pré-lançamento!</p>
-                <p class="preco-destaque">Pague apenas R$ 99,00</p>
-                <p style="color: #FFD700; font-weight: 600; margin-top: 15px;">
-                    O valor de 1 mensalidade e ganhe acesso por <strong>1 ANO INTEIRO!</strong>
-                </p>
-            </div>
-
-            <a href="https://pay.hotmart.com/O102944551F" target="_blank" class="btn-oferta">
-                QUERO GARANTIR MEU ACESSO
-            </a>
-            <a href="https://pay.hotmart.com/O102944551F" target="_blank" class="btn-oferta" style="margin-top: 10px;">
-                GARANTIR MEU LUGAR AGORA
-            </a>
-        </div>
-    </div>
+    <!-- Popup de promoção removido -->
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
@@ -1931,102 +1771,58 @@
         // Form submission - removido preventDefault para permitir envio real
         // O formulário agora será enviado normalmente para o servidor
 
-        // ========== POPUP OFERTA ==========
-        function mostrarPopup() {
-            const popup = document.getElementById('popupOferta');
-            // Verificar se já foi fechado hoje (usando localStorage)
-            const popupFechado = localStorage.getItem('popupOfertaFechado');
-            const hoje = new Date().toDateString();
-            
-            if (popupFechado !== hoje) {
-                popup.classList.add('show');
-            }
-        }
-
-        function fecharPopup() {
-            const popup = document.getElementById('popupOferta');
-            popup.classList.remove('show');
-            // Salvar que foi fechado hoje
-            const hoje = new Date().toDateString();
-            localStorage.setItem('popupOfertaFechado', hoje);
-        }
-
-        // Fechar ao clicar fora do popup ou tocar fora (mobile)
-        document.getElementById('popupOferta').addEventListener('click', function(e) {
-            if (e.target === this) {
-                fecharPopup();
-            }
-        });
-
-        // Fechar ao tocar fora do popup em mobile
-        document.getElementById('popupOferta').addEventListener('touchend', function(e) {
-            if (e.target === this) {
-                e.preventDefault();
-                fecharPopup();
-            }
-        });
-
-        // Countdown Timer
-        function atualizarCountdown() {
-            const dataLancamento = new Date('2025-12-05T00:00:00').getTime();
-            const agora = new Date().getTime();
-            const diferenca = dataLancamento - agora;
-
-            if (diferenca > 0) {
-                const dias = Math.floor(diferenca / (1000 * 60 * 60 * 24));
-                const horas = Math.floor((diferenca % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                const minutos = Math.floor((diferenca % (1000 * 60 * 60)) / (1000 * 60));
-                const segundos = Math.floor((diferenca % (1000 * 60)) / 1000);
-
-                document.getElementById('dias').textContent = String(dias).padStart(2, '0');
-                document.getElementById('horas').textContent = String(horas).padStart(2, '0');
-                document.getElementById('minutos').textContent = String(minutos).padStart(2, '0');
-                document.getElementById('segundos').textContent = String(segundos).padStart(2, '0');
-            } else {
-                // Se a data já passou, mostrar zeros
-                document.getElementById('dias').textContent = '00';
-                document.getElementById('horas').textContent = '00';
-                document.getElementById('minutos').textContent = '00';
-                document.getElementById('segundos').textContent = '00';
-            }
-        }
-
-        // Atualizar countdown a cada segundo
-        setInterval(atualizarCountdown, 1000);
-        atualizarCountdown();
-
-        // Mostrar popup após 3 segundos da página carregar
-        setTimeout(mostrarPopup, 3000);
-
-        // Mostrar popup quando o usuário tentar sair da página (exit intent)
-        document.addEventListener('mouseout', function(e) {
-            if (!e.toElement && !e.relatedTarget) {
-                mostrarPopup();
-            }
-        });
+        /* JavaScript do popup de promoção removido */
 
         // ========== SLIDESHOW DE FUNDO COM OTIMIZAÇÃO DE QUALIDADE ==========
         document.addEventListener('DOMContentLoaded', function() {
             const slides = document.querySelectorAll('.video-hero-section .background-slide');
             let currentSlide = 0;
             
+            console.log('Slideshow: Encontrados', slides.length, 'slides');
+            
+            if (slides.length === 0) {
+                console.error('Slideshow: Nenhum slide encontrado!');
+                return;
+            }
+            
+            // Garantir que apenas o primeiro slide esteja ativo inicialmente
+            slides.forEach((slide, index) => {
+                if (index === 0) {
+                    slide.classList.add('active');
+                } else {
+                    slide.classList.remove('active');
+                }
+            });
+            
             // Pré-carregar todas as imagens em alta qualidade
             slides.forEach((slide, index) => {
                 const bgImage = slide.style.backgroundImage;
                 if (bgImage) {
                     const img = new Image();
-                    img.src = bgImage.replace(/url\(['"]?([^'"]+)['"]?\)/, '$1');
+                    // Extrair URL corretamente, removendo aspas e parênteses
+                    let imageUrl = bgImage.replace(/url\(['"]?([^'"]+)['"]?\)/, '$1');
+                    // Remover espaços extras
+                    imageUrl = imageUrl.trim();
+                    img.src = imageUrl;
+                    
                     img.onload = function() {
+                        console.log('Slideshow: Imagem', index + 1, 'carregada:', imageUrl);
                         // Forçar renderização em alta qualidade
                         slide.style.imageRendering = 'auto';
                         slide.style.webkitImageRendering = 'auto';
                         // Aplicar otimizações de qualidade
                         slide.style.willChange = 'opacity, transform';
                     };
+                    
+                    img.onerror = function() {
+                        console.error('Slideshow: Erro ao carregar imagem', index + 1, ':', imageUrl);
+                    };
                 }
             });
             
             function nextSlide() {
+                if (slides.length === 0) return;
+                
                 // Remove classe active do slide atual
                 slides[currentSlide].classList.remove('active');
                 
@@ -2036,137 +1832,18 @@
                 // Adiciona classe active ao próximo slide
                 slides[currentSlide].classList.add('active');
                 
+                console.log('Slideshow: Mudando para slide', currentSlide + 1);
+                
                 // Forçar renderização em alta qualidade
                 slides[currentSlide].style.willChange = 'opacity, transform';
             }
             
-            // Inicia o slideshow - muda a cada 15 segundos
-            setInterval(nextSlide, 15000);
+            // Inicia o slideshow - muda a cada 5 segundos para transição mais dinâmica
+            console.log('Slideshow: Iniciando com intervalo de 5 segundos');
+            setInterval(nextSlide, 5000);
         });
 
-        // ========== CONTROLE DE SOM DO VÍDEO ==========
-        document.addEventListener('DOMContentLoaded', function() {
-            const video = document.getElementById('heroVideo');
-            const toggleSoundBtn = document.getElementById('toggleSound');
-            const soundIcon = document.getElementById('soundIcon');
-            
-            if (video && toggleSoundBtn && soundIcon) {
-                // Garantir que o vídeo sempre toque (sem pausar)
-                video.addEventListener('pause', function() {
-                    video.play();
-                });
-                
-                // Prevenir que o vídeo seja pausado ao clicar
-                video.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    video.play();
-                });
-                
-                // Desabilitar controles de contexto
-                video.addEventListener('contextmenu', function(e) {
-                    e.preventDefault();
-                });
-                
-                // Botão para ativar/desativar som
-                toggleSoundBtn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    
-                    console.log('Botão clicado! Estado atual muted:', video.muted);
-                    
-                    if (video.muted) {
-                        video.muted = false;
-                        console.log('Som ativado');
-                        if (soundIcon) {
-                            soundIcon.className = 'fas fa-volume-up';
-                        }
-                    } else {
-                        video.muted = true;
-                        console.log('Som desativado');
-                        if (soundIcon) {
-                            soundIcon.className = 'fas fa-volume-mute';
-                        }
-                    }
-                });
-                
-                // Atualizar ícone baseado no estado inicial (muted)
-                if (video.muted) {
-                    soundIcon.className = 'fas fa-volume-mute';
-                } else {
-                    soundIcon.className = 'fas fa-volume-up';
-                }
-                
-                console.log('Controle de som inicializado. Vídeo muted:', video.muted);
-            }
-        });
-
-        // ========== OTIMIZAÇÃO DE QUALIDADE DO VÍDEO ==========
-        document.addEventListener('DOMContentLoaded', function() {
-            const video = document.getElementById('heroVideo');
-            
-            if (video) {
-                // Forçar melhor qualidade de renderização
-                video.setAttribute('playsinline', 'true');
-                video.setAttribute('webkit-playsinline', 'true');
-                
-                // Garantir que o vídeo sempre toque
-                video.play().catch(function(error) {
-                    // Se autoplay falhar, tentar novamente
-                    setTimeout(function() {
-                        video.play();
-                    }, 100);
-                });
-                
-                // Quando o vídeo estiver pronto, aplicar otimizações
-                video.addEventListener('loadedmetadata', function() {
-                    // Forçar alta qualidade
-                    if (video.webkitDecodedFrameCount !== undefined) {
-                        video.style.imageRendering = 'auto';
-                    }
-                    
-                    // Melhorar qualidade de renderização
-                    video.style.transform = 'translateZ(0) scale(1)';
-                    video.style.webkitTransform = 'translateZ(0) scale(1)';
-                });
-
-                // Quando o vídeo começar a tocar, garantir qualidade máxima
-                video.addEventListener('play', function() {
-                    // Forçar renderização em alta qualidade
-                    video.style.willChange = 'transform';
-                    
-                    // Aplicar filtros de qualidade aprimorados (se suportado)
-                    if (CSS.supports('filter', 'contrast(1.08)')) {
-                        video.style.filter = 'contrast(1.08) brightness(1.03) saturate(1.02)';
-                        video.style.webkitFilter = 'contrast(1.08) brightness(1.03) saturate(1.02)';
-                    }
-                    
-                    // Forçar renderização nativa sem compressão
-                    video.style.imageRendering = 'auto';
-                    video.style.webkitImageRendering = 'auto';
-                });
-
-                // Prevenir compressão de qualidade
-                video.addEventListener('loadeddata', function() {
-                    // Garantir que o vídeo seja renderizado em resolução nativa
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    if (ctx) {
-                        ctx.imageSmoothingEnabled = true;
-                        ctx.imageSmoothingQuality = 'high';
-                    }
-                });
-
-                // Otimizar para diferentes conexões
-                if (navigator.connection) {
-                    const connection = navigator.connection;
-                    // Se a conexão for rápida, garantir qualidade máxima
-                    if (connection.effectiveType === '4g' || connection.downlink > 5) {
-                        video.setAttribute('preload', 'auto');
-                    }
-                }
-            }
-        });
+        /* Removido: Todo o código relacionado ao vídeo - não é mais necessário */
     </script>
 </body>
 </html>

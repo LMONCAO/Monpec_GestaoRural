@@ -1,12 +1,14 @@
-{% extends 'base_moderno.html' %}
+{% extends 'base_modulos_unificado.html' %}
 {% load formatacao_br %}
 
 {% block title %}Propriedades - {{ produtor.nome }}{% endblock %}
 
-{% block page_title %}Propriedades de {{ produtor.nome }}{% endblock %}
+{% block breadcrumb_extra %}
+<li class="breadcrumb-item active">Propriedades</li>
+{% endblock %}
 
-{% block content_authenticated %}
-<div class="fade-in-up">
+{% block content %}
+<div class="container-fluid">
     <!-- Cabeçalho da Página -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -15,108 +17,113 @@
             </h2>
             <p class="text-muted mb-0">Produtor: {{ produtor.nome }}</p>
         </div>
-        <a href="{% url 'propriedade_nova' produtor.id %}" class="btn-moderno">
-            Adicionar Nova Propriedade
+        <a href="{% url 'propriedade_nova_auto' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle me-2"></i>Adicionar Nova Propriedade
         </a>
     </div>
 
     <!-- Lista de Propriedades -->
     {% if propriedades %}
-    <div class="propriedades-grid">
+    <div class="row">
         {% for propriedade in propriedades %}
-        <div class="propriedade-card">
-            <div class="card-header-moderno">
-                <h5 class="propriedade-name mb-0">{{ propriedade.nome_propriedade }}</h5>
-            </div>
-            
-            <div class="propriedade-details">
-                <div class="detail-item">
-                    <span class="detail-label">
-                        <i class="bi bi-geo-alt me-1"></i>Localização
-                    </span>
-                    <span class="detail-value">{{ propriedade.municipio }}/{{ propriedade.uf }}</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">
-                        <i class="bi bi-rulers me-1"></i>Área Total
-                    </span>
-                    <span class="detail-value">{{ propriedade.area_total_ha|numero_br:2 }} ha</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">
-                        <i class="bi bi-tags me-1"></i>Tipo
-                    </span>
-                    <span class="badge-moderno badge-primary">
-                        {{ propriedade.get_tipo_operacao_display }}
-                    </span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">
-                        <i class="bi bi-diagram-3 me-1"></i>Ciclos Pecuários
-                    </span>
-                    <span class="detail-value">{{ propriedade.get_ciclos_pecuarios_display }}</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">
-                        <i class="bi bi-building me-1"></i>Propriedade
-                    </span>
-                    <span class="detail-value">{{ propriedade.get_tipo_propriedade_display }}</span>
-                </div>
-                {% if propriedade.tipo_propriedade == 'PROPRIA' and propriedade.valor_total_propriedade %}
-                <div class="detail-item">
-                    <span class="detail-label">
-                        <i class="bi bi-cash-stack me-1"></i>Valor Total
-                    </span>
-                    <span class="detail-value text-success fw-bold">{{ propriedade.valor_total_propriedade|moeda_br }}</span>
-                </div>
-                {% elif propriedade.tipo_propriedade == 'ARRENDAMENTO' and propriedade.valor_mensal_total_arrendamento %}
-                <div class="detail-item">
-                    <span class="detail-label">
-                        <i class="bi bi-calendar-month me-1"></i>Arrendamento
-                    </span>
-                    <span class="detail-value text-warning fw-bold">{{ propriedade.valor_mensal_total_arrendamento|moeda_br }}/mês</span>
-                </div>
-                {% endif %}
-            </div>
-            
-            <div class="propriedade-actions">
-                <div class="d-grid gap-2 mt-3">
-                    <a href="{% url 'propriedade_modulos' propriedade.id %}" class="btn-moderno btn-modulo-principal">
-                        <i class="bi bi-grid-3x3-gap-fill me-2"></i>
-                        <strong>Acessar Funcionalidades</strong>
-                    </a>
-                    <small class="text-muted text-center">
-                        <i class="bi bi-info-circle me-1"></i>
-                        Pecuária, Financeiro, Projetos e muito mais
-                    </small>
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">{{ propriedade.nome_propriedade }}</h5>
                 </div>
                 
-                <div class="d-flex gap-2 mt-4">
-                    <a href="{% url 'propriedade_editar' propriedade.id %}" class="btn-moderno btn-outline">
-                        <i class="bi bi-pencil me-1"></i> Editar
-                    </a>
-                    <a href="{% url 'propriedade_excluir' propriedade.id %}" class="btn-moderno btn-outline btn-danger">
-                        <i class="bi bi-trash me-1"></i> Excluir
-                    </a>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <small class="text-muted d-block mb-1">
+                            <i class="bi bi-geo-alt me-1"></i>Localização
+                        </small>
+                        <strong>{{ propriedade.municipio }}/{{ propriedade.uf }}</strong>
+                    </div>
+                    <div class="mb-3">
+                        <small class="text-muted d-block mb-1">
+                            <i class="bi bi-rulers me-1"></i>Área Total
+                        </small>
+                        <strong>{{ propriedade.area_total_ha|numero_br:2 }} ha</strong>
+                    </div>
+                    <div class="mb-3">
+                        <small class="text-muted d-block mb-1">
+                            <i class="bi bi-tags me-1"></i>Tipo
+                        </small>
+                        <span class="badge bg-primary">
+                            {{ propriedade.get_tipo_operacao_display }}
+                        </span>
+                    </div>
+                    <div class="mb-3">
+                        <small class="text-muted d-block mb-1">
+                            <i class="bi bi-diagram-3 me-1"></i>Ciclos Pecuários
+                        </small>
+                        <strong>{{ propriedade.get_ciclos_pecuarios_display }}</strong>
+                    </div>
+                    <div class="mb-3">
+                        <small class="text-muted d-block mb-1">
+                            <i class="bi bi-building me-1"></i>Propriedade
+                        </small>
+                        <strong>{{ propriedade.get_tipo_propriedade_display }}</strong>
+                    </div>
+                    {% if propriedade.tipo_propriedade == 'PROPRIA' and propriedade.valor_total_propriedade %}
+                    <div class="mb-3">
+                        <small class="text-muted d-block mb-1">
+                            <i class="bi bi-cash-stack me-1"></i>Valor Total
+                        </small>
+                        <strong class="text-success">{{ propriedade.valor_total_propriedade|moeda_br }}</strong>
+                    </div>
+                    {% elif propriedade.tipo_propriedade == 'ARRENDAMENTO' and propriedade.valor_mensal_total_arrendamento %}
+                    <div class="mb-3">
+                        <small class="text-muted d-block mb-1">
+                            <i class="bi bi-calendar-month me-1"></i>Arrendamento
+                        </small>
+                        <strong class="text-warning">{{ propriedade.valor_mensal_total_arrendamento|moeda_br }}/mês</strong>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="d-grid gap-2 mt-3">
+                        <a href="{% url 'propriedade_modulos' propriedade.id %}" class="btn btn-primary">
+                            <i class="bi bi-grid-3x3-gap-fill me-2"></i>
+                            <strong>Acessar Funcionalidades</strong>
+                        </a>
+                        <small class="text-muted text-center">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Pecuária, Financeiro, Projetos e muito mais
+                        </small>
+                    </div>
+                    
+                    <div class="d-flex gap-2 mt-3">
+                        <a href="{% url 'propriedade_editar' propriedade.id %}" class="btn btn-outline-primary flex-fill">
+                            <i class="bi bi-pencil me-1"></i> Editar
+                        </a>
+                        <a href="{% url 'propriedade_excluir' propriedade.id %}" class="btn btn-outline-danger flex-fill">
+                            <i class="bi bi-trash me-1"></i> Excluir
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
         {% endfor %}
     </div>
     {% else %}
-    <div class="empty-state fade-in-up">
-        <h3 class="empty-title">Nenhuma propriedade cadastrada</h3>
-        <p class="empty-description">Comece adicionando uma nova propriedade para este produtor.</p>
-        <a href="{% url 'propriedade_nova' produtor.id %}" class="btn-moderno">
-            Adicionar Primeira Propriedade
-        </a>
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <h3 class="mb-3">Nenhuma propriedade cadastrada</h3>
+            <p class="text-muted mb-4">Comece adicionando uma nova propriedade para este produtor.</p>
+            <a href="{% url 'propriedade_nova_auto' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle me-2"></i>Adicionar Primeira Propriedade
+            </a>
+        </div>
     </div>
     {% endif %}
     
-    <div class="mt-4">
-        <a href="{% url 'dashboard' %}" class="btn-moderno btn-outline">
+    <div class="mt-4 d-flex gap-2">
+        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left me-2"></i>Voltar ao Dashboard
+        </a>
+        <a href="{% url 'minhas_propriedades' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-clockwise me-2"></i>Atualizar Lista
         </a>
     </div>
 </div>
-{% endblock content_authenticated %}
+{% endblock %}

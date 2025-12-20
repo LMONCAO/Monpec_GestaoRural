@@ -23,7 +23,7 @@ try:
         Empreiteiro, ServicoEmpreiteiro, Equipamento, ManutencaoEquipamento
     )
     from .models_compras_financeiro import (
-        Fornecedor, NotaFiscal, OrdemCompra, ItemOrdemCompra,
+        Fornecedor, NotaFiscal, ItemNotaFiscal, OrdemCompra, ItemOrdemCompra,
         ContaPagar, ContaReceber,
         RequisicaoCompra, ItemRequisicaoCompra,
         AprovacaoRequisicaoCompra, CotacaoFornecedor,
@@ -34,8 +34,9 @@ try:
     from .models_iatf_completo import (
         ProtocoloIATF, TouroSemen, LoteSemen, LoteIATF, EtapaLoteIATF, IATFIndividual
     )
+    from .models_cadastros import Cliente
 except ImportError:
-    pass
+    Cliente = None
 
 
 # ============================================================================
@@ -566,6 +567,47 @@ class FornecedorForm(forms.ModelForm):
         }
 
 
+class ClienteForm(forms.ModelForm):
+    class Meta:
+        model = Cliente
+        fields = [
+            'nome', 'nome_fantasia', 'tipo_pessoa', 'cpf_cnpj',
+            'inscricao_estadual', 'tipo_cliente',
+            'telefone', 'celular', 'email', 'website',
+            'endereco', 'numero', 'complemento', 'bairro',
+            'cidade', 'estado', 'cep',
+            'banco', 'agencia', 'conta', 'tipo_conta', 'pix',
+            'limite_credito', 'ativo', 'observacoes'
+        ]
+        widgets = {
+            'nome': forms.TextInput(attrs={'class': 'form-control'}),
+            'nome_fantasia': forms.TextInput(attrs={'class': 'form-control'}),
+            'tipo_pessoa': forms.Select(attrs={'class': 'form-select'}),
+            'cpf_cnpj': forms.TextInput(attrs={'class': 'form-control'}),
+            'inscricao_estadual': forms.TextInput(attrs={'class': 'form-control'}),
+            'tipo_cliente': forms.Select(attrs={'class': 'form-select'}),
+            'telefone': forms.TextInput(attrs={'class': 'form-control'}),
+            'celular': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'website': forms.URLInput(attrs={'class': 'form-control'}),
+            'endereco': forms.TextInput(attrs={'class': 'form-control'}),
+            'numero': forms.TextInput(attrs={'class': 'form-control'}),
+            'complemento': forms.TextInput(attrs={'class': 'form-control'}),
+            'bairro': forms.TextInput(attrs={'class': 'form-control'}),
+            'cidade': forms.TextInput(attrs={'class': 'form-control'}),
+            'estado': forms.TextInput(attrs={'class': 'form-control', 'maxlength': '2', 'style': 'text-transform: uppercase;'}),
+            'cep': forms.TextInput(attrs={'class': 'form-control'}),
+            'banco': forms.TextInput(attrs={'class': 'form-control'}),
+            'agencia': forms.TextInput(attrs={'class': 'form-control'}),
+            'conta': forms.TextInput(attrs={'class': 'form-control'}),
+            'tipo_conta': forms.Select(attrs={'class': 'form-select'}),
+            'pix': forms.TextInput(attrs={'class': 'form-control'}),
+            'limite_credito': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
+            'ativo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'observacoes': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
+        }
+
+
 class OrdemCompraForm(forms.ModelForm):
     fornecedor = forms.ModelChoiceField(
         queryset=Fornecedor.objects.none(),
@@ -779,3 +821,304 @@ class CurralEventoForm(forms.ModelForm):
         self.fields['peso_kg'].required = False
         self.fields['brinco_novo'].required = False
         self.fields['data_previsao_parto'].required = False
+
+
+# ============================================================================
+# FORMULÁRIOS - NOTAS FISCAIS ELETRÔNICAS
+# ============================================================================
+
+class NotaFiscalSaidaForm(forms.ModelForm):
+    """Formulário para emissão de NF-e de saída (venda)"""
+    class Meta:
+        model = NotaFiscal
+        fields = [
+            'cliente', 'data_emissao', 'data_entrada', 'serie',
+            'valor_produtos', 'valor_frete', 'valor_seguro',
+            'valor_desconto', 'valor_outros', 'observacoes'
+        ]
+        widgets = {
+            'cliente': forms.Select(attrs={
+                'class': 'form-select',
+                'required': True
+            }),
+            'data_emissao': forms.DateInput(attrs={
+                'type': 'date',
+                'class': 'form-control',
+                'required': True
+            }),
+            'data_entrada': forms.DateInput(attrs={
+                'type': 'date',
+                'class': 'form-control'
+            }),
+            'serie': forms.TextInput(attrs={
+                'class': 'form-control',
+                'value': '1',
+                'placeholder': 'Série da NF-e'
+            }),
+            'valor_produtos': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0.01',
+                'required': True
+            }),
+            'valor_frete': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0',
+                'value': '0.00'
+            }),
+            'valor_seguro': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0',
+                'value': '0.00'
+            }),
+            'valor_desconto': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0',
+                'value': '0.00'
+            }),
+            'valor_outros': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0',
+                'value': '0.00'
+            }),
+            'observacoes': forms.Textarea(attrs={
+                'rows': 3,
+                'class': 'form-control',
+                'placeholder': 'Observações adicionais sobre a NF-e'
+            }),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        propriedade = kwargs.pop('propriedade', None)
+        super().__init__(*args, **kwargs)
+        
+        if propriedade:
+            self.fields['cliente'].queryset = Cliente.objects.filter(
+                Q(propriedade=propriedade) | Q(propriedade__isnull=True),
+                ativo=True
+            ).order_by('nome')
+        
+        # Definir tipo como SAIDA
+        self.instance.tipo = 'SAIDA'
+        if not self.instance.data_emissao:
+            self.instance.data_emissao = date.today()
+        if not self.instance.data_entrada:
+            self.instance.data_entrada = date.today()
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        cliente = cleaned_data.get('cliente')
+        
+        if not cliente:
+            raise forms.ValidationError('Cliente é obrigatório para NF-e de saída.')
+        
+        return cleaned_data
+
+
+class ItemNotaFiscalForm(forms.ModelForm):
+    """Formulário para itens da NF-e"""
+    class Meta:
+        model = ItemNotaFiscal
+        fields = [
+            'produto', 'codigo_produto', 'descricao', 'ncm', 'cfop',
+            'unidade_medida', 'quantidade', 'valor_unitario'
+        ]
+        widgets = {
+            'produto': forms.Select(attrs={
+                'class': 'form-select produto-select',
+                'data-busca': 'produto',
+                'required': False
+            }),
+            'codigo_produto': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Código do produto'
+            }),
+            'descricao': forms.TextInput(attrs={
+                'class': 'form-control',
+                'required': True,
+                'placeholder': 'Descrição do produto/serviço'
+            }),
+            'ncm': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'NCM (ex: 0102.29.00)'
+            }),
+            'cfop': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'CFOP (ex: 5102)'
+            }),
+            'unidade_medida': forms.TextInput(attrs={
+                'class': 'form-control',
+                'value': 'UN',
+                'placeholder': 'UN, KG, etc.'
+            }),
+            'quantidade': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.001',
+                'min': '0.001',
+                'required': True
+            }),
+            'valor_unitario': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0.01',
+                'required': True
+            }),
+        }
+
+
+# ============================================================================
+# FORMULÁRIOS - PRODUTOS (CADASTRO FISCAL)
+# ============================================================================
+
+class CategoriaProdutoForm(forms.ModelForm):
+    """Formulário para categoria de produtos"""
+    class Meta:
+        from .models_compras_financeiro import CategoriaProduto
+        model = CategoriaProduto
+        fields = ['nome', 'descricao', 'ativo']
+        widgets = {
+            'nome': forms.TextInput(attrs={
+                'class': 'form-control',
+                'required': True,
+                'placeholder': 'Nome da categoria'
+            }),
+            'descricao': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Descrição da categoria'
+            }),
+            'ativo': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            }),
+        }
+
+
+class ProdutoForm(forms.ModelForm):
+    """Formulário para cadastro de produtos"""
+    class Meta:
+        from .models_compras_financeiro import Produto
+        model = Produto
+        fields = [
+            'codigo', 'descricao', 'descricao_completa', 'categoria',
+            'unidade_medida', 'ncm', 'cfop_entrada', 'cfop_saida_estadual',
+            'cfop_saida_interestadual', 'cst_icms', 'aliquota_icms',
+            'cst_ipi', 'aliquota_ipi', 'cst_pis', 'aliquota_pis',
+            'cst_cofins', 'aliquota_cofins', 'preco_venda', 'preco_custo',
+            'ativo', 'observacoes'
+        ]
+        widgets = {
+            'codigo': forms.TextInput(attrs={
+                'class': 'form-control',
+                'required': True,
+                'placeholder': 'Código do produto'
+            }),
+            'descricao': forms.TextInput(attrs={
+                'class': 'form-control',
+                'required': True,
+                'placeholder': 'Descrição do produto'
+            }),
+            'descricao_completa': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Descrição completa do produto'
+            }),
+            'categoria': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+            'unidade_medida': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+            'ncm': forms.TextInput(attrs={
+                'class': 'form-control',
+                'required': True,
+                'placeholder': 'NCM (ex: 0102.29.00)',
+                'data-validar': 'ncm'
+            }),
+            'cfop_entrada': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'CFOP Entrada (ex: 1102)',
+                'maxlength': '4'
+            }),
+            'cfop_saida_estadual': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'CFOP Saída Estadual (ex: 5102)',
+                'maxlength': '4'
+            }),
+            'cfop_saida_interestadual': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'CFOP Saída Interestadual (ex: 6102)',
+                'maxlength': '4'
+            }),
+            'cst_icms': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'CST ICMS',
+                'maxlength': '3'
+            }),
+            'aliquota_icms': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0',
+                'max': '100',
+                'placeholder': '0.00'
+            }),
+            'cst_ipi': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'CST IPI',
+                'maxlength': '3'
+            }),
+            'aliquota_ipi': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0',
+                'max': '100',
+                'placeholder': '0.00'
+            }),
+            'cst_pis': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'CST PIS',
+                'maxlength': '3'
+            }),
+            'aliquota_pis': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0',
+                'max': '100',
+                'placeholder': '0.00'
+            }),
+            'cst_cofins': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'CST COFINS',
+                'maxlength': '3'
+            }),
+            'aliquota_cofins': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0',
+                'max': '100',
+                'placeholder': '0.00'
+            }),
+            'preco_venda': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0',
+                'placeholder': '0.00'
+            }),
+            'preco_custo': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0',
+                'placeholder': '0.00'
+            }),
+            'ativo': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            }),
+            'observacoes': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Observações adicionais'
+            }),
+        }

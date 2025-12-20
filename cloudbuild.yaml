@@ -1,5 +1,5 @@
 # Google Cloud Build Configuration
-# Para CI/CD automático
+# Para CI/CD automático - Produção monpec.com.br
 
 steps:
   # Build da imagem Docker
@@ -23,6 +23,18 @@ steps:
       - '--platform'
       - 'managed'
       - '--allow-unauthenticated'
+      - '--set-env-vars'
+      - 'DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,DEBUG=False'
+      - '--memory'
+      - '512Mi'
+      - '--cpu'
+      - '1'
+      - '--timeout'
+      - '300'
+      - '--max-instances'
+      - '10'
+      - '--min-instances'
+      - '1'
 
 images:
   - 'gcr.io/$PROJECT_ID/monpec:$COMMIT_SHA'

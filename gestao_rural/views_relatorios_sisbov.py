@@ -8,6 +8,7 @@ from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
 from django.db.models import Q, Count, Sum
+from django.db import connection
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 
@@ -191,6 +192,26 @@ def relatorios_sisbov_menu(request, propriedade_id):
     return render(request, 'gestao_rural/relatorios_sisbov_menu.html', context)
 
 
+def _campo_existe_no_banco(tabela, campo):
+    """Verifica se um campo existe em uma tabela do banco de dados"""
+    try:
+        with connection.cursor() as cursor:
+            if 'sqlite' in connection.settings_dict['ENGINE']:
+                cursor.execute(f"PRAGMA table_info({tabela})")
+                columns = [row[1] for row in cursor.fetchall()]
+                return campo in columns
+            else:
+                # Para outros bancos (PostgreSQL, MySQL, etc)
+                cursor.execute(f"""
+                    SELECT column_name 
+                    FROM information_schema.columns 
+                    WHERE table_name = '{tabela}' AND column_name = '{campo}'
+                """)
+                return cursor.fetchone() is not None
+    except Exception:
+        return False
+
+
 @login_required
 def relatorio_sisbov_anexo_vi(request, propriedade_id):
     """
@@ -200,10 +221,18 @@ def relatorio_sisbov_anexo_vi(request, propriedade_id):
     propriedade = get_object_or_404(Propriedade, pk=propriedade_id)
     
     # Buscar todos os animais ativos
+    # Usar only() para especificar apenas os campos necessários, evitando campos que podem não existir
+    # Isso evita o erro quando o campo cota_hilton não existe no banco de dados
+    campos_necessarios = [
+        'id', 'codigo_sisbov', 'numero_manejo', 'numero_brinco', 
+        'categoria_id', 'raca', 'sexo', 'data_nascimento', 'status',
+        'propriedade_id', 'propriedade_origem_id'
+    ]
+    
     animais = AnimalIndividual.objects.filter(
         propriedade=propriedade,
         status='ATIVO'
-    ).select_related('categoria', 'propriedade_origem').order_by('codigo_sisbov', 'numero_brinco')
+    ).select_related('categoria', 'propriedade_origem').only(*campos_necessarios).order_by('codigo_sisbov', 'numero_brinco')
     
     # Estatísticas
     total_animais = animais.count()
@@ -227,10 +256,19 @@ def relatorio_sisbov_anexo_vi_pdf(request, propriedade_id):
     """Gera PDF do Anexo VI - Inventário de Animais (Conforme IN 17/2006)"""
     propriedade = get_object_or_404(Propriedade, pk=propriedade_id)
     
+    # Buscar animais ativos
+    # Usar only() para especificar apenas os campos necessários, evitando campos que podem não existir
+    # Isso evita o erro quando o campo cota_hilton não existe no banco de dados
+    campos_necessarios = [
+        'id', 'codigo_sisbov', 'numero_manejo', 'numero_brinco', 
+        'categoria_id', 'raca', 'sexo', 'data_nascimento', 'status',
+        'propriedade_id', 'propriedade_origem_id'
+    ]
+    
     animais = AnimalIndividual.objects.filter(
         propriedade=propriedade,
         status='ATIVO'
-    ).select_related('categoria').order_by('codigo_sisbov', 'numero_brinco')
+    ).select_related('categoria').only(*campos_necessarios).order_by('codigo_sisbov', 'numero_brinco')
     
     # Usar helper padronizado se disponível
     if GeradorPDFSISBOV:
@@ -387,7 +425,7 @@ def relatorio_sisbov_anexo_vii_pdf(request, propriedade_id):
     story.append(Paragraph(
         f'<b>Propriedade:</b> {propriedade.nome_propriedade}<br/>'
         f'<b>Município:</b> {propriedade.municipio} - {propriedade.uf}<br/>'
-        f'<b>CNPJ/CPF:</b> {propriedade.produtor_rural.cpf_cnpj if propriedade.produtor_rural else "—"}<br/>'
+        f'<b>CNPJ/CPF:</b> {propriedade.produtor.cpf_cnpj if propriedade.produtor else "—"}<br/>'
         f'<b>Data:</b> {date.today().strftime("%d/%m/%Y")}',
         styles['Normal']
     ))
@@ -573,7 +611,7 @@ def relatorio_sisbov_anexo_xix_pdf(request, propriedade_id):
 def relatorio_sisbov_anexo_iv(request, propriedade_id):
     """Anexo IV - Cadastro de Produtor Rural"""
     propriedade = get_object_or_404(Propriedade, pk=propriedade_id)
-    produtor = propriedade.produtor_rural
+    produtor = propriedade.produtor
     
     context = {
         'propriedade': propriedade,
@@ -588,7 +626,7 @@ def relatorio_sisbov_anexo_iv(request, propriedade_id):
 def relatorio_sisbov_anexo_iv_pdf(request, propriedade_id):
     """Gera PDF do Anexo IV - Cadastro de Produtor Rural"""
     propriedade = get_object_or_404(Propriedade, pk=propriedade_id)
-    produtor = propriedade.produtor_rural
+    produtor = propriedade.produtor
     
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="SISBOV_Anexo_IV_Produtor_{propriedade.id}_{date.today().strftime("%Y%m%d")}.pdf"'
@@ -603,7 +641,7 @@ def relatorio_sisbov_anexo_iv_pdf(request, propriedade_id):
     if produtor:
         story.append(Paragraph(f'<b>Nome:</b> {produtor.nome}', styles['Normal']))
         story.append(Paragraph(f'<b>CPF/CNPJ:</b> {produtor.cpf_cnpj or "—"}', styles['Normal']))
-        story.append(Paragraph(f'<b>RG:</b> {produtor.rg or "—"}', styles['Normal']))
+        story.append(Paragraph(f'<b>RG:</b> {produtor.documento_identidade or "—"}', styles['Normal']))
         story.append(Paragraph(f'<b>Endereço:</b> {produtor.endereco or "—"}', styles['Normal']))
         story.append(Paragraph(f'<b>Telefone:</b> {produtor.telefone or "—"}', styles['Normal']))
         story.append(Paragraph(f'<b>Email:</b> {produtor.email or "—"}', styles['Normal']))

@@ -412,6 +412,256 @@ class ConviteCotacaoFornecedor(models.Model):
 
 
 # ============================================================================
+# PRODUTOS (CADASTRO FISCAL)
+# ============================================================================
+
+class CategoriaProduto(models.Model):
+    """Categorias de produtos para organização"""
+    nome = models.CharField(max_length=100, unique=True, verbose_name="Nome da Categoria")
+    descricao = models.TextField(blank=True, null=True, verbose_name="Descrição")
+    ativo = models.BooleanField(default=True, verbose_name="Ativo")
+    
+    class Meta:
+        verbose_name = "Categoria de Produto"
+        verbose_name_plural = "Categorias de Produtos"
+        ordering = ['nome']
+    
+    def __str__(self):
+        return self.nome
+
+
+class Produto(models.Model):
+    """Cadastro de produtos sincronizado com a Receita Federal"""
+    UNIDADE_MEDIDA_CHOICES = [
+        ('UN', 'Unidade'),
+        ('KG', 'Quilograma'),
+        ('TON', 'Tonelada'),
+        ('L', 'Litro'),
+        ('M', 'Metro'),
+        ('M2', 'Metro Quadrado'),
+        ('M3', 'Metro Cúbico'),
+        ('SC', 'Saca'),
+        ('CX', 'Caixa'),
+        ('PC', 'Peça'),
+        ('FD', 'Fardo'),
+        ('RL', 'Rolo'),
+    ]
+    
+    # Dados Básicos
+    codigo = models.CharField(
+        max_length=50,
+        unique=True,
+        verbose_name="Código do Produto",
+        help_text="Código interno do produto"
+    )
+    descricao = models.CharField(
+        max_length=200,
+        verbose_name="Descrição do Produto"
+    )
+    descricao_completa = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Descrição Completa",
+        help_text="Descrição detalhada do produto"
+    )
+    categoria = models.ForeignKey(
+        CategoriaProduto,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='produtos',
+        verbose_name="Categoria"
+    )
+    
+    # Unidade de Medida
+    unidade_medida = models.CharField(
+        max_length=10,
+        choices=UNIDADE_MEDIDA_CHOICES,
+        default='UN',
+        verbose_name="Unidade de Medida"
+    )
+    
+    # Dados Fiscais - NCM
+    ncm = models.CharField(
+        max_length=10,
+        verbose_name="NCM",
+        help_text="Nomenclatura Comum do Mercosul (ex: 0102.29.00)"
+    )
+    ncm_descricao = models.CharField(
+        max_length=500,
+        blank=True,
+        null=True,
+        verbose_name="Descrição do NCM",
+        help_text="Descrição oficial do NCM pela Receita"
+    )
+    ncm_validado = models.BooleanField(
+        default=False,
+        verbose_name="NCM Validado",
+        help_text="Indica se o NCM foi validado com a Receita Federal"
+    )
+    ncm_data_validacao = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Data de Validação do NCM"
+    )
+    
+    # Dados Fiscais - CFOP
+    cfop_entrada = models.CharField(
+        max_length=10,
+        blank=True,
+        null=True,
+        verbose_name="CFOP Entrada",
+        help_text="CFOP padrão para compras (ex: 1102)"
+    )
+    cfop_saida_estadual = models.CharField(
+        max_length=10,
+        blank=True,
+        null=True,
+        verbose_name="CFOP Saída Estadual",
+        help_text="CFOP padrão para vendas dentro do estado (ex: 5102)"
+    )
+    cfop_saida_interestadual = models.CharField(
+        max_length=10,
+        blank=True,
+        null=True,
+        verbose_name="CFOP Saída Interestadual",
+        help_text="CFOP padrão para vendas fora do estado (ex: 6102)"
+    )
+    
+    # Dados Fiscais - Impostos
+    cst_icms = models.CharField(
+        max_length=3,
+        blank=True,
+        null=True,
+        verbose_name="CST ICMS",
+        help_text="Código de Situação Tributária do ICMS"
+    )
+    aliquota_icms = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        verbose_name="Alíquota ICMS (%)"
+    )
+    cst_ipi = models.CharField(
+        max_length=3,
+        blank=True,
+        null=True,
+        verbose_name="CST IPI",
+        help_text="Código de Situação Tributária do IPI"
+    )
+    aliquota_ipi = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        verbose_name="Alíquota IPI (%)"
+    )
+    cst_pis = models.CharField(
+        max_length=3,
+        blank=True,
+        null=True,
+        verbose_name="CST PIS",
+        help_text="Código de Situação Tributária do PIS"
+    )
+    aliquota_pis = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        verbose_name="Alíquota PIS (%)"
+    )
+    cst_cofins = models.CharField(
+        max_length=3,
+        blank=True,
+        null=True,
+        verbose_name="CST COFINS",
+        help_text="Código de Situação Tributária do COFINS"
+    )
+    aliquota_cofins = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        verbose_name="Alíquota COFINS (%)"
+    )
+    
+    # Dados Comerciais
+    preco_venda = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        verbose_name="Preço de Venda (R$)"
+    )
+    preco_custo = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        verbose_name="Preço de Custo (R$)"
+    )
+    
+    # Status e Controle
+    ativo = models.BooleanField(default=True, verbose_name="Ativo")
+    sincronizado_receita = models.BooleanField(
+        default=False,
+        verbose_name="Sincronizado com Receita",
+        help_text="Indica se os dados foram sincronizados com a Receita Federal"
+    )
+    data_sincronizacao = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Data da Última Sincronização"
+    )
+    observacoes = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Observações"
+    )
+    
+    # Auditoria
+    data_cadastro = models.DateTimeField(auto_now_add=True, verbose_name="Data de Cadastro")
+    data_atualizacao = models.DateTimeField(auto_now=True, verbose_name="Data de Atualização")
+    usuario_cadastro = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='produtos_cadastrados',
+        verbose_name="Usuário que Cadastrou"
+    )
+    
+    class Meta:
+        verbose_name = "Produto"
+        verbose_name_plural = "Produtos"
+        ordering = ['categoria', 'descricao']
+        indexes = [
+            models.Index(fields=['codigo']),
+            models.Index(fields=['ncm']),
+            models.Index(fields=['ativo']),
+        ]
+    
+    def __str__(self):
+        return f"{self.codigo} - {self.descricao}"
+    
+    def clean(self):
+        """Validação do modelo"""
+        from django.core.exceptions import ValidationError
+        
+        # Validar formato do NCM (8 dígitos)
+        if self.ncm:
+            ncm_limpo = self.ncm.replace('.', '').replace('-', '')
+            if len(ncm_limpo) != 8 or not ncm_limpo.isdigit():
+                raise ValidationError({
+                    'ncm': 'NCM deve ter 8 dígitos numéricos (ex: 0102.29.00)'
+                })
+    
+    def save(self, *args, **kwargs):
+        """Override save para limpar e formatar NCM"""
+        if self.ncm:
+            # Remover pontos e traços, depois formatar
+            ncm_limpo = self.ncm.replace('.', '').replace('-', '')
+            if len(ncm_limpo) == 8:
+                self.ncm = f"{ncm_limpo[:4]}.{ncm_limpo[4:6]}.{ncm_limpo[6:]}"
+        super().save(*args, **kwargs)
+
+
+# ============================================================================
 # NOTAS FISCAIS (SEFAZ)
 # ============================================================================
 
@@ -440,7 +690,19 @@ class NotaFiscal(models.Model):
         Fornecedor,
         on_delete=models.CASCADE,
         related_name='notas_fiscais',
-        verbose_name="Fornecedor"
+        verbose_name="Fornecedor",
+        null=True,
+        blank=True,
+        help_text="Obrigatório para NF-e de entrada (compra)"
+    )
+    cliente = models.ForeignKey(
+        'Cliente',
+        on_delete=models.CASCADE,
+        related_name='notas_fiscais',
+        verbose_name="Cliente",
+        null=True,
+        blank=True,
+        help_text="Obrigatório para NF-e de saída (venda)"
     )
     
     # Dados da NF-e
@@ -553,10 +815,14 @@ class NotaFiscal(models.Model):
         verbose_name = "Nota Fiscal"
         verbose_name_plural = "Notas Fiscais"
         ordering = ['-data_emissao', 'numero']
-        unique_together = ['numero', 'serie', 'fornecedor']
+        # unique_together removido pois fornecedor/cliente podem ser diferentes
     
     def __str__(self):
-        return f"NF-e {self.numero}/{self.serie} - {self.fornecedor.nome} - {self.data_emissao}"
+        if self.tipo == 'SAIDA' and self.cliente:
+            return f"NF-e {self.numero}/{self.serie} - {self.cliente.nome} - {self.data_emissao}"
+        elif self.fornecedor:
+            return f"NF-e {self.numero}/{self.serie} - {self.fornecedor.nome} - {self.data_emissao}"
+        return f"NF-e {self.numero}/{self.serie} - {self.data_emissao}"
     
     def save(self, *args, **kwargs):
         # Calcular valor total
@@ -579,7 +845,18 @@ class ItemNotaFiscal(models.Model):
         verbose_name="Nota Fiscal"
     )
     
-    # Produto
+    # Produto - Referência ao cadastro
+    produto = models.ForeignKey(
+        Produto,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='itens_nota_fiscal',
+        verbose_name="Produto",
+        help_text="Produto cadastrado (preenche automaticamente os dados fiscais)"
+    )
+    
+    # Produto - Dados manuais (usados quando não há produto cadastrado)
     codigo_produto = models.CharField(
         max_length=50,
         blank=True,
@@ -647,6 +924,34 @@ class ItemNotaFiscal(models.Model):
         return f"{self.nota_fiscal.numero} - {self.descricao}"
     
     def save(self, *args, **kwargs):
+        # Se há produto cadastrado, preencher dados automaticamente
+        if self.produto:
+            if not self.codigo_produto:
+                self.codigo_produto = self.produto.codigo
+            if not self.descricao:
+                self.descricao = self.produto.descricao
+            if not self.ncm:
+                self.ncm = self.produto.ncm
+            if not self.unidade_medida:
+                self.unidade_medida = self.produto.unidade_medida
+            
+            # Determinar CFOP baseado no tipo de nota e UF
+            if self.nota_fiscal.tipo == 'ENTRADA' and self.produto.cfop_entrada:
+                self.cfop = self.produto.cfop_entrada
+            elif self.nota_fiscal.tipo == 'SAIDA':
+                # Verificar se é interestadual (simplificado - pode melhorar)
+                if self.nota_fiscal.cliente:
+                    cliente_uf = getattr(self.nota_fiscal.cliente, 'estado', '')
+                    propriedade_uf = getattr(self.nota_fiscal.propriedade, 'estado', '')
+                    if cliente_uf and propriedade_uf and cliente_uf != propriedade_uf:
+                        # Interestadual
+                        if self.produto.cfop_saida_interestadual:
+                            self.cfop = self.produto.cfop_saida_interestadual
+                    else:
+                        # Estadual
+                        if self.produto.cfop_saida_estadual:
+                            self.cfop = self.produto.cfop_saida_estadual
+        
         # Calcular valor total
         if self.quantidade and self.valor_unitario:
             self.valor_total = self.quantidade * self.valor_unitario

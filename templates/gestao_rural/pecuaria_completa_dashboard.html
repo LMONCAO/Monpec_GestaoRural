@@ -7,84 +7,84 @@
 <style>
     /* Estilo Power BI */
     .powerbi-card {
-        border: none;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        transition: transform 0.2s, box-shadow 0.2s;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        transition: box-shadow 0.2s;
         background: white;
         overflow: hidden;
     }
     
     .powerbi-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        box-shadow: 0 2px 6px rgba(0,0,0,0.12);
     }
     
     .metric-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: #4a5568; /* Cor neutra padrão */
         color: white;
-        padding: 1.5rem;
-        border-radius: 12px;
+        padding: 1rem 1.25rem;
+        border-radius: 8px;
         position: relative;
         overflow: hidden;
+        border: 1px solid rgba(0,0,0,0.1);
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
     }
     
-    .metric-card::before {
-        content: '';
-        position: absolute;
-        top: -50%;
-        right: -50%;
-        width: 200%;
-        height: 200%;
-        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-    }
-    
-    /* Cores profissionais corporativas */
+    /* Cores simplificadas e neutras */
     .metric-card.primary { 
-        background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); /* Azul corporativo */
+        background: #4a5568; /* Cinza escuro neutro */
     }
     .metric-card.success { 
-        background: linear-gradient(135deg, #059669 0%, #10b981 100%); /* Verde profissional */
+        background: #2d5016; /* Verde escuro suave */
     }
     .metric-card.warning { 
-        background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%); /* Vermelho corporativo */
+        background: #7c2d12; /* Vermelho escuro suave */
     }
     .metric-card.info { 
-        background: linear-gradient(135deg, #0369a1 0%, #0284c7 100%); /* Azul ciano profissional */
+        background: #1e3a5f; /* Azul escuro suave */
     }
     .metric-card.danger { 
-        background: linear-gradient(135deg, #b91c1c 0%, #dc2626 100%); /* Vermelho escuro */
+        background: #7c2d12; /* Vermelho escuro suave */
     }
     .metric-card.secondary { 
-        background: linear-gradient(135deg, #475569 0%, #64748b 100%); /* Cinza grafite */
+        background: #4a5568; /* Cinza grafite */
     }
     
     .metric-value {
-        font-size: 2.5rem;
-        font-weight: 700;
-        margin: 0.5rem 0;
+        font-size: 1.75rem;
+        font-weight: 600;
+        margin: 0.25rem 0;
+        line-height: 1.2;
     }
     
     .metric-label {
-        font-size: 0.9rem;
+        font-size: 0.8rem;
         opacity: 0.9;
         text-transform: uppercase;
         letter-spacing: 0.5px;
+        margin-bottom: 0.25rem;
     }
     
     .metric-icon {
         position: absolute;
-        right: 1.5rem;
-        top: 50%;
-        transform: translateY(-50%);
-        font-size: 3rem;
-        opacity: 0.3;
+        right: 1rem;
+        top: 1rem;
+        font-size: 1.5rem;
+        opacity: 0.15;
     }
     
     .chart-container {
         position: relative;
-        height: 300px;
-        padding: 1rem;
+        height: 250px;
+        padding: 0.75rem;
+    }
+    
+    /* Cards com altura uniforme */
+    .h-100 {
+        height: 100%;
     }
     
     .insight-card {
@@ -109,9 +109,9 @@
     }
     
     .section-title {
-        font-size: 1.5rem;
+        font-size: 1.25rem;
         font-weight: 600;
-        color: #2c3e50;
+        color: #495057;
         margin: 0;
     }
     
@@ -119,19 +119,19 @@
         display: inline-flex;
         align-items: center;
         gap: 0.25rem;
-        font-size: 0.85rem;
-        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+        padding: 0.2rem 0.4rem;
         border-radius: 4px;
     }
     
     .trend-up {
-        background: #d4edda;
-        color: #155724;
+        background: rgba(40, 167, 69, 0.1);
+        color: #28a745;
     }
     
     .trend-down {
-        background: #f8d7da;
-        color: #721c24;
+        background: rgba(220, 53, 69, 0.1);
+        color: #dc3545;
     }
     
     /* Timeline de Atividades */
@@ -226,11 +226,10 @@
     }
     
     .section-title-modules {
-        font-family: 'Playfair Display', serif;
-        font-size: 1.75rem;
-        color: #1e3a5f;
+        font-size: 1.25rem;
+        color: #495057;
         font-weight: 600;
-        margin-bottom: 1.5rem;
+        margin-bottom: 1rem;
     }
     
     .modules-grid {
@@ -242,9 +241,9 @@
     
     .module-card-clean {
         background: white;
-        border-radius: 10px;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-        transition: all 0.3s ease;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        transition: box-shadow 0.2s;
         border: 1px solid #e9ecef;
         display: flex;
         flex-direction: column;
@@ -252,9 +251,8 @@
     }
     
     .module-card-clean:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(0,0,0,0.12);
-        border-color: #0d6efd;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+        border-color: #dee2e6;
     }
     
     .module-card-header {
@@ -281,27 +279,27 @@
     }
     
     .module-card-icon.bg-primary {
-        background: linear-gradient(135deg, #1e40af, #3b82f6); /* Azul corporativo */
+        background: #4a5568; /* Cinza neutro */
     }
     
     .module-card-icon.bg-success {
-        background: linear-gradient(135deg, #047857, #10b981); /* Verde profissional */
+        background: #4a5568; /* Cinza neutro */
     }
     
     .module-card-icon.bg-secondary {
-        background: linear-gradient(135deg, #475569, #64748b); /* Cinza grafite */
+        background: #4a5568; /* Cinza neutro */
     }
     
     .module-card-icon.bg-warning {
-        background: linear-gradient(135deg, #ea580c, #f97316); /* Laranja profissional */
+        background: #4a5568; /* Cinza neutro */
     }
     
     .module-card-icon.bg-warning i {
-        color: #fff; /* Branco para melhor contraste com laranja */
+        color: #fff;
     }
     
     .module-card-icon.bg-info {
-        background: linear-gradient(135deg, #0369a1, #0284c7); /* Azul ciano profissional */
+        background: #4a5568; /* Cinza neutro */
     }
     
     .module-card-title {
@@ -561,24 +559,21 @@
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <div>
-                    <h1 class="h3 mb-1"><i class="bi bi-speedometer2 text-primary me-2"></i>Dashboard Completo - Power BI Style</h1>
-                    <p class="text-muted mb-0">{{ propriedade.nome_propriedade }}</p>
+                    <h1 class="h4 mb-1"><i class="bi bi-speedometer2 text-secondary me-2"></i>Dashboard Pecuária</h1>
+                    <p class="text-muted small mb-0">{{ propriedade.nome_propriedade }}</p>
                 </div>
                 <div class="d-flex gap-2 align-items-center">
-                    <button class="btn btn-sm btn-outline-success" onclick="exportarDashboard()" title="Exportar dashboard">
+                    <button class="btn btn-sm btn-outline-secondary" onclick="exportarDashboard()" title="Exportar dashboard">
                         <i class="bi bi-download"></i> Exportar
                     </button>
-                    <button class="btn btn-sm btn-outline-primary" onclick="window.location.reload()" title="Atualizar dados">
+                    <button class="btn btn-sm btn-outline-secondary" onclick="window.location.reload()" title="Atualizar dados">
                         <i class="bi bi-arrow-clockwise"></i> Atualizar
                     </button>
-                    <small class="text-muted" id="ultimaAtualizacao">
-                        <i class="bi bi-clock"></i> Atualizado agora
-                    </small>
                 </div>
             </div>
             
-            <!-- Filtros Globais (BI Style) -->
-            <div class="card mb-3 border-primary">
+            <!-- Filtros Globais -->
+            <div class="card mb-3 border-0 shadow-sm">
                 <div class="card-body py-2">
                     <div class="row g-2 align-items-end">
                         <div class="col-md-3">
@@ -670,26 +665,23 @@
     </div>
     {% endif %}
 
-    <!-- Ações Rápidas -->
-    <div class="row mb-4">
+    <!-- Ações Rápidas - Simplificado -->
+    <div class="row mb-3">
         <div class="col-12">
-            <div class="card">
+            <div class="card border-0 shadow-sm">
                 <div class="card-body py-2">
                     <div class="d-flex align-items-center gap-2 flex-wrap">
                         <span class="text-muted small me-2"><strong>Ações Rápidas:</strong></span>
-                        <a href="{% url 'pecuaria_inventario' propriedade.id %}" class="btn btn-sm btn-outline-primary">
-                            <i class="bi bi-clipboard-data me-1"></i>Inventário
-                        </a>
-                        <a href="{% url 'financeiro_dashboard' propriedade.id %}" class="btn btn-sm btn-outline-success">
+                        <a href="{% url 'financeiro_dashboard' propriedade.id %}" class="btn btn-sm btn-outline-secondary">
                             <i class="bi bi-cash-coin me-1"></i>Financeiro
                         </a>
-                        <a href="{% url 'compras_dashboard' propriedade.id %}" class="btn btn-sm btn-outline-warning">
+                        <a href="{% url 'compras_dashboard' propriedade.id %}" class="btn btn-sm btn-outline-secondary">
                             <i class="bi bi-cart me-1"></i>Compras
                         </a>
                         <a href="{% url 'operacoes_dashboard' propriedade.id %}" class="btn btn-sm btn-outline-secondary">
                             <i class="bi bi-gear me-1"></i>Operações
                         </a>
-                        <a href="{% url 'nutricao_dashboard' propriedade.id %}" class="btn btn-sm btn-outline-info">
+                        <a href="{% url 'nutricao_dashboard' propriedade.id %}" class="btn btn-sm btn-outline-secondary">
                             <i class="bi bi-bucket me-1"></i>Nutrição
                         </a>
                     </div>
@@ -698,15 +690,15 @@
         </div>
     </div>
 
-    <!-- Métricas Principais - Cards Power BI Style -->
-    <div class="row g-3 mb-4">
+    <!-- Métricas Principais - Layout Compacto -->
+    <div class="row g-2 mb-3">
         <!-- Total Animais -->
-        <div class="col-lg-3 col-md-6">
+        <div class="col-lg-3 col-md-6 col-sm-6">
             <div class="metric-card primary">
                 <div class="metric-label">Total de Animais</div>
                 <div class="metric-value">{{ total_animais_inventario|numero_br }}</div>
-                <div class="d-flex justify-content-between align-items-center mt-2">
-                    <div class="small opacity-75">Valor: {{ valor_total_rebanho|moeda_br }}</div>
+                <div class="d-flex justify-content-between align-items-center mt-1">
+                    <div class="small opacity-75" style="font-size: 0.7rem;">Valor: {{ valor_total_rebanho|moeda_br }}</div>
                     {% if tendencia_animais != 0 %}
                     <div class="trend-indicator {% if tendencia_animais > 0 %}trend-up{% else %}trend-down{% endif %}">
                         <i class="bi {% if tendencia_animais > 0 %}bi-arrow-up{% else %}bi-arrow-down{% endif %}"></i>
@@ -719,12 +711,12 @@
         </div>
         
         <!-- Receitas do Mês -->
-        <div class="col-lg-3 col-md-6">
+        <div class="col-lg-3 col-md-6 col-sm-6">
             <div class="metric-card success">
                 <div class="metric-label">Receitas (Mês)</div>
                 <div class="metric-value">{{ receitas_mes|moeda_br }}</div>
-                <div class="d-flex justify-content-between align-items-center mt-2">
-                    <div class="small opacity-75">Saldo: {{ saldo_mes|moeda_br }}</div>
+                <div class="d-flex justify-content-between align-items-center mt-1">
+                    <div class="small opacity-75" style="font-size: 0.7rem;">Saldo: {{ saldo_mes|moeda_br }}</div>
                     {% if tendencia_receitas != 0 %}
                     <div class="trend-indicator {% if tendencia_receitas > 0 %}trend-up{% else %}trend-down{% endif %}">
                         <i class="bi {% if tendencia_receitas > 0 %}bi-arrow-up{% else %}bi-arrow-down{% endif %}"></i>
@@ -737,12 +729,12 @@
         </div>
         
         <!-- Despesas do Mês -->
-        <div class="col-lg-3 col-md-6">
+        <div class="col-lg-3 col-md-6 col-sm-6">
             <div class="metric-card warning">
                 <div class="metric-label">Despesas (Mês)</div>
                 <div class="metric-value">{{ despesas_mes|moeda_br }}</div>
-                <div class="d-flex justify-content-between align-items-center mt-2">
-                    <div class="small opacity-75">Margem: {{ margem_lucro|floatformat:1 }}%</div>
+                <div class="d-flex justify-content-between align-items-center mt-1">
+                    <div class="small opacity-75" style="font-size: 0.7rem;">Margem: {{ margem_lucro|floatformat:1 }}%</div>
                     {% if tendencia_despesas != 0 %}
                     <div class="trend-indicator {% if tendencia_despesas < 0 %}trend-up{% else %}trend-down{% endif %}">
                         <i class="bi {% if tendencia_despesas < 0 %}bi-arrow-down{% else %}bi-arrow-up{% endif %}"></i>
@@ -755,12 +747,12 @@
         </div>
         
         <!-- Custos Operacionais -->
-        <div class="col-lg-3 col-md-6">
+        <div class="col-lg-3 col-md-6 col-sm-6">
             <div class="metric-card info">
                 <div class="metric-label">Custos Operacionais</div>
                 <div class="metric-value">{{ total_custos_operacionais|moeda_br }}</div>
-                <div class="d-flex justify-content-between align-items-center mt-2">
-                    <div class="small opacity-75">Combustível + Folha + Suplementação</div>
+                <div class="d-flex justify-content-between align-items-center mt-1">
+                    <div class="small opacity-75" style="font-size: 0.65rem;">Combustível + Folha + Suplementação</div>
                     {% if tendencia_custos != 0 %}
                     <div class="trend-indicator {% if tendencia_custos < 0 %}trend-up{% else %}trend-down{% endif %}">
                         <i class="bi {% if tendencia_custos < 0 %}bi-arrow-down{% else %}bi-arrow-up{% endif %}"></i>
@@ -773,54 +765,46 @@
         </div>
     </div>
 
-    <!-- Seção de Rentabilidade -->
+    <!-- Seção de Rentabilidade - Compacta -->
     {% if indicadores_rentabilidade %}
-    <div class="row g-4 mt-2">
+    <div class="row g-2 mt-2 mb-3">
         <div class="col-12">
-            <div class="section-header">
-                <h3 class="section-title">
-                    <i class="bi bi-graph-up-arrow me-2 text-primary"></i>
+            <div class="section-header mb-2">
+                <h3 class="section-title" style="font-size: 1.1rem;">
+                    <i class="bi bi-graph-up-arrow me-2 text-secondary"></i>
                     Análise de Rentabilidade
                 </h3>
                 <div class="btn-group btn-group-sm">
-                    <a href="?periodo_rentabilidade=90" class="btn btn-outline-primary {% if periodo_rentabilidade == 90 %}active{% endif %}">3 Meses</a>
-                    <a href="?periodo_rentabilidade=180" class="btn btn-outline-primary {% if periodo_rentabilidade == 180 %}active{% endif %}">6 Meses</a>
-                    <a href="?periodo_rentabilidade=365" class="btn btn-outline-primary {% if periodo_rentabilidade == 365 %}active{% endif %}">1 Ano</a>
+                    <a href="?periodo_rentabilidade=90" class="btn btn-outline-secondary {% if periodo_rentabilidade == 90 %}active{% endif %}">3M</a>
+                    <a href="?periodo_rentabilidade=180" class="btn btn-outline-secondary {% if periodo_rentabilidade == 180 %}active{% endif %}">6M</a>
+                    <a href="?periodo_rentabilidade=365" class="btn btn-outline-secondary {% if periodo_rentabilidade == 365 %}active{% endif %}">1A</a>
                 </div>
             </div>
         </div>
 
         <!-- Custo por Animal -->
-        <div class="col-md-4">
-            <div class="powerbi-card">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start mb-3">
+        <div class="col-lg-4 col-md-6">
+            <div class="powerbi-card h-100">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
                         <div>
-                            <h6 class="text-muted mb-1">Custo por Animal</h6>
-                            <h3 class="mb-0 text-primary">
+                            <h6 class="text-muted mb-1" style="font-size: 0.75rem;">Custo por Animal</h6>
+                            <h4 class="mb-0 text-primary" style="font-size: 1.5rem;">
                                 {{ indicadores_rentabilidade.custo_por_animal.custo_por_animal|floatformat:2|moeda_br }}
-                            </h3>
-                            <small class="text-muted">
-                                Período: {{ periodo_rentabilidade }} dias
-                            </small>
+                            </h4>
+                            <small class="text-muted" style="font-size: 0.7rem;">{{ periodo_rentabilidade }} dias</small>
                         </div>
-                        <div class="bg-primary bg-opacity-10 p-3 rounded">
-                            <i class="bi bi-cash-stack text-primary" style="font-size: 2rem;"></i>
-                        </div>
+                        <i class="bi bi-cash-stack text-muted" style="font-size: 1.5rem; opacity: 0.3;"></i>
                     </div>
-                    <div class="mt-3">
-                        <small class="text-muted d-block mb-1">Custo Mensal:</small>
-                        <strong>{{ indicadores_rentabilidade.custo_por_animal.custo_por_animal_mes|floatformat:2|moeda_br }}/mês</strong>
-                    </div>
-                    <hr>
-                    <div class="small">
+                    <hr class="my-2">
+                    <div class="small" style="font-size: 0.75rem;">
                         <div class="d-flex justify-content-between mb-1">
-                            <span>Total de Animais:</span>
+                            <span>Mensal:</span>
+                            <strong>{{ indicadores_rentabilidade.custo_por_animal.custo_por_animal_mes|floatformat:2|moeda_br }}/mês</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Animais:</span>
                             <strong>{{ indicadores_rentabilidade.custo_por_animal.total_animais }}</strong>
-                        </div>
-                        <div class="d-flex justify-content-between mb-1">
-                            <span>Custo Total:</span>
-                            <strong>{{ indicadores_rentabilidade.custo_por_animal.custo_total|floatformat:2|moeda_br }}</strong>
                         </div>
                     </div>
                 </div>
@@ -828,32 +812,24 @@
         </div>
 
         <!-- Custo por Arroba -->
-        <div class="col-md-4">
-            <div class="powerbi-card">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start mb-3">
+        <div class="col-lg-4 col-md-6">
+            <div class="powerbi-card h-100">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
                         <div>
-                            <h6 class="text-muted mb-1">Custo por Arroba</h6>
-                            <h3 class="mb-0 text-success">
+                            <h6 class="text-muted mb-1" style="font-size: 0.75rem;">Custo por Arroba</h6>
+                            <h4 class="mb-0 text-success" style="font-size: 1.5rem;">
                                 {{ indicadores_rentabilidade.custo_por_arroba.custo_por_arroba|floatformat:2|moeda_br }}/@
-                            </h3>
-                            <small class="text-muted">
-                                Produção: {{ indicadores_rentabilidade.custo_por_arroba.arrobas_totais|floatformat:1 }} @
-                            </small>
+                            </h4>
+                            <small class="text-muted" style="font-size: 0.7rem;">{{ indicadores_rentabilidade.custo_por_arroba.arrobas_totais|floatformat:1 }} @</small>
                         </div>
-                        <div class="bg-success bg-opacity-10 p-3 rounded">
-                            <i class="bi bi-speedometer2 text-success" style="font-size: 2rem;"></i>
-                        </div>
+                        <i class="bi bi-speedometer2 text-muted" style="font-size: 1.5rem; opacity: 0.3;"></i>
                     </div>
-                    <div class="mt-3">
-                        <small class="text-muted d-block mb-1">Peso Total:</small>
-                        <strong>{{ indicadores_rentabilidade.custo_por_arroba.peso_total_kg|floatformat:0 }} kg</strong>
-                    </div>
-                    <hr>
-                    <div class="small">
+                    <hr class="my-2">
+                    <div class="small" style="font-size: 0.75rem;">
                         <div class="d-flex justify-content-between mb-1">
-                            <span>Arrobas Totais:</span>
-                            <strong>{{ indicadores_rentabilidade.custo_por_arroba.arrobas_totais|floatformat:1 }} @</strong>
+                            <span>Peso Total:</span>
+                            <strong>{{ indicadores_rentabilidade.custo_por_arroba.peso_total_kg|floatformat:0 }} kg</strong>
                         </div>
                         <div class="d-flex justify-content-between mb-1">
                             <span>Custo Total:</span>
@@ -865,94 +841,86 @@
         </div>
 
         <!-- Lucratividade Real -->
-        <div class="col-md-4">
-            <div class="powerbi-card">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start mb-3">
+        <div class="col-lg-4 col-md-6">
+            <div class="powerbi-card h-100">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
                         <div>
-                            <h6 class="text-muted mb-1">Lucratividade Real</h6>
-                            <h3 class="mb-0 {% if indicadores_rentabilidade.lucratividade.lucro >= 0 %}text-success{% else %}text-danger{% endif %}">
+                            <h6 class="text-muted mb-1" style="font-size: 0.75rem;">Lucratividade Real</h6>
+                            <h4 class="mb-0 {% if indicadores_rentabilidade.lucratividade.lucro >= 0 %}text-success{% else %}text-danger{% endif %}" style="font-size: 1.5rem;">
                                 {{ indicadores_rentabilidade.lucratividade.lucro|floatformat:2|moeda_br }}
-                            </h3>
-                            <small class="text-muted">
-                                Margem: {{ indicadores_rentabilidade.lucratividade.margem_lucro|floatformat:1 }}%
-                            </small>
+                            </h4>
+                            <small class="text-muted" style="font-size: 0.7rem;">Margem: {{ indicadores_rentabilidade.lucratividade.margem_lucro|floatformat:1 }}%</small>
                         </div>
-                        <div class="bg-{% if indicadores_rentabilidade.lucratividade.lucro >= 0 %}success{% else %}danger{% endif %} bg-opacity-10 p-3 rounded">
-                            <i class="bi bi-{% if indicadores_rentabilidade.lucratividade.lucro >= 0 %}trending-up{% else %}trending-down{% endif %} text-{% if indicadores_rentabilidade.lucratividade.lucro >= 0 %}success{% else %}danger{% endif %}" style="font-size: 2rem;"></i>
-                        </div>
+                        <i class="bi bi-{% if indicadores_rentabilidade.lucratividade.lucro >= 0 %}trending-up{% else %}trending-down{% endif %} text-{% if indicadores_rentabilidade.lucratividade.lucro >= 0 %}success{% else %}danger{% endif %}" style="font-size: 1.5rem; opacity: 0.3;"></i>
                     </div>
-                    <div class="mt-3">
-                        <small class="text-muted d-block mb-1">ROI:</small>
-                        <strong class="{% if indicadores_rentabilidade.lucratividade.roi >= 0 %}text-success{% else %}text-danger{% endif %}">
-                            {{ indicadores_rentabilidade.lucratividade.roi|floatformat:2 }}%
-                        </strong>
-                    </div>
-                    <hr>
-                    <div class="small">
+                    <hr class="my-2">
+                    <div class="small" style="font-size: 0.75rem;">
                         <div class="d-flex justify-content-between mb-1">
-                            <span>Receita Total:</span>
+                            <span>ROI:</span>
+                            <strong class="{% if indicadores_rentabilidade.lucratividade.roi >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                {{ indicadores_rentabilidade.lucratividade.roi|floatformat:2 }}%
+                            </strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Receita:</span>
                             <strong class="text-success">{{ indicadores_rentabilidade.lucratividade.receita_total|floatformat:2|moeda_br }}</strong>
-                        </div>
-                        <div class="d-flex justify-content-between mb-1">
-                            <span>Custo Total:</span>
-                            <strong class="text-danger">{{ indicadores_rentabilidade.lucratividade.custo_total|floatformat:2|moeda_br }}</strong>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Detalhamento de Custos -->
-        <div class="col-12 mt-3">
+        <!-- Detalhamento de Custos - Compacto -->
+        <div class="col-12 mt-2">
             <div class="powerbi-card">
-                <div class="card-header bg-light">
-                    <h5 class="mb-0">
+                <div class="card-header bg-light py-2">
+                    <h6 class="mb-0" style="font-size: 0.9rem;">
                         <i class="bi bi-list-ul me-2"></i>Detalhamento de Custos
-                    </h5>
+                    </h6>
                 </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-3">
-                            <div class="text-center p-3 border rounded">
-                                <small class="text-muted d-block mb-1">Custos Fixos</small>
-                                <strong>{{ indicadores_rentabilidade.custo_por_animal.custos_detalhados.fixos|floatformat:2|moeda_br }}</strong>
+                <div class="card-body p-3">
+                    <div class="row g-2">
+                        <div class="col-lg-3 col-md-4 col-sm-6">
+                            <div class="text-center p-2 border rounded">
+                                <small class="text-muted d-block mb-1" style="font-size: 0.7rem;">Custos Fixos</small>
+                                <strong style="font-size: 0.9rem;">{{ indicadores_rentabilidade.custo_por_animal.custos_detalhados.fixos|floatformat:2|moeda_br }}</strong>
                             </div>
                         </div>
-                        <div class="col-md-3">
-                            <div class="text-center p-3 border rounded">
-                                <small class="text-muted d-block mb-1">Custos Variáveis</small>
-                                <strong>{{ indicadores_rentabilidade.custo_por_animal.custos_detalhados.variaveis|floatformat:2|moeda_br }}</strong>
+                        <div class="col-lg-3 col-md-4 col-sm-6">
+                            <div class="text-center p-2 border rounded">
+                                <small class="text-muted d-block mb-1" style="font-size: 0.7rem;">Custos Variáveis</small>
+                                <strong style="font-size: 0.9rem;">{{ indicadores_rentabilidade.custo_por_animal.custos_detalhados.variaveis|floatformat:2|moeda_br }}</strong>
                             </div>
                         </div>
-                        <div class="col-md-3">
-                            <div class="text-center p-3 border rounded">
-                                <small class="text-muted d-block mb-1">Combustível</small>
-                                <strong>{{ indicadores_rentabilidade.custo_por_animal.custos_detalhados.combustivel|floatformat:2|moeda_br }}</strong>
+                        <div class="col-lg-3 col-md-4 col-sm-6">
+                            <div class="text-center p-2 border rounded">
+                                <small class="text-muted d-block mb-1" style="font-size: 0.7rem;">Combustível</small>
+                                <strong style="font-size: 0.9rem;">{{ indicadores_rentabilidade.custo_por_animal.custos_detalhados.combustivel|floatformat:2|moeda_br }}</strong>
                             </div>
                         </div>
-                        <div class="col-md-3">
-                            <div class="text-center p-3 border rounded">
-                                <small class="text-muted d-block mb-1">Folha de Pagamento</small>
-                                <strong>{{ indicadores_rentabilidade.custo_por_animal.custos_detalhados.folha|floatformat:2|moeda_br }}</strong>
+                        <div class="col-lg-3 col-md-4 col-sm-6">
+                            <div class="text-center p-2 border rounded">
+                                <small class="text-muted d-block mb-1" style="font-size: 0.7rem;">Folha</small>
+                                <strong style="font-size: 0.9rem;">{{ indicadores_rentabilidade.custo_por_animal.custos_detalhados.folha|floatformat:2|moeda_br }}</strong>
                             </div>
                         </div>
-                        <div class="col-md-3 mt-2">
-                            <div class="text-center p-3 border rounded">
-                                <small class="text-muted d-block mb-1">Manutenção</small>
-                                <strong>{{ indicadores_rentabilidade.custo_por_animal.custos_detalhados.manutencao|floatformat:2|moeda_br }}</strong>
+                        <div class="col-lg-3 col-md-4 col-sm-6">
+                            <div class="text-center p-2 border rounded">
+                                <small class="text-muted d-block mb-1" style="font-size: 0.7rem;">Manutenção</small>
+                                <strong style="font-size: 0.9rem;">{{ indicadores_rentabilidade.custo_por_animal.custos_detalhados.manutencao|floatformat:2|moeda_br }}</strong>
                             </div>
                         </div>
-                        <div class="col-md-3 mt-2">
-                            <div class="text-center p-3 border rounded">
-                                <small class="text-muted d-block mb-1">Financeiro</small>
-                                <strong>{{ indicadores_rentabilidade.custo_por_animal.custos_detalhados.financeiro|floatformat:2|moeda_br }}</strong>
+                        <div class="col-lg-3 col-md-4 col-sm-6">
+                            <div class="text-center p-2 border rounded">
+                                <small class="text-muted d-block mb-1" style="font-size: 0.7rem;">Financeiro</small>
+                                <strong style="font-size: 0.9rem;">{{ indicadores_rentabilidade.custo_por_animal.custos_detalhados.financeiro|floatformat:2|moeda_br }}</strong>
                             </div>
                         </div>
-                        <div class="col-md-3 mt-2">
-                            <div class="text-center p-3 border rounded">
-                                <small class="text-muted d-block mb-1">Nutrição</small>
-                                <strong>{{ indicadores_rentabilidade.custo_por_animal.custos_detalhados.nutricao|floatformat:2|moeda_br }}</strong>
+                        <div class="col-lg-3 col-md-4 col-sm-6">
+                            <div class="text-center p-2 border rounded">
+                                <small class="text-muted d-block mb-1" style="font-size: 0.7rem;">Nutrição</small>
+                                <strong style="font-size: 0.9rem;">{{ indicadores_rentabilidade.custo_por_animal.custos_detalhados.nutricao|floatformat:2|moeda_br }}</strong>
                             </div>
                         </div>
                     </div>
@@ -963,17 +931,17 @@
     {% endif %}
 
     <!-- Gráficos Principais -->
-    <div class="row g-3 mb-4">
+    <div class="row g-3 mb-3">
         <!-- Gráfico Financeiro -->
         <div class="col-lg-8">
             <div class="powerbi-card">
                 <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
                     <h5 class="mb-0"><i class="bi bi-graph-up me-2"></i>Fluxo Financeiro</h5>
                     <div class="btn-group btn-group-sm" role="group">
-                        <button type="button" class="btn btn-outline-primary active" onclick="alterarTipoGrafico('financeiro', 'line')">
+                        <button type="button" class="btn btn-outline-secondary active" onclick="alterarTipoGrafico('financeiro', 'line')">
                             <i class="bi bi-graph-up"></i> Linha
                         </button>
-                        <button type="button" class="btn btn-outline-primary" onclick="alterarTipoGrafico('financeiro', 'bar')">
+                        <button type="button" class="btn btn-outline-secondary" onclick="alterarTipoGrafico('financeiro', 'bar')">
                             <i class="bi bi-bar-chart"></i> Barras
                         </button>
                     </div>
@@ -986,16 +954,17 @@
             </div>
         </div>
         
-        <!-- Gráfico Inventário por Categoria -->
+        <!-- Gráfico Inventário por Categoria - Oculto se não houver dados -->
+        {% if inventario_por_categoria %}
         <div class="col-lg-4">
             <div class="powerbi-card">
                 <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
                     <h5 class="mb-0"><i class="bi bi-pie-chart me-2"></i>Inventário por Categoria</h5>
                     <div class="btn-group btn-group-sm" role="group">
-                        <button type="button" class="btn btn-outline-primary active" onclick="alterarTipoGrafico('inventario', 'doughnut')">
+                        <button type="button" class="btn btn-outline-secondary active" onclick="alterarTipoGrafico('inventario', 'doughnut')">
                             <i class="bi bi-circle"></i>
                         </button>
-                        <button type="button" class="btn btn-outline-primary" onclick="alterarTipoGrafico('inventario', 'pie')">
+                        <button type="button" class="btn btn-outline-secondary" onclick="alterarTipoGrafico('inventario', 'pie')">
                             <i class="bi bi-pie-chart"></i>
                         </button>
                     </div>
@@ -1007,11 +976,14 @@
                 </div>
             </div>
         </div>
+        {% endif %}
     </div>
 
-    <!-- Novos Gráficos Avançados -->
+    <!-- Novos Gráficos Avançados - Apenas se houver dados relevantes -->
+    {% if total_animais_inventario > 0 or total_custos_operacionais > 0 %}
     <div class="row g-3 mb-4">
-        <!-- Evolução de Animais ao Longo do Tempo -->
+        <!-- Evolução de Animais ao Longo do Tempo - Apenas se houver animais suficientes -->
+        {% if total_animais_inventario > 5 %}
         <div class="col-lg-6">
             <div class="powerbi-card">
                 <div class="card-header bg-white border-bottom">
@@ -1024,8 +996,10 @@
                 </div>
             </div>
         </div>
+        {% endif %}
 
-        <!-- Distribuição de Custos -->
+        <!-- Distribuição de Custos - Apenas se houver custos -->
+        {% if total_custos_operacionais > 0 %}
         <div class="col-lg-6">
             <div class="powerbi-card print-page-break-after">
                 <div class="card-header bg-white border-bottom">
@@ -1038,151 +1012,147 @@
                 </div>
             </div>
         </div>
+        {% endif %}
     </div>
+    {% endif %}
 
-    <!-- KPIs Avançados -->
-    <div class="row g-3 mb-4 print-page-break-before">
+    <!-- KPIs e Comparação Consolidados - Layout Compacto -->
+    <div class="row g-2 mb-3 print-page-break-before">
         <div class="col-12">
-            <div class="section-header">
-                <h3 class="section-title">
-                    <i class="bi bi-speedometer2 text-primary me-2"></i>
-                    Indicadores de Performance (KPIs)
+            <div class="section-header mb-2">
+                <h3 class="section-title" style="font-size: 1.1rem;">
+                    <i class="bi bi-speedometer2 text-secondary me-2"></i>
+                    Indicadores de Performance
                 </h3>
             </div>
         </div>
 
-        <!-- ROI e Rentabilidade -->
-        <div class="col-lg-3 col-md-6">
-            <div class="powerbi-card">
-                <div class="card-body text-center">
-                    <div class="mb-3">
-                        <i class="bi bi-cash-stack text-success" style="font-size: 2.5rem;"></i>
+        <!-- KPIs Compactos em Grid 2x2 -->
+        <div class="col-lg-3 col-md-6 col-sm-6">
+            <div class="powerbi-card h-100">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <h6 class="text-muted mb-1" style="font-size: 0.75rem;">ROI Mensal</h6>
+                            <h4 class="mb-0 {% if margem_lucro > 0 %}text-success{% else %}text-danger{% endif %}" style="font-size: 1.5rem;">
+                                {% if receitas_mes > 0 %}{{ margem_lucro|floatformat:1 }}%{% else %}0.0%{% endif %}
+                            </h4>
+                        </div>
+                        <i class="bi bi-cash-stack text-muted" style="font-size: 1.5rem; opacity: 0.3;"></i>
                     </div>
-                    <h6 class="text-muted mb-2">ROI Mensal</h6>
-                    <h3 class="mb-0 {% if margem_lucro > 0 %}text-success{% else %}text-danger{% endif %}">
-                        {% if receitas_mes > 0 %}
-                            {{ margem_lucro|floatformat:1 }}%
-                        {% else %}
-                            0.0%
-                        {% endif %}
-                    </h3>
-                    <small class="text-muted">Retorno sobre Investimento</small>
+                    <small class="text-muted" style="font-size: 0.7rem;">Retorno sobre Investimento</small>
                 </div>
             </div>
         </div>
 
-        <!-- Produtividade por Animal -->
-        <div class="col-lg-3 col-md-6">
-            <div class="powerbi-card">
-                <div class="card-body text-center">
-                    <div class="mb-3">
-                        <i class="bi bi-graph-up text-primary" style="font-size: 2.5rem;"></i>
+        <div class="col-lg-3 col-md-6 col-sm-6">
+            <div class="powerbi-card h-100">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <h6 class="text-muted mb-1" style="font-size: 0.75rem;">Receita/Animal</h6>
+                            <h4 class="mb-0 text-primary" style="font-size: 1.5rem;">
+                                {% if total_animais_inventario > 0 %}
+                                    {% widthratio receitas_mes total_animais_inventario 1 as receita_por_animal %}
+                                    {{ receita_por_animal|floatformat:2|moeda_br }}
+                                {% else %}R$ 0,00{% endif %}
+                            </h4>
+                        </div>
+                        <i class="bi bi-graph-up text-muted" style="font-size: 1.5rem; opacity: 0.3;"></i>
                     </div>
-                    <h6 class="text-muted mb-2">Receita por Animal</h6>
-                    <h3 class="mb-0 text-primary">
-                        {% if total_animais_inventario > 0 %}
-                            {% widthratio receitas_mes total_animais_inventario 1 as receita_por_animal %}
-                            {{ receita_por_animal|floatformat:2|moeda_br }}
-                        {% else %}
-                            R$ 0,00
-                        {% endif %}
-                    </h3>
-                    <small class="text-muted">Média mensal</small>
+                    <small class="text-muted" style="font-size: 0.7rem;">Média mensal</small>
                 </div>
             </div>
         </div>
 
-        <!-- Custo por Animal -->
-        <div class="col-lg-3 col-md-6">
-            <div class="powerbi-card">
-                <div class="card-body text-center">
-                    <div class="mb-3">
-                        <i class="bi bi-calculator text-warning" style="font-size: 2.5rem;"></i>
+        <div class="col-lg-3 col-md-6 col-sm-6">
+            <div class="powerbi-card h-100">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <h6 class="text-muted mb-1" style="font-size: 0.75rem;">Custo/Animal</h6>
+                            <h4 class="mb-0 text-warning" style="font-size: 1.5rem;">
+                                {% if total_animais_inventario > 0 %}
+                                    {% widthratio total_custos_operacionais total_animais_inventario 1 as custo_por_animal %}
+                                    {{ custo_por_animal|floatformat:2|moeda_br }}
+                                {% else %}R$ 0,00{% endif %}
+                            </h4>
+                        </div>
+                        <i class="bi bi-calculator text-muted" style="font-size: 1.5rem; opacity: 0.3;"></i>
                     </div>
-                    <h6 class="text-muted mb-2">Custo por Animal</h6>
-                    <h3 class="mb-0 text-warning">
-                        {% if total_animais_inventario > 0 %}
-                            {% widthratio total_custos_operacionais total_animais_inventario 1 as custo_por_animal %}
-                            {{ custo_por_animal|floatformat:2|moeda_br }}
-                        {% else %}
-                            R$ 0,00
-                        {% endif %}
-                    </h3>
-                    <small class="text-muted">Média mensal</small>
+                    <small class="text-muted" style="font-size: 0.7rem;">Média mensal</small>
                 </div>
             </div>
         </div>
 
-        <!-- Taxa de Crescimento -->
-        <div class="col-lg-3 col-md-6">
-            <div class="powerbi-card">
-                <div class="card-body text-center">
-                    <div class="mb-3">
-                        <i class="bi bi-arrow-up-circle text-info" style="font-size: 2.5rem;"></i>
+        <div class="col-lg-3 col-md-6 col-sm-6">
+            <div class="powerbi-card h-100">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <h6 class="text-muted mb-1" style="font-size: 0.75rem;">Crescimento</h6>
+                            <h4 class="mb-0 {% if percentual_animais > 0 %}text-success{% elif percentual_animais < 0 %}text-danger{% else %}text-muted{% endif %}" style="font-size: 1.5rem;">
+                                {% if percentual_animais != 0 %}{{ percentual_animais|floatformat:1 }}%{% else %}0.0%{% endif %}
+                            </h4>
+                        </div>
+                        <i class="bi bi-arrow-up-circle text-muted" style="font-size: 1.5rem; opacity: 0.3;"></i>
                     </div>
-                    <h6 class="text-muted mb-2">Taxa de Crescimento</h6>
-                    <h3 class="mb-0 {% if percentual_animais > 0 %}text-success{% elif percentual_animais < 0 %}text-danger{% else %}text-muted{% endif %}">
-                        {% if percentual_animais != 0 %}
-                            {{ percentual_animais|floatformat:1 }}%
-                        {% else %}
-                            0.0%
-                        {% endif %}
-                    </h3>
-                    <small class="text-muted">Rebanho (vs período anterior)</small>
+                    <small class="text-muted" style="font-size: 0.7rem;">Rebanho (vs anterior)</small>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Comparação com Período Anterior -->
-    <div class="row g-3 mb-4">
+    <!-- Comparação com Período Anterior - Compacta -->
+    {% if tendencia_receitas != 0 or tendencia_despesas != 0 or tendencia_saldo != 0 or tendencia_custos != 0 %}
+    <div class="row g-2 mb-3">
         <div class="col-12">
             <div class="powerbi-card">
-                <div class="card-header bg-white border-bottom">
-                    <h5 class="mb-0"><i class="bi bi-arrow-left-right me-2"></i>Comparação com Período Anterior</h5>
+                <div class="card-header bg-white border-bottom py-2">
+                    <h6 class="mb-0" style="font-size: 0.9rem;"><i class="bi bi-arrow-left-right me-2"></i>Comparação com Período Anterior</h6>
                 </div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-3">
-                            <div class="text-center p-3 border rounded">
-                                <small class="text-muted d-block mb-2">Receitas</small>
-                                <h4 class="mb-1 {% if tendencia_receitas >= 0 %}text-success{% else %}text-danger{% endif %}">
+                <div class="card-body p-3">
+                    <div class="row g-2">
+                        <div class="col-lg-3 col-md-6 col-sm-6">
+                            <div class="text-center p-2 border rounded">
+                                <small class="text-muted d-block mb-1" style="font-size: 0.7rem;">Receitas</small>
+                                <h5 class="mb-1 {% if tendencia_receitas >= 0 %}text-success{% else %}text-danger{% endif %}" style="font-size: 1.1rem;">
                                     {{ tendencia_receitas|moeda_br }}
-                                </h4>
-                                <small class="{% if percentual_receitas >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                </h5>
+                                <small class="{% if percentual_receitas >= 0 %}text-success{% else %}text-danger{% endif %}" style="font-size: 0.7rem;">
                                     <i class="bi {% if percentual_receitas >= 0 %}bi-arrow-up{% else %}bi-arrow-down{% endif %}"></i>
                                     {{ percentual_receitas_abs|floatformat:1 }}%
                                 </small>
                             </div>
                         </div>
-                        <div class="col-md-3">
-                            <div class="text-center p-3 border rounded">
-                                <small class="text-muted d-block mb-2">Despesas</small>
-                                <h4 class="mb-1 {% if tendencia_despesas <= 0 %}text-success{% else %}text-danger{% endif %}">
+                        <div class="col-lg-3 col-md-6 col-sm-6">
+                            <div class="text-center p-2 border rounded">
+                                <small class="text-muted d-block mb-1" style="font-size: 0.7rem;">Despesas</small>
+                                <h5 class="mb-1 {% if tendencia_despesas <= 0 %}text-success{% else %}text-danger{% endif %}" style="font-size: 1.1rem;">
                                     {{ tendencia_despesas|moeda_br }}
-                                </h4>
-                                <small class="{% if tendencia_despesas <= 0 %}text-success{% else %}text-danger{% endif %}">
+                                </h5>
+                                <small class="{% if tendencia_despesas <= 0 %}text-success{% else %}text-danger{% endif %}" style="font-size: 0.7rem;">
                                     <i class="bi {% if tendencia_despesas <= 0 %}bi-arrow-down{% else %}bi-arrow-up{% endif %}"></i>
                                     {{ percentual_despesas_abs|floatformat:1 }}%
                                 </small>
                             </div>
                         </div>
-                        <div class="col-md-3">
-                            <div class="text-center p-3 border rounded">
-                                <small class="text-muted d-block mb-2">Saldo</small>
-                                <h4 class="mb-1 {% if tendencia_saldo >= 0 %}text-success{% else %}text-danger{% endif %}">
+                        <div class="col-lg-3 col-md-6 col-sm-6">
+                            <div class="text-center p-2 border rounded">
+                                <small class="text-muted d-block mb-1" style="font-size: 0.7rem;">Saldo</small>
+                                <h5 class="mb-1 {% if tendencia_saldo >= 0 %}text-success{% else %}text-danger{% endif %}" style="font-size: 1.1rem;">
                                     {{ tendencia_saldo|moeda_br }}
-                                </h4>
-                                <small class="text-muted">Variação</small>
+                                </h5>
+                                <small class="text-muted" style="font-size: 0.7rem;">Variação</small>
                             </div>
                         </div>
-                        <div class="col-md-3">
-                            <div class="text-center p-3 border rounded">
-                                <small class="text-muted d-block mb-2">Custos Operacionais</small>
-                                <h4 class="mb-1 {% if tendencia_custos <= 0 %}text-success{% else %}text-danger{% endif %}">
+                        <div class="col-lg-3 col-md-6 col-sm-6">
+                            <div class="text-center p-2 border rounded">
+                                <small class="text-muted d-block mb-1" style="font-size: 0.7rem;">Custos Oper.</small>
+                                <h5 class="mb-1 {% if tendencia_custos <= 0 %}text-success{% else %}text-danger{% endif %}" style="font-size: 1.1rem;">
                                     {{ tendencia_custos|moeda_br }}
-                                </h4>
-                                <small class="{% if tendencia_custos <= 0 %}text-success{% else %}text-danger{% endif %}">
+                                </h5>
+                                <small class="{% if tendencia_custos <= 0 %}text-success{% else %}text-danger{% endif %}" style="font-size: 0.7rem;">
                                     <i class="bi {% if tendencia_custos <= 0 %}bi-arrow-down{% else %}bi-arrow-up{% endif %}"></i>
                                     {{ percentual_custos_abs|floatformat:1 }}%
                                 </small>
@@ -1193,6 +1163,7 @@
             </div>
         </div>
     </div>
+    {% endif %}
 
     <!-- Módulos Organizados em Grid -->
     <div class="modules-grid-container mt-4">
@@ -1230,7 +1201,7 @@
                     </div>
                 </div>
                 <div class="module-card-footer">
-                    <a href="{% url 'pecuaria_inventario' propriedade.id %}" class="btn-module-link">
+                    <a href="{% url 'pecuaria_dashboard' propriedade.id %}" class="btn-module-link">
                         <i class="bi bi-arrow-right me-1"></i>Ver Detalhes
                     </a>
                 </div>
@@ -1693,7 +1664,11 @@ function inicializarGraficos() {
                 });
             } else {
                 // Mostrar mensagem quando não há dados
-                ctxFinanceiro.parentElement.innerHTML = '<div class="text-center text-muted py-5"><i class="bi bi-inbox fs-1 d-block mb-2 opacity-50"></i><p class="mb-0">Nenhum dado financeiro disponível</p><small>Adicione lançamentos financeiros para visualizar os gráficos</small></div>';
+                // Ocultar o card inteiro quando não há dados
+                const cardFinanceiro = ctxFinanceiro.closest('.powerbi-card');
+                if (cardFinanceiro) {
+                    cardFinanceiro.style.display = 'none';
+                }
             }
         } catch (error) {
             console.error('Erro ao criar gráfico financeiro:', error);
@@ -1785,8 +1760,11 @@ function inicializarGraficos() {
                     }
                 });
             } else {
-                // Mostrar mensagem quando não há dados
-                ctxInventario.parentElement.innerHTML = '<div class="text-center text-muted py-5"><i class="bi bi-inbox fs-1 d-block mb-2 opacity-50"></i><p class="mb-0">Nenhum dado disponível</p></div>';
+                // Ocultar o card inteiro quando não há dados
+                const cardInventario = ctxInventario.closest('.powerbi-card');
+                if (cardInventario) {
+                    cardInventario.style.display = 'none';
+                }
             }
         } catch (error) {
             console.error('Erro ao criar gráfico de inventário:', error);
@@ -1824,8 +1802,8 @@ function inicializarGraficos() {
                     datasets: [{
                         label: 'Total de Animais',
                         data: totalAnimais,
-                        borderColor: 'rgb(102, 126, 234)',
-                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        borderColor: 'rgb(74, 85, 104)',
+                        backgroundColor: 'rgba(74, 85, 104, 0.1)',
                         tension: 0.4,
                         fill: true,
                         borderWidth: 3,
@@ -1871,7 +1849,11 @@ function inicializarGraficos() {
                     });
                 }
             } else {
-                ctxEvolucaoRebanho.parentElement.innerHTML = '<div class="text-center text-muted py-5"><i class="bi bi-inbox fs-1 d-block mb-2 opacity-50"></i><p class="mb-0">Nenhum dado de evolução disponível</p></div>';
+                // Ocultar o card inteiro quando não há dados relevantes
+                const cardEvolucao = ctxEvolucaoRebanho.closest('.powerbi-card');
+                if (cardEvolucao) {
+                    cardEvolucao.style.display = 'none';
+                }
             }
         } catch (error) {
             console.error('Erro ao criar gráfico de evolução:', error);
@@ -1897,9 +1879,9 @@ function inicializarGraficos() {
                     datasets: [{
                         data: [combustivel, folha, suplementacao],
                         backgroundColor: [
-                            'rgba(239, 68, 68, 0.8)',
-                            'rgba(34, 197, 94, 0.8)',
-                            'rgba(250, 204, 21, 0.8)'
+                            'rgba(74, 85, 104, 0.8)',   // Cinza escuro
+                            'rgba(113, 128, 150, 0.8)', // Cinza médio
+                            'rgba(148, 163, 184, 0.8)'  // Cinza claro
                         ],
                         borderWidth: 2,
                         borderColor: '#fff'
@@ -1940,7 +1922,11 @@ function inicializarGraficos() {
                     });
                 }
             } else {
-                ctxDistribuicaoCustos.parentElement.innerHTML = '<div class="text-center text-muted py-5"><i class="bi bi-inbox fs-1 d-block mb-2 opacity-50"></i><p class="mb-0">Nenhum dado de custos disponível</p><small>Os custos operacionais aparecerão aqui quando houver registros</small></div>';
+                // Ocultar o card inteiro quando não há dados
+                const cardCustos = ctxDistribuicaoCustos.closest('.powerbi-card');
+                if (cardCustos) {
+                    cardCustos.style.display = 'none';
+                }
             }
         } catch (error) {
             console.error('Erro ao criar gráfico de distribuição de custos:', error);

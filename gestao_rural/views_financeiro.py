@@ -252,7 +252,9 @@ def financeiro_dashboard(request, propriedade_id):
         "indicadores": indicadores,
         "comparacao": comparacao,
         "dados_pecuaria": dados_pecuaria,
+        "dados_pecuaria_disponivel": dados_pecuaria.get("modulo_disponivel", False),
         "dados_compras": dados_compras,
+        "dados_compras_disponivel": dados_compras.get("modulo_disponivel", False),
         "insights": insights,
         "tendencias_categoria": tendencias_categoria,
         "url_lancamentos": reverse(

@@ -8,12 +8,13 @@ from datetime import datetime, timedelta
 from .models import Propriedade, IndicadorFinanceiro, InventarioRebanho, MovimentacaoProjetada
 from .models import CustoFixo, CustoVariavel, Financiamento
 from .forms_analise import IndicadorFinanceiroForm
+from .decorators import obter_propriedade_com_permissao
 
 
 @login_required
 def analise_dashboard(request, propriedade_id):
     """Dashboard do módulo de análise"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     # Busca indicadores recentes
     indicadores = IndicadorFinanceiro.objects.filter(
@@ -48,7 +49,7 @@ def analise_dashboard(request, propriedade_id):
 @login_required
 def indicadores_lista(request, propriedade_id):
     """Lista todos os indicadores da propriedade"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     # Filtros
     tipo_filter = request.GET.get('tipo', '')
@@ -94,7 +95,7 @@ def indicadores_lista(request, propriedade_id):
 @login_required
 def indicador_novo(request, propriedade_id):
     """Adiciona novo indicador"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     if request.method == 'POST':
         form = IndicadorFinanceiroForm(request.POST)
@@ -119,7 +120,7 @@ def indicador_novo(request, propriedade_id):
 @login_required
 def indicador_editar(request, propriedade_id, indicador_id):
     """Edita indicador existente"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     indicador = get_object_or_404(IndicadorFinanceiro, id=indicador_id, propriedade=propriedade)
     
     if request.method == 'POST':
@@ -143,7 +144,7 @@ def indicador_editar(request, propriedade_id, indicador_id):
 @login_required
 def calcular_indicadores_automaticos(request, propriedade_id):
     """Calcula indicadores automaticamente baseado nos dados da propriedade"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     # Calcula indicadores básicos
     indicadores = calcular_indicadores_basicos(propriedade)
@@ -175,7 +176,7 @@ def calcular_indicadores_automaticos(request, propriedade_id):
 @login_required
 def relatorio_analise(request, propriedade_id):
     """Gera relatório de análise financeira"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     # Busca dados para o relatório
     indicadores_calculados = calcular_indicadores_basicos(propriedade)

@@ -16,6 +16,7 @@ from decimal import Decimal
 from datetime import date, datetime
 
 from .models import Propriedade
+from .decorators import obter_propriedade_com_permissao
 from .models_operacional import (
     TanqueCombustivel, AbastecimentoCombustivel, ConsumoCombustivel,
     Empreiteiro, ServicoEmpreiteiro,
@@ -30,7 +31,7 @@ from .models_funcionarios import CalculadoraImpostos
 @login_required
 def operacoes_dashboard(request, propriedade_id):
     """Dashboard consolidado de Operações"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     # ========== COMBUSTÍVEL ==========
     tanques = TanqueCombustivel.objects.filter(propriedade=propriedade)
@@ -94,7 +95,7 @@ def operacoes_dashboard(request, propriedade_id):
 @login_required
 def combustivel_lista(request, propriedade_id):
     """Lista de tanques de combustível"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     tanques = TanqueCombustivel.objects.filter(propriedade=propriedade)
     
     context = {
@@ -108,7 +109,7 @@ def combustivel_lista(request, propriedade_id):
 @login_required
 def consumo_combustivel_novo(request, propriedade_id):
     """Registrar consumo de combustível"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     tanques = TanqueCombustivel.objects.filter(propriedade=propriedade)
     
     if request.method == 'POST':
@@ -150,7 +151,7 @@ def consumo_combustivel_novo(request, propriedade_id):
 @login_required
 def equipamentos_lista(request, propriedade_id):
     """Lista de equipamentos"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     equipamentos = Equipamento.objects.filter(propriedade=propriedade).select_related('tipo').order_by('nome')
     
     context = {
@@ -164,7 +165,7 @@ def equipamentos_lista(request, propriedade_id):
 @login_required
 def manutencao_nova(request, propriedade_id):
     """Registrar nova manutenção"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     equipamentos = Equipamento.objects.filter(propriedade=propriedade, ativo=True)
     
     if request.method == 'POST':

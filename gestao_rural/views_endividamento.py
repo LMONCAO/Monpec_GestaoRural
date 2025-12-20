@@ -6,12 +6,13 @@ from django.utils import timezone
 from decimal import Decimal
 from .models import Propriedade, TipoFinanciamento, Financiamento
 from .forms_endividamento import FinanciamentoForm, TipoFinanciamentoForm
+from .decorators import obter_propriedade_com_permissao
 
 
 @login_required
 def dividas_financeiras_dashboard(request, propriedade_id):
     """Dashboard do módulo de dívidas financeiras"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     # Busca financiamentos ativos
     financiamentos = Financiamento.objects.filter(
@@ -50,7 +51,7 @@ def dividas_financeiras_dashboard(request, propriedade_id):
 @login_required
 def financiamentos_lista(request, propriedade_id):
     """Lista todos os financiamentos da propriedade"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     financiamentos = Financiamento.objects.filter(
         propriedade=propriedade
@@ -67,7 +68,7 @@ def financiamentos_lista(request, propriedade_id):
 @login_required
 def financiamento_novo(request, propriedade_id):
     """Adiciona novo financiamento"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     if request.method == 'POST':
         form = FinanciamentoForm(request.POST)
@@ -92,7 +93,7 @@ def financiamento_novo(request, propriedade_id):
 @login_required
 def financiamento_editar(request, propriedade_id, financiamento_id):
     """Edita financiamento existente"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     financiamento = get_object_or_404(Financiamento, id=financiamento_id, propriedade=propriedade)
     
     if request.method == 'POST':
@@ -116,7 +117,7 @@ def financiamento_editar(request, propriedade_id, financiamento_id):
 @login_required
 def financiamento_excluir(request, propriedade_id, financiamento_id):
     """Exclui financiamento"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     financiamento = get_object_or_404(Financiamento, id=financiamento_id, propriedade=propriedade)
     
     if request.method == 'POST':

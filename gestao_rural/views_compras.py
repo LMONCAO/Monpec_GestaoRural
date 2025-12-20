@@ -13,13 +13,18 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q, Sum, Count
 from django.forms import inlineformset_factory, formset_factory
+from django import forms
 from django.http import JsonResponse
 from django.utils import timezone
 from decimal import Decimal
 from datetime import date, datetime, timedelta
 import xml.etree.ElementTree as ET
+import logging
+
+logger = logging.getLogger(__name__)
 
 from .models import Propriedade
+from .decorators import obter_propriedade_com_permissao
 from .models_compras_financeiro import (
     Fornecedor, NotaFiscal, ItemNotaFiscal,
     OrdemCompra, ItemOrdemCompra,
@@ -29,7 +34,9 @@ from .models_compras_financeiro import (
     ItemRecebimentoCompra, EventoFluxoCompra,
     SetorPropriedade, ConviteCotacaoFornecedor,
     ContaPagar, OrcamentoCompraMensal, AjusteOrcamentoCompra,
+    Produto, CategoriaProduto,
 )
+from .models_cadastros import Cliente
 from .forms_completos import (
     RequisicaoCompraForm, ItemRequisicaoCompraForm,
     AprovacaoRequisicaoCompraForm, CotacaoFornecedorForm,
@@ -38,6 +45,11 @@ from .forms_completos import (
     SetorPropriedadeForm, ConviteCotacaoFornecedorForm,
     RespostaCotacaoFornecedorCabecalhoForm, RespostaItemCotacaoFornecedorForm,
     OrcamentoCompraMensalForm, AjusteOrcamentoCompraForm,
+    NotaFiscalSaidaForm, ItemNotaFiscalForm,
+    ProdutoForm, CategoriaProdutoForm,
+)
+from .services_receita_federal import (
+    consultar_ncm, validar_cfop, sincronizar_produto
 )
 from .services import enviar_notificacao_compra
 
@@ -214,7 +226,7 @@ def validar_orcamento_para_valor(propriedade, setor, data_emissao, valor, ignora
 @login_required
 def compras_dashboard(request, propriedade_id):
     """Dashboard consolidado de Compras"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     # Fornecedores
     fornecedores = Fornecedor.objects.filter(
@@ -236,17 +248,18 @@ def compras_dashboard(request, propriedade_id):
     
     # Notas Fiscais
     mes_atual = date.today().replace(day=1)
+    # Usar apenas select_related de fornecedor (cliente pode não existir se migração não aplicada)
     nfes_mes = NotaFiscal.objects.filter(
         propriedade=propriedade,
         data_emissao__gte=mes_atual
-    )
+    ).select_related('fornecedor')
     valor_compras_mes = sum(nf.valor_total for nf in nfes_mes if nf.tipo == 'ENTRADA')
     
     # Estatísticas
     nfes_pendentes = NotaFiscal.objects.filter(
         propriedade=propriedade,
         status='PENDENTE'
-    ).count()
+    ).select_related('fornecedor').count()
 
     setores = SetorPropriedade.objects.filter(propriedade=propriedade)
     total_setores = setores.count()
@@ -305,7 +318,7 @@ def compras_dashboard(request, propriedade_id):
 @login_required
 def requisicoes_compra_lista(request, propriedade_id):
     """Lista de requisições de compra por fazenda"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     status_filtro = request.GET.get('status')
 
     requisicoes = RequisicaoCompra.objects.filter(
@@ -333,7 +346,7 @@ def requisicoes_compra_lista(request, propriedade_id):
 @login_required
 def requisicao_compra_nova(request, propriedade_id):
     """Cadastro de nova requisição (funcionário da fazenda)"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     numero_preview = RequisicaoCompra.gerar_proximo_numero(propriedade)
     data_requisicao = timezone.localdate()
 
@@ -347,6 +360,10 @@ def requisicao_compra_nova(request, propriedade_id):
             requisicao.solicitante = request.user
 
             acao = request.POST.get('acao', 'rascunho')
+            # Validar valores permitidos para ação
+            acoes_permitidas = ['rascunho', 'enviar', 'aprovar', 'rejeitar', 'cancelar']
+            if acao not in acoes_permitidas:
+                acao = 'rascunho'  # Valor padrão seguro
             if acao == 'enviar':
                 requisicao.status = 'ENVIADA'
                 requisicao.enviado_em = timezone.now()
@@ -389,7 +406,7 @@ def requisicao_compra_nova(request, propriedade_id):
 @login_required
 def requisicao_compra_detalhes(request, propriedade_id, requisicao_id):
     """Detalhes e linha do tempo da requisição"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     requisicao = get_object_or_404(
         RequisicaoCompra.objects.select_related(
             'solicitante',
@@ -722,7 +739,7 @@ def requisicao_compra_detalhes(request, propriedade_id, requisicao_id):
 @login_required
 def setores_compra_lista(request, propriedade_id):
     """Listagem de setores responsáveis por autorizações de compra"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     mostrar_inativos = request.GET.get('mostrar') == 'inativos'
 
     setores = SetorPropriedade.objects.filter(
@@ -746,7 +763,7 @@ def setores_compra_lista(request, propriedade_id):
 @login_required
 def setor_compra_novo(request, propriedade_id):
     """Cadastro de novo setor de compras"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
 
     if request.method == 'POST':
         form = SetorPropriedadeForm(request.POST, propriedade=propriedade)
@@ -771,7 +788,7 @@ def setor_compra_novo(request, propriedade_id):
 @login_required
 def setor_compra_editar(request, propriedade_id, setor_id):
     """Edição de setor de compras"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     setor = get_object_or_404(SetorPropriedade, id=setor_id, propriedade=propriedade)
 
     if request.method == 'POST':
@@ -800,7 +817,7 @@ def setor_compra_alterar_status(request, propriedade_id, setor_id):
         messages.error(request, 'Ação inválida.')
         return redirect('setores_compra_lista', propriedade_id=propriedade_id)
 
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     setor = get_object_or_404(SetorPropriedade, id=setor_id, propriedade=propriedade)
     setor.ativo = not setor.ativo
     setor.save(update_fields=['ativo'])
@@ -813,7 +830,7 @@ def setor_compra_alterar_status(request, propriedade_id, setor_id):
 @login_required
 def convites_cotacao_lista(request, propriedade_id):
     """Lista convites de cotação enviados aos fornecedores."""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     status_filtro = request.GET.get('status')
 
     convites = ConviteCotacaoFornecedor.objects.filter(
@@ -834,7 +851,7 @@ def convites_cotacao_lista(request, propriedade_id):
 
 @login_required
 def convite_cotacao_novo(request, propriedade_id):
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     requisicao_id = request.GET.get('requisicao') or request.POST.get('requisicao_id')
 
     if not requisicao_id:
@@ -1027,7 +1044,7 @@ def cotacao_fornecedor_responder_token(request, token):
 @login_required
 def cotacao_fornecedor_nova(request, propriedade_id, requisicao_id):
     """Registro de cotação para uma requisição aprovada"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     requisicao = get_object_or_404(
         RequisicaoCompra.objects.select_related('propriedade'),
         id=requisicao_id,
@@ -1104,7 +1121,7 @@ def cotacao_fornecedor_nova(request, propriedade_id, requisicao_id):
 @login_required
 def recebimento_compra_novo(request, propriedade_id, ordem_id):
     """Registro do recebimento físico vinculado à OC"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     ordem = get_object_or_404(
         OrdemCompra.objects.select_related('propriedade', 'fornecedor'),
         id=ordem_id,
@@ -1198,7 +1215,7 @@ def recebimento_compra_novo(request, propriedade_id, ordem_id):
 @login_required
 def fornecedores_lista(request, propriedade_id):
     """Lista de fornecedores"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     fornecedores = Fornecedor.objects.filter(
         Q(propriedade=propriedade) | Q(propriedade__isnull=True)
     ).order_by('nome')
@@ -1214,7 +1231,7 @@ def fornecedores_lista(request, propriedade_id):
 @login_required
 def fornecedor_novo(request, propriedade_id):
     """Cadastrar novo fornecedor"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     if request.method == 'POST':
         fornecedor = Fornecedor()
@@ -1248,7 +1265,7 @@ def fornecedor_novo(request, propriedade_id):
 @login_required
 def ordens_compra_lista(request, propriedade_id):
     """Lista de ordens de compra"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     ordens = OrdemCompra.objects.filter(propriedade=propriedade).select_related(
         'fornecedor',
         'setor',
@@ -1269,7 +1286,7 @@ def ordens_compra_lista(request, propriedade_id):
 @login_required
 def orcamentos_compra_lista(request, propriedade_id):
     """Configuração de orçamento mensal por propriedade e setor."""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     ano_atual = timezone.now().year
     try:
         ano_filtro = int(request.GET.get('ano', ano_atual))
@@ -1374,7 +1391,7 @@ def orcamentos_compra_lista(request, propriedade_id):
 @login_required
 def ordem_compra_nova(request, propriedade_id):
     """Criar nova ordem de compra"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     requisicao_id = request.GET.get('requisicao') or request.POST.get('requisicao_id')
     requisicao = None
     if requisicao_id:
@@ -1488,7 +1505,7 @@ def ordem_compra_nova(request, propriedade_id):
 @login_required
 def ordem_compra_detalhes(request, propriedade_id, ordem_id):
     """Detalhes completos da ordem de compra"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     ordem = get_object_or_404(
         OrdemCompra.objects.select_related(
             'fornecedor',
@@ -1632,9 +1649,9 @@ def ordem_compra_detalhes(request, propriedade_id, ordem_id):
 @login_required
 def notas_fiscais_lista(request, propriedade_id):
     """Lista de notas fiscais"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     notas = NotaFiscal.objects.filter(propriedade=propriedade).select_related(
-        'fornecedor'
+        'fornecedor', 'cliente'
     ).order_by('-data_emissao')
     
     context = {
@@ -1648,7 +1665,7 @@ def notas_fiscais_lista(request, propriedade_id):
 @login_required
 def nota_fiscal_upload(request, propriedade_id):
     """Upload de Nota Fiscal (XML)"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     fornecedores = Fornecedor.objects.filter(
         Q(propriedade=propriedade) | Q(propriedade__isnull=True),
         ativo=True
@@ -1873,11 +1890,11 @@ def nota_fiscal_upload(request, propriedade_id):
 @login_required
 def nota_fiscal_detalhes(request, propriedade_id, nota_id):
     """Detalhes da nota fiscal"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     nota = get_object_or_404(NotaFiscal, id=nota_id, propriedade=propriedade)
     itens = ItemNotaFiscal.objects.filter(nota_fiscal=nota)
-    ordens = nota.ordens_compra.select_related('fornecedor').all()
-    contas_pagar = nota.contas_pagar.select_related('fornecedor', 'ordem_compra').all()
+    ordens = nota.ordens_compra.select_related('fornecedor').all() if nota.tipo == 'ENTRADA' else []
+    contas_pagar = nota.contas_pagar.select_related('fornecedor', 'ordem_compra').all() if nota.tipo == 'ENTRADA' else []
     
     context = {
         'propriedade': propriedade,
@@ -1888,4 +1905,631 @@ def nota_fiscal_detalhes(request, propriedade_id, nota_id):
     }
     
     return render(request, 'gestao_rural/nota_fiscal_detalhes.html', context)
+
+
+@login_required
+def nota_fiscal_emitir(request, propriedade_id):
+    """Emitir NF-e de saída (venda)"""
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
+    
+    # Buscar próximo número de NF-e
+    ultima_nota = NotaFiscal.objects.filter(
+        propriedade=propriedade,
+        tipo='SAIDA',
+        serie='1'
+    ).order_by('-numero').first()
+    
+    proximo_numero = 1
+    if ultima_nota and ultima_nota.numero:
+        try:
+            proximo_numero = int(ultima_nota.numero) + 1
+        except (ValueError, TypeError):
+            pass
+    
+    # Verificar se o modelo Produto existe (migration aplicada)
+    try:
+        from .models_compras_financeiro import Produto
+        # Se chegou aqui, o modelo existe - usar formulário completo
+        ItemNotaFiscalFormSet = inlineformset_factory(
+            NotaFiscal,
+            ItemNotaFiscal,
+            form=ItemNotaFiscalForm,
+            extra=1,
+            can_delete=True,
+            min_num=1,
+            validate_min=True
+        )
+    except (ImportError, Exception) as e:
+        # Se o modelo não existe ou há erro, criar formset sem o campo produto
+        logger.warning(f'Modelo Produto não disponível, usando formulário simplificado: {str(e)}')
+        class ItemNotaFiscalFormSemProduto(forms.ModelForm):
+            """Formulário para itens da NF-e sem campo produto (fallback)"""
+            class Meta:
+                model = ItemNotaFiscal
+                fields = [
+                    'codigo_produto', 'descricao', 'ncm', 'cfop',
+                    'unidade_medida', 'quantidade', 'valor_unitario'
+                ]
+                widgets = {
+                    'codigo_produto': forms.TextInput(attrs={
+                        'class': 'form-control',
+                        'placeholder': 'Código do produto'
+                    }),
+                    'descricao': forms.TextInput(attrs={
+                        'class': 'form-control',
+                        'required': True,
+                        'placeholder': 'Descrição do produto/serviço'
+                    }),
+                    'ncm': forms.TextInput(attrs={
+                        'class': 'form-control',
+                        'placeholder': 'NCM (ex: 0102.29.00)'
+                    }),
+                    'cfop': forms.TextInput(attrs={
+                        'class': 'form-control',
+                        'placeholder': 'CFOP (ex: 5102)'
+                    }),
+                    'unidade_medida': forms.TextInput(attrs={
+                        'class': 'form-control',
+                        'value': 'UN',
+                        'placeholder': 'UN, KG, etc.'
+                    }),
+                    'quantidade': forms.NumberInput(attrs={
+                        'class': 'form-control',
+                        'step': '0.001',
+                        'min': '0.001',
+                        'required': True
+                    }),
+                    'valor_unitario': forms.NumberInput(attrs={
+                        'class': 'form-control',
+                        'step': '0.01',
+                        'min': '0.01',
+                        'required': True
+                    }),
+                }
+        
+        ItemNotaFiscalFormSet = inlineformset_factory(
+            NotaFiscal,
+            ItemNotaFiscal,
+            form=ItemNotaFiscalFormSemProduto,
+            extra=1,
+            can_delete=True,
+            min_num=1,
+            validate_min=True
+        )
+    
+    if request.method == 'POST':
+        form = NotaFiscalSaidaForm(request.POST, propriedade=propriedade)
+        formset = ItemNotaFiscalFormSet(request.POST)
+        
+        if form.is_valid() and formset.is_valid():
+            nota = form.save(commit=False)
+            nota.propriedade = propriedade
+            nota.tipo = 'SAIDA'
+            nota.numero = str(proximo_numero)
+            nota.status = 'PENDENTE'
+            
+            # Calcular valor total dos produtos
+            if not nota.valor_produtos:
+                nota.valor_produtos = Decimal('0.00')
+            
+            nota.save()
+            
+            # Salvar itens
+            formset.instance = nota
+            itens = formset.save()
+            
+            # Recalcular valor total dos produtos baseado nos itens
+            valor_total_itens = sum(item.valor_total for item in itens)
+            if valor_total_itens > 0:
+                nota.valor_produtos = valor_total_itens
+                nota.save()
+            
+            # Tentar emitir NF-e via API ou diretamente com SEFAZ (se configurado)
+            try:
+                from .services_nfe import emitir_nfe
+                resultado = emitir_nfe(nota)
+                if resultado.get('sucesso'):
+                    nota.status = 'AUTORIZADA'
+                    nota.chave_acesso = resultado.get('chave_acesso', '')
+                    nota.protocolo_autorizacao = resultado.get('protocolo', '')
+                    nota.data_autorizacao = timezone.now()
+                    if resultado.get('xml'):
+                        # Salvar XML retornado
+                        from django.core.files.base import ContentFile
+                        nota.arquivo_xml.save(f'nfe_{nota.numero}.xml', ContentFile(resultado['xml']), save=False)
+                    nota.save()
+                    messages.success(request, f'NF-e {nota.numero} emitida e autorizada com sucesso!')
+                else:
+                    nota.status = 'REJEITADA'
+                    nota.save()
+                    erro_msg = resultado.get("erro", "Erro desconhecido")
+                    messages.warning(request, f'NF-e {nota.numero} criada, mas não foi autorizada: {erro_msg}')
+            except ImportError:
+                # Serviço de NF-e não configurado - apenas salvar como pendente
+                messages.info(
+                    request, 
+                    f'NF-e {nota.numero} criada com status PENDENTE. '
+                    'Configure NFE_SEFAZ (emissão direta) ou API_NFE (API terceira) nas settings para emissão automática.'
+                )
+            except Exception as e:
+                logger.error(f'Erro ao emitir NF-e: {str(e)}', exc_info=True)
+                messages.warning(request, f'NF-e {nota.numero} criada, mas houve erro na emissão: {str(e)}')
+            
+            return redirect('nota_fiscal_detalhes', propriedade_id=propriedade.id, nota_id=nota.id)
+        else:
+            messages.error(request, 'Por favor, corrija os erros no formulário.')
+    else:
+        form = NotaFiscalSaidaForm(propriedade=propriedade)
+        formset = ItemNotaFiscalFormSet(instance=NotaFiscal())
+    
+    clientes = Cliente.objects.filter(
+        Q(propriedade=propriedade) | Q(propriedade__isnull=True),
+        ativo=True
+    ).order_by('nome')
+    
+    context = {
+        'propriedade': propriedade,
+        'form': form,
+        'formset': formset,
+        'clientes': clientes,
+        'proximo_numero': proximo_numero,
+    }
+    
+    return render(request, 'gestao_rural/nota_fiscal_emitir.html', context)
+
+
+@login_required
+def sincronizar_nfe_recebidas(request, propriedade_id):
+    """Sincronizar NFe recebidas automaticamente"""
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
+    
+    # Verificar se a propriedade tem CPF/CNPJ configurado
+    cpf_cnpj = propriedade.produtor.cpf_cnpj if hasattr(propriedade, 'produtor') and propriedade.produtor else None
+    
+    if not cpf_cnpj:
+        messages.warning(
+            request,
+            'CPF/CNPJ não configurado para esta propriedade. Configure no cadastro do produtor.'
+        )
+        return redirect('compras_dashboard', propriedade_id=propriedade.id)
+    
+    # Verificar configuração da API
+    from django.conf import settings
+    api_nfe = getattr(settings, 'API_NFE', None)
+    if not api_nfe:
+        messages.error(
+            request,
+            'API de NF-e não configurada. Configure API_NFE nas settings do sistema.'
+        )
+        return redirect('compras_dashboard', propriedade_id=propriedade.id)
+    
+    if request.method == 'POST':
+        from datetime import date, timedelta
+        from gestao_rural.services_nfe_consulta import (
+            consultar_nfe_recebidas,
+            baixar_xml_nfe,
+            baixar_pdf_nfe,
+            importar_nfe_do_xml
+        )
+        from gestao_rural.models_compras_financeiro import NotaFiscal
+        
+        # Obter parâmetros
+        dias = int(request.POST.get('dias', 30))
+        limite = int(request.POST.get('limite', 100))
+        baixar_pdf = request.POST.get('baixar_pdf') == 'on'
+        
+        data_fim = date.today()
+        data_inicio = data_fim - timedelta(days=dias)
+        
+        try:
+            # Consultar NFe recebidas
+            resultado = consultar_nfe_recebidas(
+                propriedade=propriedade,
+                data_inicio=data_inicio,
+                data_fim=data_fim,
+                limite=limite
+            )
+            
+            if not resultado['sucesso']:
+                messages.error(
+                    request,
+                    f'Erro ao consultar NFe: {resultado.get("erro", "Erro desconhecido")}'
+                )
+                return redirect('sincronizar_nfe_recebidas', propriedade_id=propriedade.id)
+            
+            notas_encontradas = resultado.get('notas', [])
+            total_encontrado = resultado.get('total_encontrado', 0)
+            
+            if not notas_encontradas:
+                messages.info(request, 'Nenhuma nota fiscal encontrada no período informado.')
+                return redirect('notas_fiscais_lista', propriedade_id=propriedade.id)
+            
+            # Processar cada nota
+            notas_importadas = 0
+            notas_ja_existentes = 0
+            erros = []
+            
+            for nota_data in notas_encontradas:
+                chave_acesso = nota_data.get('chave_acesso', '')
+                
+                if not chave_acesso:
+                    continue
+                
+                # Verificar se já existe
+                if NotaFiscal.objects.filter(chave_acesso=chave_acesso).exists():
+                    notas_ja_existentes += 1
+                    continue
+                
+                try:
+                    # Baixar XML
+                    resultado_xml = baixar_xml_nfe(chave_acesso, api_nfe)
+                    
+                    if not resultado_xml['sucesso']:
+                        erros.append(f'Nota {chave_acesso[:20]}...: Erro ao baixar XML')
+                        continue
+                    
+                    xml_content = resultado_xml.get('xml')
+                    if not xml_content:
+                        erros.append(f'Nota {chave_acesso[:20]}...: XML vazio')
+                        continue
+                    
+                    # Importar NFe do XML
+                    resultado_importacao = importar_nfe_do_xml(
+                        xml_content=xml_content,
+                        propriedade=propriedade,
+                        usuario=request.user
+                    )
+                    
+                    if not resultado_importacao['sucesso']:
+                        erros.append(
+                            f'Nota {chave_acesso[:20]}...: {resultado_importacao.get("erro", "Erro desconhecido")}'
+                        )
+                        continue
+                    
+                    nota_fiscal = resultado_importacao['nota_fiscal']
+                    
+                    # Baixar PDF se solicitado
+                    if baixar_pdf:
+                        resultado_pdf = baixar_pdf_nfe(chave_acesso, api_nfe)
+                        if resultado_pdf['sucesso']:
+                            from django.core.files.base import ContentFile
+                            nota_fiscal.arquivo_pdf.save(
+                                f'nfe_{chave_acesso}.pdf',
+                                ContentFile(resultado_pdf['pdf']),
+                                save=True
+                            )
+                    
+                    # Tentar vincular a ordem de compra
+                    _vincular_ordem_compra_automatico(nota_fiscal, propriedade)
+                    
+                    notas_importadas += 1
+                
+                except Exception as e:
+                    erros.append(f'Nota {chave_acesso[:20]}...: {str(e)}')
+                    continue
+            
+            # Mensagens de resultado
+            if notas_importadas > 0:
+                messages.success(
+                    request,
+                    f'{notas_importadas} nota(s) fiscal(is) importada(s) com sucesso!'
+                )
+            
+            if notas_ja_existentes > 0:
+                messages.info(
+                    request,
+                    f'{notas_ja_existentes} nota(s) já estavam cadastrada(s) no sistema.'
+                )
+            
+            if erros:
+                messages.warning(
+                    request,
+                    f'{len(erros)} erro(s) durante a importação. Verifique os logs para detalhes.'
+                )
+            
+            return redirect('notas_fiscais_lista', propriedade_id=propriedade.id)
+        
+        except Exception as e:
+            messages.error(request, f'Erro ao sincronizar NFe: {str(e)}')
+            logger.error(f'Erro ao sincronizar NFe: {str(e)}', exc_info=True)
+    
+    # Estatísticas
+    from datetime import date, timedelta
+    mes_atual = date.today().replace(day=1)
+    nfes_mes = NotaFiscal.objects.filter(
+        propriedade=propriedade,
+        data_emissao__gte=mes_atual,
+        tipo='ENTRADA'
+    ).count()
+    
+    context = {
+        'propriedade': propriedade,
+        'cpf_cnpj': cpf_cnpj,
+        'nfes_mes': nfes_mes,
+    }
+    
+    return render(request, 'gestao_rural/sincronizar_nfe_recebidas.html', context)
+
+
+def _vincular_ordem_compra_automatico(nota_fiscal, propriedade):
+    """
+    Tenta vincular automaticamente a nota fiscal a uma ordem de compra
+    """
+    try:
+        from decimal import Decimal
+        
+        # Buscar ordens de compra do mesmo fornecedor sem nota fiscal
+        ordens_possiveis = OrdemCompra.objects.filter(
+            propriedade=propriedade,
+            fornecedor=nota_fiscal.fornecedor,
+            nota_fiscal__isnull=True,
+            status__in=['ENVIADA', 'APROVADA', 'RECEBIDA']
+        ).order_by('-data_emissao')
+        
+        tolerancia_minima = Decimal('1.00')
+        tolerancia_percentual = Decimal('0.05')
+        
+        for ordem_candidata in ordens_possiveis:
+            if ordem_candidata.valor_total:
+                diferenca = abs(ordem_candidata.valor_total - nota_fiscal.valor_total)
+                tolerancia = max(tolerancia_minima, ordem_candidata.valor_total * tolerancia_percentual)
+                
+                if diferenca <= tolerancia:
+                    # Vincular
+                    ordem_candidata.nota_fiscal = nota_fiscal
+                    ordem_candidata.status = 'RECEBIDA'
+                    ordem_candidata.data_recebimento = nota_fiscal.data_emissao
+                    ordem_candidata.save(update_fields=['nota_fiscal', 'status', 'data_recebimento'])
+                    
+                    # Gerar conta a pagar
+                    conta_pagar, _ = gerar_conta_pagar_para_ordem(ordem_candidata)
+                    conta_pagar.nota_fiscal = nota_fiscal
+                    conta_pagar.valor = nota_fiscal.valor_total
+                    conta_pagar.save(update_fields=['nota_fiscal', 'valor'])
+                    
+                    return True
+        
+        return False
+    except Exception as e:
+        logger.warning(f'Erro ao vincular ordem de compra: {str(e)}')
+        return False
+
+
+# ============================================================================
+# VIEWS - PRODUTOS (CADASTRO FISCAL)
+# ============================================================================
+
+@login_required
+def produtos_lista(request, propriedade_id):
+    """Lista de produtos cadastrados"""
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
+    
+    # Filtros
+    busca = request.GET.get('busca', '')
+    categoria_id = request.GET.get('categoria', '')
+    ativo = request.GET.get('ativo', '')
+    
+    produtos = Produto.objects.all()
+    
+    if busca:
+        produtos = produtos.filter(
+            Q(codigo__icontains=busca) |
+            Q(descricao__icontains=busca) |
+            Q(ncm__icontains=busca)
+        )
+    
+    if categoria_id:
+        produtos = produtos.filter(categoria_id=categoria_id)
+    
+    if ativo == '1':
+        produtos = produtos.filter(ativo=True)
+    elif ativo == '0':
+        produtos = produtos.filter(ativo=False)
+    
+    produtos = produtos.select_related('categoria', 'usuario_cadastro').order_by('categoria', 'descricao')
+    
+    categorias = CategoriaProduto.objects.filter(ativo=True).order_by('nome')
+    
+    context = {
+        'propriedade': propriedade,
+        'produtos': produtos,
+        'categorias': categorias,
+        'busca': busca,
+        'categoria_id': categoria_id,
+        'ativo': ativo,
+    }
+    
+    return render(request, 'gestao_rural/produtos_lista.html', context)
+
+
+@login_required
+def produto_novo(request, propriedade_id):
+    """Cadastrar novo produto"""
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
+    
+    if request.method == 'POST':
+        form = ProdutoForm(request.POST)
+        if form.is_valid():
+            produto = form.save(commit=False)
+            produto.usuario_cadastro = request.user
+            
+            # Tentar sincronizar com Receita Federal
+            try:
+                resultado = sincronizar_produto(produto)
+                if resultado.get('sucesso'):
+                    messages.success(request, 'Produto cadastrado e sincronizado com a Receita Federal!')
+                else:
+                    messages.warning(request, f'Produto cadastrado, mas houve avisos na sincronização: {resultado.get("erro", "Erro desconhecido")}')
+            except Exception as e:
+                logger.error(f'Erro ao sincronizar produto: {str(e)}')
+                messages.warning(request, 'Produto cadastrado, mas não foi possível sincronizar com a Receita Federal.')
+            
+            produto.save()
+            messages.success(request, 'Produto cadastrado com sucesso!')
+            return redirect('produtos_lista', propriedade_id=propriedade.id)
+    else:
+        form = ProdutoForm()
+    
+    categorias = CategoriaProduto.objects.filter(ativo=True).order_by('nome')
+    
+    context = {
+        'propriedade': propriedade,
+        'form': form,
+        'categorias': categorias,
+    }
+    
+    return render(request, 'gestao_rural/produto_form.html', context)
+
+
+@login_required
+def produto_editar(request, propriedade_id, produto_id):
+    """Editar produto existente"""
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
+    produto = get_object_or_404(Produto, id=produto_id)
+    
+    if request.method == 'POST':
+        form = ProdutoForm(request.POST, instance=produto)
+        if form.is_valid():
+            produto = form.save()
+            
+            # Sincronizar novamente com Receita Federal
+            try:
+                resultado = sincronizar_produto(produto)
+                if resultado.get('sucesso'):
+                    messages.success(request, 'Produto atualizado e sincronizado com a Receita Federal!')
+            except Exception as e:
+                logger.error(f'Erro ao sincronizar produto: {str(e)}')
+            
+            messages.success(request, 'Produto atualizado com sucesso!')
+            return redirect('produtos_lista', propriedade_id=propriedade.id)
+    else:
+        form = ProdutoForm(instance=produto)
+    
+    categorias = CategoriaProduto.objects.filter(ativo=True).order_by('nome')
+    
+    context = {
+        'propriedade': propriedade,
+        'form': form,
+        'produto': produto,
+        'categorias': categorias,
+    }
+    
+    return render(request, 'gestao_rural/produto_form.html', context)
+
+
+@login_required
+def produto_sincronizar(request, propriedade_id, produto_id):
+    """Sincronizar produto com Receita Federal"""
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
+    produto = get_object_or_404(Produto, id=produto_id)
+    
+    try:
+        resultado = sincronizar_produto(produto)
+        if resultado.get('sucesso'):
+            messages.success(request, 'Produto sincronizado com a Receita Federal!')
+        else:
+            messages.error(request, f'Erro ao sincronizar: {resultado.get("erro", "Erro desconhecido")}')
+    except Exception as e:
+        logger.error(f'Erro ao sincronizar produto: {str(e)}')
+        messages.error(request, f'Erro ao sincronizar produto: {str(e)}')
+    
+    return redirect('produtos_lista', propriedade_id=propriedade.id)
+
+
+@login_required
+def categorias_produto_lista(request, propriedade_id):
+    """Lista de categorias de produtos"""
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
+    
+    categorias = CategoriaProduto.objects.all().annotate(
+        total_produtos=Count('produtos')
+    ).order_by('nome')
+    
+    context = {
+        'propriedade': propriedade,
+        'categorias': categorias,
+    }
+    
+    return render(request, 'gestao_rural/categorias_produto_lista.html', context)
+
+
+@login_required
+def categoria_produto_nova(request, propriedade_id):
+    """Cadastrar nova categoria de produto"""
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
+    
+    if request.method == 'POST':
+        form = CategoriaProdutoForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Categoria cadastrada com sucesso!')
+            return redirect('categorias_produto_lista', propriedade_id=propriedade.id)
+    else:
+        form = CategoriaProdutoForm()
+    
+    context = {
+        'propriedade': propriedade,
+        'form': form,
+    }
+    
+    return render(request, 'gestao_rural/categoria_produto_form.html', context)
+
+
+@login_required
+def consultar_ncm_ajax(request):
+    """Consulta NCM via AJAX"""
+    ncm = request.GET.get('ncm', '')
+    
+    if not ncm:
+        return JsonResponse({'sucesso': False, 'erro': 'NCM não informado'})
+    
+    resultado = consultar_ncm(ncm)
+    return JsonResponse(resultado)
+
+
+@login_required
+def validar_cfop_ajax(request):
+    """Valida CFOP via AJAX"""
+    cfop = request.GET.get('cfop', '')
+    tipo_operacao = request.GET.get('tipo', 'SAIDA')
+    
+    if not cfop:
+        return JsonResponse({'sucesso': False, 'erro': 'CFOP não informado'})
+    
+    resultado = validar_cfop(cfop, tipo_operacao)
+    return JsonResponse(resultado)
+
+
+@login_required
+def buscar_produtos_ajax(request):
+    """Busca produtos via AJAX para autocomplete"""
+    termo = request.GET.get('termo', '')
+    
+    if len(termo) < 2:
+        return JsonResponse({'produtos': []})
+    
+    produtos = Produto.objects.filter(
+        Q(ativo=True) &
+        (Q(codigo__icontains=termo) |
+         Q(descricao__icontains=termo) |
+         Q(ncm__icontains=termo))
+    ).select_related('categoria')[:20]
+    
+    resultados = []
+    for produto in produtos:
+        resultados.append({
+            'id': produto.id,
+            'codigo': produto.codigo,
+            'descricao': produto.descricao,
+            'ncm': produto.ncm,
+            'ncm_descricao': produto.ncm_descricao or '',
+            'cfop_entrada': produto.cfop_entrada or '',
+            'cfop_saida_estadual': produto.cfop_saida_estadual or '',
+            'cfop_saida_interestadual': produto.cfop_saida_interestadual or '',
+            'unidade_medida': produto.unidade_medida,
+            'preco_venda': str(produto.preco_venda),
+            'categoria': produto.categoria.nome if produto.categoria else '',
+        })
+    
+    return JsonResponse({'produtos': resultados})
 

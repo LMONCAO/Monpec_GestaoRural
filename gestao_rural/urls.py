@@ -4,6 +4,7 @@ from . import views_exportacao
 from . import views_cenarios
 from . import views_rastreabilidade
 from . import views_relatorios_rastreabilidade
+from . import views_relatorios_sisbov
 from . import views_pecuaria_completa
 from . import views_nutricao
 from . import views_operacoes
@@ -20,6 +21,7 @@ from . import views_seguranca
 from . import views_relatorios_customizados
 from . import views_demo
 from . import views_whatsapp
+from . import views_fiscal
 
 urlpatterns = [
     # Autenticação
@@ -52,7 +54,9 @@ urlpatterns = [
     path('produtor/<int:produtor_id>/excluir/', views.produtor_excluir, name='produtor_excluir'),
     
     # Gestão de propriedades
+    path('propriedades/', views.minhas_propriedades, name='minhas_propriedades'),  # URL simplificada
     path('produtor/<int:produtor_id>/propriedades/', views.propriedades_lista, name='propriedades_lista'),
+    path('propriedade/nova/', views.propriedade_nova_auto, name='propriedade_nova_auto'),  # URL simplificada
     path('produtor/<int:produtor_id>/propriedade/nova/', views.propriedade_nova, name='propriedade_nova'),
     path('propriedade/<int:propriedade_id>/editar/', views.propriedade_editar, name='propriedade_editar'),
     path('propriedade/<int:propriedade_id>/excluir/', views.propriedade_excluir, name='propriedade_excluir'),
@@ -60,11 +64,15 @@ urlpatterns = [
     # Dashboard de Módulos
     path('propriedade/<int:propriedade_id>/modulos/', views.propriedade_modulos, name='propriedade_modulos'),
     
+    # Módulo Planejamento (Independente)
+    path('propriedade/<int:propriedade_id>/planejamento/', views_pecuaria_completa.pecuaria_planejamento_dashboard, name='planejamento_dashboard'),
+    path('propriedade/<int:propriedade_id>/planejamento/api/', views_pecuaria_completa.pecuaria_planejamentos_api, name='planejamento_api'),
+    path('propriedade/<int:propriedade_id>/planejamento/<int:planejamento_id>/resumo/', views_pecuaria_completa.pecuaria_planejamento_resumo_api, name='planejamento_resumo_api'),
+    
     # Módulo Pecuária Completa (Consolidado)
     path('propriedade/<int:propriedade_id>/pecuaria/', views_pecuaria_completa.pecuaria_completa_dashboard, name='pecuaria_completa_dashboard'),
     path('propriedade/<int:propriedade_id>/pecuaria/dashboard/', views_pecuaria_completa.pecuaria_completa_dashboard, name='pecuaria_dashboard'),  # Alias para compatibilidade
     path('propriedade/<int:propriedade_id>/pecuaria/dashboard/consulta/', views_pecuaria_completa.dashboard_consulta_api, name='dashboard_consulta_api'),
-    path('propriedade/<int:propriedade_id>/pecuaria/inventario/', views.pecuaria_inventario, name='pecuaria_inventario'),
     path('propriedade/<int:propriedade_id>/pecuaria/parametros/', views.pecuaria_parametros, name='pecuaria_parametros'),
     path('propriedade/<int:propriedade_id>/pecuaria/parametros-avancados/', views.pecuaria_parametros_avancados, name='pecuaria_parametros_avancados'),
     path('propriedade/<int:propriedade_id>/pecuaria/testar-transferencias/', views.testar_transferencias, name='testar_transferencias'),
@@ -86,17 +94,8 @@ urlpatterns = [
     path('propriedade/<int:propriedade_id>/pecuaria/vendas-projecao/<int:ano>/<int:mes>/', views_cenarios.relatorio_vendas_mensal, name='relatorio_vendas_mensal'),
     path('propriedade/<int:propriedade_id>/pecuaria/inventario/dados/', views.pecuaria_inventario_dados, name='pecuaria_inventario_dados'),
     
-    # Rastreabilidade (dentro de Pecuária) - Comentado pois as funções estão em views_rastreabilidade
-    # path('propriedade/<int:propriedade_id>/pecuaria/rastreabilidade/animais/', views_pecuaria_completa.animais_individuais_lista, name='animais_individuais_lista'),
-    # path('propriedade/<int:propriedade_id>/pecuaria/rastreabilidade/animal/novo/', views_pecuaria_completa.animal_individual_novo, name='animal_individual_novo'),
-    # path('propriedade/<int:propriedade_id>/pecuaria/rastreabilidade/animal/<int:animal_id>/', views_pecuaria_completa.animal_individual_detalhes, name='animal_individual_detalhes'),
-    
     # Reprodução (dentro de Pecuária)
     path('propriedade/<int:propriedade_id>/pecuaria/reproducao/', views_pecuaria_completa.reproducao_dashboard, name='reproducao_dashboard'),
-    # path('propriedade/<int:propriedade_id>/pecuaria/reproducao/touros/', views_pecuaria_completa.touros_lista, name='touros_lista'),
-    # path('propriedade/<int:propriedade_id>/pecuaria/reproducao/touro/novo/', views_pecuaria_completa.touro_novo, name='touro_novo'),
-    # path('propriedade/<int:propriedade_id>/pecuaria/reproducao/estacao-monta/nova/', views_pecuaria_completa.estacao_monta_nova, name='estacao_monta_nova'),
-    # path('propriedade/<int:propriedade_id>/pecuaria/reproducao/iatf/nova/', views_pecuaria_completa.iatf_nova, name='iatf_nova'),
     path('propriedade/<int:propriedade_id>/pecuaria/pesagens/', views_pesagem.pesagem_dashboard, name='pesagem_dashboard'),
     path('propriedade/<int:propriedade_id>/pecuaria/pesagens/nova/', views_pesagem.pesagem_nova, name='pesagem_nova'),
     
@@ -146,6 +145,7 @@ urlpatterns = [
     path('propriedade/<int:propriedade_id>/curral/api/sessao/criar/', views_curral.curral_criar_sessao_api, name='curral_criar_sessao_api'),
     path('propriedade/<int:propriedade_id>/curral/api/sessao/encerrar/', views_curral.curral_encerrar_sessao_api, name='curral_encerrar_sessao_api'),
     path('propriedade/<int:propriedade_id>/curral/api/sessao/stats/', views_curral.curral_stats_sessao_api, name='curral_stats_sessao_api'),
+    path('propriedade/<int:propriedade_id>/curral/api/sessao/animais/', views_curral.curral_animais_sessao_api, name='curral_animais_sessao_api'),
     path('propriedade/<int:propriedade_id>/curral/api/stats/', views_curral.curral_stats_api, name='curral_stats_api'),
     path('propriedade/<int:propriedade_id>/curral/api/pesagem/', views_curral.curral_salvar_pesagem_api, name='curral_salvar_pesagem_api'),
     path('propriedade/<int:propriedade_id>/curral/api/pesagem/editar/', views_curral.curral_editar_pesagem_api, name='curral_editar_pesagem_api'),
@@ -191,7 +191,23 @@ urlpatterns = [
     path('propriedade/<int:propriedade_id>/compras/ordem/<int:ordem_id>/recebimento/', views_compras.recebimento_compra_novo, name='recebimento_compra_novo'),
     path('propriedade/<int:propriedade_id>/compras/notas-fiscais/', views_compras.notas_fiscais_lista, name='notas_fiscais_lista'),
     path('propriedade/<int:propriedade_id>/compras/nota-fiscal/upload/', views_compras.nota_fiscal_upload, name='nota_fiscal_upload'),
+    path('propriedade/<int:propriedade_id>/compras/nota-fiscal/emitir/', views_compras.nota_fiscal_emitir, name='nota_fiscal_emitir'),
+    
+    # Produtos (Cadastro Fiscal)
+    path('propriedade/<int:propriedade_id>/compras/produtos/', views_compras.produtos_lista, name='produtos_lista'),
+    path('propriedade/<int:propriedade_id>/compras/produto/novo/', views_compras.produto_novo, name='produto_novo'),
+    path('propriedade/<int:propriedade_id>/compras/produto/<int:produto_id>/editar/', views_compras.produto_editar, name='produto_editar'),
+    path('propriedade/<int:propriedade_id>/compras/produto/<int:produto_id>/sincronizar/', views_compras.produto_sincronizar, name='produto_sincronizar'),
+    path('propriedade/<int:propriedade_id>/compras/categorias-produto/', views_compras.categorias_produto_lista, name='categorias_produto_lista'),
+    path('propriedade/<int:propriedade_id>/compras/categoria-produto/nova/', views_compras.categoria_produto_nova, name='categoria_produto_nova'),
+    
+    # AJAX
+    path('ajax/consultar-ncm/', views_compras.consultar_ncm_ajax, name='consultar_ncm_ajax'),
+    path('ajax/validar-cfop/', views_compras.validar_cfop_ajax, name='validar_cfop_ajax'),
+    path('ajax/buscar-produtos/', views_compras.buscar_produtos_ajax, name='buscar_produtos_ajax'),
+    
     path('propriedade/<int:propriedade_id>/compras/nota-fiscal/<int:nota_id>/', views_compras.nota_fiscal_detalhes, name='nota_fiscal_detalhes'),
+    path('propriedade/<int:propriedade_id>/compras/sincronizar-nfe-recebidas/', views_compras.sincronizar_nfe_recebidas, name='sincronizar_nfe_recebidas'),
     
     # Módulo Financeiro (novo)
     path('propriedade/<int:propriedade_id>/financeiro/', views_financeiro.financeiro_dashboard, name='financeiro_dashboard'),
@@ -209,6 +225,16 @@ urlpatterns = [
     path('propriedade/<int:propriedade_id>/financeiro/centros-custo/', views_financeiro.centros_custo_lista, name='financeiro_centros_custo'),
     path('propriedade/<int:propriedade_id>/financeiro/centros-custo/nova/', views_financeiro.centro_custo_novo, name='financeiro_centro_custo_novo'),
     path('propriedade/<int:propriedade_id>/financeiro/centros-custo/<int:centro_id>/editar/', views_financeiro.centro_custo_editar, name='financeiro_centro_custo_editar'),
+    
+    # Grupos de Despesas
+    path('propriedade/<int:propriedade_id>/financeiro/despesas/grupos/', views_financeiro.despesas_grupos_lista, name='financeiro_despesas_grupos'),
+    path('propriedade/<int:propriedade_id>/financeiro/despesas/grupos/novo/', views_financeiro.despesas_grupo_novo, name='financeiro_despesas_grupo_novo'),
+    path('propriedade/<int:propriedade_id>/financeiro/despesas/grupos/<int:grupo_id>/editar/', views_financeiro.despesas_grupo_editar, name='financeiro_despesas_grupo_editar'),
+    
+    # Despesas Configuradas
+    path('propriedade/<int:propriedade_id>/financeiro/despesas/configuradas/', views_financeiro.despesas_configuradas_lista, name='financeiro_despesas_configuradas'),
+    path('propriedade/<int:propriedade_id>/financeiro/despesas/configuradas/nova/', views_financeiro.despesa_configurada_nova, name='financeiro_despesa_configurada_nova'),
+    path('propriedade/<int:propriedade_id>/financeiro/despesas/configuradas/<int:despesa_id>/editar/', views_financeiro.despesa_configurada_editar, name='financeiro_despesa_configurada_editar'),
     
     # Contas a Pagar
     path('propriedade/<int:propriedade_id>/financeiro/contas-pagar/', views_financeiro.contas_pagar_lista, name='financeiro_contas_pagar'),
@@ -287,6 +313,16 @@ urlpatterns = [
     path('categorias/<int:categoria_id>/editar/', views.categoria_editar, name='categoria_editar'),
     path('categorias/<int:categoria_id>/excluir/', views.categoria_excluir, name='categoria_excluir'),
     
+    # Gestão de Clientes
+    path('propriedade/<int:propriedade_id>/clientes/', views.clientes_lista, name='clientes_lista'),
+    path('propriedade/<int:propriedade_id>/cliente/novo/', views.cliente_novo, name='cliente_novo'),
+    
+    # APIs de consulta
+    path('api/consultar-cpf-cnpj/', views.consultar_cpf_cnpj_api, name='consultar_cpf_cnpj_api'),
+    path('api/consultar-cep/', views.consultar_cep_api, name='consultar_cep_api'),
+    path('propriedade/<int:propriedade_id>/cliente/<int:cliente_id>/editar/', views.cliente_editar, name='cliente_editar'),
+    path('propriedade/<int:propriedade_id>/cliente/<int:cliente_id>/excluir/', views.cliente_excluir, name='cliente_excluir'),
+    
     # Gestão de Custos
     path('custos/', include('gestao_rural.urls_custos')),
     
@@ -317,6 +353,8 @@ urlpatterns = [
     # Sistema de Rastreabilidade Bovina - PNIB
     path('propriedade/<int:propriedade_id>/rastreabilidade/', views_rastreabilidade.rastreabilidade_dashboard, name='rastreabilidade_dashboard'),
     path('propriedade/<int:propriedade_id>/rastreabilidade/importar-bnd/', views_rastreabilidade.importar_bnd_sisbov, name='importar_bnd_sisbov'),
+    path('propriedade/<int:propriedade_id>/rastreabilidade/importar-bnd/preview/', views_rastreabilidade.preview_importacao_bnd_sisbov, name='preview_importacao_bnd_sisbov'),
+    path('propriedade/<int:propriedade_id>/rastreabilidade/importar-bnd/resultado/', views_rastreabilidade.resultado_importacao_bnd_sisbov, name='resultado_importacao_bnd_sisbov'),
     path('propriedade/<int:propriedade_id>/rastreabilidade/animais/', views_rastreabilidade.animais_individuais_lista, name='animais_individuais_lista'),
     path('propriedade/<int:propriedade_id>/rastreabilidade/animal/novo/', views_rastreabilidade.animal_individual_novo, name='animal_individual_novo'),
     path('propriedade/<int:propriedade_id>/rastreabilidade/animal/<int:animal_id>/', views_rastreabilidade.animal_individual_detalhes, name='animal_individual_detalhes'),
@@ -346,6 +384,9 @@ urlpatterns = [
     # Exportação de Relatórios PNIB
     path('propriedade/<int:propriedade_id>/rastreabilidade/relatorios/identificacao-individual/pdf/', views_relatorios_rastreabilidade.exportar_identificacao_individual_pdf, name='exportar_identificacao_individual_pdf'),
     path('propriedade/<int:propriedade_id>/rastreabilidade/relatorios/movimentacao-animais/pdf/', views_relatorios_rastreabilidade.exportar_movimentacao_animais_pdf, name='exportar_movimentacao_animais_pdf'),
+    
+    # Relatórios SISBOV - Anexos IV a XIX (IN 17/2006)
+    path('', include('gestao_rural.urls_relatorios_sisbov')),
     
     # Exportação de Anexos IN 51/MAPA - PDF
     path('propriedade/<int:propriedade_id>/rastreabilidade/relatorio/anexo-i/pdf/', views_relatorios_rastreabilidade.exportar_anexo_i_pdf, name='exportar_anexo_i_pdf'),
@@ -380,4 +421,10 @@ urlpatterns = [
     path('whatsapp/processar-audio/', views_whatsapp.whatsapp_processar_audio, name='whatsapp_processar_audio'),
     path('propriedade/<int:propriedade_id>/whatsapp/mensagens/', views_whatsapp.whatsapp_mensagens_lista, name='whatsapp_mensagens_lista'),
     path('whatsapp/mensagem/<int:mensagem_id>/reprocessar/', views_whatsapp.whatsapp_reprocessar, name='whatsapp_reprocessar'),
+    
+    # Integração Fiscal - Sintegra e Receita Federal
+    path('propriedade/<int:propriedade_id>/fiscal/', views_fiscal.fiscal_dashboard, name='fiscal_dashboard'),
+    path('propriedade/<int:propriedade_id>/fiscal/sintegra/download/', views_fiscal.download_sintegra, name='download_sintegra'),
+    path('propriedade/<int:propriedade_id>/fiscal/sped/download/', views_fiscal.download_sped, name='download_sped'),
+    path('propriedade/<int:propriedade_id>/fiscal/validar/', views_fiscal.validar_dados_fiscais, name='validar_dados_fiscais'),
 ]

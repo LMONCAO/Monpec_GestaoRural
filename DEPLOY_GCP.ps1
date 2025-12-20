@@ -114,7 +114,12 @@ gcloud run deploy $Servico `
     --platform managed `
     --region $Regiao `
     --allow-unauthenticated `
-    --set-env-vars "DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp"
+    --set-env-vars "DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,DEBUG=False" `
+    --memory=512Mi `
+    --cpu=1 `
+    --timeout=300 `
+    --max-instances=10 `
+    --min-instances=1
 
 if ($LASTEXITCODE -ne 0) {
     Write-Error "❌ Erro no deploy!"
@@ -130,10 +135,28 @@ if ($serviceUrl) {
     Write-Host "🌐 URL do serviço:" -ForegroundColor Cyan
     Write-Host "   $serviceUrl" -ForegroundColor Green
     Write-Host ""
+    
+    # Verificar e configurar domínio
+    Write-Step "Verificando configuração do domínio monpec.com.br..."
+    $domainMapping = gcloud run domain-mappings describe monpec.com.br --region $Regiao 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        Write-Info "⚠️  Domínio monpec.com.br não está mapeado."
+        Write-Info "   Para mapear o domínio, execute:"
+        Write-Host "   gcloud run domain-mappings create --service $Servico --domain monpec.com.br --region $Regiao" -ForegroundColor Gray
+        Write-Host ""
+        Write-Info "   Depois, configure os registros DNS no seu provedor de domínio."
+    } else {
+        Write-Success "✅ Domínio monpec.com.br já está mapeado!"
+        Write-Host ""
+        Write-Host "🌐 Acesse: https://monpec.com.br" -ForegroundColor Green
+    }
+    
+    Write-Host ""
     Write-Info "📊 Comandos úteis:"
     Write-Host "   Ver logs: gcloud run services logs read $Servico --region $Regiao" -ForegroundColor Gray
     Write-Host "   Ver status: gcloud run services describe $Servico --region $Regiao" -ForegroundColor Gray
     Write-Host "   Abrir no navegador: start $serviceUrl" -ForegroundColor Gray
+    Write-Host "   Configurar domínio: .\configurar_dominio_cloud_run.ps1" -ForegroundColor Gray
 } else {
     Write-Error "❌ Não foi possível obter URL do serviço!"
 }

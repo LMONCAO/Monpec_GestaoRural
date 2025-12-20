@@ -111,3 +111,7 @@ print(f"\n[OK] Investigacao concluida!")
 
 
 
+
+
+
+

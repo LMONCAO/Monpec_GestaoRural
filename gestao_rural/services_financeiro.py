@@ -260,6 +260,9 @@ def comparar_com_periodo_anterior(propriedade, periodo: PeriodoFinanceiro) -> di
 
 def integrar_dados_pecuaria(propriedade, periodo: PeriodoFinanceiro) -> dict:
     """Integra dados de vendas de animais do módulo de pecuária."""
+    import logging
+    logger = logging.getLogger(__name__)
+    
     try:
         # Tentar buscar através de MovimentacaoProjetada
         from .models import MovimentacaoProjetada
@@ -282,8 +285,11 @@ def integrar_dados_pecuaria(propriedade, periodo: PeriodoFinanceiro) -> dict:
             "total_vendas_animais": total_vendas_animais,
             "quantidade_vendida": quantidade_vendida,
             "numero_vendas": vendas_animais.count(),
+            "modulo_disponivel": True,
+            "fonte_dados": "MovimentacaoProjetada",
         }
-    except (ImportError, AttributeError):
+    except (ImportError, AttributeError) as e:
+        logger.warning(f'MovimentacaoProjetada não disponível, tentando fallback: {e}')
         # Se não encontrar, buscar através de lançamentos financeiros com categoria de venda de animais
         try:
             lancamentos_vendas = LancamentoFinanceiro.objects.filter(
@@ -301,17 +307,25 @@ def integrar_dados_pecuaria(propriedade, periodo: PeriodoFinanceiro) -> dict:
                 "total_vendas_animais": total_vendas_animais,
                 "quantidade_vendida": 0,
                 "numero_vendas": lancamentos_vendas.count(),
+                "modulo_disponivel": True,
+                "fonte_dados": "LancamentoFinanceiro",
             }
-        except Exception:
+        except Exception as e2:
+            logger.error(f'Erro ao integrar dados de pecuária: {e2}')
             return {
                 "total_vendas_animais": Decimal("0"),
                 "quantidade_vendida": 0,
                 "numero_vendas": 0,
+                "modulo_disponivel": False,
+                "fonte_dados": None,
             }
 
 
 def integrar_dados_compras(propriedade, periodo: PeriodoFinanceiro) -> dict:
     """Integra dados de compras do módulo de compras."""
+    import logging
+    logger = logging.getLogger(__name__)
+    
     try:
         from .models_compras_financeiro import OrdemCompra, NotaFiscal
         
@@ -341,13 +355,18 @@ def integrar_dados_compras(propriedade, periodo: PeriodoFinanceiro) -> dict:
             "total_notas_fiscais": total_notas,
             "numero_ordens": ordens_compra.count(),
             "numero_notas": notas_fiscais.count(),
+            "modulo_disponivel": True,
+            "fonte_dados": "OrdemCompra/NotaFiscal",
         }
-    except (ImportError, AttributeError):
+    except (ImportError, AttributeError) as e:
+        logger.warning(f'Módulo de compras não disponível: {e}')
         return {
             "total_compras": Decimal("0"),
             "total_notas_fiscais": Decimal("0"),
             "numero_ordens": 0,
             "numero_notas": 0,
+            "modulo_disponivel": False,
+            "fonte_dados": None,
         }
 
 

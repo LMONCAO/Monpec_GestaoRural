@@ -1,23 +1,27 @@
-{% extends 'base_moderno.html' %}
+{% extends 'base_modulos_unificado.html' %}
 
 {% block title %}Editar Categoria SISBOV{% endblock %}
 
-{% block page_title %}Editar Categoria SISBOV{% endblock %}
+{% block breadcrumb_extra %}
+<li class="breadcrumb-item"><a href="{% url 'categorias_lista' %}">Categorias</a></li>
+<li class="breadcrumb-item active">Editar: {{ categoria.nome }}</li>
+{% endblock %}
 
-{% block content_authenticated %}
-<div class="row">
-    <div class="col-12">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <h2>Editar Categoria SISBOV</h2>
-                <p class="text-muted">Atualize o padrão SISBOV da categoria: {{ categoria.nome }}</p>
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2>Editar Categoria SISBOV</h2>
+                    <p class="text-muted">Atualize o padrão SISBOV da categoria: {{ categoria.nome }}</p>
+                </div>
+                <a href="{% url 'categorias_lista' %}" class="btn btn-outline-secondary">
+                    ← Voltar
+                </a>
             </div>
-            <a href="{% url 'categorias_lista' %}" class="btn btn-secondary">
-                ← Voltar
-            </a>
-        </div>
-        
-        <div class="card">
+            
+            <div class="card">
             <div class="card-header">
                 <h5 class="mb-0">Informações da Categoria SISBOV</h5>
             </div>
@@ -145,4 +149,4 @@
         </div>
     </div>
 </div>
-{% endblock content_authenticated %}
+{% endblock %}

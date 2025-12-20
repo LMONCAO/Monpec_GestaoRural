@@ -11,8 +11,10 @@ from django.contrib import messages
 from django.db.models import Q, Count, Sum, Max
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import csrf_exempt
 from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
+from collections import defaultdict
 
 from .models import (
     Propriedade, CategoriaAnimal, AnimalIndividual,
@@ -25,6 +27,220 @@ def _normalizar_codigo(codigo: str) -> str:
     if not codigo:
         return ''
     return re.sub(r'\D', '', codigo)
+
+
+def _normalizar_codigo_sisbov(codigo):
+    """
+    Normaliza código SISBOV para formato padrão BR + 13 dígitos.
+    Remove espaços, caracteres especiais e garante formato consistente.
+    """
+    if not codigo:
+        return None
+    
+    codigo_str = str(codigo).strip().upper()
+    
+    # Remover todos os caracteres não numéricos (exceto BR no início)
+    # Primeiro, verificar se começa com BR
+    tem_br = codigo_str.startswith('BR')
+    codigo_limpo = re.sub(r'\D', '', codigo_str)
+    
+    # Se tem 13 dígitos, adicionar BR se não tiver
+    if len(codigo_limpo) == 13:
+        return f"BR{codigo_limpo}"
+    # Se tem 15 dígitos, remover os 2 primeiros e adicionar BR
+    elif len(codigo_limpo) == 15:
+        return f"BR{codigo_limpo[2:]}"
+    # Se tem menos de 13 dígitos mas começa com BR, tentar usar como está
+    elif tem_br and len(codigo_limpo) >= 11:
+        # Se já tem BR e tem pelo menos 11 dígitos, tentar normalizar
+        if len(codigo_limpo) == 13:
+            return f"BR{codigo_limpo}"
+        elif len(codigo_limpo) == 15:
+            return f"BR{codigo_limpo[2:]}"
+    # Se já está no formato BR + 13 dígitos (string com BR)
+    elif tem_br and len(codigo_limpo) == 13:
+        return f"BR{codigo_limpo}"
+    
+    # Se não conseguiu normalizar, retornar None
+    return None
+
+
+def _processar_animal_importacao(animal_data, propriedade, resultados_detalhados):
+    """
+    Processa um animal da importação, cria/atualiza e classifica status de conformidade.
+    Retorna (animal, criado, atualizado, status_conformidade, divergencias)
+    """
+    codigo_sisbov_raw = animal_data.get('codigo_sisbov', '').strip()
+    if not codigo_sisbov_raw:
+        return None, False, False, None, []
+    
+    # Normalizar código SISBOV
+    codigo_normalizado = _normalizar_codigo_sisbov(codigo_sisbov_raw)
+    if not codigo_normalizado:
+        return None, False, False, None, []
+    
+    numero_brinco = animal_data.get('numero_brinco', '').strip()
+    raca = animal_data.get('raca', '').strip() or None
+    sexo = animal_data.get('sexo')
+    if sexo and sexo not in ['M', 'F']:
+        sexo = None
+    data_nascimento = animal_data.get('data_nascimento')
+    peso_atual_kg = animal_data.get('peso_kg')
+    
+    # Buscar animal existente
+    animal_existente = AnimalIndividual.objects.filter(
+        codigo_sisbov=codigo_normalizado,
+        propriedade=propriedade
+    ).first()
+    
+    # Criar ou atualizar
+    animal, criado = AnimalIndividual.objects.get_or_create(
+        codigo_sisbov=codigo_normalizado,
+        propriedade=propriedade,
+        defaults={
+            'numero_brinco': numero_brinco or codigo_normalizado[-6:] if codigo_normalizado else '',
+            'raca': raca or '',
+            'sexo': sexo or 'I',
+            'data_nascimento': data_nascimento,
+            'peso_atual_kg': peso_atual_kg,
+            'status': 'ATIVO',
+            'status_sanitario': 'INDEFINIDO'
+        }
+    )
+    
+    status_conformidade = None
+    divergencias = []
+    atualizado = False
+    
+    if criado:
+        status_conformidade = 'NOVO'
+        resultados_detalhados['animais_criados_lista'].append({
+            'animal_id': animal.id,
+            'codigo_sisbov': codigo_normalizado,
+            'numero_brinco': animal.numero_brinco or '',
+            'status': 'NOVO',
+        })
+    else:
+        # Verificar conformidade
+        tem_divergencia = False
+        
+        # Comparar sexo
+        sexo_sistema = animal.sexo if animal.sexo else 'I'
+        sexo_arquivo = sexo or 'I'
+        if sexo_sistema != sexo_arquivo and sexo_arquivo != 'I':
+            divergencias.append('sexo')
+            tem_divergencia = True
+        
+        # Comparar raça
+        raca_sistema = animal.raca or ''
+        raca_arquivo = raca or ''
+        if raca_sistema and raca_arquivo and raca_sistema.upper().strip() != raca_arquivo.upper().strip():
+            divergencias.append('raca')
+            tem_divergencia = True
+        
+        # Comparar data de nascimento
+        if data_nascimento and animal.data_nascimento:
+            if isinstance(data_nascimento, str):
+                try:
+                    data_arquivo_obj = datetime.strptime(data_nascimento, '%Y-%m-%d').date()
+                except:
+                    try:
+                        data_arquivo_obj = datetime.strptime(data_nascimento, '%d/%m/%Y').date()
+                    except:
+                        data_arquivo_obj = None
+            else:
+                data_arquivo_obj = data_nascimento
+            
+            if data_arquivo_obj and animal.data_nascimento != data_arquivo_obj:
+                divergencias.append('data_nascimento')
+                tem_divergencia = True
+        
+        # Atualizar dados se necessário
+        if raca and not animal.raca:
+            animal.raca = raca
+            atualizado = True
+        if sexo and sexo != 'I' and animal.sexo == 'I':
+            animal.sexo = sexo
+            atualizado = True
+        if data_nascimento and not animal.data_nascimento:
+            if isinstance(data_nascimento, str):
+                try:
+                    animal.data_nascimento = datetime.strptime(data_nascimento, '%Y-%m-%d').date()
+                except:
+                    try:
+                        animal.data_nascimento = datetime.strptime(data_nascimento, '%d/%m/%Y').date()
+                    except:
+                        pass
+            else:
+                animal.data_nascimento = data_nascimento
+            atualizado = True
+        if peso_atual_kg:
+            animal.peso_atual_kg = peso_atual_kg
+            atualizado = True
+        
+        if atualizado:
+            animal.save()
+        
+        # Classificar status
+        if tem_divergencia:
+            status_conformidade = 'DIVERGENTE'
+            resultados_detalhados['animais_divergentes_lista'].append({
+                'animal_id': animal.id,
+                'codigo_sisbov': codigo_normalizado,
+                'numero_brinco': animal.numero_brinco or '',
+                'divergencias': divergencias,
+                'atualizado': atualizado,
+            })
+        else:
+            status_conformidade = 'CONFORME'
+            resultados_detalhados['animais_conformes_lista'].append({
+                'animal_id': animal.id,
+                'codigo_sisbov': codigo_normalizado,
+                'numero_brinco': animal.numero_brinco or '',
+                'atualizado': atualizado,
+            })
+        
+        if atualizado:
+            resultados_detalhados['animais_atualizados_lista'].append({
+                'animal_id': animal.id,
+                'codigo_sisbov': codigo_normalizado,
+                'numero_brinco': animal.numero_brinco or '',
+                'status': status_conformidade,
+            })
+    
+    return animal, criado, atualizado, status_conformidade, divergencias
+
+
+def _calcular_era(data_nascimento, categoria=None):
+    """
+    Calcula a Era (faixa etária) do animal baseado na data de nascimento.
+    Retorna faixas de idade em meses: '0-12', '12-24', '24-36', '+36'
+    """
+    if data_nascimento:
+        hoje = date.today()
+        idade_meses = (hoje.year - data_nascimento.year) * 12 + (hoje.month - data_nascimento.month)
+        
+        if idade_meses < 12:
+            return '0-12'
+        elif idade_meses < 24:
+            return '12-24'
+        elif idade_meses < 36:
+            return '24-36'
+        else:
+            return '+36'
+    
+    # Se não tem data, usar categoria como fallback aproximado
+    if categoria:
+        nome_cat = categoria.nome.lower() if hasattr(categoria, 'nome') else str(categoria).lower()
+        if 'bezerro' in nome_cat:
+            return '0-12'
+        elif 'novilho' in nome_cat or 'novilha' in nome_cat:
+            return '12-24'
+        elif 'touro' in nome_cat or 'vaca' in nome_cat:
+            # Pode ser qualquer faixa acima de 24 meses
+            return '24-36'
+    
+    return 'Indefinido'
 
 
 @login_required
@@ -83,6 +299,423 @@ def rastreabilidade_dashboard(request, propriedade_id):
 
 
 @login_required
+def preview_importacao_bnd_sisbov(request, propriedade_id):
+    """Preview da importação - retorna comparação entre sistema e arquivo"""
+    propriedade = get_object_or_404(Propriedade, pk=propriedade_id)
+    
+    if request.method != 'POST':
+        return JsonResponse({'erro': 'Método não permitido'}, status=405)
+    
+    try:
+        arquivo = request.FILES.get('arquivo')
+        if not arquivo:
+            return JsonResponse({'erro': 'Nenhum arquivo enviado'}, status=400)
+        
+        nome_arquivo = arquivo.name.lower()
+        animais_arquivo = []
+        
+        # Processar arquivo conforme tipo
+        if nome_arquivo.endswith('.xlsx') or nome_arquivo.endswith('.xls'):
+            import openpyxl
+            from openpyxl import load_workbook
+            
+            wb = load_workbook(arquivo, read_only=True, data_only=True)
+            ws = wb.active
+            
+            # Encontrar cabeçalho
+            cabecalho = None
+            linha_cabecalho = 0
+            for idx, row in enumerate(ws.iter_rows(values_only=True), start=1):
+                if any(cell and isinstance(cell, str) and 'sisbov' in cell.lower() for cell in row):
+                    cabecalho = [str(cell).lower().strip() if cell else '' for cell in row]
+                    linha_cabecalho = idx
+                    break
+            
+            if not cabecalho:
+                return JsonResponse({'erro': 'Cabeçalho não encontrado no arquivo'}, status=400)
+            
+            # Mapear colunas
+            col_indices = {}
+            colunas_esperadas = {
+                'sisbov': ['sisbov', 'codigo_sisbov', 'código sisbov', 'codigo sisbov'],
+                'brinco': ['brinco', 'numero_brinco', 'número brinco', 'numero brinco'],
+                'raca': ['raca', 'raça', 'raça do animal'],
+                'sexo': ['sexo', 'genero', 'gênero'],
+                'data_nascimento': ['data_nascimento', 'data nascimento', 'nascimento', 'dt_nasc'],
+                'peso': ['peso', 'peso_atual', 'peso atual', 'peso_kg']
+            }
+            
+            for campo, variacoes in colunas_esperadas.items():
+                for idx, col_name in enumerate(cabecalho):
+                    if any(var in col_name for var in variacoes):
+                        col_indices[campo] = idx
+                        break
+            
+            # Processar linhas
+            for idx, row in enumerate(ws.iter_rows(min_row=linha_cabecalho + 1, values_only=True), start=linha_cabecalho + 1):
+                if not any(row):
+                    continue
+                
+                codigo_sisbov_raw = str(row[col_indices['sisbov']]).strip() if col_indices.get('sisbov') is not None and row[col_indices['sisbov']] else None
+                if not codigo_sisbov_raw or codigo_sisbov_raw.lower() in ['none', 'null', '']:
+                    continue
+                
+                # Normalizar código SISBOV
+                codigo_sisbov = _normalizar_codigo_sisbov(codigo_sisbov_raw)
+                if not codigo_sisbov:
+                    continue  # Código inválido, pular
+                
+                sexo = None
+                if 'sexo' in col_indices and row[col_indices['sexo']]:
+                    sexo_str = str(row[col_indices['sexo']]).strip().upper()
+                    if sexo_str in ['M', 'MACHO', 'MALE']:
+                        sexo = 'M'
+                    elif sexo_str in ['F', 'FEMEA', 'FÊMEA', 'FEMALE']:
+                        sexo = 'F'
+                
+                data_nascimento = None
+                if 'data_nascimento' in col_indices and row[col_indices['data_nascimento']]:
+                    data_val = row[col_indices['data_nascimento']]
+                    if isinstance(data_val, datetime):
+                        data_nascimento = data_val.date()
+                    elif isinstance(data_val, date):
+                        data_nascimento = data_val
+                    elif isinstance(data_val, str):
+                        try:
+                            data_nascimento = datetime.strptime(data_val, '%Y-%m-%d').date()
+                        except ValueError:
+                            try:
+                                data_nascimento = datetime.strptime(data_val, '%d/%m/%Y').date()
+                            except ValueError:
+                                pass
+                
+                animais_arquivo.append({
+                    'codigo_sisbov': codigo_sisbov,
+                    'sexo': sexo or 'I',
+                    'data_nascimento': data_nascimento.isoformat() if data_nascimento else None,
+                })
+            
+            wb.close()
+        
+        elif nome_arquivo.endswith('.csv'):
+            import csv
+            import io
+            
+            encodings = ['utf-8', 'latin-1', 'cp1252', 'iso-8859-1']
+            conteudo = None
+            
+            for encoding in encodings:
+                try:
+                    arquivo.seek(0)
+                    conteudo = arquivo.read().decode(encoding)
+                    break
+                except UnicodeDecodeError:
+                    continue
+            
+            if not conteudo:
+                return JsonResponse({'erro': 'Erro ao ler arquivo CSV'}, status=400)
+            
+            csv_reader = csv.DictReader(io.StringIO(conteudo))
+            
+            for row in csv_reader:
+                codigo_sisbov_raw = row.get('sisbov') or row.get('codigo_sisbov') or row.get('Código SISBOV') or ''
+                codigo_sisbov_raw = str(codigo_sisbov_raw).strip()
+                
+                if not codigo_sisbov_raw:
+                    continue
+                
+                # Normalizar código SISBOV
+                codigo_sisbov = _normalizar_codigo_sisbov(codigo_sisbov_raw)
+                if not codigo_sisbov:
+                    continue  # Código inválido, pular
+                
+                sexo_str = (row.get('sexo') or row.get('gênero') or '').strip().upper()
+                sexo = None
+                if sexo_str in ['M', 'MACHO', 'MALE']:
+                    sexo = 'M'
+                elif sexo_str in ['F', 'FEMEA', 'FÊMEA', 'FEMALE']:
+                    sexo = 'F'
+                
+                data_nascimento = None
+                data_str = (row.get('data_nascimento') or row.get('nascimento') or '').strip()
+                if data_str:
+                    try:
+                        data_nascimento = datetime.strptime(data_str, '%Y-%m-%d').date()
+                    except ValueError:
+                        try:
+                            data_nascimento = datetime.strptime(data_str, '%d/%m/%Y').date()
+                        except ValueError:
+                            pass
+                
+                animais_arquivo.append({
+                    'codigo_sisbov': codigo_sisbov,
+                    'sexo': sexo or 'I',
+                    'data_nascimento': data_nascimento.isoformat() if data_nascimento else None,
+                })
+        
+        elif nome_arquivo.endswith('.pdf'):
+            try:
+                import PyPDF2
+                import pdfplumber
+            except ImportError as e:
+                biblioteca_faltante = str(e).split("'")[1] if "'" in str(e) else "PyPDF2 ou pdfplumber"
+                return JsonResponse({
+                    'erro': f'Biblioteca {biblioteca_faltante} não está instalada. Para instalar, execute: pip install PyPDF2 pdfplumber'
+                }, status=400)
+            
+            from .bnd_sisbov_parser import BNDSisbovParser
+            
+            parser = BNDSisbovParser()
+            dados_extraidos = parser.extrair_dados_pdf(arquivo)
+            animais_extraidos = dados_extraidos.get('animais', [])
+            
+            for animal_data in animais_extraidos:
+                codigo_sisbov = animal_data.get('codigo_sisbov', '').strip()
+                if not codigo_sisbov:
+                    continue
+                
+                # Normalizar código SISBOV usando função padronizada
+                codigo_normalizado = _normalizar_codigo_sisbov(codigo_sisbov)
+                if not codigo_normalizado:
+                    continue  # Código inválido, pular
+                
+                sexo = animal_data.get('sexo')
+                if sexo and sexo not in ['M', 'F']:
+                    sexo = 'I'
+                
+                data_nascimento = animal_data.get('data_nascimento')
+                
+                animais_arquivo.append({
+                    'codigo_sisbov': codigo_normalizado,
+                    'sexo': sexo or 'I',
+                    'data_nascimento': data_nascimento.isoformat() if isinstance(data_nascimento, date) else (data_nascimento if data_nascimento else None),
+                })
+        
+        else:
+            return JsonResponse({'erro': 'Formato de arquivo não suportado'}, status=400)
+        
+        # Buscar animais do sistema
+        animais_sistema = AnimalIndividual.objects.filter(
+            propriedade=propriedade,
+            status='ATIVO'
+        ).select_related('categoria')
+        
+        # Agrupar por Sexo e Era
+        sistema_por_sexo_era = defaultdict(int)
+        arquivo_por_sexo_era = defaultdict(int)
+        
+        # Processar animais do sistema
+        for animal in animais_sistema:
+            sexo = animal.sexo if animal.sexo else 'I'
+            era = _calcular_era(animal.data_nascimento, animal.categoria)
+            chave = f"{sexo}_{era}"
+            sistema_por_sexo_era[chave] += 1
+        
+        # Processar animais do arquivo (normalizando códigos SISBOV)
+        animais_arquivo_normalizados = []
+        for animal_data in animais_arquivo:
+            codigo_original = animal_data.get('codigo_sisbov')
+            if codigo_original:
+                codigo_normalizado = _normalizar_codigo_sisbov(codigo_original)
+                if codigo_normalizado:
+                    animal_data['codigo_sisbov'] = codigo_normalizado
+                    animais_arquivo_normalizados.append(animal_data)
+        
+        animais_arquivo = animais_arquivo_normalizados
+        
+        # Processar animais do arquivo para tabela comparativa
+        for animal_data in animais_arquivo:
+            sexo = animal_data.get('sexo', 'I')
+            data_nasc = animal_data.get('data_nascimento')
+            data_nasc_obj = None
+            if data_nasc:
+                try:
+                    if isinstance(data_nasc, str):
+                        data_nasc_obj = datetime.strptime(data_nasc, '%Y-%m-%d').date()
+                    else:
+                        data_nasc_obj = data_nasc
+                except:
+                    pass
+            era = _calcular_era(data_nasc_obj)
+            chave = f"{sexo}_{era}"
+            arquivo_por_sexo_era[chave] += 1
+        
+        # Criar tabela comparativa
+        todas_chaves = set(list(sistema_por_sexo_era.keys()) + list(arquivo_por_sexo_era.keys()))
+        tabela_comparativa = []
+        
+        for chave in sorted(todas_chaves):
+            sexo, era = chave.split('_', 1)
+            qtd_sistema = sistema_por_sexo_era.get(chave, 0)
+            qtd_arquivo = arquivo_por_sexo_era.get(chave, 0)
+            diferenca = qtd_arquivo - qtd_sistema
+            
+            sexo_display = 'Macho' if sexo == 'M' else ('Fêmea' if sexo == 'F' else 'Indefinido')
+            
+            tabela_comparativa.append({
+                'sexo': sexo_display,
+                'era': era,
+                'quantidade_sistema': qtd_sistema,
+                'quantidade_arquivo': qtd_arquivo,
+                'diferenca': diferenca,
+            })
+        
+        # Estatísticas gerais
+        total_sistema = animais_sistema.count()
+        total_arquivo = len(animais_arquivo)
+        
+        # Criar dicionários para busca rápida (normalizando códigos SISBOV)
+        animais_sistema_dict = {}
+        for animal in animais_sistema:
+            if animal.codigo_sisbov:
+                codigo_normalizado = _normalizar_codigo_sisbov(animal.codigo_sisbov)
+                if codigo_normalizado:
+                    animais_sistema_dict[codigo_normalizado] = animal
+        
+        animais_arquivo_dict = {}
+        for animal_data in animais_arquivo:
+            codigo = animal_data.get('codigo_sisbov')
+            if codigo:
+                codigo_normalizado = _normalizar_codigo_sisbov(codigo)
+                if codigo_normalizado:
+                    animais_arquivo_dict[codigo_normalizado] = animal_data
+        
+        # Classificar animais do sistema
+        animais_conformes = []  # Encontrado no BND e dados idênticos
+        animais_divergentes = []  # Encontrado no BND mas com dados diferentes
+        animais_nao_conformes = []  # No sistema mas NÃO no BND
+        
+        codigos_sistema = set(animais_sistema_dict.keys())
+        codigos_arquivo = set(animais_arquivo_dict.keys())
+        
+        # Verificar cada animal do sistema
+        for codigo_sisbov, animal_sistema in animais_sistema_dict.items():
+            if codigo_sisbov in codigos_arquivo:
+                # Animal encontrado no BND - verificar se está conforme
+                animal_arquivo = animais_arquivo_dict[codigo_sisbov]
+                
+                # Comparar dados
+                divergencias = []
+                
+                # Comparar sexo
+                sexo_sistema = animal_sistema.sexo if animal_sistema.sexo else 'I'
+                sexo_arquivo = animal_arquivo.get('sexo', 'I')
+                if sexo_sistema != sexo_arquivo and sexo_arquivo != 'I':
+                    divergencias.append('sexo')
+                
+                # Comparar raça
+                raca_sistema = animal_sistema.raca or ''
+                raca_arquivo = animal_arquivo.get('raca', '') or ''
+                if raca_sistema and raca_arquivo and raca_sistema.upper().strip() != raca_arquivo.upper().strip():
+                    divergencias.append('raca')
+                
+                # Comparar data de nascimento
+                data_sistema = animal_sistema.data_nascimento
+                data_arquivo = animal_arquivo.get('data_nascimento')
+                if data_arquivo:
+                    try:
+                        if isinstance(data_arquivo, str):
+                            data_arquivo_obj = datetime.strptime(data_arquivo, '%Y-%m-%d').date()
+                        else:
+                            data_arquivo_obj = data_arquivo
+                        
+                        if data_sistema and data_sistema != data_arquivo_obj:
+                            divergencias.append('data_nascimento')
+                    except:
+                        pass
+                
+                if divergencias:
+                    animais_divergentes.append({
+                        'codigo_sisbov': codigo_sisbov,
+                        'numero_brinco': animal_sistema.numero_brinco or '',
+                        'divergencias': divergencias,
+                        'sexo_sistema': sexo_sistema,
+                        'sexo_arquivo': sexo_arquivo,
+                        'raca_sistema': raca_sistema,
+                        'raca_arquivo': raca_arquivo,
+                    })
+                else:
+                    animais_conformes.append({
+                        'codigo_sisbov': codigo_sisbov,
+                        'numero_brinco': animal_sistema.numero_brinco or '',
+                    })
+            else:
+                # Animal no sistema mas NÃO no BND - não conforme
+                animais_nao_conformes.append({
+                    'codigo_sisbov': codigo_sisbov,
+                    'numero_brinco': animal_sistema.numero_brinco or '',
+                    'sexo': animal_sistema.sexo or 'I',
+                    'raca': animal_sistema.raca or '',
+                })
+        
+        # Animais que serão criados (estão no BND mas não no sistema)
+        animais_que_serao_criados = len(codigos_arquivo - codigos_sistema)
+        
+        # Estatísticas de divergências
+        divergencias_sexo = sum(1 for a in animais_divergentes if 'sexo' in a['divergencias'])
+        divergencias_raca = sum(1 for a in animais_divergentes if 'raca' in a['divergencias'])
+        divergencias_data = sum(1 for a in animais_divergentes if 'data_nascimento' in a['divergencias'])
+        
+        return JsonResponse({
+            'sucesso': True,
+            'total_sistema': total_sistema,
+            'total_arquivo': total_arquivo,
+            'tabela_comparativa': tabela_comparativa,
+            'resumo': {
+                'animais_que_serao_criados': animais_que_serao_criados,
+                'animais_conformes': len(animais_conformes),
+                'animais_divergentes': len(animais_divergentes),
+                'animais_nao_conformes': len(animais_nao_conformes),
+                'divergencias_sexo': divergencias_sexo,
+                'divergencias_raca': divergencias_raca,
+                'divergencias_data': divergencias_data,
+                'total_divergencias': len(animais_divergentes),
+            },
+            'detalhes': {
+                'conformes': animais_conformes[:50],  # Limitar para não sobrecarregar
+                'divergentes': animais_divergentes[:50],
+                'nao_conformes': animais_nao_conformes[:50],
+            }
+        })
+    
+    except Exception as e:
+        import logging
+        logging.error(f"Erro no preview importação: {traceback.format_exc()}")
+        return JsonResponse({'erro': f'Erro ao processar arquivo: {str(e)}'}, status=500)
+
+
+@login_required
+def resultado_importacao_bnd_sisbov(request, propriedade_id):
+    """Página de resultados da importação BND/SISBOV"""
+    propriedade = get_object_or_404(Propriedade, pk=propriedade_id)
+    
+    # Buscar resultados da sessão
+    resultados = request.session.get('resultados_importacao_bnd', None)
+    
+    if not resultados or resultados.get('propriedade_id') != propriedade_id:
+        messages.warning(request, 'Nenhum resultado de importação encontrado. Realize uma importação primeiro.')
+        return redirect('importar_bnd_sisbov', propriedade_id=propriedade_id)
+    
+    # Limpar resultados da sessão após exibir
+    if 'resultados_importacao_bnd' in request.session:
+        del request.session['resultados_importacao_bnd']
+    
+    detalhes = resultados.get('resultados_detalhados', {})
+    
+    context = {
+        'propriedade': propriedade,
+        'resultados': resultados,
+        'animais_criados': detalhes.get('animais_criados_lista', []),
+        'animais_atualizados': detalhes.get('animais_atualizados_lista', []),
+        'animais_conformes': detalhes.get('animais_conformes_lista', []),
+        'animais_divergentes': detalhes.get('animais_divergentes_lista', []),
+        'animais_nao_conformes': detalhes.get('animais_nao_conformes_lista', []),
+    }
+    
+    return render(request, 'gestao_rural/resultado_importacao_bnd_sisbov.html', context)
+
+
+@login_required
 def importar_bnd_sisbov(request, propriedade_id):
     """Importação de dados BND/SISBOV de arquivo Excel ou CSV - VERSÃO CORRIGIDA"""
     propriedade = get_object_or_404(Propriedade, pk=propriedade_id)
@@ -101,6 +734,15 @@ def importar_bnd_sisbov(request, propriedade_id):
             animais_atualizados = 0
             animais_erros = []
             linhas_processadas = 0
+            
+            # Armazenar resultados detalhados da importação
+            resultados_detalhados = {
+                'animais_criados_lista': [],
+                'animais_atualizados_lista': [],
+                'animais_conformes_lista': [],
+                'animais_divergentes_lista': [],
+                'animais_nao_conformes_lista': [],
+            }
             
             # Detectar tipo de arquivo
             if nome_arquivo.endswith('.xlsx') or nome_arquivo.endswith('.xls'):
@@ -159,8 +801,8 @@ def importar_bnd_sisbov(request, propriedade_id):
                         linhas_processadas += 1
                         try:
                             # Extrair dados
-                            codigo_sisbov = str(row[col_indices['sisbov']]).strip() if col_indices.get('sisbov') is not None and row[col_indices['sisbov']] else None
-                            if not codigo_sisbov or codigo_sisbov.lower() in ['none', 'null', '']:
+                            codigo_sisbov_raw = str(row[col_indices['sisbov']]).strip() if col_indices.get('sisbov') is not None and row[col_indices['sisbov']] else None
+                            if not codigo_sisbov_raw or codigo_sisbov_raw.lower() in ['none', 'null', '']:
                                 continue
                             
                             numero_brinco = None
@@ -206,41 +848,24 @@ def importar_bnd_sisbov(request, propriedade_id):
                                 except (ValueError, InvalidOperation):
                                     pass
                             
-                            # Buscar ou criar animal
-                            animal, criado = AnimalIndividual.objects.get_or_create(
-                                codigo_sisbov=codigo_sisbov,
-                                propriedade=propriedade,
-                                defaults={
-                                    'numero_brinco': numero_brinco or codigo_sisbov[-6:],
-                                    'raca': raca or '',
-                                    'sexo': sexo or 'I',
-                                    'data_nascimento': data_nascimento,
-                                    'peso_atual_kg': peso_atual_kg,
-                                    'status': 'ATIVO',
-                                    'status_sanitario': 'INDEFINIDO'
-                                }
+                            # Processar animal usando função auxiliar
+                            animal_data_dict = {
+                                'codigo_sisbov': codigo_sisbov_raw,
+                                'numero_brinco': numero_brinco,
+                                'raca': raca,
+                                'sexo': sexo,
+                                'data_nascimento': data_nascimento.isoformat() if data_nascimento else None,
+                                'peso_kg': peso_atual_kg,
+                            }
+                            
+                            animal, criado, atualizado, status, divergencias = _processar_animal_importacao(
+                                animal_data_dict, propriedade, resultados_detalhados
                             )
                             
-                            if criado:
-                                animais_criados += 1
-                            else:
-                                # Atualizar dados existentes
-                                atualizado = False
-                                if raca and not animal.raca:
-                                    animal.raca = raca
-                                    atualizado = True
-                                if sexo and sexo != 'I' and animal.sexo == 'I':
-                                    animal.sexo = sexo
-                                    atualizado = True
-                                if data_nascimento and not animal.data_nascimento:
-                                    animal.data_nascimento = data_nascimento
-                                    atualizado = True
-                                if peso_atual_kg:
-                                    animal.peso_atual_kg = peso_atual_kg
-                                    atualizado = True
-                                
-                                if atualizado:
-                                    animal.save()
+                            if animal:
+                                if criado:
+                                    animais_criados += 1
+                                elif atualizado:
                                     animais_atualizados += 1
                         
                         except Exception as e:
@@ -325,40 +950,24 @@ def importar_bnd_sisbov(request, propriedade_id):
                                 except (ValueError, InvalidOperation):
                                     pass
                             
-                            # Buscar ou criar animal
-                            animal, criado = AnimalIndividual.objects.get_or_create(
-                                codigo_sisbov=codigo_sisbov,
-                                propriedade=propriedade,
-                                defaults={
-                                    'numero_brinco': numero_brinco or codigo_sisbov[-6:],
-                                    'raca': raca or '',
-                                    'sexo': sexo or 'I',
-                                    'data_nascimento': data_nascimento,
-                                    'peso_atual_kg': peso_atual_kg,
-                                    'status': 'ATIVO',
-                                    'status_sanitario': 'INDEFINIDO'
-                                }
+                            # Processar animal usando função auxiliar
+                            animal_data_dict = {
+                                'codigo_sisbov': codigo_sisbov,
+                                'numero_brinco': numero_brinco,
+                                'raca': raca,
+                                'sexo': sexo,
+                                'data_nascimento': data_nascimento.isoformat() if data_nascimento else None,
+                                'peso_kg': peso_atual_kg,
+                            }
+                            
+                            animal, criado, atualizado, status, divergencias = _processar_animal_importacao(
+                                animal_data_dict, propriedade, resultados_detalhados
                             )
                             
-                            if criado:
-                                animais_criados += 1
-                            else:
-                                atualizado = False
-                                if raca and not animal.raca:
-                                    animal.raca = raca
-                                    atualizado = True
-                                if sexo and sexo != 'I' and animal.sexo == 'I':
-                                    animal.sexo = sexo
-                                    atualizado = True
-                                if data_nascimento and not animal.data_nascimento:
-                                    animal.data_nascimento = data_nascimento
-                                    atualizado = True
-                                if peso_atual_kg:
-                                    animal.peso_atual_kg = peso_atual_kg
-                                    atualizado = True
-                                
-                                if atualizado:
-                                    animal.save()
+                            if animal:
+                                if criado:
+                                    animais_criados += 1
+                                elif atualizado:
                                     animais_atualizados += 1
                         
                         except Exception as e:
@@ -372,8 +981,103 @@ def importar_bnd_sisbov(request, propriedade_id):
                     return render(request, 'gestao_rural/importar_bnd_sisbov.html', {
                         'propriedade': propriedade
                     })
+            
+            elif nome_arquivo.endswith('.pdf'):
+                # Processar PDF BND SISBOV
+                try:
+                    # Verificar se bibliotecas necessárias estão instaladas
+                    try:
+                        import PyPDF2
+                        import pdfplumber
+                    except ImportError as e:
+                        messages.error(request, f'Bibliotecas necessárias não estão instaladas: {str(e)}. Execute: pip install PyPDF2 pdfplumber')
+                        return render(request, 'gestao_rural/importar_bnd_sisbov.html', {
+                            'propriedade': propriedade
+                        })
+                    
+                    # Importar parser
+                    from .bnd_sisbov_parser import BNDSisbovParser
+                    
+                    # Criar parser e extrair dados
+                    parser = BNDSisbovParser()
+                    dados_extraidos = parser.extrair_dados_pdf(arquivo)
+                    
+                    animais_extraidos = dados_extraidos.get('animais', [])
+                    
+                    if not animais_extraidos:
+                        messages.warning(request, 'Nenhum animal foi encontrado no PDF. Verifique se o arquivo contém dados válidos do SISBOV.')
+                        return render(request, 'gestao_rural/importar_bnd_sisbov.html', {
+                            'propriedade': propriedade
+                        })
+                    
+                    # Processar cada animal extraído
+                    for idx, animal_data in enumerate(animais_extraidos, start=1):
+                        linhas_processadas += 1
+                        try:
+                            codigo_sisbov_raw = animal_data.get('codigo_sisbov', '').strip()
+                            if not codigo_sisbov_raw:
+                                continue
+                            
+                            numero_brinco = animal_data.get('numero_brinco', '').strip()
+                            if not numero_brinco:
+                                # Tentar usar número de manejo como brinco
+                                numero_manejo = animal_data.get('numero_manejo', '')
+                                if numero_manejo:
+                                    numero_brinco = numero_manejo
+                            
+                            raca = animal_data.get('raca', '').strip() or None
+                            
+                            sexo = animal_data.get('sexo')
+                            if sexo and sexo not in ['M', 'F']:
+                                sexo = None
+                            
+                            data_nascimento = animal_data.get('data_nascimento')
+                            peso_atual_kg = animal_data.get('peso_kg')
+                            
+                            # Processar animal usando função auxiliar
+                            animal_data_dict = {
+                                'codigo_sisbov': codigo_sisbov_raw,
+                                'numero_brinco': numero_brinco,
+                                'raca': raca,
+                                'sexo': sexo,
+                                'data_nascimento': data_nascimento.isoformat() if isinstance(data_nascimento, date) else (data_nascimento if data_nascimento else None),
+                                'peso_kg': peso_atual_kg,
+                            }
+                            
+                            animal, criado, atualizado, status, divergencias = _processar_animal_importacao(
+                                animal_data_dict, propriedade, resultados_detalhados
+                            )
+                            
+                            if animal:
+                                if criado:
+                                    animais_criados += 1
+                                elif atualizado:
+                                    animais_atualizados += 1
+                        
+                        except Exception as e:
+                            animais_erros.append(f"Animal {idx}: {str(e)}")
+                    
+                    # Log do relatório de extração
+                    relatorio = parser.gerar_relatorio_extracao()
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.info(f"Importação BND SISBOV PDF - {relatorio}")
+                
+                except ImportError:
+                    messages.error(request, 'Bibliotecas necessárias não estão instaladas. Execute: pip install PyPDF2 pdfplumber')
+                    return render(request, 'gestao_rural/importar_bnd_sisbov.html', {
+                        'propriedade': propriedade
+                    })
+                except Exception as e:
+                    messages.error(request, f'Erro ao processar arquivo PDF: {str(e)}')
+                    import logging
+                    logging.error(f"Erro ao importar PDF BND/SISBOV: {traceback.format_exc()}")
+                    return render(request, 'gestao_rural/importar_bnd_sisbov.html', {
+                        'propriedade': propriedade
+                    })
+            
             else:
-                messages.error(request, 'Formato de arquivo não suportado. Use Excel (.xlsx, .xls) ou CSV (.csv).')
+                messages.error(request, 'Formato de arquivo não suportado. Use Excel (.xlsx, .xls), CSV (.csv) ou PDF (.pdf).')
                 return render(request, 'gestao_rural/importar_bnd_sisbov.html', {
                     'propriedade': propriedade
                 })
@@ -394,7 +1098,52 @@ def importar_bnd_sisbov(request, propriedade_id):
             if linhas_processadas == 0:
                 messages.warning(request, 'Nenhuma linha foi processada. Verifique o formato do arquivo.')
             
-            return redirect('animais_individuais_lista', propriedade_id=propriedade_id)
+            # Identificar animais não conformes (no sistema mas não no arquivo)
+            # Coletar todos os códigos SISBOV que foram importados
+            codigos_importados = set()
+            for lista in resultados_detalhados.values():
+                if isinstance(lista, list):
+                    for item in lista:
+                        if isinstance(item, dict) and 'codigo_sisbov' in item:
+                            codigos_importados.add(item['codigo_sisbov'])
+            
+            # Buscar animais do sistema que não estão na lista de importados
+            animais_sistema_todos = AnimalIndividual.objects.filter(
+                propriedade=propriedade,
+                status='ATIVO'
+            ).select_related('categoria')
+            
+            for animal in animais_sistema_todos:
+                if animal.codigo_sisbov:
+                    codigo_normalizado = _normalizar_codigo_sisbov(animal.codigo_sisbov)
+                    if codigo_normalizado and codigo_normalizado not in codigos_importados:
+                        # Verificar se já não foi adicionado (evitar duplicatas)
+                        ja_adicionado = any(
+                            item.get('codigo_sisbov') == codigo_normalizado 
+                            for item in resultados_detalhados['animais_nao_conformes_lista']
+                        )
+                        if not ja_adicionado:
+                            resultados_detalhados['animais_nao_conformes_lista'].append({
+                                'animal_id': animal.id,
+                                'codigo_sisbov': codigo_normalizado,
+                                'numero_brinco': animal.numero_brinco or '',
+                                'sexo': animal.sexo or 'I',
+                                'raca': animal.raca or '',
+                            })
+            
+            # Salvar resultados na sessão para exibir na página de resultados
+            request.session['resultados_importacao_bnd'] = {
+                'propriedade_id': propriedade_id,
+                'animais_criados': animais_criados,
+                'animais_atualizados': animais_atualizados,
+                'total_processados': linhas_processadas,
+                'erros': animais_erros[:20],  # Limitar a 20 erros
+                'resultados_detalhados': resultados_detalhados,
+                'timestamp': datetime.now().isoformat(),
+            }
+            
+            # Redirecionar para página de resultados da importação
+            return redirect('resultado_importacao_bnd_sisbov', propriedade_id=propriedade_id)
         
         except Exception as e:
             import traceback

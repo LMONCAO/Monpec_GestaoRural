@@ -7,7 +7,7 @@ class GestaoRuralConfig(AppConfig):
     
     def ready(self):
         """Executado quando a aplicação está pronta"""
-        # Importar aqui para evitar importações circulares
+            # Importar aqui para evitar importações circulares
         try:
             from django.db import transaction
             from .models import CategoriaAnimal
@@ -15,8 +15,8 @@ class GestaoRuralConfig(AppConfig):
             from . import models_reproducao  # noqa: F401
             from . import models_compras_financeiro  # noqa: F401
             from . import models_iatf_completo  # noqa: F401
-            # Importar models_cadastros apenas se necessário para evitar conflitos de Fornecedor
-            # O import será feito dinamicamente quando necessário
+            # Importar models_cadastros para garantir que Cliente seja carregado
+            from . import models_cadastros  # noqa: F401
             from .services.provisionamento import registrar_workspaces_existentes
             
             # Criar categorias padrão se não existirem

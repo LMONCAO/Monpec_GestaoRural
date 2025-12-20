@@ -15,7 +15,8 @@ from .models_compras_financeiro import (
     ConviteCotacaoFornecedor,
     Fornecedor,
     RequisicaoCompra,
-    OrcamentoCompraMensal, AjusteOrcamentoCompra
+    OrcamentoCompraMensal, AjusteOrcamentoCompra,
+    Produto, CategoriaProduto,
 )
 
 # Importar modelos IATF se existirem
@@ -341,6 +342,51 @@ class FornecedorAdmin(admin.ModelAdmin):
     list_filter = ['tipo', 'ativo', 'propriedade']
     search_fields = ['nome', 'nome_fantasia', 'cpf_cnpj', 'email']
     readonly_fields = ['data_cadastro']
+
+
+@admin.register(CategoriaProduto)
+class CategoriaProdutoAdmin(admin.ModelAdmin):
+    list_display = ['nome', 'ativo']
+    list_filter = ['ativo']
+    search_fields = ['nome', 'descricao']
+    readonly_fields = []
+
+
+@admin.register(Produto)
+class ProdutoAdmin(admin.ModelAdmin):
+    list_display = ['codigo', 'descricao', 'categoria', 'ncm', 'ncm_validado', 'sincronizado_receita', 'ativo']
+    list_filter = ['categoria', 'ativo', 'ncm_validado', 'sincronizado_receita', 'unidade_medida']
+    search_fields = ['codigo', 'descricao', 'ncm', 'cfop_entrada', 'cfop_saida_estadual', 'cfop_saida_interestadual']
+    readonly_fields = ['data_cadastro', 'data_atualizacao', 'ncm_data_validacao', 'data_sincronizacao']
+    fieldsets = (
+        ('Dados Básicos', {
+            'fields': ('codigo', 'descricao', 'descricao_completa', 'categoria', 'unidade_medida', 'ativo')
+        }),
+        ('Dados Fiscais - NCM', {
+            'fields': ('ncm', 'ncm_descricao', 'ncm_validado', 'ncm_data_validacao')
+        }),
+        ('Dados Fiscais - CFOP', {
+            'fields': ('cfop_entrada', 'cfop_saida_estadual', 'cfop_saida_interestadual')
+        }),
+        ('Dados Fiscais - Impostos', {
+            'fields': (
+                ('cst_icms', 'aliquota_icms'),
+                ('cst_ipi', 'aliquota_ipi'),
+                ('cst_pis', 'aliquota_pis'),
+                ('cst_cofins', 'aliquota_cofins'),
+            )
+        }),
+        ('Dados Comerciais', {
+            'fields': ('preco_venda', 'preco_custo')
+        }),
+        ('Sincronização', {
+            'fields': ('sincronizado_receita', 'data_sincronizacao', 'usuario_cadastro')
+        }),
+        ('Auditoria', {
+            'fields': ('data_cadastro', 'data_atualizacao', 'observacoes'),
+            'classes': ('collapse',)
+        }),
+    )
 
 
 @admin.register(RequisicaoCompra)

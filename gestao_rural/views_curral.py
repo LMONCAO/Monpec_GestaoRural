@@ -7,6 +7,7 @@ import json
 import random
 import re
 import time
+import logging
 
 from django.contrib import messages
 from django.contrib.auth import get_user_model
@@ -31,6 +32,7 @@ from .models import (
     BrincoAnimal,
     AnimalPesagem,
 )
+from .decorators import obter_propriedade_com_permissao
 from .forms_completos import CurralSessaoForm, CurralEventoForm, CurralLoteForm
 from .models_reproducao import Nascimento
 from .models_manejo import (
@@ -41,6 +43,7 @@ from .models_manejo import (
 )
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
 
 try:  # Compatibilidade com o módulo IATF completo (opcional)
     from .models_iatf_completo import (
@@ -218,7 +221,8 @@ def _calcular_estatisticas_lote(sessao_ativa):
                         pesos_animais.append(peso)
                         peso_total += peso
                         peso_count += 1
-                except Exception:
+                except Exception as e:
+                    logger.debug(f'Erro ao processar item de manejo: {e}')
                     pass
         
         # Calcular média
@@ -460,7 +464,12 @@ def _montar_catalogo_manejos(propriedade: Propriedade):
 
 @login_required
 def curral_painel(request, propriedade_id):
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    """
+    Curral Inteligente - Layout Oficial (URL principal)
+    NOTA: Esta view usa o template oficial curral_dashboard_v2.html
+    O layout está DEFINITIVO - melhorias apenas em modais e programação
+    """
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
 
     catalogo_manejos = _montar_catalogo_manejos(propriedade)
     protocolos_iatf = []
@@ -480,7 +489,8 @@ def curral_painel(request, propriedade_id):
                 }
                 for protocolo in protocolos_qs
             ]
-        except Exception:
+        except Exception as e:
+            logger.warning(f'Erro ao buscar protocolos IATF: {e}', exc_info=True)
             protocolos_iatf = []
     if TouroSemen:
         try:
@@ -494,7 +504,8 @@ def curral_painel(request, propriedade_id):
                 }
                 for touro in touros_qs
             ]
-        except Exception:
+        except Exception as e:
+            logger.warning(f'Erro ao buscar touros de sêmen: {e}', exc_info=True)
             touros_disponiveis = []
 
     categorias_iatf = list(
@@ -523,7 +534,8 @@ def curral_painel(request, propriedade_id):
                     status__in=['PLANEJADO', 'EM_ANDAMENTO'],
                 ).order_by('-data_inicio')[:50]
             ]
-        except Exception:
+        except Exception as e:
+            logger.warning(f'Erro ao buscar lotes IATF ativos: {e}', exc_info=True)
             lotes_iatf_ativos = []
 
     status_etapas_iatf = list(EtapaLoteIATF.STATUS_CHOICES) if EtapaLoteIATF else [
@@ -647,7 +659,8 @@ def curral_painel(request, propriedade_id):
                 }
                 for p in pastagens_qs
             ]
-        except Exception:
+        except Exception as e:
+            logger.warning(f'Erro ao buscar pastagens: {e}', exc_info=True)
             pastagens_disponiveis = []
     
     # Tipos de trabalho para o select
@@ -674,8 +687,12 @@ def curral_painel(request, propriedade_id):
 
 @login_required
 def curral_dashboard_v3(request, propriedade_id):
-    """Curral Inteligente 3.0 - Versão Moderna e Completa"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    """
+    Curral Inteligente - Layout Oficial
+    NOTA: Esta view usa o template oficial curral_dashboard_v2.html
+    O layout está DEFINITIVO - melhorias apenas em modais e programação
+    """
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
 
     # Buscar sessão ativa
     sessao_ativa = (
@@ -760,13 +777,17 @@ def curral_dashboard_v3(request, propriedade_id):
         ],
     }
 
-    return render(request, 'gestao_rural/curral_dashboard_v3.html', context)
+    return render(request, 'gestao_rural/curral_dashboard_v2.html', context)
 
 
 @login_required
 def curral_dashboard_v4(request, propriedade_id):
-    """Curral Inteligente 4.0 - Versão com Layout Otimizado"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    """
+    Curral Inteligente - Layout Oficial (URL v4)
+    NOTA: Esta view usa o template oficial curral_dashboard_v2.html
+    O layout está DEFINITIVO - melhorias apenas em modais e programação
+    """
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
 
     # Buscar sessão ativa
     sessao_ativa = (
@@ -970,7 +991,7 @@ def curral_identificar_codigo(request, propriedade_id):
     if request.method not in ['GET', 'POST']:
         return JsonResponse({'status': 'erro', 'mensagem': 'Método não permitido.'}, status=405)
 
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     # Aceita código tanto de GET quanto de POST
     animal_id_especifico = None
@@ -1368,6 +1389,30 @@ def curral_identificar_codigo(request, propriedade_id):
         if not origem_cadastro_display and nascimento_info:
             origem_cadastro_display = 'Nascimento'
 
+        # Calcular métricas de desempenho de peso
+        periodo_dias = None
+        ganho_peso = None
+        ganho_peso_diario = None
+
+        if pesagem_atual and pesagem_anterior:
+            try:
+                if (hasattr(pesagem_atual, 'peso_kg') and hasattr(pesagem_anterior, 'peso_kg') and
+                    pesagem_atual.peso_kg is not None and pesagem_anterior.peso_kg is not None):
+                    ganho_peso = float(pesagem_atual.peso_kg) - float(pesagem_anterior.peso_kg)
+                    if (hasattr(pesagem_atual, 'data_evento') and hasattr(pesagem_anterior, 'data_evento') and
+                        pesagem_atual.data_evento and pesagem_anterior.data_evento):
+                        periodo_dias = (pesagem_atual.data_evento.date() - pesagem_anterior.data_evento.date()).days
+                        if periodo_dias > 0:
+                            ganho_peso_diario = ganho_peso / periodo_dias
+                        elif periodo_dias == 0:
+                            periodo_dias = 1  # Evitar divisão por zero
+                            ganho_peso_diario = ganho_peso
+            except (AttributeError, TypeError, ValueError) as e:
+                logger.warning(f'Erro ao calcular desempenho de peso para animal {animal.id}: {e}')
+                periodo_dias = None
+                ganho_peso = None
+                ganho_peso_diario = None
+
         return JsonResponse(
             {
                 'status': 'animal',
@@ -1397,14 +1442,17 @@ def curral_identificar_codigo(request, propriedade_id):
                     'pesagem_atual': serializar_pesagem(pesagem_atual),
                     'pesagem_anterior': serializar_pesagem(pesagem_anterior),
                     'pesagens_historico': pesagens_historico,
+                    'periodo_dias': periodo_dias,
+                    'ganho_peso': ganho_peso,
+                    'ganho_peso_diario': ganho_peso_diario,
                     'consta_bnd': consta_bnd,
                     'situacao_bnd': situacao_bnd,
                     'lote_atual': lote_atual_nome,
                     'status_reprodutivo': status_reprodutivo,
                     'origem_reprodutiva': origem_reprodutiva,
                     'origem_cadastro': origem_cadastro_display,
-                    'cota_hilton': getattr(animal, 'cota_hilton', None) or getattr(animal, 'classificacao_zootecnica', '') or '',
-                    'classificacao_zootecnica': getattr(animal, 'classificacao_zootecnica', '') or '',
+                    'cota_hilton': animal.cota_hilton or animal.classificacao_zootecnica or '',
+                    'classificacao_zootecnica': animal.classificacao_zootecnica or '',
                 },
                 'mensagem': 'Animal localizado no rebanho.',
             }
@@ -1649,7 +1697,7 @@ def curral_dados_simulacao(request, propriedade_id):
     if request.method != 'GET':
         return JsonResponse({'status': 'erro', 'mensagem': 'Método não permitido.'}, status=405)
     
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     # Buscar brincos disponíveis em estoque
     # IMPORTANTE: Filtrar apenas brincos com numero_brinco válido (não nulo e não vazio)
@@ -1806,7 +1854,7 @@ def curral_registrar_manejo(request, propriedade_id):
     if request.method != 'POST':
         return JsonResponse({'status': 'erro', 'mensagem': 'Método não permitido.'}, status=405)
 
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
 
     try:
         payload = json.loads(request.body or '{}')
@@ -2571,7 +2619,7 @@ def _registrar_manejo_programar_iatf(propriedade, codigo, payload, usuario):
 
 @login_required
 def curral_sessao(request, propriedade_id, sessao_id):
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     sessao = get_object_or_404(CurralSessao, id=sessao_id, propriedade=propriedade)
 
     evento_form = CurralEventoForm(
@@ -2880,7 +2928,7 @@ def curral_sessao(request, propriedade_id, sessao_id):
 
 @login_required
 def curral_criar_lote(request, propriedade_id, sessao_id):
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     sessao = get_object_or_404(CurralSessao, id=sessao_id, propriedade=propriedade)
 
     form = CurralLoteForm(request.POST)
@@ -2898,7 +2946,7 @@ def curral_criar_lote(request, propriedade_id, sessao_id):
 
 @login_required
 def curral_registrar_evento(request, propriedade_id, sessao_id):
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     sessao = get_object_or_404(CurralSessao, id=sessao_id, propriedade=propriedade)
 
     if request.method != 'POST':
@@ -3016,7 +3064,7 @@ def _criar_movimentacoes_venda_frigorifico(sessao: CurralSessao, usuario):
 
 @login_required
 def curral_encerrar_sessao(request, propriedade_id, sessao_id):
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     sessao = get_object_or_404(CurralSessao, id=sessao_id, propriedade=propriedade)
 
     if sessao.status == 'ENCERRADA':
@@ -3046,7 +3094,7 @@ def curral_encerrar_sessao(request, propriedade_id, sessao_id):
 
 @login_required
 def curral_relatorio(request, propriedade_id, sessao_id):
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     sessao = get_object_or_404(CurralSessao, id=sessao_id, propriedade=propriedade)
 
     eventos = sessao.eventos.select_related('animal', 'lote_destino', 'responsavel')
@@ -3075,7 +3123,7 @@ def curral_relatorio(request, propriedade_id, sessao_id):
 @login_required
 def curral_relatorio_reprodutivo(request, propriedade_id):
     """Relatório reprodutivo do curral - eventos reprodutivos registrados nas sessões."""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     # Buscar eventos reprodutivos de todas as sessões do curral
     eventos_reprodutivos = CurralEvento.objects.filter(
@@ -3108,7 +3156,7 @@ def curral_relatorio_reprodutivo(request, propriedade_id):
 @login_required
 def curral_relatorio_iatf(request, propriedade_id):
     """Relatório e criação de IATF a partir do curral - redireciona para o dashboard IATF."""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     # Redireciona para o dashboard IATF completo
     return redirect('iatf_dashboard', propriedade_id=propriedade.id)
@@ -3120,7 +3168,7 @@ def curral_historico_pesagens(request, propriedade_id, animal_id):
     if request.method != 'GET':
         return JsonResponse({'status': 'erro', 'mensagem': 'Método não permitido.'}, status=405)
     
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     animal = get_object_or_404(AnimalIndividual, id=animal_id, propriedade=propriedade)
     
     # Busca pesagens de CurralEvento e AnimalPesagem
@@ -3178,7 +3226,7 @@ def curral_historico_manejos(request, propriedade_id, animal_id):
     if request.method != 'GET':
         return JsonResponse({'status': 'erro', 'mensagem': 'Método não permitido.'}, status=405)
     
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     animal = get_object_or_404(AnimalIndividual, id=animal_id, propriedade=propriedade)
     
     # Busca manejos
@@ -3255,7 +3303,7 @@ def curral_receber_peso_balanca(request, propriedade_id):
     if request.method != 'POST':
         return JsonResponse({'status': 'erro', 'mensagem': 'Método não permitido.'}, status=405)
     
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     try:
         payload = json.loads(request.body or '{}')
@@ -3302,7 +3350,7 @@ def curral_sincronizar_offline(request, propriedade_id):
     if request.method != 'POST':
         return JsonResponse({'status': 'erro', 'mensagem': 'Método não permitido.'}, status=405)
     
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     try:
         payload = json.loads(request.body or '{}')
@@ -3513,7 +3561,7 @@ def curral_criar_sessao_api(request, propriedade_id):
             return JsonResponse({'status': 'erro', 'mensagem': 'Método não permitido.'}, status=405)
         
         try:
-            propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+            propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
         except Exception as e:
             return JsonResponse({'status': 'erro', 'mensagem': f'Propriedade não encontrada: {str(e)}'}, status=404)
         
@@ -3596,7 +3644,7 @@ def curral_encerrar_sessao_api(request, propriedade_id):
     if request.method != 'POST':
         return JsonResponse({'status': 'erro', 'mensagem': 'Método não permitido.'}, status=405)
     
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     try:
         payload = json.loads(request.body or '{}')
@@ -3666,7 +3714,7 @@ def curral_stats_sessao_api(request, propriedade_id):
     if request.method != 'GET':
         return JsonResponse({'status': 'erro', 'mensagem': 'Método não permitido.'}, status=405)
     
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     sessao_ativa = (
         CurralSessao.objects.filter(propriedade=propriedade, status='ABERTA')
@@ -3696,6 +3744,7 @@ def curral_stats_sessao_api(request, propriedade_id):
         'duracao_formatada': f'{duracao_minutos // 60}h {duracao_minutos % 60}min' if duracao_minutos >= 60 else f'{duracao_minutos}min',
         'total_eventos': eventos.count(),
         'animais_processados': animais_unicos,
+        'animais_planejados': sessao_ativa.quantidade_esperada,
         'pesagens': eventos.filter(tipo_evento='PESAGEM').count(),
         'reproducao': eventos.filter(tipo_evento='REPRODUCAO').count(),
         'sanidade': eventos.filter(tipo_evento__in=['VACINACAO', 'TRATAMENTO']).count(),
@@ -3710,12 +3759,98 @@ def curral_stats_sessao_api(request, propriedade_id):
 
 
 @login_required
+def curral_animais_sessao_api(request, propriedade_id):
+    """API: Retorna lista de animais processados na sessão ativa."""
+    if request.method != 'GET':
+        return JsonResponse({'status': 'erro', 'mensagem': 'Método não permitido.'}, status=405)
+    
+    try:
+        propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+        
+        sessao_ativa = (
+            CurralSessao.objects.filter(propriedade=propriedade, status='ABERTA')
+            .order_by('-data_inicio')
+            .first()
+        )
+        
+        if not sessao_ativa:
+            return JsonResponse({
+                'status': 'ok',
+                'sessao_ativa': False,
+                'animais': [],
+                'mensagem': 'Nenhuma sessão ativa.'
+            })
+        
+        # Buscar eventos da sessão com animais únicos
+        eventos = (
+            CurralEvento.objects.filter(sessao=sessao_ativa, animal__isnull=False)
+            .select_related('animal', 'animal__categoria')
+            .order_by('-data_evento')
+        )
+        
+        # Agrupar por animal e pegar o último evento de cada
+        animais_dict = {}
+        for evento in eventos:
+            if not evento.animal:
+                continue
+            animal_id = evento.animal.id
+            if animal_id not in animais_dict:
+                animal = evento.animal
+            # Formatar sexo corretamente
+            sexo_display = '—'
+            if hasattr(animal, 'get_sexo_display'):
+                try:
+                    sexo_display = animal.get_sexo_display()
+                except Exception:
+                    sexo_display = animal.sexo or '—'
+            elif hasattr(animal, 'sexo'):
+                sexo_valor = animal.sexo
+                if sexo_valor == 'M':
+                    sexo_display = 'Macho'
+                elif sexo_valor == 'F':
+                    sexo_display = 'Fêmea'
+                else:
+                    sexo_display = str(sexo_valor) if sexo_valor else '—'
+            
+            animais_dict[animal_id] = {
+                'id': animal.id,
+                'codigo_eletronico': animal.codigo_eletronico or '—',
+                'codigo_sisbov': animal.codigo_sisbov or animal.numero_brinco or '—',
+                'numero_manejo': animal.numero_manejo or '—',
+                'raca': getattr(animal, 'raca', '') or '—',
+                'sexo': sexo_display,
+                'data_nascimento': animal.data_nascimento.strftime('%d/%m/%Y') if animal.data_nascimento else '—',
+                'categoria': getattr(animal.categoria, 'nome', '') if animal.categoria else '—',
+                'lote_atual': getattr(animal.lote_atual, 'nome', '') if getattr(animal, 'lote_atual', None) else '—',
+                'situacao_bnd': 'CONFORME',  # Simplificado, pode ser melhorado
+                'data_registro': localtime(evento.data_evento).strftime('%d/%m/%Y %H:%M:%S')
+            }
+        
+        animais_lista = list(animais_dict.values())
+        
+        return JsonResponse({
+            'status': 'ok',
+            'sessao_ativa': True,
+            'sessao_id': sessao_ativa.id,
+            'animais': animais_lista,
+            'total': len(animais_lista)
+        })
+    except Exception as e:
+        logger.error(f'Erro ao buscar animais da sessão: {e}', exc_info=True)
+        return JsonResponse({
+            'status': 'erro',
+            'mensagem': f'Erro ao buscar animais da sessão: {str(e)}',
+            'animais': []
+        }, status=500)
+
+
+@login_required
 def curral_stats_api(request, propriedade_id):
     """API: Retorna estatísticas gerais do curral para a versão 3.0"""
     if request.method != 'GET':
         return JsonResponse({'status': 'erro', 'mensagem': 'Método não permitido.'}, status=405)
     
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     # Total de animais ativos
     total_animais = AnimalIndividual.objects.filter(
@@ -3759,7 +3894,7 @@ def curral_salvar_pesagem_api(request, propriedade_id):
     if request.method != 'POST':
         return JsonResponse({'status': 'erro', 'mensagem': 'Método não permitido.'}, status=405)
     
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     try:
         payload = json.loads(request.body or '{}')
@@ -3851,7 +3986,7 @@ def curral_editar_pesagem_api(request, propriedade_id):
     if request.method != 'PUT':
         return JsonResponse({'status': 'erro', 'mensagem': 'Método não permitido.'}, status=405)
     
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     try:
         payload = json.loads(request.body or '{}')
@@ -3946,7 +4081,7 @@ def curral_registrar_manejos_api(request, propriedade_id):
     if request.method != 'POST':
         return JsonResponse({'status': 'erro', 'mensagem': 'Método não permitido.'}, status=405)
     
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     try:
         payload = json.loads(request.body or '{}')
@@ -4038,7 +4173,7 @@ def curral_atualizar_animal_api(request, propriedade_id):
     if request.method != 'POST':
         return JsonResponse({'status': 'erro', 'mensagem': 'Método não permitido.'}, status=405)
     
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     try:
         payload = json.loads(request.body or '{}')
@@ -4129,7 +4264,7 @@ def curral_registros_animal(request, propriedade_id, animal_id):
     """Retorna todos os registros (eventos, movimentações) de um animal."""
     from django.http import Http404
     try:
-        propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+        propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
         animal = get_object_or_404(AnimalIndividual, id=animal_id, propriedade=propriedade)
         
         # Buscar eventos do curral
@@ -4296,7 +4431,7 @@ def curral_registros_animal(request, propriedade_id, animal_id):
 @login_required
 def curral_tela_unica(request, propriedade_id):
     """Tela única do curral - PWA mobile-first com todas funcionalidades integradas."""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     # Buscar dados necessários
     lotes = CurralLote.objects.filter(
@@ -4323,7 +4458,8 @@ def curral_tela_unica(request, propriedade_id):
                 }
                 for protocolo in protocolos_qs
             ]
-        except Exception:
+        except Exception as e:
+            logger.warning(f'Erro ao buscar protocolos IATF: {e}', exc_info=True)
             protocolos_iatf = []
     
     # Touros

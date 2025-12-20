@@ -2229,6 +2229,14 @@ class AnimalIndividual(models.Model):
         verbose_name="Classificação zootécnica"
     )
 
+    cota_hilton = models.CharField(
+        max_length=80,
+        blank=True,
+        null=True,
+        verbose_name="Cota Hilton",
+        help_text="Classificação automática baseada na categoria e características do animal"
+    )
+
     grupo_producao = models.CharField(
         max_length=80,
         blank=True,
@@ -2438,8 +2446,46 @@ class AnimalIndividual(models.Model):
             models.Index(fields=['propriedade', 'status']),
         ]
     
+    def calcular_cota_hilton(self):
+        """Calcula automaticamente a Cota Hilton baseada na categoria e características do animal"""
+        if not self.categoria:
+            return None
+        
+        nome_categoria = self.categoria.nome.lower()
+        sexo = self.sexo.upper() if self.sexo else ''
+        
+        # Mapeamento de categorias para Cota Hilton
+        # Baseado no nome da categoria e sexo do animal
+        if 'bezerro' in nome_categoria and sexo == 'M':
+            return 'Bezerro'
+        elif 'bezerra' in nome_categoria or ('bezerro' in nome_categoria and sexo == 'F'):
+            return 'Bezerra'
+        elif 'garrote' in nome_categoria:
+            return 'Garrote'
+        elif 'novilha' in nome_categoria:
+            return 'Novilha'
+        elif 'boi' in nome_categoria and 'magro' in nome_categoria:
+            return 'Boi Magro'
+        elif 'boi' in nome_categoria:
+            return 'Boi'
+        elif 'primípara' in nome_categoria or 'primipara' in nome_categoria:
+            return 'Primípara'
+        elif 'multípara' in nome_categoria or 'multipara' in nome_categoria:
+            return 'Multípara'
+        elif 'vaca' in nome_categoria and 'descarte' in nome_categoria:
+            return 'Vaca Descarte'
+        elif 'touro' in nome_categoria:
+            return 'Touro'
+        elif 'matriz' in nome_categoria:
+            return 'Matriz'
+        else:
+            # Se não encontrar correspondência, usa a classificação zootécnica ou nome da categoria
+            if self.classificacao_zootecnica:
+                return self.classificacao_zootecnica
+            return self.categoria.nome
+    
     def save(self, *args, **kwargs):
-        """Calcula automaticamente o número de manejo quando o código SISBOV é salvo"""
+        """Calcula automaticamente o número de manejo e cota_hilton quando o código SISBOV é salvo"""
         import re
         
         # Função auxiliar para extrair número de manejo
@@ -2463,6 +2509,12 @@ class AnimalIndividual(models.Model):
             novo_manejo = extrair_numero_manejo(self.codigo_sisbov)
             if novo_manejo != self.numero_manejo:
                 self.numero_manejo = novo_manejo
+        
+        # Calcula cota_hilton automaticamente se não estiver preenchido ou se categoria/sexo mudou
+        # Verifica se o campo existe no banco de dados (migração pode não ter sido aplicada)
+        if hasattr(self, 'cota_hilton'):
+            if not self.cota_hilton or (self.categoria and self.cota_hilton != self.calcular_cota_hilton()):
+                self.cota_hilton = self.calcular_cota_hilton()
         
         super().save(*args, **kwargs)
     

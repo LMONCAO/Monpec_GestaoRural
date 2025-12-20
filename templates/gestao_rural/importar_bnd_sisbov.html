@@ -97,7 +97,469 @@
             padding: 1.8rem;
         }
     }
+
+    /* Modal de Preview */
+    .modal-preview-importacao {
+        z-index: 1055;
+    }
+
+    .modal-preview-importacao .modal-content {
+        border-radius: 20px;
+        border: none;
+        box-shadow: 0 32px 70px rgba(15, 23, 42, 0.15);
+    }
+
+    .modal-preview-importacao .modal-header {
+        background: linear-gradient(135deg, #0f172a, #1d3a70);
+        color: #ffffff;
+        border-radius: 20px 20px 0 0;
+        padding: 1.5rem 2rem;
+        border-bottom: none;
+    }
+
+    .modal-preview-importacao .modal-header .btn-close {
+        filter: invert(1);
+    }
+
+    .modal-preview-importacao .modal-title {
+        font-weight: 700;
+        font-size: 1.5rem;
+    }
+
+    .modal-preview-importacao .modal-body {
+        padding: 2rem;
+    }
+
+    .tabela-comparativa {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1rem;
+    }
+
+    .tabela-comparativa thead {
+        background: linear-gradient(135deg, #334155, #1e293b);
+        color: #ffffff;
+    }
+
+    .tabela-comparativa thead th {
+        padding: 1rem;
+        text-align: center;
+        font-weight: 600;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .tabela-comparativa tbody td {
+        padding: 0.85rem 1rem;
+        text-align: center;
+        border: 1px solid rgba(15, 23, 42, 0.1);
+    }
+
+    .tabela-comparativa tbody tr:nth-child(even) {
+        background: #f8f9fa;
+    }
+
+    .tabela-comparativa tbody tr:hover {
+        background: #e9ecef;
+    }
+
+    .badge-diferenca {
+        padding: 0.35rem 0.75rem;
+        border-radius: 999px;
+        font-weight: 600;
+        font-size: 0.875rem;
+    }
+
+    .badge-diferenca.positivo {
+        background: linear-gradient(135deg, #4caf50 0%, #43a047 100%);
+        color: #ffffff;
+        box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+    }
+
+    .badge-diferenca.negativo {
+        background: linear-gradient(135deg, #f44336 0%, #e53935 100%);
+        color: #ffffff;
+        box-shadow: 0 2px 8px rgba(244, 67, 54, 0.3);
+    }
+
+    .badge-diferenca.zero {
+        background: linear-gradient(135deg, #2196f3 0%, #3b82f6 100%);
+        color: #ffffff;
+        box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
+    }
+
+    .resumo-importacao {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-top: 1.5rem;
+    }
+
+    .resumo-importacao h5 {
+        color: #1e293b;
+        font-weight: 700;
+        margin-bottom: 1rem;
+    }
+
+    .resumo-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid rgba(15, 23, 42, 0.1);
+    }
+
+    .resumo-item:last-child {
+        border-bottom: none;
+    }
+
+    .resumo-item strong {
+        color: #475569;
+    }
+
+    .resumo-item span {
+        color: #1e293b;
+        font-weight: 600;
+    }
+
+    .loading-preview {
+        text-align: center;
+        padding: 3rem;
+    }
+
+    .spinner-preview {
+        border: 4px solid #f3f4f6;
+        border-top: 4px solid #1d3a70;
+        border-radius: 50%;
+        width: 48px;
+        height: 48px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 1rem;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
 </style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('formImportarBND');
+    const btnImportar = document.getElementById('btnImportar');
+    const inputArquivo = document.getElementById('arquivo');
+    const propriedadeId = {{ propriedade.id }};
+    
+    // Criar modal dinamicamente
+    const modalHTML = `
+        <div class="modal fade modal-preview-importacao" id="modalPreviewImportacao" tabindex="-1" aria-labelledby="modalPreviewImportacaoLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="modalPreviewImportacaoLabel">
+                            <i class="bi bi-graph-up me-2"></i>
+                            Comparação de Importação BND/SISBOV
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                    </div>
+                    <div class="modal-body" id="modalPreviewBody">
+                        <div class="loading-preview">
+                            <div class="spinner-preview"></div>
+                            <p>Processando arquivo e comparando dados...</p>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-primary" id="btnConfirmarImportacao" style="display: none;">
+                            <i class="bi bi-check-circle me-2"></i>
+                            Confirmar Importação
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Adicionar modal ao body
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    const modal = new bootstrap.Modal(document.getElementById('modalPreviewImportacao'));
+    let arquivoParaImportar = null;
+    
+    let confirmado = false;
+    
+    // Interceptar submit do formulário
+    form.addEventListener('submit', function(e) {
+        // Se já foi confirmado, deixar submit normal
+        if (confirmado) {
+            return true;
+        }
+        
+        e.preventDefault();
+        
+        const arquivo = inputArquivo.files[0];
+        if (!arquivo) {
+            alert('Por favor, selecione um arquivo para importar.');
+            return;
+        }
+        
+        arquivoParaImportar = arquivo;
+        
+        // Mostrar modal com loading
+        const modalBody = document.getElementById('modalPreviewBody');
+        modalBody.innerHTML = `
+            <div class="loading-preview">
+                <div class="spinner-preview"></div>
+                <p>Processando arquivo e comparando dados...</p>
+            </div>
+        `;
+        modal.show();
+        
+        // Fazer preview via AJAX
+        const formData = new FormData();
+        formData.append('arquivo', arquivo);
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+        
+        fetch(`/propriedade/${propriedadeId}/rastreabilidade/importar-bnd/preview/`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.erro) {
+                let erroHTML = `
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        <strong>Erro:</strong> ${data.erro}
+                    </div>
+                `;
+                
+                // Se for erro de biblioteca faltante, adicionar instruções
+                if (data.erro.includes('Biblioteca') && data.erro.includes('não está instalada')) {
+                    erroHTML += `
+                        <div class="alert alert-info mt-3">
+                            <h6 class="fw-bold mb-2"><i class="bi bi-info-circle me-2"></i>Como resolver:</h6>
+                            <ol class="mb-0">
+                                <li>Abra o terminal/PowerShell</li>
+                                <li>Navegue até a pasta do projeto</li>
+                                <li>Execute: <code>pip install PyPDF2 pdfplumber</code></li>
+                                <li>Reinicie o servidor Django</li>
+                            </ol>
+                        </div>
+                    `;
+                }
+                
+                modalBody.innerHTML = erroHTML;
+                document.getElementById('btnConfirmarImportacao').style.display = 'none';
+                return;
+            }
+            
+            // Construir tabela comparativa
+            let tabelaHTML = `
+                <div class="mb-4">
+                    <h6 class="fw-bold mb-3">Comparação por Sexo e Idade (meses)</h6>
+                    <div class="table-responsive">
+                        <table class="table tabela-comparativa">
+                            <thead>
+                                <tr>
+                                    <th>Sexo</th>
+                                    <th>Idade (meses)</th>
+                                    <th>No Sistema</th>
+                                    <th>BND/SISBOV</th>
+                                    <th>Diferença</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+            `;
+            
+            // Ordenar por sexo e depois por era (ordem: 0-12, 12-24, 24-36, +36, Indefinido)
+            const ordemEra = {'0-12': 1, '12-24': 2, '24-36': 3, '+36': 4, 'Indefinido': 5};
+            const tabelaOrdenada = [...data.tabela_comparativa].sort((a, b) => {
+                if (a.sexo !== b.sexo) {
+                    return a.sexo.localeCompare(b.sexo);
+                }
+                return (ordemEra[a.era] || 99) - (ordemEra[b.era] || 99);
+            });
+            
+            tabelaOrdenada.forEach(item => {
+                let classeDiferenca = 'zero';
+                let simboloDiferenca = '';
+                if (item.diferenca > 0) {
+                    classeDiferenca = 'positivo';
+                    simboloDiferenca = '+';
+                } else if (item.diferenca < 0) {
+                    classeDiferenca = 'negativo';
+                }
+                
+                // Formatar era para mostrar "meses"
+                let eraDisplay = item.era;
+                if (item.era !== 'Indefinido' && !item.era.includes('meses')) {
+                    eraDisplay = item.era + ' meses';
+                }
+                
+                tabelaHTML += `
+                    <tr>
+                        <td><strong>${item.sexo}</strong></td>
+                        <td>${eraDisplay}</td>
+                        <td>${item.quantidade_sistema}</td>
+                        <td>${item.quantidade_arquivo}</td>
+                        <td>
+                            <span class="badge-diferenca ${classeDiferenca}">
+                                ${simboloDiferenca}${item.diferenca}
+                            </span>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            tabelaHTML += `
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="resumo-importacao">
+                    <h5><i class="bi bi-info-circle me-2"></i>Resumo da Importação</h5>
+                    
+                    <div class="mb-3">
+                        <h6 class="fw-bold mb-2 text-muted">Estatísticas Gerais</h6>
+                        <div class="resumo-item">
+                            <strong>Total de animais no sistema:</strong>
+                            <span class="badge bg-secondary">${data.total_sistema}</span>
+                        </div>
+                        <div class="resumo-item">
+                            <strong>Total de animais no arquivo:</strong>
+                            <span class="badge bg-info">${data.total_arquivo}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3 pt-2 border-top">
+                        <h6 class="fw-bold mb-2 text-muted">Status dos Animais</h6>
+                        <div class="resumo-item">
+                            <strong><i class="bi bi-check-circle text-success me-1"></i>Animais Conformes:</strong>
+                            <span class="badge bg-success">${data.resumo.animais_conformes || 0}</span>
+                            <small class="text-muted ms-2">Encontrados no BND/SISBOV com dados idênticos</small>
+                        </div>
+                        <div class="resumo-item">
+                            <strong><i class="bi bi-exclamation-triangle text-warning me-1"></i>Animais Divergentes:</strong>
+                            <span class="badge bg-warning">${data.resumo.animais_divergentes || 0}</span>
+                            <small class="text-muted ms-2">Encontrados no BND/SISBOV mas com dados diferentes</small>
+                        </div>
+                        <div class="resumo-item">
+                            <strong><i class="bi bi-x-circle text-danger me-1"></i>Animais Não Conformes:</strong>
+                            <span class="badge bg-danger">${data.resumo.animais_nao_conformes || 0}</span>
+                            <small class="text-muted ms-2">No sistema mas NÃO encontrados no BND/SISBOV</small>
+                        </div>
+                        <div class="resumo-item">
+                            <strong><i class="bi bi-plus-circle text-info me-1"></i>Animais que serão criados:</strong>
+                            <span class="badge bg-info">${data.resumo.animais_que_serao_criados || 0}</span>
+                            <small class="text-muted ms-2">No BND/SISBOV mas não no sistema</small>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3 pt-2 border-top">
+                        <h6 class="fw-bold mb-2 text-muted">Detalhes das Divergências</h6>
+                        ${(data.resumo.divergencias_sexo || 0) > 0 ? `
+                        <div class="resumo-item">
+                            <strong>Divergências de sexo:</strong>
+                            <span class="badge bg-warning">${data.resumo.divergencias_sexo}</span>
+                        </div>
+                        ` : ''}
+                        ${(data.resumo.divergencias_raca || 0) > 0 ? `
+                        <div class="resumo-item">
+                            <strong>Divergências de raça:</strong>
+                            <span class="badge bg-warning">${data.resumo.divergencias_raca}</span>
+                        </div>
+                        ` : ''}
+                        ${(data.resumo.divergencias_data || 0) > 0 ? `
+                        <div class="resumo-item">
+                            <strong>Divergências de data de nascimento:</strong>
+                            <span class="badge bg-warning">${data.resumo.divergencias_data}</span>
+                        </div>
+                        ` : ''}
+                    </div>
+                    
+                    ${(data.detalhes && (data.detalhes.divergentes.length > 0 || data.detalhes.nao_conformes.length > 0)) ? `
+                    <div class="mb-3 pt-2 border-top">
+                        <h6 class="fw-bold mb-2 text-muted">Detalhes dos Problemas</h6>
+                        ${data.detalhes.divergentes.length > 0 ? `
+                        <div class="mb-2">
+                            <strong class="text-warning">Animais Divergentes (primeiros ${Math.min(10, data.detalhes.divergentes.length)}):</strong>
+                            <div class="mt-2" style="max-height: 150px; overflow-y: auto;">
+                                ${data.detalhes.divergentes.slice(0, 10).map(animal => {
+                                    const divs = animal.divergencias.map(d => {
+                                        if (d === 'sexo') return `Sexo: ${animal.sexo_sistema} → ${animal.sexo_arquivo}`;
+                                        if (d === 'raca') return `Raça: ${animal.raca_sistema || 'N/A'} → ${animal.raca_arquivo || 'N/A'}`;
+                                        if (d === 'data_nascimento') return 'Data de nascimento diferente';
+                                        return d;
+                                    }).join(', ');
+                                    return `<div class="small mb-1"><code>${animal.codigo_sisbov}</code> - ${divs}</div>`;
+                                }).join('')}
+                            </div>
+                        </div>
+                        ` : ''}
+                        ${data.detalhes.nao_conformes.length > 0 ? `
+                        <div class="mb-2">
+                            <strong class="text-danger">Animais Não Conformes (primeiros ${Math.min(10, data.detalhes.nao_conformes.length)}):</strong>
+                            <div class="mt-2" style="max-height: 150px; overflow-y: auto;">
+                                ${data.detalhes.nao_conformes.slice(0, 10).map(animal => 
+                                    `<div class="small mb-1"><code>${animal.codigo_sisbov}</code> - Brinco: ${animal.numero_brinco || 'N/A'}</div>`
+                                ).join('')}
+                            </div>
+                        </div>
+                        ` : ''}
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+            
+            modalBody.innerHTML = tabelaHTML;
+            document.getElementById('btnConfirmarImportacao').style.display = 'inline-block';
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            modalBody.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <strong>Erro:</strong> Não foi possível processar o arquivo. Tente novamente.
+                </div>
+            `;
+            document.getElementById('btnConfirmarImportacao').style.display = 'none';
+        });
+    });
+    
+    // Confirmar importação
+    document.getElementById('btnConfirmarImportacao').addEventListener('click', function() {
+        if (!arquivoParaImportar) {
+            return;
+        }
+        
+        // Fechar modal
+        modal.hide();
+        
+        // Marcar como confirmado e fazer submit do form original
+        confirmado = true;
+        
+        // Desabilitar botão e mostrar loading
+        btnImportar.disabled = true;
+        btnImportar.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Importando...';
+        
+        // Garantir que o arquivo ainda está no input
+        if (inputArquivo.files.length === 0) {
+            // Recriar input file com o arquivo
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(arquivoParaImportar);
+            inputArquivo.files = dataTransfer.files;
+        }
+        
+        // Fazer submit do form original
+        form.submit();
+    });
+});
+</script>
 {% endblock %}
 
 {% block content %}
@@ -117,30 +579,54 @@
 
 <div class="importar-bnd-wrapper">
     <div class="importar-bnd-card">
-        <h2>Integração em preparação</h2>
+        <h2>Importar dados BND/SISBOV</h2>
         <p>
-            Estamos concluindo a automação da leitura dos arquivos oficiais gerados no Portal SISBOV
-            (BND e XML). Nesta tela ficarão disponíveis as funcionalidades para subir os arquivos,
-            validar divergências e atualizar automaticamente os registros dos animais.
+            Importe dados de animais diretamente dos arquivos exportados do Portal SISBOV.
+            Suportamos arquivos Excel (.xlsx, .xls), CSV (.csv) e PDF (.pdf) da Base Nacional de Dados (BND).
         </p>
         <p>
-            Enquanto a integração é finalizada, você pode manter o estoque de brincos atualizado e
-            cadastrar animais manualmente pelos demais atalhos do módulo de rastreabilidade.
+            O sistema irá extrair automaticamente os códigos SISBOV, números de brinco, raças, sexo,
+            datas de nascimento e outras informações dos animais, atualizando ou criando novos registros.
         </p>
 
-        <ul class="importar-bnd-steps">
+        <form method="post" enctype="multipart/form-data" class="mt-4" id="formImportarBND">
+            {% csrf_token %}
+            <div class="mb-4">
+                <label for="arquivo" class="form-label fw-bold">Selecione o arquivo BND/SISBOV</label>
+                <input type="file" class="form-control form-control-lg" id="arquivo" name="arquivo" 
+                       accept=".xlsx,.xls,.csv,.pdf" required>
+                <div class="form-text">
+                    Formatos aceitos: Excel (.xlsx, .xls), CSV (.csv) ou PDF (.pdf)
+                </div>
+            </div>
+            
+            <div class="importar-bnd-actions">
+                <button class="btn-bnd-main" type="submit" id="btnImportar">
+                    <i class="bi bi-cloud-arrow-up"></i>
+                    Importar arquivo SISBOV
+                </button>
+                <a class="btn-bnd-outline" href="{% url 'curral_dashboard' propriedade.id %}" target="_blank">
+                    <i class="bi bi-cpu me-1"></i> Acessar Curral Inteligente
+                </a>
+                <a class="btn-bnd-outline" href="{% url 'brincos_lista' propriedade.id %}" target="_blank">
+                    <i class="bi bi-tag me-1"></i> Gerenciar estoque de brincos
+                </a>
+            </div>
+        </form>
+
+        <ul class="importar-bnd-steps mt-4">
             <li>
                 <span class="badge-step">1</span>
                 <div>
                     <strong>Baixe o arquivo BND/SISBOV</strong>
-                    <p class="mb-0">No Portal SISBOV, exporte o arquivo atualizado dos animais para a propriedade.</p>
+                    <p class="mb-0">No Portal SISBOV, exporte o arquivo atualizado dos animais para a propriedade (Excel, CSV ou PDF).</p>
                 </div>
             </li>
             <li>
                 <span class="badge-step">2</span>
                 <div>
-                    <strong>Importação assistida</strong>
-                    <p class="mb-0">Aqui você poderá enviar o arquivo e acompanhar o status de processamento, com alertas de divergências.</p>
+                    <strong>Importação automática</strong>
+                    <p class="mb-0">Envie o arquivo e o sistema processará automaticamente, extraindo todos os dados dos animais.</p>
                 </div>
             </li>
             <li>
@@ -151,19 +637,6 @@
                 </div>
             </li>
         </ul>
-
-        <div class="importar-bnd-actions">
-            <button class="btn-bnd-main" type="button" disabled>
-                <i class="bi bi-cloud-arrow-up"></i>
-                Importar arquivo SISBOV
-            </button>
-            <a class="btn-bnd-outline" href="{% url 'curral_dashboard' propriedade.id %}" target="_blank">
-                <i class="bi bi-cpu me-1"></i> Acessar Curral Inteligente
-            </a>
-            <a class="btn-bnd-outline" href="{% url 'brincos_lista' propriedade.id %}" target="_blank">
-                <i class="bi bi-tag me-1"></i> Gerenciar estoque de brincos
-            </a>
-        </div>
     </div>
 </div>
 {% endblock %}

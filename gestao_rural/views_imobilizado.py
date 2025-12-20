@@ -6,6 +6,7 @@ from django.utils import timezone
 from decimal import Decimal
 from datetime import datetime, timedelta
 from .models import Propriedade
+from .decorators import obter_propriedade_com_permissao
 from .models_patrimonio import TipoBem, BemPatrimonial
 from .forms_imobilizado import BemPatrimonialForm, TipoBemForm
 
@@ -212,7 +213,7 @@ def bem_editar(request, propriedade_id, bem_id):
 @login_required
 def bem_excluir(request, propriedade_id, bem_id):
     """Exclui bem"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     bem = get_object_or_404(BemPatrimonial, id=bem_id, propriedade=propriedade)
     
     if request.method == 'POST':

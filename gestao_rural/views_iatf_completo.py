@@ -14,6 +14,7 @@ from decimal import Decimal
 from datetime import date, datetime, timedelta
 
 from .models import Propriedade, AnimalIndividual, CategoriaAnimal
+from .decorators import obter_propriedade_com_permissao
 try:
     from .models_reproducao import EstacaoMonta
 except ImportError:
@@ -41,7 +42,7 @@ User = get_user_model()
 @login_required
 def iatf_dashboard(request, propriedade_id):
     """Dashboard completo de IATF"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     if not IATFIndividual:
         messages.warning(request, 'Módulo IATF completo não está disponível. Execute as migrations primeiro.')
@@ -152,7 +153,7 @@ def iatf_dashboard(request, propriedade_id):
 @login_required
 def lote_iatf_novo(request, propriedade_id):
     """Criar novo lote de IATF"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     protocolos = ProtocoloIATF.objects.filter(
         Q(propriedade=propriedade) | Q(propriedade__isnull=True),
         ativo=True
@@ -293,7 +294,7 @@ def lote_iatf_novo(request, propriedade_id):
 @login_required
 def lote_iatf_detalhes(request, propriedade_id, lote_id):
     """Detalhes do lote de IATF"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     if not LoteIATF or not IATFIndividual:
         messages.error(request, 'Módulo IATF completo não está disponível.')
@@ -377,7 +378,7 @@ def lote_iatf_detalhes(request, propriedade_id, lote_id):
 @login_required
 def iatf_individual_novo(request, propriedade_id):
     """Registrar nova IATF individual"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     if not IATFIndividual or not ProtocoloIATF:
         messages.error(request, 'Módulo IATF completo não está disponível.')
@@ -472,7 +473,7 @@ def iatf_individual_novo(request, propriedade_id):
 @login_required
 def iatf_individual_detalhes(request, propriedade_id, iatf_id):
     """Detalhes da IATF individual"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     if not IATFIndividual:
         messages.error(request, 'Módulo IATF completo não está disponível.')
@@ -519,7 +520,7 @@ def iatf_individual_detalhes(request, propriedade_id, iatf_id):
 @login_required
 def iatf_registrar_aplicacao(request, propriedade_id, iatf_id):
     """Registrar aplicação de medicamento"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     iatf = get_object_or_404(IATFIndividual, id=iatf_id, propriedade=propriedade)
     
     if request.method == 'POST':
@@ -569,7 +570,7 @@ def iatf_registrar_aplicacao(request, propriedade_id, iatf_id):
 @login_required
 def iatf_registrar_inseminacao(request, propriedade_id, iatf_id):
     """Registrar inseminação realizada"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     iatf = get_object_or_404(IATFIndividual, id=iatf_id, propriedade=propriedade)
     
     if request.method == 'POST':
@@ -615,7 +616,7 @@ def iatf_registrar_inseminacao(request, propriedade_id, iatf_id):
 @login_required
 def iatf_registrar_diagnostico(request, propriedade_id, iatf_id):
     """Registrar diagnóstico de prenhez"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     iatf = get_object_or_404(IATFIndividual, id=iatf_id, propriedade=propriedade)
     
     if request.method == 'POST':
@@ -663,7 +664,7 @@ def iatf_registrar_diagnostico(request, propriedade_id, iatf_id):
 @login_required
 def lotes_iatf_lista(request, propriedade_id):
     """Lista de lotes de IATF"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     status_filter = request.GET.get('status', '')
     search = request.GET.get('search', '')
@@ -690,7 +691,7 @@ def lotes_iatf_lista(request, propriedade_id):
 @login_required
 def iatfs_lista(request, propriedade_id):
     """Lista de IATFs individuais"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     status_filter = request.GET.get('status', '')
     resultado_filter = request.GET.get('resultado', '')
@@ -723,7 +724,7 @@ def iatfs_lista(request, propriedade_id):
 @login_required
 def protocolos_iatf_lista(request, propriedade_id):
     """Lista de protocolos IATF"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     protocolos = ProtocoloIATF.objects.filter(
         Q(propriedade=propriedade) | Q(propriedade__isnull=True),
@@ -743,7 +744,7 @@ def protocolos_iatf_lista(request, propriedade_id):
 @login_required
 def touros_semen_lista(request, propriedade_id):
     """Lista de touros para sêmen"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     touros = TouroSemen.objects.filter(ativo=True).annotate(
         total_uso=Count('iatfs')
@@ -760,7 +761,7 @@ def touros_semen_lista(request, propriedade_id):
 @login_required
 def lotes_semen_lista(request, propriedade_id):
     """Lista de lotes de sêmen"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     status_filter = request.GET.get('status', '')
     
@@ -783,7 +784,7 @@ def lotes_semen_lista(request, propriedade_id):
 @login_required
 def iatf_relatorio(request, propriedade_id):
     """Relatório completo de IATF com filtros e visualização"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     if not IATFIndividual:
         messages.warning(request, 'Módulo IATF completo não está disponível.')
@@ -829,7 +830,7 @@ def iatf_relatorio(request, propriedade_id):
 @login_required
 def iatf_relatorio_etapas(request, propriedade_id):
     """Relatório de IATF por etapas - Cabeçalho com fazenda e lotes, tabela com colunas D0, D8, D10, Diagnóstico"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     if not LoteIATF:
         messages.warning(request, 'Módulo IATF completo não está disponível.')
@@ -954,7 +955,7 @@ def iatf_relatorio_etapas_pdf(request, propriedade_id):
     from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
     from datetime import datetime
     
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     if not LoteIATF:
         messages.warning(request, 'Módulo IATF completo não está disponível.')

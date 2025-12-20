@@ -9,6 +9,7 @@ from datetime import datetime
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.utils.dateparse import parse_date
 from openpyxl import Workbook
 from openpyxl.chart import BarChart, Reference
 from openpyxl.styles import Font, Alignment, PatternFill

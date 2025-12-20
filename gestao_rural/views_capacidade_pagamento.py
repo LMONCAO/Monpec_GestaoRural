@@ -6,12 +6,13 @@ from decimal import Decimal
 from datetime import datetime, timedelta
 from .models import Propriedade, InventarioRebanho, CustoFixo, CustoVariavel, Financiamento
 from .models import IndicadorFinanceiro
+from .decorators import obter_propriedade_com_permissao
 
 
 @login_required
 def capacidade_pagamento_dashboard(request, propriedade_id):
     """Dashboard do módulo de capacidade de pagamento"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     # Calcula indicadores de capacidade de pagamento
     indicadores = calcular_capacidade_pagamento(propriedade)

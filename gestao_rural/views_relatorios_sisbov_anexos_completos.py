@@ -33,7 +33,7 @@ except ImportError:
 def relatorio_sisbov_anexo_iv(request, propriedade_id):
     """Anexo IV - Cadastro de Produtor Rural"""
     propriedade = get_object_or_404(Propriedade, pk=propriedade_id)
-    produtor = propriedade.produtor_rural
+    produtor = propriedade.produtor
     
     context = {
         'propriedade': propriedade,
@@ -48,7 +48,7 @@ def relatorio_sisbov_anexo_iv(request, propriedade_id):
 def relatorio_sisbov_anexo_iv_pdf(request, propriedade_id):
     """Gera PDF do Anexo IV - Cadastro de Produtor Rural"""
     propriedade = get_object_or_404(Propriedade, pk=propriedade_id)
-    produtor = propriedade.produtor_rural
+    produtor = propriedade.produtor
     
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="SISBOV_Anexo_IV_Produtor_{propriedade.id}_{date.today().strftime("%Y%m%d")}.pdf"'
@@ -66,7 +66,7 @@ def relatorio_sisbov_anexo_iv_pdf(request, propriedade_id):
     if produtor:
         story.append(Paragraph(f'<b>Nome:</b> {produtor.nome}', styles['Normal']))
         story.append(Paragraph(f'<b>CPF/CNPJ:</b> {produtor.cpf_cnpj or "—"}', styles['Normal']))
-        story.append(Paragraph(f'<b>RG:</b> {produtor.rg or "—"}', styles['Normal']))
+        story.append(Paragraph(f'<b>RG:</b> {produtor.documento_identidade or "—"}', styles['Normal']))
         story.append(Paragraph(f'<b>Endereço:</b> {produtor.endereco or "—"}', styles['Normal']))
         story.append(Paragraph(f'<b>Telefone:</b> {produtor.telefone or "—"}', styles['Normal']))
         story.append(Paragraph(f'<b>Email:</b> {produtor.email or "—"}', styles['Normal']))
@@ -535,6 +535,10 @@ def relatorio_sisbov_anexo_xii_pdf(request, propriedade_id):
     
     doc.build(story)
     return response
+
+
+
+
 
 
 

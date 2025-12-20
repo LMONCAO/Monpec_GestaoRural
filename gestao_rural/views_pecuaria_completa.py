@@ -25,6 +25,7 @@ from django.views.decorators.http import require_http_methods
 
 logger = logging.getLogger(__name__)
 
+from .decorators import obter_propriedade_com_permissao
 from .models import (
     Propriedade, CategoriaAnimal, InventarioRebanho,
     AnimalIndividual, MovimentacaoIndividual, BrincoAnimal,
@@ -33,18 +34,24 @@ from .models import (
     MetaFinanceiraPlanejada, IndicadorPlanejado, CenarioPlanejamento
 )
 from .services.planejamento import PlanejamentoAnalyzer
+
+# Imports de módulos opcionais com logging
+modulos_indisponiveis = []
+
 try:
     from .models_reproducao import (
         Touro, EstacaoMonta, IATF, MontaNatural, Nascimento, CalendarioReprodutivo
     )
-except ImportError:
+except ImportError as e:
     # Se não existir, criar classes vazias para não quebrar
+    logger.warning(f'Módulo de reprodução não disponível: {e}')
     Touro = None
     EstacaoMonta = None
     IATF = None
     MontaNatural = None
     Nascimento = None
     CalendarioReprodutivo = None
+    modulos_indisponiveis.append('reproducao')
 
 # Imports para outros módulos
 try:
@@ -53,19 +60,23 @@ try:
         TanqueCombustivel, ConsumoCombustivel,
         Equipamento, ManutencaoEquipamento
     )
-except ImportError:
+except ImportError as e:
+    logger.warning(f'Módulo operacional não disponível: {e}')
     EstoqueSuplementacao = None
     DistribuicaoSuplementacao = None
     TanqueCombustivel = None
     ConsumoCombustivel = None
     Equipamento = None
     ManutencaoEquipamento = None
+    modulos_indisponiveis.append('operacoes')
 
 try:
     from .models_controles_operacionais import Cocho, ControleCocho
-except ImportError:
+except ImportError as e:
+    logger.warning(f'Módulo de controles operacionais não disponível: {e}')
     Cocho = None
     ControleCocho = None
+    modulos_indisponiveis.append('nutricao')
 
 try:
     from .models_funcionarios import Funcionario
@@ -73,31 +84,41 @@ except ImportError:
     Funcionario = None
 
 try:
-    from .models_financeiro import LancamentoFinanceiro, ContaFinanceira
-except ImportError:
+    from .models_financeiro import LancamentoFinanceiro, ContaFinanceira, CategoriaFinanceira
+except ImportError as e:
+    logger.warning(f'Módulo financeiro não disponível: {e}')
     LancamentoFinanceiro = None
     ContaFinanceira = None
+    CategoriaFinanceira = None
+    modulos_indisponiveis.append('financeiro')
 
 try:
     from .models_compras_financeiro import (
         RequisicaoCompra, OrdemCompra, Fornecedor
     )
-except ImportError:
+except ImportError as e:
+    logger.warning(f'Módulo de compras não disponível: {e}')
     RequisicaoCompra = None
     OrdemCompra = None
     Fornecedor = None
+    modulos_indisponiveis.append('compras')
 
 
 @login_required
 def pecuaria_completa_dashboard(request, propriedade_id):
     """Dashboard consolidado estilo Power BI com todos os módulos"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     # ========== FILTROS GLOBAIS (BI Style) ==========
     from datetime import timedelta
     
     # Filtro de período (padrão: mês atual)
-    periodo_dias = int(request.GET.get('periodo_dias', 30))
+    try:
+        periodo_dias = int(request.GET.get('periodo_dias', 30))
+        if periodo_dias < 1 or periodo_dias > 365:
+            periodo_dias = 30  # Valor padrão se fora do range válido
+    except (ValueError, TypeError):
+        periodo_dias = 30  # Valor padrão se não for numérico
     data_fim = date.today()
     data_inicio = data_fim - timedelta(days=periodo_dias)
     
@@ -123,12 +144,12 @@ def pecuaria_completa_dashboard(request, propriedade_id):
         inventario = InventarioRebanho.objects.filter(
             propriedade=propriedade,
             data_inventario=data_inventario_recente
-        )
+        ).select_related('categoria')
     else:
         inventario = InventarioRebanho.objects.none()
     
-    total_animais_inventario = sum(item.quantidade for item in inventario)
-    valor_total_rebanho = sum(item.valor_total or 0 for item in inventario)
+        total_animais_inventario = sum(item.quantidade or 0 for item in inventario)
+        valor_total_rebanho = sum(item.valor_total or Decimal('0') for item in inventario)
     
     # Inventário por categoria para gráfico
     inventario_por_categoria = inventario.values('categoria__nome').annotate(
@@ -176,7 +197,7 @@ def pecuaria_completa_dashboard(request, propriedade_id):
     if EstoqueSuplementacao and (not modulo_filtro or modulo_filtro == 'NUTRIÇÃO'):
         estoques = EstoqueSuplementacao.objects.filter(propriedade=propriedade)
         estoques_baixo = estoques.filter(quantidade_atual__lte=F('quantidade_minima')).count()
-        valor_total_estoque = sum(e.valor_total_estoque for e in estoques)
+        valor_total_estoque = sum(e.valor_total_estoque or Decimal('0') for e in estoques)
         
         # Aplicar filtro de período
         distribuicoes_mes = DistribuicaoSuplementacao.objects.filter(
@@ -184,8 +205,8 @@ def pecuaria_completa_dashboard(request, propriedade_id):
             data__gte=data_inicio,
             data__lte=data_fim
         )
-        total_distribuido_mes = sum(d.quantidade for d in distribuicoes_mes)
-        valor_distribuido_mes = sum(d.valor_total for d in distribuicoes_mes)
+        total_distribuido_mes = sum(d.quantidade or Decimal('0') for d in distribuicoes_mes)
+        valor_distribuido_mes = sum(d.valor_total or Decimal('0') for d in distribuicoes_mes)
     else:
         estoques_baixo = 0
         valor_total_estoque = Decimal('0')
@@ -200,7 +221,7 @@ def pecuaria_completa_dashboard(request, propriedade_id):
     # ========== OPERAÇÕES ==========
     if TanqueCombustivel and (not modulo_filtro or modulo_filtro == 'OPERAÇÕES'):
         tanques = TanqueCombustivel.objects.filter(propriedade=propriedade)
-        estoque_total_combustivel = sum(t.estoque_atual for t in tanques)
+        estoque_total_combustivel = sum(t.estoque_atual or Decimal('0') for t in tanques)
         
         # Aplicar filtro de período
         consumos_mes = ConsumoCombustivel.objects.filter(
@@ -208,8 +229,12 @@ def pecuaria_completa_dashboard(request, propriedade_id):
             data__gte=data_inicio,
             data__lte=data_fim
         ) if ConsumoCombustivel else []
-        total_consumo_mes = sum(c.quantidade_litros for c in consumos_mes) if consumos_mes else Decimal('0')
-        valor_consumo_mes = sum(c.valor_total for c in consumos_mes) if consumos_mes else Decimal('0')
+        total_consumo_mes = sum(
+            c.quantidade_litros or Decimal('0') for c in consumos_mes
+        ) if consumos_mes else Decimal('0')
+        valor_consumo_mes = sum(
+            c.valor_total or Decimal('0') for c in consumos_mes
+        ) if consumos_mes else Decimal('0')
     else:
         estoque_total_combustivel = Decimal('0')
         total_consumo_mes = Decimal('0')
@@ -230,25 +255,51 @@ def pecuaria_completa_dashboard(request, propriedade_id):
             propriedade=propriedade,
             situacao='ATIVO'
         ).count()
-        folha_mensal = sum(f.salario_base for f in Funcionario.objects.filter(
-            propriedade=propriedade,
-            situacao='ATIVO'
-        ))
+        folha_mensal = sum(
+            f.salario_base or Decimal('0') for f in Funcionario.objects.filter(
+                propriedade=propriedade,
+                situacao='ATIVO'
+            )
+        )
     else:
         funcionarios_ativos = 0
         folha_mensal = Decimal('0')
     
     # ========== FINANCEIRO ==========
+    # Definir status_quitado antes de usar
+    if LancamentoFinanceiro:
+        status_quitado = getattr(LancamentoFinanceiro, 'STATUS_QUITADO', 'QUITADO')
+    else:
+        status_quitado = 'QUITADO'
+    
     if LancamentoFinanceiro and (not modulo_filtro or modulo_filtro == 'FINANCEIRO'):
         # Aplicar filtro de período
         lancamentos_periodo = LancamentoFinanceiro.objects.filter(
             propriedade=propriedade,
             data_competencia__gte=data_inicio,
             data_competencia__lte=data_fim,
-            status='QUITADO'
+            status=status_quitado
         )
-        receitas_mes = sum(l.valor for l in lancamentos_periodo.filter(tipo='RECEITA'))
-        despesas_mes = sum(l.valor for l in lancamentos_periodo.filter(tipo='DESPESA'))
+        # Usar constantes do modelo em vez de strings
+        if CategoriaFinanceira:
+            receitas_mes = sum(
+                l.valor or Decimal('0') for l in lancamentos_periodo.filter(
+                    tipo=CategoriaFinanceira.TIPO_RECEITA
+                )
+            )
+            despesas_mes = sum(
+                l.valor or Decimal('0') for l in lancamentos_periodo.filter(
+                    tipo=CategoriaFinanceira.TIPO_DESPESA
+                )
+            )
+        else:
+            # Fallback se CategoriaFinanceira não estiver disponível
+            receitas_mes = sum(
+                l.valor or Decimal('0') for l in lancamentos_periodo.filter(tipo='RECEITA')
+            )
+            despesas_mes = sum(
+                l.valor or Decimal('0') for l in lancamentos_periodo.filter(tipo='DESPESA')
+            )
         saldo_mes = receitas_mes - despesas_mes
         
         # Gráfico de receitas/despesas - dividir período em intervalos
@@ -270,10 +321,27 @@ def pecuaria_completa_dashboard(request, propriedade_id):
                 propriedade=propriedade,
                 data_competencia__gte=intervalo_inicio,
                 data_competencia__lte=intervalo_fim,
-                status='QUITADO'
+                status=status_quitado
             )
-            receitas_val = float(sum(l.valor for l in lanc_intervalo.filter(tipo='RECEITA')))
-            despesas_val = float(sum(l.valor for l in lanc_intervalo.filter(tipo='DESPESA')))
+            # Usar constantes do modelo
+            if CategoriaFinanceira:
+                receitas_val = float(sum(
+                    l.valor or Decimal('0') for l in lanc_intervalo.filter(
+                        tipo=CategoriaFinanceira.TIPO_RECEITA
+                    )
+                ))
+                despesas_val = float(sum(
+                    l.valor or Decimal('0') for l in lanc_intervalo.filter(
+                        tipo=CategoriaFinanceira.TIPO_DESPESA
+                    )
+                ))
+            else:
+                receitas_val = float(sum(
+                    l.valor or Decimal('0') for l in lanc_intervalo.filter(tipo='RECEITA')
+                ))
+                despesas_val = float(sum(
+                    l.valor or Decimal('0') for l in lanc_intervalo.filter(tipo='DESPESA')
+                ))
             receitas_grafico.append(receitas_val)
             despesas_grafico.append(despesas_val)
             meses_grafico.append(intervalo_inicio.strftime('%d/%m'))
@@ -325,7 +393,7 @@ def pecuaria_completa_dashboard(request, propriedade_id):
                 data_criacao__lte=data_fim
             )
         ordens_pendentes = ordens_query.count()
-        valor_ordens_pendentes = sum(o.valor_total for o in ordens_query)
+        valor_ordens_pendentes = sum(o.valor_total or Decimal('0') for o in ordens_query)
     else:
         ordens_pendentes = 0
         valor_ordens_pendentes = Decimal('0')
@@ -345,7 +413,7 @@ def pecuaria_completa_dashboard(request, propriedade_id):
     
     # Animais - tendência
     inventario_anterior = InventarioRebanho.objects.filter(propriedade=propriedade)
-    total_animais_anterior = sum(item.quantidade for item in inventario_anterior)
+    total_animais_anterior = sum(item.quantidade or 0 for item in inventario_anterior)
     tendencia_animais = total_animais_inventario - total_animais_anterior
     percentual_animais = (tendencia_animais / total_animais_anterior * 100) if total_animais_anterior > 0 else Decimal('0')
     percentual_animais_abs = abs(percentual_animais)
@@ -356,10 +424,27 @@ def pecuaria_completa_dashboard(request, propriedade_id):
             propriedade=propriedade,
             data_competencia__gte=data_inicio_anterior,
             data_competencia__lte=data_fim_anterior,
-            status='QUITADO'
+            status=status_quitado
         )
-        receitas_anterior = sum(l.valor for l in lancamentos_anterior.filter(tipo='RECEITA'))
-        despesas_anterior = sum(l.valor for l in lancamentos_anterior.filter(tipo='DESPESA'))
+        # Usar constantes do modelo
+        if CategoriaFinanceira:
+            receitas_anterior = sum(
+                l.valor or Decimal('0') for l in lancamentos_anterior.filter(
+                    tipo=CategoriaFinanceira.TIPO_RECEITA
+                )
+            )
+            despesas_anterior = sum(
+                l.valor or Decimal('0') for l in lancamentos_anterior.filter(
+                    tipo=CategoriaFinanceira.TIPO_DESPESA
+                )
+            )
+        else:
+            receitas_anterior = sum(
+                l.valor or Decimal('0') for l in lancamentos_anterior.filter(tipo='RECEITA')
+            )
+            despesas_anterior = sum(
+                l.valor or Decimal('0') for l in lancamentos_anterior.filter(tipo='DESPESA')
+            )
         saldo_anterior = receitas_anterior - despesas_anterior
         
         tendencia_receitas = receitas_mes - receitas_anterior
@@ -386,20 +471,24 @@ def pecuaria_completa_dashboard(request, propriedade_id):
             data__gte=data_inicio_anterior,
             data__lte=data_fim_anterior
         ) if ConsumoCombustivel else []
-        valor_consumo_anterior = sum(c.valor_total for c in consumos_anterior) if consumos_anterior else Decimal('0')
+        valor_consumo_anterior = sum(
+            c.valor_total or Decimal('0') for c in consumos_anterior
+        ) if consumos_anterior else Decimal('0')
         
         distribuicoes_anterior = DistribuicaoSuplementacao.objects.filter(
             estoque__propriedade=propriedade,
             data__gte=data_inicio_anterior,
             data__lte=data_fim_anterior
         ) if DistribuicaoSuplementacao else []
-        valor_distribuido_anterior = sum(d.valor_total for d in distribuicoes_anterior) if distribuicoes_anterior else Decimal('0')
+        valor_distribuido_anterior = sum(
+            d.valor_total or Decimal('0') for d in distribuicoes_anterior
+        ) if distribuicoes_anterior else Decimal('0')
         
         funcionarios_anterior = Funcionario.objects.filter(
             propriedade=propriedade,
             situacao='ATIVO'
         )
-        folha_anterior = sum(f.salario_base for f in funcionarios_anterior)
+        folha_anterior = sum(f.salario_base or Decimal('0') for f in funcionarios_anterior)
         
         custos_anterior = valor_consumo_anterior + folha_anterior + valor_distribuido_anterior
         tendencia_custos = total_custos_operacionais - custos_anterior
@@ -511,7 +600,7 @@ def pecuaria_completa_dashboard(request, propriedade_id):
             novos_animais = AnimalIndividual.objects.filter(
                 propriedade=propriedade,
                 data_atualizacao__date__gte=data_limite
-            ).order_by('-data_atualizacao')[:10]
+            ).select_related('categoria').order_by('-data_atualizacao')[:10]
             
             for animal in novos_animais:
                 data_animal = animal.data_atualizacao.date() if animal.data_atualizacao else date.today()
@@ -528,14 +617,15 @@ def pecuaria_completa_dashboard(request, propriedade_id):
                     'url': f'/propriedade/{propriedade.id}/pecuaria/rastreabilidade/animal/{animal.id}/'
                 })
         except Exception as e:
-            pass  # Se houver erro, apenas pular
+            logger.warning(f'Erro ao buscar novos animais: {e}', exc_info=True)
+            # Continuar sem dados de novos animais
     
     # Reprodução - IATFs
     if IATF:
         iatfs_recentes = IATF.objects.filter(
             propriedade=propriedade,
             data_programada__gte=data_limite
-        ).select_related('animal_individual').order_by('-data_programada')[:10]
+        ).select_related('animal_individual', 'animal_individual__categoria').order_by('-data_programada')[:10]
         for iatf in iatfs_recentes:
             atividades_recentes.append({
                 'tipo': 'iatf',
@@ -554,7 +644,7 @@ def pecuaria_completa_dashboard(request, propriedade_id):
         nascimentos = Nascimento.objects.filter(
             propriedade=propriedade,
             data_nascimento__gte=data_limite
-        ).select_related('mae').order_by('-data_nascimento')[:15]
+        ).select_related('mae', 'mae__categoria').order_by('-data_nascimento')[:15]
         for nasc in nascimentos:
             atividades_recentes.append({
                 'tipo': 'nascimento',
@@ -574,12 +664,16 @@ def pecuaria_completa_dashboard(request, propriedade_id):
             propriedade=propriedade,
             data_competencia__gte=data_limite
         ).select_related('categoria').order_by('-data_competencia', '-id')[:15]
+        
+        # Usar constantes do modelo
+        tipo_receita = CategoriaFinanceira.TIPO_RECEITA if CategoriaFinanceira else 'RECEITA'
+        
         for lanc in lancamentos:
             atividades_recentes.append({
                 'tipo': 'lancamento',
                 'modulo': 'Financeiro',
-                'icone': 'bi-cash-coin' if lanc.tipo == 'RECEITA' else 'bi-cash-stack',
-                'cor': 'success' if lanc.tipo == 'RECEITA' else 'warning',
+                'icone': 'bi-cash-coin' if lanc.tipo == tipo_receita else 'bi-cash-stack',
+                'cor': 'success' if lanc.tipo == tipo_receita else 'warning',
                 'titulo': f"{lanc.get_tipo_display()} - {lanc.get_status_display()}",
                 'descricao': f"{lanc.descricao or 'Sem descrição'} - Categoria: {lanc.categoria.nome if lanc.categoria else 'N/A'}",
                 'data': lanc.data_competencia,
@@ -611,7 +705,8 @@ def pecuaria_completa_dashboard(request, propriedade_id):
                     'url': f'/propriedade/{propriedade.id}/compras/requisicao/{req.id}/'
                 })
         except Exception as e:
-            pass
+            logger.warning(f'Erro ao buscar lançamentos financeiros recentes: {e}', exc_info=True)
+            # Continuar sem dados de lançamentos
     
     # Compras - Ordens
     if OrdemCompra:
@@ -707,7 +802,8 @@ def pecuaria_completa_dashboard(request, propriedade_id):
                     'url': f'/propriedade/{propriedade.id}/operacoes/equipamentos/'
                 })
         except Exception as e:
-            pass
+            logger.warning(f'Erro ao buscar lançamentos financeiros recentes: {e}', exc_info=True)
+            # Continuar sem dados de lançamentos
     
     # Inventário - Atualizações (usando data_inventario mais recente)
     inventario_recente = InventarioRebanho.objects.filter(
@@ -752,8 +848,19 @@ def pecuaria_completa_dashboard(request, propriedade_id):
         indicadores_rentabilidade = None
         periodo_rentabilidade = 365
     
+    # Informações sobre módulos disponíveis
+    modulos_disponiveis = {
+        'reproducao': Touro is not None,
+        'nutricao': EstoqueSuplementacao is not None,
+        'operacoes': TanqueCombustivel is not None,
+        'financeiro': LancamentoFinanceiro is not None,
+        'compras': RequisicaoCompra is not None,
+    }
+    
     context = {
         'propriedade': propriedade,
+        'modulos_disponiveis': modulos_disponiveis,
+        'modulos_indisponiveis': modulos_indisponiveis,
         # Pecuária
         'inventario': inventario,
         'inventario_por_categoria': inventario_por_categoria,
@@ -820,7 +927,7 @@ def pecuaria_completa_dashboard(request, propriedade_id):
         'modulo_filtro': modulo_filtro,
         'data_inicio': data_inicio,
         'data_fim': data_fim,
-        'modulos_disponiveis': ['Pecuária', 'Rastreabilidade', 'Reprodução', 'Financeiro', 'Compras', 'Nutrição', 'Operações'],
+        'modulos_disponiveis': modulos_disponiveis,
         # Rentabilidade
         'indicadores_rentabilidade': indicadores_rentabilidade,
         'periodo_rentabilidade': periodo_rentabilidade,
@@ -835,7 +942,7 @@ def dashboard_consulta_api(request, propriedade_id):
     if request.method != 'POST':
         return JsonResponse({'erro': 'Método não permitido'}, status=405)
 
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     data = json.loads(request.body)
     pergunta = data.get('pergunta', '').lower()
 
@@ -1029,7 +1136,7 @@ def _montar_contexto_planejamento(propriedade, planejamento, cenario):
 @login_required
 def pecuaria_planejamento_dashboard(request, propriedade_id):
     """Dashboard estratégico do planejamento pecuário (projeções, finanças e desempenho)."""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     # Criar planejamento automaticamente se solicitado
     if request.method == 'POST' and 'criar_planejamento' in request.POST:
@@ -1120,7 +1227,7 @@ def pecuaria_planejamento_dashboard(request, propriedade_id):
 @require_http_methods(["GET"])
 def pecuaria_planejamentos_api(request, propriedade_id):
     """API para listar planejamentos disponíveis"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     planejamentos = PlanejamentoAnual.objects.filter(
         propriedade=propriedade
@@ -1146,7 +1253,7 @@ def pecuaria_planejamentos_api(request, propriedade_id):
 @require_http_methods(["GET"])
 def pecuaria_planejamento_resumo_api(request, propriedade_id, planejamento_id):
     """API para retornar resumo completo de um planejamento"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     planejamento = get_object_or_404(
         PlanejamentoAnual,
         id=planejamento_id,

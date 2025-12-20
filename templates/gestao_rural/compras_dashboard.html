@@ -5,40 +5,42 @@
 
 {% block extra_css %}
 <style>
-    /* Cards de Estatísticas - Design Compacto e Organizado */
+    /* Cards de Estatísticas - Design Balanceado */
     .stat-card {
         background: #ffffff;
         border: 1px solid #e5e7eb;
         border-radius: 6px;
-        padding: 0.75rem 0.875rem;
+        padding: 0.875rem 1rem;
         position: relative;
         transition: all 0.2s ease;
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-        min-height: 85px;
+        min-height: 100px;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
+        align-items: stretch;
     }
 
     .stat-card:hover {
         border-color: #d1d5db;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        transform: translateY(-1px);
     }
 
     .stat-card h6 {
         font-size: 0.625rem;
         text-transform: uppercase;
-        margin-bottom: 0.375rem;
+        margin-bottom: 0.5rem;
         color: #6b7280;
         font-weight: 600;
         letter-spacing: 0.05em;
-        line-height: 1.2;
+        line-height: 1.3;
     }
 
     .stat-card h3 {
-        font-size: 1.375rem;
+        font-size: 1.5rem;
         font-weight: 700;
-        margin: 0 0 0.25rem 0;
+        margin: 0 0 0.375rem 0;
         color: #111827;
         line-height: 1.2;
         word-break: break-word;
@@ -49,23 +51,23 @@
         font-size: 0.6875rem;
         color: #6b7280;
         font-weight: 400;
-        line-height: 1.3;
+        line-height: 1.4;
         flex-grow: 1;
     }
 
     .stat-card .icon-wrapper {
         position: absolute;
-        right: 0.75rem;
-        top: 0.75rem;
-        width: 28px;
-        height: 28px;
-        border-radius: 5px;
+        right: 0.875rem;
+        top: 0.875rem;
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
         display: flex;
         align-items: center;
         justify-content: center;
         background: #f3f4f6;
         color: #6b7280;
-        font-size: 0.875rem;
+        font-size: 1rem;
         flex-shrink: 0;
     }
 
@@ -101,7 +103,7 @@
     .section-header {
         background: #f9fafb;
         color: #111827;
-        padding: 0.625rem 1rem;
+        padding: 0.75rem 1rem;
         border-radius: 6px 6px 0 0;
         margin-bottom: 0;
         font-weight: 600;
@@ -125,41 +127,71 @@
         padding: 0.75rem;
     }
 
-    /* Container de cards horizontal */
+    /* Container de cards - Grid Responsivo */
     .cards-horizontal {
-        display: flex;
-        flex-wrap: nowrap !important;
-        gap: 0.5rem;
-        overflow-x: auto;
-        overflow-y: hidden;
-        padding-bottom: 0.5rem;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
         width: 100%;
-        -webkit-overflow-scrolling: touch;
+        padding: 1rem;
+        align-items: stretch;
     }
 
-    .cards-horizontal::-webkit-scrollbar {
-        height: 6px;
+    /* Quando há 3 cards, distribuir melhor */
+    .cards-horizontal.cards-3 {
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     }
 
-    .cards-horizontal::-webkit-scrollbar-track {
-        background: #f1f1f1;
-        border-radius: 3px;
-    }
-
-    .cards-horizontal::-webkit-scrollbar-thumb {
-        background: #c1c1c1;
-        border-radius: 3px;
-    }
-
-    .cards-horizontal::-webkit-scrollbar-thumb:hover {
-        background: #a8a8a8;
+    /* Quando há 4 cards */
+    .cards-horizontal.cards-4 {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     }
 
     .cards-horizontal .stat-card {
-        flex: 0 0 auto !important;
-        min-width: 160px;
-        width: 160px;
-        max-width: 160px;
+        min-width: 0;
+        width: 100%;
+        max-width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* Scroll horizontal apenas em telas muito pequenas */
+    @media (max-width: 991px) {
+        .cards-horizontal {
+            display: flex;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            overflow-y: hidden;
+            padding-bottom: 0.5rem;
+            -webkit-overflow-scrolling: touch;
+            gap: 0.75rem;
+        }
+
+        .cards-horizontal::-webkit-scrollbar {
+            height: 6px;
+        }
+
+        .cards-horizontal::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        .cards-horizontal::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+
+        .cards-horizontal::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+        .cards-horizontal .stat-card {
+            flex: 0 0 auto !important;
+            min-width: 180px;
+            width: 180px;
+            max-width: 180px;
+        }
     }
 
     /* Botões de Ação Rápida - Design Compacto */
@@ -173,7 +205,7 @@
     .btn-quick {
         border: 1px solid #e5e7eb;
         border-radius: 6px;
-        padding: 0.625rem 0.875rem;
+        padding: 0.75rem 1rem;
         color: #374151;
         font-weight: 500;
         font-size: 0.8125rem;
@@ -184,34 +216,73 @@
         background: #ffffff;
         transition: all 0.2s ease;
         text-decoration: none;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
     }
 
     .btn-quick:hover {
-        border-color: #d1d5db;
-        background: #f9fafb;
-        color: #111827;
-        transform: translateY(-1px);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        border-color: #3b82f6;
+        background: #eff6ff;
+        color: #1e40af;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
     }
 
     .btn-quick .icon {
         font-size: 1.25rem;
         color: #6b7280;
+        transition: color 0.2s ease;
     }
 
     .btn-quick:hover .icon {
-        color: #374151;
+        color: #3b82f6;
     }
 
     .badge-novo {
-        background: #f3f4f6;
-        color: #6b7280;
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        color: #ffffff;
         border-radius: 4px;
         font-size: 0.625rem;
-        padding: 0.125rem 0.375rem;
+        padding: 0.125rem 0.5rem;
         text-transform: uppercase;
         letter-spacing: 0.05em;
         font-weight: 600;
+        box-shadow: 0 1px 2px rgba(59, 130, 246, 0.2);
+    }
+
+    /* Estado vazio melhorado */
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1.5rem;
+        color: #6b7280;
+    }
+
+    .empty-state-icon {
+        font-size: 3rem;
+        color: #d1d5db;
+        margin-bottom: 1rem;
+        display: block;
+    }
+
+    .empty-state-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 0.5rem;
+    }
+
+    .empty-state-text {
+        font-size: 0.875rem;
+        color: #6b7280;
+        margin-bottom: 1.5rem;
+    }
+
+    /* Indicador de valor zero */
+    .stat-card-empty {
+        opacity: 0.7;
+    }
+
+    .stat-card-empty h3 {
+        color: #9ca3af;
     }
 
     /* Cards de Tabela */
@@ -377,23 +448,13 @@
             align-items: center;
         }
         
-        .cards-horizontal {
-            flex-wrap: nowrap !important;
-        }
-        
-        .cards-horizontal .stat-card {
-            min-width: 140px !important;
-            width: 140px !important;
-            max-width: 140px !important;
-        }
-        
         .stat-card {
-            min-height: 80px;
-            padding: 0.625rem 0.75rem;
+            min-height: 90px;
+            padding: 0.75rem 0.875rem;
         }
         
         .stat-card h3 {
-            font-size: 1.125rem;
+            font-size: 1.25rem;
         }
         
         .stat-card h6 {
@@ -405,47 +466,29 @@
         }
         
         .stat-card .icon-wrapper {
-            width: 24px;
-            height: 24px;
-            font-size: 0.75rem;
-            right: 0.625rem;
-            top: 0.625rem;
+            width: 28px;
+            height: 28px;
+            font-size: 0.875rem;
+            right: 0.75rem;
+            top: 0.75rem;
         }
     }
 
     @media (min-width: 576px) and (max-width: 767px) {
-        .cards-horizontal .stat-card {
-            min-width: 150px !important;
-            width: 150px !important;
-            max-width: 150px !important;
-        }
-        
         .stat-card {
-            min-height: 82px;
+            min-height: 95px;
         }
     }
 
     @media (min-width: 768px) and (max-width: 991px) {
-        .cards-horizontal .stat-card {
-            min-width: 155px !important;
-            width: 155px !important;
-            max-width: 155px !important;
-        }
-        
         .stat-card {
-            min-height: 85px;
+            min-height: 100px;
         }
     }
 
     @media (min-width: 992px) {
-        .cards-horizontal .stat-card {
-            min-width: 160px !important;
-            width: 160px !important;
-            max-width: 160px !important;
-        }
-        
         .stat-card {
-            min-height: 85px;
+            min-height: 100px;
         }
     }
 </style>
@@ -456,7 +499,6 @@
     <!-- Breadcrumb -->
     <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
             <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
             <li class="breadcrumb-item active">Compras</li>
         </ol>
@@ -502,35 +544,37 @@
             <i class="bi bi-speedometer2"></i>
             <span>Visão Geral</span>
         </div>
-        <div class="cards-horizontal">
-            <div class="stat-card">
+        <div class="cards-horizontal cards-4">
+            <div class="stat-card {% if total_fornecedores == 0 %}stat-card-empty{% endif %}">
                 <div class="icon-wrapper"><i class="bi bi-people"></i></div>
                 <h6>Fornecedores</h6>
                 <h3>{{ total_fornecedores|numero_br }}</h3>
-                <p>Cadastrados</p>
+                <p>{% if total_fornecedores == 0 %}Cadastre o primeiro{% else %}Cadastrados{% endif %}</p>
             </div>
-            <div class="stat-card stat-card-success">
+            <div class="stat-card stat-card-success {% if valor_compras_mes == 0 %}stat-card-empty{% endif %}">
                 <div class="icon-wrapper"><i class="bi bi-cart-check"></i></div>
                 <h6>Compras (Mês)</h6>
                 <h3>{{ valor_compras_mes|moeda_br }}</h3>
                 <p>Total investido</p>
             </div>
-            <div class="stat-card">
+            <div class="stat-card {% if total_setores == 0 %}stat-card-empty{% endif %}">
                 <div class="icon-wrapper"><i class="bi bi-diagram-3"></i></div>
                 <h6>Setores de Compras</h6>
                 <h3>{{ total_setores|numero_br }}</h3>
                 <p>
-                    {% if setores_inativos > 0 %}
+                    {% if total_setores == 0 %}
+                        Configure os setores
+                    {% elif setores_inativos > 0 %}
                         {{ setores_inativos|numero_br }} inativos •
                     {% endif %}
                     {% if setores_sem_responsavel > 0 %}
                         {{ setores_sem_responsavel|numero_br }} sem responsável
-                    {% else %}
+                    {% elif total_setores > 0 %}
                         Todos com responsável
                     {% endif %}
                 </p>
             </div>
-            <div class="stat-card stat-card-success">
+            <div class="stat-card stat-card-success {% if convites_respondidos == 0 %}stat-card-empty{% endif %}">
                 <div class="icon-wrapper"><i class="bi bi-check2-square"></i></div>
                 <h6>Respostas Recebidas</h6>
                 <h3>{{ convites_respondidos|numero_br }}</h3>
@@ -545,7 +589,7 @@
             <i class="bi bi-exclamation-triangle"></i>
             <span>Pendências e Alertas</span>
         </div>
-        <div class="cards-horizontal">
+        <div class="cards-horizontal cards-4">
             <div class="stat-card stat-card-warning">
                 <div class="icon-wrapper"><i class="bi bi-file-earmark-text"></i></div>
                 <h6>Ordens Pendentes</h6>
@@ -579,7 +623,7 @@
             <i class="bi bi-envelope-paper"></i>
             <span>Convites e Cotações</span>
         </div>
-        <div class="cards-horizontal">
+        <div class="cards-horizontal cards-3">
             <div class="stat-card">
                 <div class="icon-wrapper"><i class="bi bi-envelope-paper"></i></div>
                 <h6>Convites Enviados</h6>
@@ -610,6 +654,7 @@
                     <h5 class="mb-0"><i class="bi bi-file-earmark-text me-2"></i>Ordens de Compra Recentes</h5>
                 </div>
                 <div class="card-body">
+                    {% if ordens_recentes %}
                     <div class="table-responsive">
                         <table class="table table-sm table-hover">
                             <thead>
@@ -627,7 +672,7 @@
                                     <td>
                                         <a href="#">{{ ordem.numero_ordem }}</a>
                                     </td>
-                                    <td>{{ ordem.fornecedor.nome }}</td>
+                                    <td>{{ ordem.fornecedor.nome|default:"-" }}</td>
                                     <td>{{ ordem.data_emissao|date:"d/m/Y" }}</td>
                                     <td class="text-end">{{ ordem.valor_total|moeda_br }}</td>
                                     <td>
@@ -635,10 +680,6 @@
                                             {{ ordem.get_status_display }}
                                         </span>
                                     </td>
-                                </tr>
-                                {% empty %}
-                                <tr>
-                                    <td colspan="5" class="text-center text-muted">Nenhuma ordem de compra</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -649,6 +690,21 @@
                             <i class="bi bi-list-ul me-1"></i>Ver Todas
                         </a>
                     </div>
+                    {% else %}
+                    <div class="empty-state">
+                        <i class="bi bi-file-earmark-text empty-state-icon"></i>
+                        <div class="empty-state-title">Nenhuma ordem de compra ainda</div>
+                        <div class="empty-state-text">Comece criando uma nova ordem de compra ou requisição</div>
+                        <div class="d-flex gap-2 justify-content-center flex-wrap">
+                            <a href="{% url 'ordem_compra_nova' propriedade.id %}" class="btn btn-primary btn-sm">
+                                <i class="bi bi-file-earmark-plus me-1"></i>Nova Ordem
+                            </a>
+                            <a href="{% url 'requisicao_compra_nova' propriedade.id %}" class="btn btn-outline-primary btn-sm">
+                                <i class="bi bi-journal-plus me-1"></i>Nova Requisição
+                            </a>
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -688,18 +744,29 @@
                                 </tr>
                                 {% empty %}
                                 <tr>
-                                    <td colspan="4" class="text-center text-muted">Nenhum fornecedor cadastrado</td>
+                                    <td colspan="4" class="text-center">
+                                        <div class="empty-state" style="padding: 2rem 1rem;">
+                                            <i class="bi bi-people empty-state-icon" style="font-size: 2rem;"></i>
+                                            <div class="empty-state-title" style="font-size: 0.875rem;">Nenhum fornecedor cadastrado</div>
+                                            <div class="empty-state-text" style="font-size: 0.75rem; margin-bottom: 1rem;">Cadastre fornecedores para facilitar suas compras</div>
+                                            <a href="{% url 'fornecedor_novo' propriedade.id %}" class="btn btn-primary btn-sm">
+                                                <i class="bi bi-plus-circle me-1"></i>Cadastrar Primeiro Fornecedor
+                                            </a>
+                                        </div>
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
                         </table>
                     </div>
                     <div class="mt-3">
+                        {% if fornecedores %}
                         <a href="{% url 'fornecedores_lista' propriedade.id %}" class="btn btn-info btn-sm">
                             <i class="bi bi-list-ul me-1"></i>Ver Todos
                         </a>
+                        {% endif %}
                         <a href="{% url 'fornecedor_novo' propriedade.id %}" class="btn btn-outline-info btn-sm">
-                            <i class="bi bi-plus-circle me-1"></i>Novo
+                            <i class="bi bi-plus-circle me-1"></i>Novo Fornecedor
                         </a>
                     </div>
                 </div>

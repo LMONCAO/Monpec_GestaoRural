@@ -1,7 +1,25 @@
 {% extends "base_modulos_unificado.html" %}
-<!-- Super Tela Curral - Versão 2.1 - Atualizado em {{ "now"|date:"Y-m-d H:i:s" }} -->
+<!-- 
+================================================================================
+  LAYOUT OFICIAL DO CURRAL INTELIGENTE - VERSÃO DEFINITIVA
+================================================================================
+  Este é o LAYOUT OFICIAL e ÚNICO do sistema Curral Inteligente.
+  
+  IMPORTANTE:
+  - Este layout NÃO deve ser alterado em sua estrutura visual
+  - Os cards e a disposição do layout estão DEFINITIVOS
+  - Melhorias futuras devem ser feitas APENAS em:
+    * Modais adicionais (JavaScript/CSS dos modais)
+    * Programação/Backend (funcionalidades, lógica)
+    * Não alterar a estrutura HTML dos cards principais
+  - Este arquivo é usado por todas as views (v2, v3, v4)
+  
+  Data de Definição como Oficial: 19/12/2025
+  Última Atualização: {{ "now"|date:"Y-m-d H:i:s" }}
+================================================================================
+-->
 
-{% block title %}Curral Inteligente · {{ propriedade.nome_propriedade }} · V2{% endblock %}
+{% block title %}Curral Inteligente · {{ propriedade.nome_propriedade }}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -173,6 +191,140 @@
 </style>
 <!-- Otimização: Logs apenas em desenvolvimento -->
 <script>
+// ========== DEFINIR FUNÇÕES DE MODAIS PRIMEIRO (ANTES DE QUALQUER USO) ==========
+// Garantir que as funções estejam disponíveis globalmente desde o início
+if (typeof window.abrirModalConfigPesagem === 'undefined') {
+  window.abrirModalConfigPesagem = function() {
+    console.log('🔵 [PESAGEM] Tentando abrir modal de configuração...');
+    try {
+      const modal = document.getElementById('modalConfigPesagem');
+      if (!modal) {
+        console.error('❌ [PESAGEM] Modal não encontrado!');
+        alert('Erro: Modal não encontrado. Recarregue a página.');
+        return;
+      }
+      console.log('✅ [PESAGEM] Modal encontrado, abrindo...');
+      modal.style.display = 'flex';
+      modal.style.visibility = 'visible';
+      modal.style.opacity = '1';
+      modal.style.zIndex = '10000';
+      modal.style.position = 'fixed';
+      modal.style.top = '0';
+      modal.style.left = '0';
+      modal.style.width = '100%';
+      modal.style.height = '100%';
+      modal.style.background = 'rgba(0,0,0,0.5)';
+      modal.style.alignItems = 'center';
+      modal.style.justifyContent = 'center';
+      console.log('✅ [PESAGEM] Modal aberto com sucesso!');
+      
+      // Ativar aba de pesagem
+      setTimeout(() => {
+        const tab = document.querySelector('.config-sessao-tab[data-tab="pesagem"]');
+        if (tab) {
+          document.querySelectorAll('.config-sessao-tab').forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          tab.style.borderBottomColor = '#1976d2';
+          
+          const contents = ['configPesagemContent', 'configSanitarioContent', 'configReprodutivoContent', 'configMovimentacaoContent'];
+          contents.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.style.display = 'none';
+          });
+          const pesagemContent = document.getElementById('configPesagemContent');
+          if (pesagemContent) pesagemContent.style.display = 'block';
+        }
+      }, 100);
+    } catch(e) {
+      console.error('❌ Erro ao abrir modal de pesagem:', e);
+      alert('Erro ao abrir modal: ' + e.message);
+    }
+  };
+}
+
+if (typeof window.abrirModalConfigSessao === 'undefined') {
+  window.abrirModalConfigSessao = function(tipo) {
+    console.log('🔵 [ABRIR MODAL CONFIG] Tipo:', tipo);
+    try {
+      const modalPesagem = document.getElementById('modalConfigPesagem');
+      const modalReprodutivo = document.getElementById('modalConfigReprodutivo');
+      
+      if (modalPesagem) modalPesagem.style.display = 'none';
+      if (modalReprodutivo && tipo !== 'reprodutivo' && tipo !== 'reproducao') {
+        modalReprodutivo.style.display = 'none';
+      }
+      
+      if (tipo === 'reprodutivo' || tipo === 'reproducao') {
+        const modal = document.getElementById('modalConfigReprodutivo');
+        if (modal) {
+          modal.style.display = 'flex';
+          modal.style.visibility = 'visible';
+          modal.style.opacity = '1';
+          modal.style.zIndex = '10000';
+          modal.style.position = 'fixed';
+          modal.style.top = '0';
+          modal.style.left = '0';
+          modal.style.width = '100%';
+          modal.style.height = '100%';
+          console.log('✅ [REPRODUÇÃO] Modal aberto!');
+          return;
+        }
+      }
+      
+      if (modalPesagem) {
+        modalPesagem.style.display = 'flex';
+        modalPesagem.style.visibility = 'visible';
+        modalPesagem.style.opacity = '1';
+        modalPesagem.style.zIndex = '10000';
+        
+        setTimeout(() => {
+          const tabMap = { 'sanitario': 'sanitario', 'movimentacao': 'movimentacao', 'pesagem': 'pesagem' };
+          const tabId = tabMap[tipo] || 'pesagem';
+          const tab = document.querySelector(`.config-sessao-tab[data-tab="${tabId}"]`);
+          if (tab) {
+            document.querySelectorAll('.config-sessao-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            
+            const contents = ['configPesagemContent', 'configSanitarioContent', 'configReprodutivoContent', 'configMovimentacaoContent'];
+            contents.forEach(id => {
+              const el = document.getElementById(id);
+              if (el) el.style.display = 'none';
+            });
+            
+            const contentMap = {
+              'pesagem': 'configPesagemContent',
+              'sanitario': 'configSanitarioContent',
+              'reprodutivo': 'configReprodutivoContent',
+              'movimentacao': 'configMovimentacaoContent'
+            };
+            
+            const contentId = contentMap[tabId];
+            if (contentId) {
+              const content = document.getElementById(contentId);
+              if (content) {
+                content.style.display = 'block';
+                if (tabId === 'sanitario' && typeof window.carregarConfigSanitario === 'function') {
+                  setTimeout(() => window.carregarConfigSanitario(), 100);
+                } else if (tabId === 'movimentacao' && typeof window.carregarConfigMovimentacao === 'function') {
+                  setTimeout(() => window.carregarConfigMovimentacao(), 100);
+                }
+              }
+            }
+          }
+        }, 150);
+      } else {
+        console.error('❌ Modal de pesagem não encontrado!');
+        alert('Erro: Modal de configuração não encontrado. Recarregue a página.');
+      }
+    } catch(e) {
+      console.error('❌ Erro ao abrir modal:', e);
+      alert('Erro ao abrir modal: ' + e.message);
+    }
+  };
+}
+
+console.log('✅ Funções de modal definidas no início do script!');
+
 // ========== VERSÃO DO SCRIPT - FORÇAR RECARREGAMENTO ==========
 if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
   console.log('🔄 Script carregado - VERSÃO: 2025-01-20-00:00-PESAGEM-FIX');
@@ -539,6 +691,13 @@ window.gravarPesagemDireto = async function() {
             if (typeof window.atualizarEstatisticasPesagem === 'function') {
               window.atualizarEstatisticasPesagem();
             }
+            
+            // Atualizar progresso da sessão
+            if (typeof window.atualizarProgressoSessao === 'function') {
+              setTimeout(() => {
+                window.atualizarProgressoSessao();
+              }, 500);
+            }
           }
           
           console.log('📊 [GRAVAR PESAGEM] Atualizando contadores e tabela...');
@@ -699,6 +858,15 @@ window.gravarPesagemDireto = async function() {
           mostrarToast('Pesagem registrada com sucesso!', 'success');
         } else {
           alert('Pesagem registrada com sucesso!');
+        }
+        
+        // Registrar eventos configurados automaticamente
+        if (window.animalAtualV2 && window.animalAtualV2.id) {
+          setTimeout(() => {
+            if (typeof window.registrarEventosConfigurados === 'function') {
+              window.registrarEventosConfigurados(window.animalAtualV2.id);
+            }
+          }, 500);
         }
         
         // Atualizar campos visualmente
@@ -1356,10 +1524,257 @@ window.atualizarScannerResumoV2 = function(dados) {
         window.carregarStatusReprodutivoV4(dados.id);
       }
     }, 500);
+    
+    // Atualizar informações de pesagem individual
+    if (typeof window.atualizarResumoPesagemV2 === 'function') {
+      window.atualizarResumoPesagemV2(dados);
+    }
   }
 };
 
-console.log('✅ atualizarScannerResumoV2 definida globalmente!');
+  console.log('✅ atualizarScannerResumoV2 definida globalmente!');
+
+// ========== FUNÇÃO PARA ATUALIZAR PROGRESSO DA SESSÃO ==========
+window.atualizarProgressoSessao = async function() {
+  console.log('📊 [PROGRESSO] Iniciando atualização do progresso da sessão...');
+  
+  try {
+    // Buscar URL da API de estatísticas da sessão
+    const urlMatch = window.location.pathname.match(/propriedade\/(\d+)/);
+    if (!urlMatch) {
+      console.error('❌ [PROGRESSO] Não foi possível identificar a propriedade');
+      return;
+    }
+    
+    const propriedadeId = urlMatch[1];
+    const statsUrl = `/propriedade/${propriedadeId}/curral/api/sessao/stats/`;
+    
+    console.log('📊 [PROGRESSO] Buscando estatísticas em:', statsUrl);
+    
+    const response = await fetch(statsUrl);
+    if (!response.ok) {
+      console.error('❌ [PROGRESSO] Erro ao buscar estatísticas:', response.status);
+      return;
+    }
+    
+    const data = await response.json();
+    console.log('📊 [PROGRESSO] Dados recebidos:', data);
+    
+    if (data.status !== 'ok' || !data.stats) {
+      console.warn('⚠️ [PROGRESSO] Resposta inválida ou sem sessão ativa');
+      // Limpar campos se não houver sessão ativa
+      const planejadosEl = document.getElementById('progressoPlanejados');
+      const trabalhadosEl = document.getElementById('progressoTrabalhados');
+      const restantesEl = document.getElementById('progressoRestantes');
+      
+      if (planejadosEl) planejadosEl.textContent = '—';
+      if (trabalhadosEl) trabalhadosEl.textContent = '0';
+      if (restantesEl) restantesEl.textContent = '—';
+      
+      return;
+    }
+    
+    const stats = data.stats;
+    
+    // Atualizar elementos principais
+    const trabalhadosEl = document.getElementById('progressoTrabalhados');
+    if (trabalhadosEl) {
+      trabalhadosEl.textContent = stats.animais_processados || 0;
+      console.log('✅ [PROGRESSO] Trabalhados atualizado:', stats.animais_processados || 0);
+    }
+    
+    // Planejados - se houver informação, senão mostrar "—"
+    const planejadosEl = document.getElementById('progressoPlanejados');
+    if (planejadosEl) {
+      // Se houver informação de planejados no backend, usar, senão mostrar "—"
+      planejadosEl.textContent = stats.animais_planejados || '—';
+    }
+    
+    // Calcular restantes (se houver planejados)
+    const restantesEl = document.getElementById('progressoRestantes');
+    if (restantesEl) {
+      if (stats.animais_planejados && stats.animais_planejados > 0) {
+        const restantes = Math.max(0, stats.animais_planejados - (stats.animais_processados || 0));
+        restantesEl.textContent = restantes;
+      } else {
+        restantesEl.textContent = '—';
+      }
+    }
+    
+    // Atualizar barra de progresso e percentual
+    const progressoPercentualEl = document.getElementById('progressoPercentual');
+    const progressoBarFillEl = document.getElementById('progressoBarFill');
+    
+    if (stats.animais_planejados && stats.animais_planejados > 0) {
+      const percentual = Math.min(100, Math.round(((stats.animais_processados || 0) / stats.animais_planejados) * 100));
+      
+      if (progressoPercentualEl) {
+        progressoPercentualEl.textContent = `${percentual}%`;
+      }
+      
+      if (progressoBarFillEl) {
+        progressoBarFillEl.style.width = `${percentual}%`;
+        progressoBarFillEl.textContent = `${percentual}%`;
+      }
+    } else {
+      if (progressoPercentualEl) progressoPercentualEl.textContent = '0%';
+      if (progressoBarFillEl) {
+        progressoBarFillEl.style.width = '0%';
+        progressoBarFillEl.textContent = '';
+      }
+    }
+    
+    // Atualizar estatísticas por sexo
+    // Buscar informações por sexo dos eventos (se disponível)
+    const progressoSexoMachoEl = document.getElementById('progressoSexoMacho');
+    const progressoSexoFemeaEl = document.getElementById('progressoSexoFemea');
+    
+    if (progressoSexoMachoEl) {
+      // Se backend retornar informações por sexo, usar, senão calcular localmente
+      progressoSexoMachoEl.textContent = stats.machos || 0;
+    }
+    
+    if (progressoSexoFemeaEl) {
+      progressoSexoFemeaEl.textContent = stats.femeas || 0;
+    }
+    
+    console.log('✅ [PROGRESSO] Progresso da sessão atualizado com sucesso!');
+    
+  } catch (error) {
+    console.error('❌ [PROGRESSO] Erro ao atualizar progresso:', error);
+  }
+};
+
+// Atualizar progresso periodicamente (a cada 5 segundos)
+if (typeof window.setInterval !== 'undefined') {
+  // Atualizar imediatamente ao carregar
+  setTimeout(() => {
+    if (typeof window.atualizarProgressoSessao === 'function') {
+      window.atualizarProgressoSessao();
+    }
+  }, 1000);
+  
+  // Atualizar periodicamente
+  setInterval(() => {
+    if (typeof window.atualizarProgressoSessao === 'function') {
+      window.atualizarProgressoSessao();
+    }
+  }, 5000);
+}
+
+console.log('✅ atualizarProgressoSessao definida globalmente!');
+
+// ========== FUNÇÃO PARA ATUALIZAR RESUMO DE PESAGEM INDIVIDUAL ==========
+window.atualizarResumoPesagemV2 = function(dadosOuPeso, dataPeso) {
+  console.log('⚖️ [PESAGEM INDIVIDUAL] Atualizando resumo de pesagem...', dadosOuPeso, dataPeso);
+  
+  // Aceita tanto objeto dados completo quanto parâmetros individuais (peso, data)
+  let dados = null;
+  
+  if (typeof dadosOuPeso === 'object' && dadosOuPeso !== null) {
+    // Se primeiro parâmetro é um objeto, usar como dados
+    dados = dadosOuPeso;
+  } else if (typeof dadosOuPeso === 'number' || (typeof dadosOuPeso === 'string' && !isNaN(parseFloat(dadosOuPeso)))) {
+    // Se primeiro parâmetro é um número (peso), construir objeto dados
+    const animalAtual = window.animalAtualV2 || (typeof currentAnimalV2 !== 'undefined' ? currentAnimalV2 : null);
+    dados = {
+      peso_atual: parseFloat(dadosOuPeso),
+      data_peso_atual: dataPeso || new Date().toISOString(),
+      pesagem_anterior: animalAtual ? {
+        peso: animalAtual.peso_anterior,
+        data: animalAtual.data_peso_anterior,
+        data_hora: animalAtual.data_peso_anterior
+      } : null,
+      ganho_peso: animalAtual && animalAtual.peso_anterior ? 
+        (parseFloat(dadosOuPeso) - parseFloat(animalAtual.peso_anterior)) : null
+    };
+  }
+  
+  if (!dados) {
+    console.warn('⚠️ [PESAGEM INDIVIDUAL] Sem dados fornecidos');
+    return;
+  }
+  
+  // Formatar valores
+  const formatarPeso = (peso) => {
+    if (!peso) return '—';
+    const pesoNum = typeof peso === 'number' ? peso : parseFloat(peso);
+    if (isNaN(pesoNum) || pesoNum <= 0) return '—';
+    return `${pesoNum.toFixed(1).replace('.', ',')} kg`;
+  };
+  
+  const formatarDias = (dias) => {
+    if (!dias || dias === 0) return '—';
+    return `${dias} dia${dias !== 1 ? 's' : ''}`;
+  };
+  
+  // Último peso (peso anterior)
+  const pesoUltimoEl = document.getElementById('pesoUltimoValorV2');
+  if (pesoUltimoEl) {
+    const ultimoPeso = dados.pesagem_anterior?.peso || dados.peso_anterior || null;
+    pesoUltimoEl.textContent = formatarPeso(ultimoPeso);
+  }
+  
+  // Peso atual (peso mais recente)
+  const pesoAtualEl = document.getElementById('pesoAtualValorV2');
+  if (pesoAtualEl) {
+    const pesoAtual = dados.peso_atual || dados.pesagem_atual?.peso || null;
+    pesoAtualEl.textContent = formatarPeso(pesoAtual);
+  }
+  
+  // Período em dias
+  const periodoDiasEl = document.getElementById('periodoDiasValorV2');
+  if (periodoDiasEl) {
+    let dias = null;
+    
+    if (dados.periodo_dias) {
+      dias = dados.periodo_dias;
+    } else if (dados.pesagem_atual?.data && dados.pesagem_anterior?.data) {
+      // Calcular diferença entre datas
+      const dataAtual = new Date(dados.pesagem_atual.data);
+      const dataAnterior = new Date(dados.pesagem_anterior.data);
+      dias = Math.floor((dataAtual - dataAnterior) / (1000 * 60 * 60 * 24));
+    }
+    
+    periodoDiasEl.textContent = formatarDias(dias);
+  }
+  
+  // Ganho diário
+  const ganhoDiaEl = document.getElementById('pesoGanhoDiaV2');
+  if (ganhoDiaEl) {
+    let ganhoDia = null;
+    
+    if (dados.ganho_peso_diario) {
+      ganhoDia = dados.ganho_peso_diario;
+    } else if (dados.ganho_peso && periodoDiasEl && periodoDiasEl.textContent !== '—') {
+      const dias = parseInt(periodoDiasEl.textContent);
+      if (dias > 0 && dados.ganho_peso) {
+        ganhoDia = dados.ganho_peso / dias;
+      }
+    }
+    
+    if (ganhoDia !== null && ganhoDia > 0) {
+      ganhoDiaEl.textContent = `+${ganhoDia.toFixed(2).replace('.', ',')} kg/dia`;
+    } else {
+      ganhoDiaEl.textContent = '—';
+    }
+  }
+  
+  // Ganho total
+  const ganhoTotalEl = document.getElementById('pesoGanhoTotalV2');
+  if (ganhoTotalEl) {
+    const ganhoTotal = dados.ganho_peso || null;
+    if (ganhoTotal !== null && ganhoTotal > 0) {
+      ganhoTotalEl.textContent = `+${ganhoTotal.toFixed(1).replace('.', ',')} kg`;
+    } else {
+      ganhoTotalEl.textContent = '—';
+    }
+  }
+  
+  console.log('✅ [PESAGEM INDIVIDUAL] Resumo de pesagem atualizado!');
+};
+
+console.log('✅ atualizarResumoPesagemV2 definida globalmente!');
 
 // Função para carregar status reprodutivo e bezerros
 window.carregarStatusReprodutivoV4 = async function(animalId) {
@@ -2513,8 +2928,8 @@ window.abrirFichaCompletaV4 = function() {
   /* Estilo profissional e limpo */
   body.curral-v2 {
     background: #f5f6fa;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    font-size: 14px;
+    font-family: 'Poppins', 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    font-size: 0.95rem;
     color: var(--monpec-text);
   }
   
@@ -4585,6 +5000,15 @@ window.abrirFichaCompletaV4 = function() {
 
   .config-pesagem-switch input:focus + .config-pesagem-switch-slider {
     box-shadow: 0 0 0 3px rgba(39, 174, 96, 0.2);
+  }
+
+  /* Estilos inline para garantir funcionamento do switch no modal */
+  #autoProximoModal:checked + .config-pesagem-switch-slider {
+    background-color: #4caf50 !important;
+  }
+
+  #autoProximoModal:checked + .config-pesagem-switch-slider:before {
+    transform: translateX(24px) !important;
   }
 
   .config-pesagem-auto-proximo-text {
@@ -6832,12 +7256,9 @@ window.abrirFichaCompletaV4 = function() {
         <!-- PESAGEM -->
         <div style="position: relative; min-height: 200px;">
           <!-- Card Original -->
-          <div id="cardConfigPesagem" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; cursor: pointer;" onclick="window.abrirModalConfigPesagem();">
+          <div id="cardConfigPesagem" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; cursor: pointer;" onclick="event.preventDefault(); event.stopPropagation(); console.log('🔵 Card PESAGEM clicado'); try { if(typeof window.abrirModalConfigPesagem === 'function') { window.abrirModalConfigPesagem(); } else { console.error('Função não encontrada'); alert('Erro: Função não disponível. Recarregue a página.'); } } catch(e) { console.error('Erro ao abrir modal:', e); alert('Erro ao abrir modal: ' + e.message); }">
             <div class="card-curral" style="height: 100%; display: flex; flex-direction: column;">
               <div class="card-curral-body" style="padding: 20px; text-align: center; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                <div style="width: 56px; height: 56px; border-radius: 12px; background: #1976d2; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.8rem; margin-bottom: 12px;">
-                  <i class="fas fa-weight"></i>
-                </div>
                 <h3 style="margin: 0 0 8px 0; color: #1976d2; font-size: 1rem; font-weight: 600;">PESAGEM</h3>
                 <p style="margin: 0; color: #666; font-size: 0.85rem;">Clique para configurar</p>
               </div>
@@ -6853,7 +7274,7 @@ window.abrirFichaCompletaV4 = function() {
                 </div>
                 <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid #e0e0e0;">
                   <button type="button" class="btn btn-sm btn-outline-secondary" onclick="abrirModalConfigPesagem()" style="white-space: nowrap; font-size: 0.8rem; padding: 4px 8px;">
-                    <i class="fas fa-edit"></i> Editar
+                    Editar
                   </button>
                 </div>
               </div>
@@ -6864,12 +7285,9 @@ window.abrirFichaCompletaV4 = function() {
         <!-- SANITÁRIO -->
         <div style="position: relative; min-height: 200px;">
           <!-- Card Original -->
-          <div id="cardConfigSanitarioOriginal" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; cursor: pointer;" onclick="if(typeof window.abrirModalConfigSessao === 'function'){window.abrirModalConfigSessao('sanitario');}else{alert('Erro: Função não disponível. Recarregue a página.');}">
+          <div id="cardConfigSanitarioOriginal" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; cursor: pointer;" onclick="event.preventDefault(); event.stopPropagation(); console.log('🔴 Card SANITÁRIO clicado'); try { if(typeof window.abrirModalConfigSessao === 'function') { window.abrirModalConfigSessao('sanitario'); } else { console.error('Função não encontrada'); alert('Erro: Função não disponível. Recarregue a página.'); } } catch(e) { console.error('Erro ao abrir modal:', e); alert('Erro ao abrir modal: ' + e.message); }">
             <div class="card-curral" style="height: 100%; display: flex; flex-direction: column;">
               <div class="card-curral-body" style="padding: 20px; text-align: center; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                <div style="width: 56px; height: 56px; border-radius: 12px; background: #d32f2f; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.8rem; margin-bottom: 12px;">
-                  <i class="fas fa-syringe"></i>
-                </div>
                 <h3 style="margin: 0 0 8px 0; color: #d32f2f; font-size: 1rem; font-weight: 600;">SANITÁRIO</h3>
                 <p style="margin: 0; color: #666; font-size: 0.85rem;">Clique para configurar</p>
               </div>
@@ -6885,7 +7303,7 @@ window.abrirFichaCompletaV4 = function() {
                 </div>
                 <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid #e0e0e0;">
                   <button type="button" class="btn btn-sm btn-outline-secondary" onclick="if(typeof window.abrirModalConfigSessao === 'function'){window.abrirModalConfigSessao('sanitario');}else{alert('Erro: Função não disponível. Recarregue a página.');}" style="white-space: nowrap; font-size: 0.8rem; padding: 4px 8px;">
-                    <i class="fas fa-edit"></i> Editar
+                    Editar
                   </button>
                 </div>
               </div>
@@ -6896,12 +7314,9 @@ window.abrirFichaCompletaV4 = function() {
         <!-- REPRODUÇÃO -->
         <div style="position: relative; min-height: 200px;">
           <!-- Card Original -->
-          <div id="cardConfigReprodutivoOriginal" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; cursor: pointer;" onclick="console.log('🟣 Card REPRODUÇÃO clicado!'); if(typeof window.abrirModalConfigSessao === 'function'){console.log('✅ Função encontrada, chamando...'); window.abrirModalConfigSessao('reprodutivo');}else{console.error('❌ Função não encontrada'); alert('Erro: Função não disponível. Recarregue a página.');}">
+          <div id="cardConfigReprodutivoOriginal" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; cursor: pointer;" onclick="if(typeof window.abrirModalConfigSessao === 'function'){window.abrirModalConfigSessao('reprodutivo');}else{alert('Erro: Função não disponível. Recarregue a página.');}">
             <div class="card-curral" style="height: 100%; display: flex; flex-direction: column;">
               <div class="card-curral-body" style="padding: 20px; text-align: center; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                <div style="width: 56px; height: 56px; border-radius: 12px; background: #7b1fa2; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.8rem; margin-bottom: 12px;">
-                  <i class="fas fa-dna"></i>
-                </div>
                 <h3 style="margin: 0 0 8px 0; color: #7b1fa2; font-size: 1rem; font-weight: 600;">REPRODUÇÃO</h3>
                 <p style="margin: 0; color: #666; font-size: 0.85rem;">Clique para configurar</p>
               </div>
@@ -6916,8 +7331,8 @@ window.abrirFichaCompletaV4 = function() {
                   <!-- Conteúdo será preenchido dinamicamente -->
                 </div>
                 <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid #e0e0e0;">
-                  <button type="button" class="btn btn-sm btn-outline-secondary" onclick="console.log('🔵 Botão Editar REPRODUÇÃO clicado'); if(typeof window.abrirModalConfigSessao === 'function'){window.abrirModalConfigSessao('reprodutivo');}else{console.error('❌ Função não disponível'); alert('Erro: Função não disponível. Recarregue a página.');}" style="white-space: nowrap; font-size: 0.8rem; padding: 4px 8px;">
-                    <i class="fas fa-edit"></i> Editar
+                  <button type="button" class="btn btn-sm btn-outline-secondary" onclick="if(typeof window.abrirModalConfigSessao === 'function'){window.abrirModalConfigSessao('reprodutivo');}else{alert('Erro: Função não disponível. Recarregue a página.');}" style="white-space: nowrap; font-size: 0.8rem; padding: 4px 8px;">
+                    Editar
                   </button>
                 </div>
               </div>
@@ -6928,12 +7343,9 @@ window.abrirFichaCompletaV4 = function() {
         <!-- MOVIMENTAÇÃO -->
         <div style="position: relative; min-height: 200px;">
           <!-- Card Original -->
-          <div id="cardConfigMovimentacaoOriginal" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; cursor: pointer;" onclick="if(typeof window.abrirModalConfigSessao === 'function'){window.abrirModalConfigSessao('movimentacao');}else{alert('Erro: Função não disponível. Recarregue a página.');}">
+          <div id="cardConfigMovimentacaoOriginal" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; cursor: pointer;" onclick="event.preventDefault(); event.stopPropagation(); console.log('🟠 Card MOVIMENTAÇÃO clicado'); try { if(typeof window.abrirModalConfigSessao === 'function') { window.abrirModalConfigSessao('movimentacao'); } else { console.error('Função não encontrada'); alert('Erro: Função não disponível. Recarregue a página.'); } } catch(e) { console.error('Erro ao abrir modal:', e); alert('Erro ao abrir modal: ' + e.message); }">
             <div class="card-curral" style="height: 100%; display: flex; flex-direction: column;">
               <div class="card-curral-body" style="padding: 20px; text-align: center; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                <div style="width: 56px; height: 56px; border-radius: 12px; background: #f57c00; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.8rem; margin-bottom: 12px;">
-                  <i class="fas fa-exchange-alt"></i>
-                </div>
                 <h3 style="margin: 0 0 8px 0; color: #f57c00; font-size: 1rem; font-weight: 600;">MOVIMENTAÇÃO</h3>
                 <p style="margin: 0; color: #666; font-size: 0.85rem;">Clique para configurar</p>
               </div>
@@ -6949,7 +7361,7 @@ window.abrirFichaCompletaV4 = function() {
                 </div>
                 <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid #e0e0e0;">
                   <button type="button" class="btn btn-sm btn-outline-secondary" onclick="if(typeof window.abrirModalConfigSessao === 'function'){window.abrirModalConfigSessao('movimentacao');}else{alert('Erro: Função não disponível. Recarregue a página.');}" style="white-space: nowrap; font-size: 0.8rem; padding: 4px 8px;">
-                    <i class="fas fa-edit"></i> Editar
+                    Editar
                   </button>
                 </div>
               </div>
@@ -8321,9 +8733,10 @@ window.abrirFichaCompletaV4 = function() {
 window.abrirModalConfigSessao = function(tipo) {
   console.log('🔵 [ABRIR MODAL CONFIG] Tipo:', tipo);
   
-  // Fechar qualquer modal que possa estar aberto primeiro
-  const modalPesagem = document.getElementById('modalConfigPesagem');
-  const modalReprodutivo = document.getElementById('modalConfigReprodutivo');
+  try {
+    // Fechar qualquer modal que possa estar aberto primeiro
+    const modalPesagem = document.getElementById('modalConfigPesagem');
+    const modalReprodutivo = document.getElementById('modalConfigReprodutivo');
   
   if (modalPesagem) {
     modalPesagem.style.display = 'none';
@@ -8491,15 +8904,38 @@ console.log('✅ Função abrirModalConfigSessao definida:', typeof window.abrir
 console.log('✅ Função fecharModalConfigReprodutivo definida:', typeof window.fecharModalConfigReprodutivo);
 
 window.abrirModalConfigPesagem = function() {
-  console.log('🔵 Tentando abrir modal de configuração...');
+  console.log('🔵 [PESAGEM] Tentando abrir modal de configuração...');
   const modal = document.getElementById('modalConfigPesagem');
   if (!modal) {
-    console.error('❌ Modal não encontrado!');
+    console.error('❌ [PESAGEM] Modal não encontrado!');
     alert('Erro: Modal não encontrado. Recarregue a página.');
     return;
   }
-  console.log('✅ Modal encontrado, abrindo...');
+  console.log('✅ [PESAGEM] Modal encontrado, abrindo...');
   modal.style.display = 'flex';
+  modal.style.visibility = 'visible';
+  modal.style.opacity = '1';
+  modal.style.zIndex = '10000';
+  
+  // Ativar aba de pesagem
+  setTimeout(() => {
+    const tab = document.querySelector('.config-sessao-tab[data-tab="pesagem"]');
+    if (tab) {
+      // Remover active de todas as tabs
+      document.querySelectorAll('.config-sessao-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      tab.style.borderBottomColor = '#1976d2';
+      
+      // Mostrar conteúdo de pesagem
+      const contents = ['configPesagemContent', 'configSanitarioContent', 'configReprodutivoContent', 'configMovimentacaoContent'];
+      contents.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+      });
+      const pesagemContent = document.getElementById('configPesagemContent');
+      if (pesagemContent) pesagemContent.style.display = 'block';
+    }
+  }, 100);
   // Carregar valores salvos se existirem
   const configSalva = window.configPesagemSalva || {};
   if (configSalva.tipoPesagem) {
@@ -8651,12 +9087,9 @@ window.atualizarCardResumoConfig = function() {
   
     resumoContent.innerHTML = `
       <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
-        <div style="width: 40px; height: 40px; border-radius: 10px; background: ${corTipo}; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.3rem; box-shadow: 0 2px 6px rgba(0,0,0,0.15); flex-shrink: 0;">
-          <i class="fas ${iconeTipo}"></i>
-        </div>
         <div style="flex: 1; min-width: 0;">
-          <h3 style="margin: 0 0 4px 0; font-size: 0.95rem; color: #1976d2; display: flex; align-items: center; gap: 6px; font-weight: 600;">
-            <i class="fas fa-check-circle" style="font-size: 0.85rem;"></i> <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Pesagem Ativa</span>
+          <h3 style="margin: 0 0 4px 0; font-size: 0.95rem; color: #1976d2; font-weight: 600;">
+            Pesagem Ativa
           </h3>
           <div style="font-weight: 600; color: #333; font-size: 0.85rem; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${tipoTexto}</div>
           <div style="font-size: 0.75rem; color: #666; line-height: 1.2;">
@@ -8665,12 +9098,8 @@ window.atualizarCardResumoConfig = function() {
         </div>
       </div>
       <div style="display: flex; align-items: center; gap: 6px; margin-top: 8px; padding: 8px; background: rgba(255,255,255,0.6); border-radius: 6px; font-size: 0.75rem;">
-        <i class="fas fa-forward" style="color: #666; font-size: 0.7rem;"></i>
         <span style="font-weight: 600; color: #333;">Auto:</span>
-        <span style="display: flex; align-items: center; gap: 4px;">
-          ${config.autoProximo ? '<i class="fas fa-check-circle" style="color: #4caf50; font-size: 0.85rem;"></i>' : '<i class="fas fa-times-circle" style="color: #f44336; font-size: 0.85rem;"></i>'}
-          <span style="font-weight: 500;">${autoTexto}</span>
-        </span>
+        <span style="font-weight: 500;">${autoTexto}</span>
       </div>
     `;
   
@@ -10276,6 +10705,7 @@ document.addEventListener('DOMContentLoaded', function() {
       cardConfig.addEventListener('click', function(e) {
         e.preventDefault();
         e.stopPropagation();
+        console.log('🔵 [PESAGEM] Card clicado via event listener');
         if (typeof window.abrirModalConfigPesagem === 'function') {
           window.abrirModalConfigPesagem();
         } else {
@@ -10283,7 +10713,59 @@ document.addEventListener('DOMContentLoaded', function() {
           alert('Erro: Função não disponível. Recarregue a página.');
         }
       });
-      console.log('✅ Card de configuração inicializado');
+      console.log('✅ Card de configuração PESAGEM inicializado');
+    }
+    
+    // Inicializar outros cards também
+    const cardSanitario = document.getElementById('cardConfigSanitarioOriginal');
+    if (cardSanitario) {
+      cardSanitario.onclick = null;
+      cardSanitario.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('🔴 [SANITÁRIO] Card clicado via event listener');
+        if (typeof window.abrirModalConfigSessao === 'function') {
+          window.abrirModalConfigSessao('sanitario');
+        } else {
+          console.error('❌ Função abrirModalConfigSessao não está disponível');
+          alert('Erro: Função não disponível. Recarregue a página.');
+        }
+      });
+      console.log('✅ Card de configuração SANITÁRIO inicializado');
+    }
+    
+    const cardReprodutivo = document.getElementById('cardConfigReprodutivoOriginal');
+    if (cardReprodutivo) {
+      cardReprodutivo.onclick = null;
+      cardReprodutivo.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('🟣 [REPRODUÇÃO] Card clicado via event listener');
+        if (typeof window.abrirModalConfigSessao === 'function') {
+          window.abrirModalConfigSessao('reprodutivo');
+        } else {
+          console.error('❌ Função abrirModalConfigSessao não está disponível');
+          alert('Erro: Função não disponível. Recarregue a página.');
+        }
+      });
+      console.log('✅ Card de configuração REPRODUÇÃO inicializado');
+    }
+    
+    const cardMovimentacao = document.getElementById('cardConfigMovimentacaoOriginal');
+    if (cardMovimentacao) {
+      cardMovimentacao.onclick = null;
+      cardMovimentacao.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('🟠 [MOVIMENTAÇÃO] Card clicado via event listener');
+        if (typeof window.abrirModalConfigSessao === 'function') {
+          window.abrirModalConfigSessao('movimentacao');
+        } else {
+          console.error('❌ Função abrirModalConfigSessao não está disponível');
+          alert('Erro: Função não disponível. Recarregue a página.');
+        }
+      });
+      console.log('✅ Card de configuração MOVIMENTAÇÃO inicializado');
     }
   }
   
@@ -10339,18 +10821,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   // Inicializar card de resumo ao carregar a página
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function() {
-      carregarConfigPesagemSalva();
-      inicializarCardConfigPesagem();
-      configurarBotaoModal();
-      setTimeout(function() {
-        if (typeof window.atualizarCardResumoConfig === 'function') {
-          window.atualizarCardResumoConfig();
-        }
-      }, 100);
-    });
-  } else {
+  function inicializarTudo() {
     carregarConfigPesagemSalva();
     inicializarCardConfigPesagem();
     configurarBotaoModal();
@@ -10360,6 +10831,16 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }, 100);
   }
+  
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', inicializarTudo);
+  } else {
+    inicializarTudo();
+  }
+  
+  // Também tentar inicializar após um delay para garantir
+  setTimeout(inicializarTudo, 1000);
+  setTimeout(inicializarTudo, 2000);
   
   // Atualizar visual dos radio buttons quando selecionados
   document.addEventListener('change', function(event) {
@@ -10495,12 +10976,25 @@ document.addEventListener('DOMContentLoaded', function() {
       const contentId = contentMap[tabId];
       if (contentId) {
         const content = document.getElementById(contentId);
+        
+        // Carregar configurações salvas ao abrir a aba
+        if (tabId === 'sanitario' && typeof window.carregarConfigSanitario === 'function') {
+          setTimeout(() => window.carregarConfigSanitario(), 100);
+        } else if (tabId === 'movimentacao' && typeof window.carregarConfigMovimentacao === 'function') {
+          setTimeout(() => window.carregarConfigMovimentacao(), 100);
+        }
         if (content) {
           content.style.display = 'block';
           
           // Carregar valores salvos quando abrir a tab
           if (tabId === 'sanitario') {
-            carregarConfigSanitarioV4();
+            if (typeof window.carregarConfigSanitario === 'function') {
+              window.carregarConfigSanitario();
+            }
+          } else if (tabId === 'movimentacao') {
+            if (typeof window.carregarConfigMovimentacao === 'function') {
+              window.carregarConfigMovimentacao();
+            }
           } else if (tabId === 'reprodutivo') {
             // Carregar configuração reprodutivo
             try {
@@ -10972,12 +11466,9 @@ document.addEventListener('DOMContentLoaded', function() {
       
       resumoContent.innerHTML = `
         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
-          <div style="width: 40px; height: 40px; border-radius: 10px; background: #7b1fa2; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.3rem; box-shadow: 0 2px 6px rgba(0,0,0,0.15); flex-shrink: 0;">
-            <i class="fas fa-dna"></i>
-          </div>
           <div style="flex: 1; min-width: 0;">
-            <h3 style="margin: 0 0 4px 0; font-size: 0.95rem; color: #7b1fa2; display: flex; align-items: center; gap: 6px; font-weight: 600;">
-              <i class="fas fa-check-circle" style="font-size: 0.85rem;"></i> <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Reprodução Ativa</span>
+            <h3 style="margin: 0 0 4px 0; font-size: 0.95rem; color: #7b1fa2; font-weight: 600;">
+              Reprodução Ativa
             </h3>
             <div style="font-size: 0.75rem; color: #666; line-height: 1.2;">
               Configuração ativa
@@ -10986,20 +11477,17 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
         <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 8px; padding: 8px; background: rgba(255,255,255,0.6); border-radius: 6px; font-size: 0.75rem;">
           <div style="display: flex; align-items: center; gap: 6px;">
-            <i class="fas fa-venus-mars" style="color: #666; font-size: 0.7rem;"></i>
             <span style="font-weight: 600; color: #333;">Tipo:</span>
             <span style="font-weight: 500; color: #555; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${tipoTexto}</span>
           </div>
           ${config.tipo === 'iatf' ? `
           <div style="display: flex; align-items: center; gap: 6px;">
-            <i class="fas fa-clipboard-list" style="color: #666; font-size: 0.7rem;"></i>
             <span style="font-weight: 600; color: #333;">Protocolo:</span>
             <span style="font-weight: 500; color: #555; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${protocoloTexto}">${protocoloTexto.length > 15 ? protocoloTexto.substring(0, 15) + '...' : protocoloTexto}</span>
           </div>
           ` : ''}
           ${config.tipo === 'iatf' && config.iatfConfig && config.iatfConfig.touroSemen ? `
           <div style="display: flex; align-items: center; gap: 6px;">
-            <i class="fas fa-bull" style="color: #666; font-size: 0.7rem;"></i>
             <span style="font-weight: 600; color: #333;">Touro/Sêmen:</span>
             <span style="font-weight: 500; color: #555; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${config.iatfConfig.touroSemen}">${config.iatfConfig.touroSemen.length > 15 ? config.iatfConfig.touroSemen.substring(0, 15) + '...' : config.iatfConfig.touroSemen}</span>
           </div>
@@ -11448,22 +11936,290 @@ document.addEventListener('DOMContentLoaded', function() {
     <div style="flex: 1; overflow-y: auto;">
       <!-- Conteúdo da Aba Pesagem -->
       <div id="configPesagemContent" style="padding: 24px;">
-        <p style="color: #666;">Conteúdo de configuração de pesagem...</p>
+        <div style="margin-bottom: 24px;">
+          <h3 style="margin: 0 0 16px 0; color: #1976d2; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">
+            <i class="fas fa-weight"></i> Configuração de Pesagem
+          </h3>
+          <p style="color: #666; margin-bottom: 20px;">Configure o tipo de pesagem que será realizada nesta sessão.</p>
+        </div>
+
+        <!-- Tipo de Pesagem -->
+        <div style="margin-bottom: 24px;">
+          <label style="display: block; font-weight: 600; margin-bottom: 12px; color: #333; font-size: 1rem;">
+            Tipo de Pesagem:
+          </label>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <label style="padding: 16px; border: 2px solid #e0e0e0; border-radius: 10px; cursor: pointer; transition: all 0.2s; text-align: center; background: #f8f9fa;" id="pesagemRotinaLabelModal" onmouseover="if(!document.getElementById('pesagemRotinaModal').checked){this.style.borderColor='#1976d2'; this.style.background='#e3f2fd';}" onmouseout="if(!document.getElementById('pesagemRotinaModal').checked){this.style.borderColor='#e0e0e0'; this.style.background='#f8f9fa';}">
+              <input type="radio" name="tipoPesagemModal" value="rotina" id="pesagemRotinaModal" checked style="margin-right: 8px; width: 18px; height: 18px;">
+              <strong style="display: block; margin-top: 8px; color: #333;">Pesagem de Rotina</strong>
+              <div style="font-size: 0.85rem; color: #666; margin-top: 6px;">Registra no histórico</div>
+            </label>
+            <label style="padding: 16px; border: 2px solid #e0e0e0; border-radius: 10px; cursor: pointer; transition: all 0.2s; text-align: center; background: #f8f9fa;" id="pesagemAparteLabelModal" onmouseover="if(!document.getElementById('pesagemAparteModal').checked){this.style.borderColor='#1976d2'; this.style.background='#e3f2fd';}" onmouseout="if(!document.getElementById('pesagemAparteModal').checked){this.style.borderColor='#e0e0e0'; this.style.background='#f8f9fa';}">
+              <input type="radio" name="tipoPesagemModal" value="aparte" id="pesagemAparteModal" style="margin-right: 8px; width: 18px; height: 18px;">
+              <strong style="display: block; margin-top: 8px; color: #333;">Pesagem para Apartação</strong>
+              <div style="font-size: 0.85rem; color: #666; margin-top: 6px;">Apenas loteamento</div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Faixas de Peso (aparece quando Apartação é selecionada) -->
+        <div id="configFaixasPesoContainer" style="display: none; margin-bottom: 24px; padding: 20px; background: #e3f2fd; border-radius: 10px; border: 2px solid #1976d2;">
+          <h4 style="margin: 0 0 16px 0; color: #1976d2; font-size: 1rem;">
+            <i class="fas fa-layer-group"></i> Faixas de Peso para Apartação
+          </h4>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div>
+              <label style="display: block; font-weight: 500; margin-bottom: 6px; color: #555; font-size: 0.9rem;">Cabeceira (kg)</label>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <input type="number" id="faixaCabeceiraMin" placeholder="Mín" min="0" step="0.1" style="padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.9rem;">
+                <input type="number" id="faixaCabeceiraMax" placeholder="Máx" min="0" step="0.1" style="padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.9rem;">
+              </div>
+            </div>
+            <div>
+              <label style="display: block; font-weight: 500; margin-bottom: 6px; color: #555; font-size: 0.9rem;">Meio (kg)</label>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <input type="number" id="faixaMeioMin" placeholder="Mín" min="0" step="0.1" style="padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.9rem;">
+                <input type="number" id="faixaMeioMax" placeholder="Máx" min="0" step="0.1" style="padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.9rem;">
+              </div>
+            </div>
+            <div>
+              <label style="display: block; font-weight: 500; margin-bottom: 6px; color: #555; font-size: 0.9rem;">Fundo (kg)</label>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <input type="number" id="faixaFundoMin" placeholder="Mín" min="0" step="0.1" style="padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.9rem;">
+                <input type="number" id="faixaFundoMax" placeholder="Máx" min="0" step="0.1" style="padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.9rem;">
+              </div>
+            </div>
+            <div>
+              <label style="display: block; font-weight: 500; margin-bottom: 6px; color: #555; font-size: 0.9rem;">Boiada (kg)</label>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <input type="number" id="faixaBoiadaMin" placeholder="Mín" min="0" step="0.1" style="padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.9rem;">
+                <input type="number" id="faixaBoiadaMax" placeholder="Máx" min="0" step="0.1" style="padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.9rem;">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Auto Próximo -->
+        <div class="config-pesagem-auto-proximo" style="margin-bottom: 24px; padding: 16px; background: #f8f9fa; border-radius: 10px;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <label class="config-pesagem-switch" style="position: relative; display: inline-block; width: 50px; height: 26px; flex-shrink: 0;">
+              <input type="checkbox" id="autoProximoModal" style="opacity: 0; width: 0; height: 0;">
+              <span class="config-pesagem-switch-slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 26px;">
+                <span style="position: absolute; height: 20px; width: 20px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);"></span>
+              </span>
+            </label>
+            <div class="config-pesagem-auto-proximo-text">
+              <div class="config-pesagem-auto-proximo-title" style="font-weight: 600; color: #333; font-size: 0.95rem; display: flex; align-items: center; gap: 6px;">
+                <i class="fas fa-forward"></i> Avançar automaticamente para próximo animal
+              </div>
+              <div class="config-pesagem-auto-proximo-desc" style="font-size: 0.85rem; color: #666; margin-top: 4px;">
+                Após gravar a pesagem, limpa os campos e prepara para o próximo animal
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Botões de Ação -->
+        <div style="display: flex; justify-content: flex-end; gap: 12px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
+          <button type="button" class="btn btn-secondary" onclick="fecharModalConfigPesagem()" style="padding: 10px 24px; border-radius: 8px; font-weight: 600;">
+            Cancelar
+          </button>
+          <button type="button" class="btn btn-primary" id="confirmarConfigPesagemModal" onclick="if(typeof window.confirmarConfigPesagem === 'function'){window.confirmarConfigPesagem();}else{alert('Erro: Função não disponível. Recarregue a página.');}" style="padding: 10px 24px; border-radius: 8px; font-weight: 600; background: #1976d2; border-color: #1976d2;">
+            <i class="fas fa-check"></i> Confirmar Configuração
+          </button>
+        </div>
       </div>
 
       <!-- Conteúdo da Aba Sanitário -->
       <div id="configSanitarioContent" style="padding: 24px; display: none;">
-        <p style="color: #666;">Conteúdo de configuração sanitária...</p>
+        <div style="margin-bottom: 24px;">
+          <h3 style="margin: 0 0 16px 0; color: #d32f2f; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">
+            <i class="fas fa-syringe"></i> Configuração Sanitária
+          </h3>
+          <p style="color: #666; margin-bottom: 20px;">Configure os tratamentos sanitários que serão aplicados nesta sessão.</p>
+        </div>
+
+        <!-- Tipo de Manejo Sanitário -->
+        <div style="margin-bottom: 24px;">
+          <label style="display: block; font-weight: 600; margin-bottom: 12px; color: #333; font-size: 1rem;">
+            Tipo de Manejo:
+          </label>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <label style="padding: 16px; border: 2px solid #e0e0e0; border-radius: 10px; cursor: pointer; transition: all 0.2s; text-align: center; background: #f8f9fa;" id="sanitarioVacinaLabel" onmouseover="if(!document.getElementById('sanitarioVacina').checked){this.style.borderColor='#d32f2f'; this.style.background='#ffebee';}" onmouseout="if(!document.getElementById('sanitarioVacina').checked){this.style.borderColor='#e0e0e0'; this.style.background='#f8f9fa';}">
+              <input type="radio" name="tipoSanitario" value="VACINACAO" id="sanitarioVacina" style="margin-right: 8px; width: 18px; height: 18px;">
+              <strong style="display: block; margin-top: 8px; color: #333;">Vacinação</strong>
+              <div style="font-size: 0.85rem; color: #666; margin-top: 6px;">Aplicação de vacinas</div>
+            </label>
+            <label style="padding: 16px; border: 2px solid #e0e0e0; border-radius: 10px; cursor: pointer; transition: all 0.2s; text-align: center; background: #f8f9fa;" id="sanitarioTratamentoLabel" onmouseover="if(!document.getElementById('sanitarioTratamento').checked){this.style.borderColor='#d32f2f'; this.style.background='#ffebee';}" onmouseout="if(!document.getElementById('sanitarioTratamento').checked){this.style.borderColor='#e0e0e0'; this.style.background='#f8f9fa';}">
+              <input type="radio" name="tipoSanitario" value="TRATAMENTO" id="sanitarioTratamento" style="margin-right: 8px; width: 18px; height: 18px;">
+              <strong style="display: block; margin-top: 8px; color: #333;">Tratamento</strong>
+              <div style="font-size: 0.85rem; color: #666; margin-top: 6px;">Aplicação de medicamentos</div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Campos para Vacinação -->
+        <div id="camposVacina" style="display: none; margin-bottom: 24px; padding: 20px; background: #ffebee; border-radius: 10px; border: 2px solid #d32f2f;">
+          <h4 style="margin: 0 0 16px 0; color: #d32f2f; font-size: 1rem;">
+            <i class="fas fa-syringe"></i> Dados da Vacinação
+          </h4>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+            <div>
+              <label style="display: block; font-weight: 500; margin-bottom: 6px; color: #555; font-size: 0.9rem;">Nome da Vacina *</label>
+              <input type="text" id="vacinaNome" placeholder="Ex: Aftosa, Brucelose" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95rem;" required>
+            </div>
+            <div>
+              <label style="display: block; font-weight: 500; margin-bottom: 6px; color: #555; font-size: 0.9rem;">Lote</label>
+              <input type="text" id="vacinaLote" placeholder="Número do lote" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95rem;">
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+            <div>
+              <label style="display: block; font-weight: 500; margin-bottom: 6px; color: #555; font-size: 0.9rem;">Data de Validade</label>
+              <input type="date" id="vacinaValidade" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95rem;">
+            </div>
+            <div>
+              <label style="display: block; font-weight: 500; margin-bottom: 6px; color: #555; font-size: 0.9rem;">Responsável</label>
+              <input type="text" id="vacinaResponsavel" placeholder="Nome do responsável" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95rem;">
+            </div>
+          </div>
+          <div>
+            <label style="display: block; font-weight: 500; margin-bottom: 6px; color: #555; font-size: 0.9rem;">Observações</label>
+            <textarea id="vacinaObservacoes" placeholder="Observações adicionais..." style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.9rem; min-height: 80px; resize: vertical;"></textarea>
+          </div>
+        </div>
+
+        <!-- Campos para Tratamento -->
+        <div id="camposTratamento" style="display: none; margin-bottom: 24px; padding: 20px; background: #ffebee; border-radius: 10px; border: 2px solid #d32f2f;">
+          <h4 style="margin: 0 0 16px 0; color: #d32f2f; font-size: 1rem;">
+            <i class="fas fa-pills"></i> Dados do Tratamento
+          </h4>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+            <div>
+              <label style="display: block; font-weight: 500; margin-bottom: 6px; color: #555; font-size: 0.9rem;">Medicamento/Tratamento *</label>
+              <input type="text" id="tratamentoNome" placeholder="Ex: Antibiótico, Vermífugo" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95rem;" required>
+            </div>
+            <div>
+              <label style="display: block; font-weight: 500; margin-bottom: 6px; color: #555; font-size: 0.9rem;">Dosagem</label>
+              <input type="text" id="tratamentoDosagem" placeholder="Ex: 5ml, 1 comprimido" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95rem;">
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+            <div>
+              <label style="display: block; font-weight: 500; margin-bottom: 6px; color: #555; font-size: 0.9rem;">Carência (dias)</label>
+              <input type="number" id="tratamentoCarencia" placeholder="Dias de carência" min="0" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95rem;">
+            </div>
+            <div>
+              <label style="display: block; font-weight: 500; margin-bottom: 6px; color: #555; font-size: 0.9rem;">Responsável</label>
+              <input type="text" id="tratamentoResponsavel" placeholder="Nome do responsável" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95rem;">
+            </div>
+          </div>
+          <div>
+            <label style="display: block; font-weight: 500; margin-bottom: 6px; color: #555; font-size: 0.9rem;">Observações</label>
+            <textarea id="tratamentoObservacoes" placeholder="Observações adicionais..." style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.9rem; min-height: 80px; resize: vertical;"></textarea>
+          </div>
+        </div>
+
+        <!-- Botões de Ação -->
+        <div style="display: flex; justify-content: flex-end; gap: 12px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
+          <button type="button" class="btn btn-secondary" onclick="fecharModalConfigPesagem()" style="padding: 10px 24px; border-radius: 8px; font-weight: 600;">
+            Cancelar
+          </button>
+          <button type="button" class="btn btn-primary" onclick="salvarConfigSanitario()" style="padding: 10px 24px; border-radius: 8px; font-weight: 600; background: #d32f2f; border-color: #d32f2f;">
+            <i class="fas fa-save"></i> Salvar Configuração
+          </button>
+        </div>
       </div>
 
       <!-- Conteúdo da Aba Reprodutivo -->
       <div id="configReprodutivoContent" style="padding: 24px; display: none;">
-        <p style="color: #666;">Conteúdo de configuração reprodutiva...</p>
+        <p style="color: #666; margin-bottom: 20px;">Use o modal dedicado de Reprodução clicando no card "REPRODUÇÃO" na seção de configuração.</p>
+        <button type="button" class="btn btn-primary" onclick="fecharModalConfigPesagem(); if(typeof window.abrirModalConfigSessao === 'function'){window.abrirModalConfigSessao('reprodutivo');}" style="padding: 10px 24px; border-radius: 8px; font-weight: 600; background: #7b1fa2; border-color: #7b1fa2;">
+          <i class="fas fa-dna"></i> Abrir Modal de Reprodução
+        </button>
       </div>
 
       <!-- Conteúdo da Aba Movimentação -->
       <div id="configMovimentacaoContent" style="padding: 24px; display: none;">
-        <p style="color: #666;">Conteúdo de configuração de movimentação...</p>
+        <div style="margin-bottom: 24px;">
+          <h3 style="margin: 0 0 16px 0; color: #f57c00; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">
+            <i class="fas fa-exchange-alt"></i> Configuração de Movimentação
+          </h3>
+          <p style="color: #666; margin-bottom: 20px;">Configure o tipo de movimentação que será realizada nesta sessão.</p>
+        </div>
+
+        <!-- Tipo de Movimentação -->
+        <div style="margin-bottom: 24px;">
+          <label style="display: block; font-weight: 600; margin-bottom: 12px; color: #333; font-size: 1rem;">
+            Tipo de Movimentação:
+          </label>
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
+            <label style="padding: 16px; border: 2px solid #e0e0e0; border-radius: 10px; cursor: pointer; transition: all 0.2s; text-align: center; background: #f8f9fa;" id="movimentacaoEntradaLabel" onmouseover="if(!document.getElementById('movimentacaoEntrada').checked){this.style.borderColor='#f57c00'; this.style.background='#fff3e0';}" onmouseout="if(!document.getElementById('movimentacaoEntrada').checked){this.style.borderColor='#e0e0e0'; this.style.background='#f8f9fa';}">
+              <input type="radio" name="tipoMovimentacao" value="ENTRADA" id="movimentacaoEntrada" style="margin-right: 8px; width: 18px; height: 18px;">
+              <strong style="display: block; margin-top: 8px; color: #333;">Entrada</strong>
+              <div style="font-size: 0.85rem; color: #666; margin-top: 6px;">Animais chegando</div>
+            </label>
+            <label style="padding: 16px; border: 2px solid #e0e0e0; border-radius: 10px; cursor: pointer; transition: all 0.2s; text-align: center; background: #f8f9fa;" id="movimentacaoSaidaLabel" onmouseover="if(!document.getElementById('movimentacaoSaida').checked){this.style.borderColor='#f57c00'; this.style.background='#fff3e0';}" onmouseout="if(!document.getElementById('movimentacaoSaida').checked){this.style.borderColor='#e0e0e0'; this.style.background='#f8f9fa';}">
+              <input type="radio" name="tipoMovimentacao" value="SAIDA" id="movimentacaoSaida" style="margin-right: 8px; width: 18px; height: 18px;">
+              <strong style="display: block; margin-top: 8px; color: #333;">Saída</strong>
+              <div style="font-size: 0.85rem; color: #666; margin-top: 6px;">Animais saindo</div>
+            </label>
+            <label style="padding: 16px; border: 2px solid #e0e0e0; border-radius: 10px; cursor: pointer; transition: all 0.2s; text-align: center; background: #f8f9fa;" id="movimentacaoApartacaoLabel" onmouseover="if(!document.getElementById('movimentacaoApartacao').checked){this.style.borderColor='#f57c00'; this.style.background='#fff3e0';}" onmouseout="if(!document.getElementById('movimentacaoApartacao').checked){this.style.borderColor='#e0e0e0'; this.style.background='#f8f9fa';}">
+              <input type="radio" name="tipoMovimentacao" value="APARTACAO" id="movimentacaoApartacao" style="margin-right: 8px; width: 18px; height: 18px;">
+              <strong style="display: block; margin-top: 8px; color: #333;">Apartação</strong>
+              <div style="font-size: 0.85rem; color: #666; margin-top: 6px;">Mudança de lote</div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Campos para Movimentação -->
+        <div id="camposMovimentacao" style="display: none; margin-bottom: 24px; padding: 20px; background: #fff3e0; border-radius: 10px; border: 2px solid #f57c00;">
+          <h4 style="margin: 0 0 16px 0; color: #f57c00; font-size: 1rem;">
+            <i class="fas fa-exchange-alt"></i> Dados da Movimentação
+          </h4>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+            <div>
+              <label style="display: block; font-weight: 500; margin-bottom: 6px; color: #555; font-size: 0.9rem;">Lote/Pasto Origem</label>
+              <input type="text" id="movimentacaoOrigem" placeholder="Nome do lote/pasto de origem" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95rem;">
+            </div>
+            <div>
+              <label style="display: block; font-weight: 500; margin-bottom: 6px; color: #555; font-size: 0.9rem;">Lote/Pasto Destino</label>
+              <input type="text" id="movimentacaoDestino" placeholder="Nome do lote/pasto de destino" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95rem;">
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+            <div>
+              <label style="display: block; font-weight: 500; margin-bottom: 6px; color: #555; font-size: 0.9rem;">Motivo</label>
+              <select id="movimentacaoMotivo" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95rem;">
+                <option value="">Selecione o motivo</option>
+                <option value="ROTACAO">Rotação de Pasto</option>
+                <option value="LOTEAMENTO">Loteamento</option>
+                <option value="COMPRA">Compra</option>
+                <option value="VENDA">Venda</option>
+                <option value="TRANSFERENCIA">Transferência</option>
+                <option value="OUTROS">Outros</option>
+              </select>
+            </div>
+            <div>
+              <label style="display: block; font-weight: 500; margin-bottom: 6px; color: #555; font-size: 0.9rem;">Responsável</label>
+              <input type="text" id="movimentacaoResponsavel" placeholder="Nome do responsável" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95rem;">
+            </div>
+          </div>
+          <div>
+            <label style="display: block; font-weight: 500; margin-bottom: 6px; color: #555; font-size: 0.9rem;">Observações</label>
+            <textarea id="movimentacaoObservacoes" placeholder="Observações adicionais..." style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.9rem; min-height: 80px; resize: vertical;"></textarea>
+          </div>
+        </div>
+
+        <!-- Botões de Ação -->
+        <div style="display: flex; justify-content: flex-end; gap: 12px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
+          <button type="button" class="btn btn-secondary" onclick="fecharModalConfigPesagem()" style="padding: 10px 24px; border-radius: 8px; font-weight: 600;">
+            Cancelar
+          </button>
+          <button type="button" class="btn btn-primary" onclick="salvarConfigMovimentacao()" style="padding: 10px 24px; border-radius: 8px; font-weight: 600; background: #f57c00; border-color: #f57c00;">
+            <i class="fas fa-save"></i> Salvar Configuração
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -12098,10 +12854,20 @@ window.processarAnimalIdentificado = function(dados) {
       }
     }
     
-    if (typeof window.atualizarResumoPesagemV2 === 'function') {
-      console.log('⚖️ Atualizando informações de pesagem');
-      window.atualizarResumoPesagemV2();
+    // Atualizar ficha cadastral V4
+    if (typeof window.atualizarFichaCadastralV4 === 'function') {
+      console.log('📋 Atualizando ficha cadastral V4');
+      window.atualizarFichaCadastralV4(dados);
+      sucesso = true;
     } else {
+      console.warn('⚠️ atualizarFichaCadastralV4 não encontrada');
+    }
+    
+    // Atualizar informações de pesagem individual
+    if (typeof window.atualizarResumoPesagemV2 === 'function') {
+      console.log('⚖️ Atualizando informações de pesagem individual');
+      window.atualizarResumoPesagemV2(dados);
+    } else if (typeof atualizarInfoPesagem === 'function') {
       atualizarInfoPesagem(dados);
     }
     
@@ -20570,6 +21336,99 @@ document.addEventListener('DOMContentLoaded', async function () {
     console.log('✅ Tabela atualizada com', window.animaisRegistradosTabela.length, 'animais');
   }
   
+  // ========== CARREGAR ANIMAIS DA SESSÃO AO INICIALIZAR ==========
+  window.carregarAnimaisSessao = async function() {
+    try {
+      // Obter ID da propriedade da URL
+      const propriedadeMatch = window.location.pathname.match(/propriedade\/(\d+)/);
+      if (!propriedadeMatch) {
+        console.warn('⚠️ Não foi possível identificar a propriedade');
+        return;
+      }
+      const propriedadeId = propriedadeMatch[1];
+      
+      // Buscar animais da sessão ativa
+      const url = `/propriedade/${propriedadeId}/curral/api/sessao/animais/`;
+      console.log('📋 Carregando animais da sessão de:', url);
+      
+      const response = await fetch(url, {
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'Accept': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        console.warn('⚠️ Erro ao carregar animais da sessão:', response.status);
+        return;
+      }
+      
+      const data = await response.json();
+      console.log('📋 Resposta da API de animais da sessão:', data);
+      
+      if (data.status === 'ok' && data.animais && Array.isArray(data.animais)) {
+        // Inicializar array se não existir
+        if (!window.animaisRegistradosTabela) {
+          window.animaisRegistradosTabela = [];
+        }
+        
+        // Adicionar animais da sessão (evitar duplicatas)
+        const idsExistentes = new Set(window.animaisRegistradosTabela.map(a => a.id));
+        let adicionados = 0;
+        
+        data.animais.forEach(animal => {
+          if (!idsExistentes.has(animal.id)) {
+            window.animaisRegistradosTabela.push(animal);
+            adicionados++;
+          }
+        });
+        
+        console.log(`✅ ${adicionados} animais carregados da sessão. Total na tabela: ${window.animaisRegistradosTabela.length}`);
+        
+        // Atualizar tabela visualmente
+        if (typeof window.atualizarTabelaAnimaisRegistrados === 'function') {
+          window.atualizarTabelaAnimaisRegistrados();
+        }
+      } else if (!data.sessao_ativa) {
+        console.log('ℹ️ Nenhuma sessão ativa encontrada');
+      }
+    } catch (error) {
+      console.error('❌ Erro ao carregar animais da sessão:', error);
+    }
+  };
+  
+  // Carregar animais ao inicializar a página (com verificação mais robusta)
+  function inicializarCarregamentoAnimais() {
+    // Verificar se as funções necessárias estão disponíveis
+    if (typeof window.carregarAnimaisSessao !== 'function') {
+      console.warn('⚠️ carregarAnimaisSessao não está disponível ainda, tentando novamente...');
+      setTimeout(inicializarCarregamentoAnimais, 500);
+      return;
+    }
+    
+    if (!window.animaisRegistradosTabela) {
+      window.animaisRegistradosTabela = [];
+    }
+    
+    if (typeof window.atualizarTabelaAnimaisRegistrados !== 'function') {
+      console.warn('⚠️ atualizarTabelaAnimaisRegistrados não está disponível ainda, tentando novamente...');
+      setTimeout(inicializarCarregamentoAnimais, 500);
+      return;
+    }
+    
+    // Tudo pronto, carregar animais
+    window.carregarAnimaisSessao();
+  }
+  
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+      setTimeout(inicializarCarregamentoAnimais, 1500);
+    });
+  } else {
+    // DOM já está pronto
+    setTimeout(inicializarCarregamentoAnimais, 1500);
+  }
+  
   // ========== FUNÇÕES DE EDITAR E EXCLUIR ANIMAIS ==========
   window.editarAnimalRegistrado = function(animalId) {
     const animal = window.animaisRegistradosTabela.find(a => a.id === animalId);
@@ -22184,6 +23043,15 @@ document.addEventListener('DOMContentLoaded', async function () {
           alert('Pesagem gravada com sucesso!');
         }
         
+        // 6.5. Registrar eventos configurados automaticamente
+        if (animalId) {
+          setTimeout(() => {
+            if (typeof window.registrarEventosConfigurados === 'function') {
+              window.registrarEventosConfigurados(animalId);
+            }
+          }, 1000);
+        }
+        
         // 7. Recarrega dados do animal após 500ms para atualizar histórico completo (opcional, mas recomendado)
         setTimeout(async () => {
           if (brincoInput && brincoInput.value) {
@@ -22225,6 +23093,13 @@ document.addEventListener('DOMContentLoaded', async function () {
         
         // ========== ATUALIZAR TABELA E PROGRESSO DA SESSÃO ==========
         console.log('📋 [SALVAR PESAGEM] Atualizando tabela e progresso da sessão...');
+        
+        // Atualizar progresso da sessão após salvar pesagem
+        if (typeof window.atualizarProgressoSessao === 'function') {
+          setTimeout(() => {
+            window.atualizarProgressoSessao();
+          }, 800);
+        }
         
         // Adicionar animal à tabela de registrados
         if (window.animalAtualV2 && window.animalAtualV2.id) {
@@ -24193,5 +25068,662 @@ window.testarPesagem = function() {
     encerrarSessaoV2: typeof window.encerrarSessaoV2
   });
 })();
+
+// ========== CONTROLE DE MODAIS DE CONFIGURAÇÃO (SANITÁRIO E MOVIMENTAÇÃO) ==========
+
+// Controlar exibição de campos do modal Sanitário
+(function() {
+  const vacinaRadio = document.getElementById('sanitarioVacina');
+  const tratamentoRadio = document.getElementById('sanitarioTratamento');
+  const camposVacina = document.getElementById('camposVacina');
+  const camposTratamento = document.getElementById('camposTratamento');
+  const vacinaLabel = document.getElementById('sanitarioVacinaLabel');
+  const tratamentoLabel = document.getElementById('sanitarioTratamentoLabel');
+
+  function atualizarCamposSanitario() {
+    if (vacinaRadio && tratamentoRadio && camposVacina && camposTratamento) {
+      if (vacinaRadio.checked) {
+        camposVacina.style.display = 'block';
+        camposTratamento.style.display = 'none';
+        if (vacinaLabel) {
+          vacinaLabel.style.borderColor = '#d32f2f';
+          vacinaLabel.style.background = '#ffebee';
+        }
+        if (tratamentoLabel) {
+          tratamentoLabel.style.borderColor = '#e0e0e0';
+          tratamentoLabel.style.background = '#f8f9fa';
+        }
+      } else if (tratamentoRadio.checked) {
+        camposVacina.style.display = 'none';
+        camposTratamento.style.display = 'block';
+        if (tratamentoLabel) {
+          tratamentoLabel.style.borderColor = '#d32f2f';
+          tratamentoLabel.style.background = '#ffebee';
+        }
+        if (vacinaLabel) {
+          vacinaLabel.style.borderColor = '#e0e0e0';
+          vacinaLabel.style.background = '#f8f9fa';
+        }
+      } else {
+        camposVacina.style.display = 'none';
+        camposTratamento.style.display = 'none';
+      }
+    }
+  }
+
+  if (vacinaRadio) vacinaRadio.addEventListener('change', atualizarCamposSanitario);
+  if (tratamentoRadio) tratamentoRadio.addEventListener('change', atualizarCamposSanitario);
+})();
+
+// Controlar exibição de campos do modal Movimentação
+(function() {
+  const entradaRadio = document.getElementById('movimentacaoEntrada');
+  const saidaRadio = document.getElementById('movimentacaoSaida');
+  const apartacaoRadio = document.getElementById('movimentacaoApartacao');
+  const camposMovimentacao = document.getElementById('camposMovimentacao');
+  const entradaLabel = document.getElementById('movimentacaoEntradaLabel');
+  const saidaLabel = document.getElementById('movimentacaoSaidaLabel');
+  const apartacaoLabel = document.getElementById('movimentacaoApartacaoLabel');
+
+  function atualizarCamposMovimentacao() {
+    if (camposMovimentacao) {
+      if (entradaRadio && entradaRadio.checked) {
+        camposMovimentacao.style.display = 'block';
+        if (entradaLabel) {
+          entradaLabel.style.borderColor = '#f57c00';
+          entradaLabel.style.background = '#fff3e0';
+        }
+        if (saidaLabel) {
+          saidaLabel.style.borderColor = '#e0e0e0';
+          saidaLabel.style.background = '#f8f9fa';
+        }
+        if (apartacaoLabel) {
+          apartacaoLabel.style.borderColor = '#e0e0e0';
+          apartacaoLabel.style.background = '#f8f9fa';
+        }
+      } else if (saidaRadio && saidaRadio.checked) {
+        camposMovimentacao.style.display = 'block';
+        if (saidaLabel) {
+          saidaLabel.style.borderColor = '#f57c00';
+          saidaLabel.style.background = '#fff3e0';
+        }
+        if (entradaLabel) {
+          entradaLabel.style.borderColor = '#e0e0e0';
+          entradaLabel.style.background = '#f8f9fa';
+        }
+        if (apartacaoLabel) {
+          apartacaoLabel.style.borderColor = '#e0e0e0';
+          apartacaoLabel.style.background = '#f8f9fa';
+        }
+      } else if (apartacaoRadio && apartacaoRadio.checked) {
+        camposMovimentacao.style.display = 'block';
+        if (apartacaoLabel) {
+          apartacaoLabel.style.borderColor = '#f57c00';
+          apartacaoLabel.style.background = '#fff3e0';
+        }
+        if (entradaLabel) {
+          entradaLabel.style.borderColor = '#e0e0e0';
+          entradaLabel.style.background = '#f8f9fa';
+        }
+        if (saidaLabel) {
+          saidaLabel.style.borderColor = '#e0e0e0';
+          saidaLabel.style.background = '#f8f9fa';
+        }
+      } else {
+        camposMovimentacao.style.display = 'none';
+      }
+    }
+  }
+
+  if (entradaRadio) entradaRadio.addEventListener('change', atualizarCamposMovimentacao);
+  if (saidaRadio) saidaRadio.addEventListener('change', atualizarCamposMovimentacao);
+  if (apartacaoRadio) apartacaoRadio.addEventListener('change', atualizarCamposMovimentacao);
+})();
+
+// ========== FUNÇÕES PARA SALVAR CONFIGURAÇÕES ==========
+
+// Salvar configuração sanitária
+window.salvarConfigSanitario = async function() {
+  const tipoSanitario = document.querySelector('input[name="tipoSanitario"]:checked');
+  if (!tipoSanitario) {
+    alert('Selecione o tipo de manejo sanitário (Vacinação ou Tratamento)');
+    return;
+  }
+
+  const tipo = tipoSanitario.value;
+  let dados = {
+    tipo_evento: tipo,
+    observacoes: ''
+  };
+
+  if (tipo === 'VACINACAO') {
+    const nome = document.getElementById('vacinaNome')?.value;
+    if (!nome) {
+      alert('Informe o nome da vacina');
+      return;
+    }
+    dados.nome = nome;
+    dados.lote = document.getElementById('vacinaLote')?.value || '';
+    dados.validade = document.getElementById('vacinaValidade')?.value || '';
+    dados.responsavel = document.getElementById('vacinaResponsavel')?.value || '';
+    dados.observacoes = document.getElementById('vacinaObservacoes')?.value || '';
+  } else if (tipo === 'TRATAMENTO') {
+    const nome = document.getElementById('tratamentoNome')?.value;
+    if (!nome) {
+      alert('Informe o nome do medicamento/tratamento');
+      return;
+    }
+    dados.nome = nome;
+    dados.dosagem = document.getElementById('tratamentoDosagem')?.value || '';
+    dados.carencia = document.getElementById('tratamentoCarencia')?.value || '';
+    dados.responsavel = document.getElementById('tratamentoResponsavel')?.value || '';
+    dados.observacoes = document.getElementById('tratamentoObservacoes')?.value || '';
+  }
+
+  // Salvar no localStorage para uso na sessão
+  window.configSanitarioSalva = dados;
+  localStorage.setItem('monpecConfigSanitarioSalva', JSON.stringify(dados));
+
+  // Atualizar card de resumo
+  const cardOriginal = document.getElementById('cardConfigSanitarioOriginal');
+  const cardResumo = document.getElementById('cardResumoConfigSanitario');
+  const resumoContent = document.getElementById('resumoConfigSanitario');
+
+  if (cardOriginal && cardResumo && resumoContent) {
+    cardOriginal.style.display = 'none';
+    cardResumo.style.display = 'block';
+    resumoContent.innerHTML = `
+      <div style="color: #666; font-size: 0.85rem;">
+        <strong style="color: #333;">${tipo === 'VACINACAO' ? 'Vacinação' : 'Tratamento'}</strong>: ${dados.nome || 'Não configurado'}
+      </div>
+    `;
+  }
+
+  // Fechar modal
+  if (typeof fecharModalConfigPesagem === 'function') {
+    fecharModalConfigPesagem();
+  }
+
+  if (typeof mostrarToast === 'function') {
+    mostrarToast('Configuração sanitária salva com sucesso!', 'success');
+  } else {
+    alert('Configuração sanitária salva com sucesso!');
+  }
+};
+
+// Salvar configuração de movimentação
+window.salvarConfigMovimentacao = async function() {
+  const tipoMovimentacao = document.querySelector('input[name="tipoMovimentacao"]:checked');
+  if (!tipoMovimentacao) {
+    alert('Selecione o tipo de movimentação');
+    return;
+  }
+
+  const tipo = tipoMovimentacao.value;
+  const dados = {
+    tipo_evento: tipo,
+    origem: document.getElementById('movimentacaoOrigem')?.value || '',
+    destino: document.getElementById('movimentacaoDestino')?.value || '',
+    motivo: document.getElementById('movimentacaoMotivo')?.value || '',
+    responsavel: document.getElementById('movimentacaoResponsavel')?.value || '',
+    observacoes: document.getElementById('movimentacaoObservacoes')?.value || ''
+  };
+
+  // Salvar no localStorage
+  window.configMovimentacaoSalva = dados;
+  localStorage.setItem('monpecConfigMovimentacaoSalva', JSON.stringify(dados));
+
+  // Atualizar card de resumo
+  const cardOriginal = document.getElementById('cardConfigMovimentacaoOriginal');
+  const cardResumo = document.getElementById('cardResumoConfigMovimentacao');
+  const resumoContent = document.getElementById('resumoConfigMovimentacao');
+
+  if (cardOriginal && cardResumo && resumoContent) {
+    cardOriginal.style.display = 'none';
+    cardResumo.style.display = 'block';
+    const tipoNome = tipo === 'ENTRADA' ? 'Entrada' : (tipo === 'SAIDA' ? 'Saída' : 'Apartação');
+    resumoContent.innerHTML = `
+      <div style="margin-bottom: 8px;">
+        <strong style="color: #f57c00;">${tipoNome}</strong>
+      </div>
+      <div style="font-size: 0.85rem; color: #666;">
+        ${dados.origem ? `De: ${dados.origem}` : ''} ${dados.destino ? `Para: ${dados.destino}` : ''}
+      </div>
+    `;
+  }
+
+  // Fechar modal
+  if (typeof fecharModalConfigPesagem === 'function') {
+    fecharModalConfigPesagem();
+  }
+
+  if (typeof mostrarToast === 'function') {
+    mostrarToast('Configuração de movimentação salva com sucesso!', 'success');
+  } else {
+    alert('Configuração de movimentação salva com sucesso!');
+  }
+};
+
+// Carregar configurações salvas ao abrir modais
+window.carregarConfigSanitario = function() {
+  try {
+    const saved = localStorage.getItem('monpecConfigSanitarioSalva');
+    if (saved) {
+      const config = JSON.parse(saved);
+      if (config.tipo_evento === 'VACINACAO') {
+        const radio = document.getElementById('sanitarioVacina');
+        if (radio) {
+          radio.checked = true;
+          const event = new Event('change');
+          radio.dispatchEvent(event);
+        }
+        if (config.nome) document.getElementById('vacinaNome').value = config.nome;
+        if (config.lote) document.getElementById('vacinaLote').value = config.lote;
+        if (config.validade) document.getElementById('vacinaValidade').value = config.validade;
+        if (config.responsavel) document.getElementById('vacinaResponsavel').value = config.responsavel;
+        if (config.observacoes) document.getElementById('vacinaObservacoes').value = config.observacoes;
+      } else if (config.tipo_evento === 'TRATAMENTO') {
+        const radio = document.getElementById('sanitarioTratamento');
+        if (radio) {
+          radio.checked = true;
+          const event = new Event('change');
+          radio.dispatchEvent(event);
+        }
+        if (config.nome) document.getElementById('tratamentoNome').value = config.nome;
+        if (config.dosagem) document.getElementById('tratamentoDosagem').value = config.dosagem;
+        if (config.carencia) document.getElementById('tratamentoCarencia').value = config.carencia;
+        if (config.responsavel) document.getElementById('tratamentoResponsavel').value = config.responsavel;
+        if (config.observacoes) document.getElementById('tratamentoObservacoes').value = config.observacoes;
+      }
+    }
+  } catch (e) {
+    console.error('Erro ao carregar configuração sanitária:', e);
+  }
+};
+
+window.carregarConfigMovimentacao = function() {
+  try {
+    const saved = localStorage.getItem('monpecConfigMovimentacaoSalva');
+    if (saved) {
+      const config = JSON.parse(saved);
+      const radio = document.querySelector(`input[name="tipoMovimentacao"][value="${config.tipo_evento}"]`);
+      if (radio) {
+        radio.checked = true;
+        const event = new Event('change');
+        radio.dispatchEvent(event);
+      }
+      if (config.origem) document.getElementById('movimentacaoOrigem').value = config.origem;
+      if (config.destino) document.getElementById('movimentacaoDestino').value = config.destino;
+      if (config.motivo) document.getElementById('movimentacaoMotivo').value = config.motivo;
+      if (config.responsavel) document.getElementById('movimentacaoResponsavel').value = config.responsavel;
+      if (config.observacoes) document.getElementById('movimentacaoObservacoes').value = config.observacoes;
+    }
+  } catch (e) {
+    console.error('Erro ao carregar configuração de movimentação:', e);
+  }
+};
+
+// Atualizar função abrirModalConfigSessao para carregar configurações
+const abrirModalConfigSessaoOriginal = window.abrirModalConfigSessao;
+window.abrirModalConfigSessao = function(tipo) {
+  if (abrirModalConfigSessaoOriginal) {
+    abrirModalConfigSessaoOriginal(tipo);
+  }
+  
+  // Carregar configurações salvas após abrir o modal
+  setTimeout(() => {
+    if (tipo === 'sanitario' && typeof window.carregarConfigSanitario === 'function') {
+      window.carregarConfigSanitario();
+    } else if (tipo === 'movimentacao' && typeof window.carregarConfigMovimentacao === 'function') {
+      window.carregarConfigMovimentacao();
+    }
+  }, 200);
+};
+
+console.log('✅ Funções de modais de configuração (Sanitário e Movimentação) definidas!');
+
+// ========== INICIALIZAR CARDS QUANDO DOM ESTIVER PRONTO ==========
+(function() {
+  function inicializarCardsModais() {
+    console.log('🔍 Inicializando cards de modal...');
+    
+    // Card PESAGEM
+    const cardPesagem = document.getElementById('cardConfigPesagem');
+    if (cardPesagem) {
+      cardPesagem.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('🔵 [PESAGEM] Card clicado');
+        if (typeof window.abrirModalConfigPesagem === 'function') {
+          window.abrirModalConfigPesagem();
+        } else {
+          console.error('❌ Função abrirModalConfigPesagem não encontrada');
+          alert('Erro: Função não disponível. Recarregue a página.');
+        }
+      }, true); // Use capture phase
+      console.log('✅ Card PESAGEM inicializado');
+    }
+    
+    // Card SANITÁRIO
+    const cardSanitario = document.getElementById('cardConfigSanitarioOriginal');
+    if (cardSanitario) {
+      cardSanitario.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('🔴 [SANITÁRIO] Card clicado');
+        if (typeof window.abrirModalConfigSessao === 'function') {
+          window.abrirModalConfigSessao('sanitario');
+        } else {
+          console.error('❌ Função abrirModalConfigSessao não encontrada');
+          alert('Erro: Função não disponível. Recarregue a página.');
+        }
+      }, true);
+      console.log('✅ Card SANITÁRIO inicializado');
+    }
+    
+    // Card REPRODUÇÃO
+    const cardReprodutivo = document.getElementById('cardConfigReprodutivoOriginal');
+    if (cardReprodutivo) {
+      cardReprodutivo.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('🟣 [REPRODUÇÃO] Card clicado');
+        if (typeof window.abrirModalConfigSessao === 'function') {
+          window.abrirModalConfigSessao('reprodutivo');
+        } else {
+          console.error('❌ Função abrirModalConfigSessao não encontrada');
+          alert('Erro: Função não disponível. Recarregue a página.');
+        }
+      }, true);
+      console.log('✅ Card REPRODUÇÃO inicializado');
+    }
+    
+    // Card MOVIMENTAÇÃO
+    const cardMovimentacao = document.getElementById('cardConfigMovimentacaoOriginal');
+    if (cardMovimentacao) {
+      cardMovimentacao.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('🟠 [MOVIMENTAÇÃO] Card clicado');
+        if (typeof window.abrirModalConfigSessao === 'function') {
+          window.abrirModalConfigSessao('movimentacao');
+        } else {
+          console.error('❌ Função abrirModalConfigSessao não encontrada');
+          alert('Erro: Função não disponível. Recarregue a página.');
+        }
+      }, true);
+      console.log('✅ Card MOVIMENTAÇÃO inicializado');
+    }
+  }
+  
+  // Executar quando DOM estiver pronto
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+      setTimeout(inicializarCardsModais, 100);
+      setTimeout(inicializarCardsModais, 500);
+      setTimeout(inicializarCardsModais, 1000);
+    });
+  } else {
+    setTimeout(inicializarCardsModais, 100);
+    setTimeout(inicializarCardsModais, 500);
+    setTimeout(inicializarCardsModais, 1000);
+  }
+})();
+
+// ========== FUNÇÃO PARA REGISTRAR EVENTOS CONFIGURADOS AUTOMATICAMENTE ==========
+window.registrarEventosConfigurados = async function(animalId) {
+  if (!animalId) {
+    console.warn('⚠️ Sem animal ID para registrar eventos');
+    return;
+  }
+
+  try {
+    const propriedadeMatch = window.location.pathname.match(/propriedade\/(\d+)/);
+    if (!propriedadeMatch) {
+      console.warn('⚠️ Não foi possível identificar a propriedade');
+      return;
+    }
+    const propriedadeId = propriedadeMatch[1];
+
+    const manejos = [];
+
+    // Verificar configuração sanitária
+    try {
+      const configSanitario = localStorage.getItem('monpecConfigSanitarioSalva');
+      if (configSanitario) {
+        const config = JSON.parse(configSanitario);
+        if (config.tipo_evento && config.nome) {
+          let observacoes = config.observacoes || '';
+          if (config.tipo_evento === 'VACINACAO') {
+            if (config.lote) observacoes += ` Lote: ${config.lote}`;
+            if (config.validade) observacoes += ` Validade: ${config.validade}`;
+            if (config.responsavel) observacoes += ` Responsável: ${config.responsavel}`;
+          } else if (config.tipo_evento === 'TRATAMENTO') {
+            if (config.dosagem) observacoes += ` Dosagem: ${config.dosagem}`;
+            if (config.carencia) observacoes += ` Carência: ${config.carencia} dias`;
+            if (config.responsavel) observacoes += ` Responsável: ${config.responsavel}`;
+          }
+          
+          manejos.push({
+            tipo_evento: config.tipo_evento,
+            observacoes: `${config.nome}. ${observacoes}`.trim(),
+            dados_adicionais: {
+              nome: config.nome,
+              lote: config.lote || '',
+              validade: config.validade || '',
+              dosagem: config.dosagem || '',
+              carencia: config.carencia || '',
+              responsavel: config.responsavel || ''
+            }
+          });
+        }
+      }
+    } catch (e) {
+      console.warn('⚠️ Erro ao processar configuração sanitária:', e);
+    }
+
+    // Verificar configuração de movimentação
+    try {
+      const configMovimentacao = localStorage.getItem('monpecConfigMovimentacaoSalva');
+      if (configMovimentacao) {
+        const config = JSON.parse(configMovimentacao);
+        if (config.tipo_evento) {
+          let observacoes = config.observacoes || '';
+          if (config.origem) observacoes += ` Origem: ${config.origem}`;
+          if (config.destino) observacoes += ` Destino: ${config.destino}`;
+          if (config.motivo) observacoes += ` Motivo: ${config.motivo}`;
+          if (config.responsavel) observacoes += ` Responsável: ${config.responsavel}`;
+          
+          manejos.push({
+            tipo_evento: config.tipo_evento,
+            observacoes: observacoes.trim() || 'Movimentação registrada',
+            dados_adicionais: {
+              origem: config.origem || '',
+              destino: config.destino || '',
+              motivo: config.motivo || '',
+              responsavel: config.responsavel || ''
+            }
+          });
+        }
+      }
+    } catch (e) {
+      console.warn('⚠️ Erro ao processar configuração de movimentação:', e);
+    }
+
+    // Verificar configuração reprodutiva
+    try {
+      const configReprodutivo = localStorage.getItem('monpecConfigReprodutivoV4');
+      if (configReprodutivo) {
+        const config = JSON.parse(configReprodutivo);
+        if (config.tipo && config.tipo !== '') {
+          let observacoes = '';
+          if (config.tipo === 'iatf' && config.iatfConfig) {
+            const iatf = config.iatfConfig;
+            observacoes = `Protocolo IATF: ${iatf.protocolo || 'Não especificado'}`;
+            if (iatf.dataImplante) observacoes += ` | Implante: ${iatf.dataImplante}`;
+            if (iatf.dataInseminacao) observacoes += ` | Inseminação: ${iatf.dataInseminacao}`;
+            if (iatf.touroSemen) observacoes += ` | Touro/Sêmen: ${iatf.touroSemen}`;
+            if (iatf.observacoes) observacoes += ` | ${iatf.observacoes}`;
+          } else if (config.tipo === 'monta') {
+            observacoes = 'Monta Natural';
+            if (config.montaConfig && config.montaConfig.touro) {
+              observacoes += ` | Touro: ${config.montaConfig.touro}`;
+            }
+          } else if (config.tipo === 'inseminacao') {
+            observacoes = 'Inseminação Artificial';
+            if (config.inseminacaoConfig) {
+              const ins = config.inseminacaoConfig;
+              if (ins.data) observacoes += ` | Data: ${ins.data}`;
+              if (ins.touroSemen) observacoes += ` | Touro/Sêmen: ${ins.touroSemen}`;
+            }
+          }
+          
+          manejos.push({
+            tipo_evento: 'REPRODUCAO',
+            observacoes: observacoes || 'Manejo reprodutivo registrado',
+            dados_adicionais: config
+          });
+        }
+      }
+    } catch (e) {
+      console.warn('⚠️ Erro ao processar configuração reprodutiva:', e);
+    }
+
+    // Se houver manejos para registrar, chamar a API
+    if (manejos.length > 0) {
+      console.log('📋 Registrando', manejos.length, 'evento(s) configurado(s)...', manejos);
+      
+      const url = `/propriedade/${propriedadeId}/curral/api/manejos/registrar/`;
+      const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
+                       document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken,
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({
+          animal_id: animalId,
+          manejos: manejos
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Eventos registrados com sucesso:', data);
+        if (typeof mostrarToast === 'function') {
+          mostrarToast(`${manejos.length} evento(s) registrado(s) automaticamente!`, 'success');
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('❌ Erro ao registrar eventos:', errorData);
+      }
+    } else {
+      console.log('ℹ️ Nenhum evento configurado para registrar automaticamente');
+    }
+  } catch (error) {
+    console.error('❌ Erro ao registrar eventos configurados:', error);
+  }
+};
+
+console.log('✅ Função registrarEventosConfigurados definida!');
+
+// ========== GARANTIR QUE FUNÇÕES ESTEJAM DISPONÍVEIS E CARDS FUNCIONEM ==========
+(function() {
+  function verificarEInicializarCards() {
+    console.log('🔍 Verificando disponibilidade de funções e inicializando cards...');
+    
+    // Verificar funções
+    const funcoes = {
+      abrirModalConfigPesagem: typeof window.abrirModalConfigPesagem,
+      abrirModalConfigSessao: typeof window.abrirModalConfigSessao,
+      fecharModalConfigPesagem: typeof window.fecharModalConfigPesagem,
+      fecharModalConfigReprodutivo: typeof window.fecharModalConfigReprodutivo
+    };
+    
+    console.log('📋 Status das funções:', funcoes);
+    
+    // Verificar modais no DOM
+    const modais = {
+      modalConfigPesagem: !!document.getElementById('modalConfigPesagem'),
+      modalConfigReprodutivo: !!document.getElementById('modalConfigReprodutivo')
+    };
+    
+    console.log('📋 Status dos modais:', modais);
+    
+    // Verificar cards
+    const cards = {
+      cardConfigPesagem: !!document.getElementById('cardConfigPesagem'),
+      cardConfigSanitarioOriginal: !!document.getElementById('cardConfigSanitarioOriginal'),
+      cardConfigReprodutivoOriginal: !!document.getElementById('cardConfigReprodutivoOriginal'),
+      cardConfigMovimentacaoOriginal: !!document.getElementById('cardConfigMovimentacaoOriginal')
+    };
+    
+    console.log('📋 Status dos cards:', cards);
+    
+    // Se todas as funções e elementos existem, está tudo OK
+    if (funcoes.abrirModalConfigPesagem === 'function' && 
+        funcoes.abrirModalConfigSessao === 'function' &&
+        modais.modalConfigPesagem && 
+        modais.modalConfigReprodutivo &&
+        cards.cardConfigPesagem &&
+        cards.cardConfigSanitarioOriginal &&
+        cards.cardConfigReprodutivoOriginal &&
+        cards.cardConfigMovimentacaoOriginal) {
+      console.log('✅ Todos os elementos e funções estão disponíveis!');
+    } else {
+      console.warn('⚠️ Alguns elementos ou funções não estão disponíveis. Tentando novamente...');
+      setTimeout(verificarEInicializarCards, 1000);
+    }
+  }
+  
+  // Executar quando DOM estiver pronto
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+      setTimeout(verificarEInicializarCards, 500);
+    });
+  } else {
+    setTimeout(verificarEInicializarCards, 500);
+  }
+})();
+
+// ========== ATUALIZAR VISUAL DO SWITCH AUTO PRÓXIMO ==========
+(function() {
+  function atualizarSwitchAutoProximo() {
+    const checkbox = document.getElementById('autoProximoModal');
+    const slider = checkbox?.nextElementSibling;
+    const circle = slider?.querySelector('span');
+    
+    if (checkbox && slider && circle) {
+      if (checkbox.checked) {
+        slider.style.backgroundColor = '#4caf50';
+        circle.style.transform = 'translateX(24px)';
+      } else {
+        slider.style.backgroundColor = '#ccc';
+        circle.style.transform = 'translateX(0)';
+      }
+    }
+  }
+
+  // Adicionar event listener quando o checkbox for criado
+  function configurarSwitchAutoProximo() {
+    const checkbox = document.getElementById('autoProximoModal');
+    if (checkbox) {
+      checkbox.addEventListener('change', atualizarSwitchAutoProximo);
+      atualizarSwitchAutoProximo(); // Atualizar estado inicial
+    } else {
+      setTimeout(configurarSwitchAutoProximo, 500);
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', configurarSwitchAutoProximo);
+  } else {
+    configurarSwitchAutoProximo();
+  }
+})();
+
 </script>
 {% endblock %}

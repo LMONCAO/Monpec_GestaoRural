@@ -124,6 +124,16 @@ def contato_submit(request):
             url_redirect = reverse('landing_page') + '#contato'
             return redirect(url_redirect)
         
+        # Validação de formato de email
+        from django.core.validators import validate_email
+        from django.core.exceptions import ValidationError
+        try:
+            validate_email(email)
+        except ValidationError:
+            messages.error(request, 'Por favor, informe um endereço de email válido.')
+            url_redirect = reverse('landing_page') + '#contato'
+            return redirect(url_redirect)
+        
         # Preparar mensagem para email
         assunto = f'Nova mensagem de contato - MONPEC'
         corpo_email = f"""
@@ -221,10 +231,12 @@ from .models import (
     SCRBancoCentral, DividaBanco, ContratoDivida, AmortizacaoContrato,
     ProjetoBancario, DocumentoProjeto, PlanejamentoAnual
 )
+from .decorators import obter_propriedade_com_permissao
 from .forms import (
     ProdutorRuralForm, PropriedadeForm, InventarioRebanhoForm,
     ParametrosProjecaoForm, MovimentacaoProjetadaForm, CategoriaAnimalForm
 )
+from .forms_completos import ClienteForm
 
 
 def login_view(request):
@@ -263,9 +275,10 @@ def login_view(request):
             minutos = int(tempo_restante / 60)
             segundos = int(tempo_restante % 60)
             messages.error(
-                request, 
-                f'⚠️ <strong>Bloqueio por tentativas:</strong> Após 5 tentativas falhas, o sistema bloqueia por 1 minuto. '
-                f'Aguarde {minutos}min {segundos}s antes de tentar novamente. '
+                request,
+                f'<div class="error-title">⚠️ Bloqueio por tentativas</div>'
+                f'<div class="error-warning">Após 5 tentativas falhas, o sistema bloqueia por 1 minuto.</div>'
+                f'<div class="error-hint">Aguarde {minutos}min {segundos}s antes de tentar novamente.</div>'
                 f'Possíveis causas: senha incorreta, conta desativada ou e-mail não verificado.'
             )
             return render(request, 'gestao_rural/login_clean.html', {'mostrar_info_ajuda': True})
@@ -286,8 +299,10 @@ def login_view(request):
             registrar_tentativa_login_falha(username, ip_address)
             messages.error(
                 request, 
-                f'❌ <strong>Usuário não encontrado:</strong> O usuário "{username}" não existe no sistema. '
-                f'Verifique se o nome de usuário está correto. <strong>Após 5 tentativas falhas, o sistema bloqueia por 1 minuto.</strong>'
+                f'<div class="error-title">❌ Usuário não encontrado</div>'
+                f'<div class="error-detail">O usuário "{username}" não existe no sistema.</div>'
+                f'<div class="error-hint">Verifique se o nome de usuário está correto.</div>'
+                f'<div class="error-warning">⚠️ Após 5 tentativas falhas, o sistema bloqueia por 1 minuto.</div>'
             )
             registrar_log_auditoria(
                 tipo_acao='LOGIN_FALHA',
@@ -314,10 +329,11 @@ def login_view(request):
         if user is not None:
             if not user.is_active:
                 messages.error(
-                    request, 
-                    '❌ <strong>Conta desativada:</strong> Esta conta está desabilitada. '
-                    'Entre em contato com o administrador do sistema para reativar sua conta. '
-                    '<strong>Após 5 tentativas falhas, o sistema bloqueia por 1 minuto.</strong>'
+                    request,
+                    '<div class="error-title">❌ Conta desativada</div>'
+                    '<div class="error-detail">Esta conta está desabilitada.</div>'
+                    '<div class="error-hint">Entre em contato com o administrador do sistema para reativar sua conta.</div>'
+                    '<div class="error-warning">⚠️ Após 5 tentativas falhas, o sistema bloqueia por 1 minuto.</div>'
                 )
                 registrar_tentativa_login_falha(username, ip_address)
                 registrar_log_auditoria(
@@ -339,8 +355,10 @@ def login_view(request):
                     if not verificacao.email_verificado:
                         messages.warning(
                             request,
-                            '⚠️ <strong>Verificação de e-mail pendente:</strong> Por favor, verifique seu e-mail antes de fazer login. '
-                            'Verifique sua caixa de entrada e spam. <strong>Após 5 tentativas falhas, o sistema bloqueia por 1 minuto.</strong>'
+                            '<div class="error-title">⚠️ Verificação de e-mail pendente</div>'
+                            '<div class="error-detail">Por favor, verifique seu e-mail antes de fazer login.</div>'
+                            '<div class="error-hint">Verifique sua caixa de entrada e spam.</div>'
+                            '<div class="error-warning">⚠️ Após 5 tentativas falhas, o sistema bloqueia por 1 minuto.</div>'
                         )
                         registrar_tentativa_login_falha(username, ip_address)
                         registrar_log_auditoria(
@@ -401,15 +419,17 @@ def login_view(request):
             
             if tentativas_restantes > 0:
                 mensagem = (
-                    f'❌ <strong>Senha incorreta:</strong> Verifique se a senha está digitada corretamente. '
-                    f'<strong>Você tem {tentativas_restantes} tentativa(s) restante(s).</strong> '
-                    f'Após 5 tentativas falhas, o sistema bloqueia por 1 minuto. '
-                    f'Se esqueceu sua senha, use a opção "Esqueceu a senha?".'
+                    f'<div class="error-title">❌ Senha incorreta</div>'
+                    f'<div class="error-detail">Verifique se a senha está digitada corretamente.</div>'
+                    f'<div class="error-warning">⚠️ Você tem <strong>{tentativas_restantes} tentativa(s) restante(s)</strong>.</div>'
+                    f'<div class="error-hint">Após 5 tentativas falhas, o sistema bloqueia por 1 minuto.</div>'
+                    f'<div class="error-hint">Se esqueceu sua senha, use a opção "Esqueceu a senha?".</div>'
                 )
             else:
                 mensagem = (
-                    f'❌ <strong>Senha incorreta:</strong> Você excedeu 5 tentativas falhas. '
-                    f'O sistema foi bloqueado por 1 minuto. Aguarde antes de tentar novamente.'
+                    f'<div class="error-title">❌ Senha incorreta</div>'
+                    f'<div class="error-detail">Você excedeu 5 tentativas falhas.</div>'
+                    f'<div class="error-warning">⚠️ O sistema foi bloqueado por 1 minuto. Aguarde antes de tentar novamente.</div>'
                 )
             
             messages.error(request, mensagem)
@@ -467,83 +487,41 @@ def logout_view(request):
 
 @login_required
 def dashboard(request):
-    """Dashboard principal - lista de produtores"""
-    produtores = ProdutorRural.objects.filter(usuario_responsavel=request.user)
+    """Dashboard principal - redireciona direto para os módulos da primeira propriedade"""
+    # Buscar todas as propriedades do usuário através dos produtores
+    propriedades = Propriedade.objects.filter(
+        produtor__usuario_responsavel=request.user
+    ).select_related('produtor').order_by('nome_propriedade')
 
-    busca = request.GET.get('busca', '').strip()
-    ordenar_por = request.GET.get('ordenar', 'nome')
-    direcao = request.GET.get('direcao', 'asc')
+    # Se não houver propriedades, mostrar mensagem
+    if not propriedades.exists():
+        messages.info(request, 'Você ainda não possui propriedades cadastradas. Entre em contato com o administrador.')
+        return render(request, 'gestao_rural/dashboard.html', {
+            'propriedades': [],
+            'total_propriedades': 0,
+            'total_animais': 0,
+        })
 
-    if busca:
-        produtores = produtores.filter(
-            Q(nome__icontains=busca) |
-            Q(cpf_cnpj__icontains=busca) |
-            Q(telefone__icontains=busca) |
-            Q(email__icontains=busca) |
-            Q(propriedade__nome_propriedade__icontains=busca) |
-            Q(propriedade__municipio__icontains=busca) |
-            Q(propriedade__uf__icontains=busca)
-        ).distinct()
-
-    produtores = produtores.annotate(
-        total_propriedades=Count('propriedade', distinct=True),
-        cidade_principal=Coalesce(Min('propriedade__municipio'), Value('')),
-        estado_principal=Coalesce(Min('propriedade__uf'), Value('')),
-        total_animais_produtor=Count(
-            'propriedade__animais_individuais',
-            filter=Q(
-                propriedade__animais_individuais__numero_brinco__isnull=False,
-            ) & ~Q(propriedade__animais_individuais__numero_brinco=''),
-            distinct=True,
-        ),
-    )
-
-    order_map = {
-        'nome': 'nome',
-        'cidade': 'cidade_principal',
-        'estado': 'estado_principal',
-        'propriedades': 'total_propriedades',
-        'animais': 'total_animais_produtor',
-        'data_cadastro': 'data_cadastro',
-    }
-
-    ordem = order_map.get(ordenar_por, 'nome')
-    if direcao == 'desc':
-        ordem = f'-{ordem}'
-
-    produtores_ordenados = produtores.order_by(ordem, 'nome')
-
-    total_produtores = produtores.count()
-    total_propriedades = Propriedade.objects.filter(produtor__in=produtores.values('id')).count()
-    total_animais = (
-        AnimalIndividual.objects.filter(
-            propriedade__produtor__in=produtores.values('id'),
-            numero_brinco__isnull=False,
-        )
-        .exclude(numero_brinco='')
-        .count()
-    )
-
-    paginator = Paginator(produtores_ordenados, 10)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-
-    context = {
-        'produtores': page_obj.object_list,
-        'page_obj': page_obj,
-        'busca': busca,
-        'ordenar_por': ordenar_por,
-        'direcao': direcao,
-        'total_produtores': total_produtores,
-        'total_propriedades': total_propriedades,
-        'total_animais': total_animais,
-    }
-    return render(request, 'gestao_rural/dashboard.html', context)
+    # Sempre redirecionar para os módulos da primeira propriedade
+    primeira_propriedade = propriedades.first()
+    return redirect('propriedade_modulos', propriedade_id=primeira_propriedade.id)
 
 
 @login_required
 def produtor_novo(request):
     """Cadastro de novo produtor rural"""
+    # Tentar obter uma propriedade do usuário para o contexto (opcional)
+    propriedade = None
+    todas_propriedades = []
+    try:
+        produtor = ProdutorRural.objects.filter(usuario_responsavel=request.user).first()
+        if produtor:
+            todas_propriedades = Propriedade.objects.filter(produtor=produtor)
+            propriedade = todas_propriedades.first()
+    except Exception as e:
+        logger.debug(f'Erro ao buscar produtor/propriedades para contexto: {e}')
+        # Continuar sem propriedade no contexto - não é crítico
+    
     if request.method == 'POST':
         form = ProdutorRuralForm(request.POST)
         if form.is_valid():
@@ -555,7 +533,12 @@ def produtor_novo(request):
     else:
         form = ProdutorRuralForm()
     
-    return render(request, 'gestao_rural/produtor_novo.html', {'form': form})
+    context = {
+        'form': form,
+        'propriedade': propriedade,
+        'todas_propriedades': todas_propriedades,
+    }
+    return render(request, 'gestao_rural/produtor_novo.html', context)
 
 
 @login_required
@@ -589,6 +572,30 @@ def produtor_excluir(request, produtor_id):
 
 
 @login_required
+def minhas_propriedades(request):
+    """Lista todas as propriedades do usuário logado - encontra o produtor automaticamente"""
+    # Buscar o produtor associado ao usuário logado
+    try:
+        produtor = ProdutorRural.objects.get(usuario_responsavel=request.user)
+    except ProdutorRural.DoesNotExist:
+        messages.error(request, 'Você ainda não possui um produtor cadastrado. Entre em contato com o administrador.')
+        return redirect('dashboard')
+    except ProdutorRural.MultipleObjectsReturned:
+        # Se houver múltiplos produtores, pegar o primeiro
+        produtor = ProdutorRural.objects.filter(usuario_responsavel=request.user).first()
+    
+    propriedades = Propriedade.objects.filter(produtor=produtor)
+    
+    context = {
+        'produtor': produtor,
+        'propriedades': propriedades,
+        'propriedade': propriedades.first() if propriedades.exists() else None,
+        'todas_propriedades': list(propriedades),
+    }
+    return render(request, 'gestao_rural/propriedades_lista.html', context)
+
+
+@login_required
 def propriedades_lista(request, produtor_id):
     """Lista de propriedades de um produtor"""
     produtor = get_object_or_404(ProdutorRural, id=produtor_id, usuario_responsavel=request.user)
@@ -597,8 +604,46 @@ def propriedades_lista(request, produtor_id):
     context = {
         'produtor': produtor,
         'propriedades': propriedades,
+        'propriedade': propriedades.first() if propriedades.exists() else None,
+        'todas_propriedades': list(propriedades),
     }
     return render(request, 'gestao_rural/propriedades_lista.html', context)
+
+
+@login_required
+def propriedade_nova_auto(request):
+    """Cadastro de nova propriedade - encontra o produtor automaticamente"""
+    # Buscar o produtor associado ao usuário logado
+    try:
+        produtor = ProdutorRural.objects.get(usuario_responsavel=request.user)
+    except ProdutorRural.DoesNotExist:
+        messages.error(request, 'Você ainda não possui um produtor cadastrado. Entre em contato com o administrador.')
+        return redirect('dashboard')
+    except ProdutorRural.MultipleObjectsReturned:
+        # Se houver múltiplos produtores, pegar o primeiro
+        produtor = ProdutorRural.objects.filter(usuario_responsavel=request.user).first()
+    
+    if request.method == 'POST':
+        form = PropriedadeForm(request.POST)
+        if form.is_valid():
+            propriedade = form.save(commit=False)
+            propriedade.produtor = produtor
+            propriedade.save()
+            messages.success(request, 'Propriedade cadastrada com sucesso!')
+            return redirect('minhas_propriedades')
+    else:
+        form = PropriedadeForm()
+    
+    # Obter propriedades para o contexto
+    propriedades = Propriedade.objects.filter(produtor=produtor)
+    
+    context = {
+        'form': form,
+        'produtor': produtor,
+        'propriedade': propriedades.first() if propriedades.exists() else None,
+        'todas_propriedades': list(propriedades),
+    }
+    return render(request, 'gestao_rural/propriedade_nova.html', context)
 
 
 @login_required
@@ -617,9 +662,14 @@ def propriedade_nova(request, produtor_id):
     else:
         form = PropriedadeForm()
     
+    # Obter propriedades para o contexto
+    propriedades = Propriedade.objects.filter(produtor=produtor)
+    
     context = {
         'form': form,
         'produtor': produtor,
+        'propriedade': propriedades.first() if propriedades.exists() else None,
+        'todas_propriedades': list(propriedades),
     }
     return render(request, 'gestao_rural/propriedade_nova.html', context)
 
@@ -638,9 +688,13 @@ def propriedade_editar(request, propriedade_id):
     else:
         form = PropriedadeForm(instance=propriedade)
     
+    # Obter todas as propriedades do produtor para o contexto
+    todas_propriedades = Propriedade.objects.filter(produtor=propriedade.produtor)
+    
     context = {
         'form': form,
         'propriedade': propriedade,
+        'todas_propriedades': list(todas_propriedades),
     }
     return render(request, 'gestao_rural/propriedade_editar.html', context)
 
@@ -1052,10 +1106,9 @@ def pecuaria_projecao(request, propriedade_id):
     from collections import defaultdict
     from datetime import date
     
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id, produtor__usuario_responsavel=request.user)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     # Obter inventário mais recente
-    from django.db.models import Max
     data_inventario_recente = InventarioRebanho.objects.filter(
         propriedade=propriedade
     ).aggregate(Max('data_inventario'))['data_inventario__max']
@@ -1248,7 +1301,7 @@ def pecuaria_inventario_dados(request, propriedade_id):
     """View para retornar dados do inventário em JSON para a IA"""
     from datetime import date
     
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     # Obter inventário mais recente
     inventario_data = InventarioRebanho.objects.filter(
@@ -2196,6 +2249,18 @@ def gerar_resumo_projecao_por_ano(movimentacoes, inventario_inicial, propriedade
 @login_required
 def categorias_lista(request):
     """Lista todas as categorias de animais"""
+    # Tentar obter uma propriedade do usuário para o contexto (opcional)
+    propriedade = None
+    todas_propriedades = []
+    try:
+        produtor = ProdutorRural.objects.filter(usuario_responsavel=request.user).first()
+        if produtor:
+            todas_propriedades = Propriedade.objects.filter(produtor=produtor)
+            propriedade = todas_propriedades.first()
+    except Exception as e:
+        logger.debug(f'Erro ao buscar produtor/propriedades para contexto: {e}')
+        # Continuar sem propriedade no contexto - não é crítico
+    
     # Ordenar: primeiro fêmeas (F), depois machos (M), depois indefinidos (I)
     # Dentro de cada grupo de sexo, ordenar por idade mínima (0-12, 12-24, 24-36, 36+)
     categorias = CategoriaAnimal.objects.filter(ativo=True).annotate(
@@ -2211,12 +2276,30 @@ def categorias_lista(request):
         'idade_minima_meses',  # Por idade mínima dentro de cada sexo (None vai para o final)
         'nome'  # Por nome como último critério
     )
-    return render(request, 'gestao_rural/categorias_lista.html', {'categorias': categorias})
+    
+    context = {
+        'categorias': categorias,
+        'propriedade': propriedade,
+        'todas_propriedades': todas_propriedades,
+    }
+    return render(request, 'gestao_rural/categorias_lista.html', context)
 
 
 @login_required
 def categoria_nova(request):
     """Cria uma nova categoria de animal"""
+    # Tentar obter uma propriedade do usuário para o contexto (opcional)
+    propriedade = None
+    todas_propriedades = []
+    try:
+        produtor = ProdutorRural.objects.filter(usuario_responsavel=request.user).first()
+        if produtor:
+            todas_propriedades = Propriedade.objects.filter(produtor=produtor)
+            propriedade = todas_propriedades.first()
+    except Exception as e:
+        logger.debug(f'Erro ao buscar produtor/propriedades para contexto: {e}')
+        # Continuar sem propriedade no contexto - não é crítico
+    
     if request.method == 'POST':
         form = CategoriaAnimalForm(request.POST)
         if form.is_valid():
@@ -2226,12 +2309,29 @@ def categoria_nova(request):
     else:
         form = CategoriaAnimalForm()
     
-    return render(request, 'gestao_rural/categoria_nova.html', {'form': form})
+    context = {
+        'form': form,
+        'propriedade': propriedade,
+        'todas_propriedades': todas_propriedades,
+    }
+    return render(request, 'gestao_rural/categoria_nova.html', context)
 
 
 @login_required
 def categoria_editar(request, categoria_id):
     """Edita uma categoria existente"""
+    # Tentar obter uma propriedade do usuário para o contexto (opcional)
+    propriedade = None
+    todas_propriedades = []
+    try:
+        produtor = ProdutorRural.objects.filter(usuario_responsavel=request.user).first()
+        if produtor:
+            todas_propriedades = Propriedade.objects.filter(produtor=produtor)
+            propriedade = todas_propriedades.first()
+    except Exception as e:
+        logger.debug(f'Erro ao buscar produtor/propriedades para contexto: {e}')
+        # Continuar sem propriedade no contexto - não é crítico
+    
     categoria = get_object_or_404(CategoriaAnimal, id=categoria_id)
     
     if request.method == 'POST':
@@ -2243,7 +2343,13 @@ def categoria_editar(request, categoria_id):
     else:
         form = CategoriaAnimalForm(instance=categoria)
     
-    return render(request, 'gestao_rural/categoria_editar.html', {'form': form, 'categoria': categoria})
+    context = {
+        'form': form,
+        'categoria': categoria,
+        'propriedade': propriedade,
+        'todas_propriedades': todas_propriedades,
+    }
+    return render(request, 'gestao_rural/categoria_editar.html', context)
 
 
 @login_required
@@ -2296,19 +2402,23 @@ def categoria_excluir(request, categoria_id):
         messages.success(request, f'Categoria "{nome_categoria}" excluída com sucesso!')
         return redirect('categorias_lista')
     
-    # Para GET, mostrar informações de uso
-    inventarios_count = InventarioRebanho.objects.filter(categoria=categoria).count()
-    movimentacoes_count = MovimentacaoProjetada.objects.filter(categoria=categoria).count()
-    
+    # Para GET, mostrar informações de uso (código completo está mais abaixo)
     politicas_count = 0
     configuracoes_count = 0
     try:
-        from .models import PoliticaVendasCategoria, ConfiguracaoVenda
+        from .models import PoliticaVendasCategoria
         politicas_count = PoliticaVendasCategoria.objects.filter(categoria=categoria).count()
-        configuracoes_count = ConfiguracaoVenda.objects.filter(categoria_venda=categoria).count()
-    except (ImportError, AttributeError) as e:
-        logging.debug(f"Erro ao verificar políticas e configurações: {e}")
+    except (ImportError, AttributeError):
         pass
+    
+    try:
+        from .models import ConfiguracaoVenda
+        configuracoes_count = ConfiguracaoVenda.objects.filter(categoria_venda=categoria).count()
+    except (ImportError, AttributeError):
+        pass
+    
+    inventarios_count = InventarioRebanho.objects.filter(categoria=categoria).count()
+    movimentacoes_count = MovimentacaoProjetada.objects.filter(categoria=categoria).count()
     
     context = {
         'categoria': categoria,
@@ -2320,6 +2430,228 @@ def categoria_excluir(request, categoria_id):
     }
     
     return render(request, 'gestao_rural/categoria_excluir.html', context)
+
+
+# ==================== GESTÃO DE CLIENTES ====================
+
+@login_required
+def clientes_lista(request, propriedade_id):
+    """Lista de clientes da propriedade"""
+    propriedade = get_object_or_404(
+        Propriedade,
+        id=propriedade_id,
+        produtor__usuario_responsavel=request.user
+    )
+    
+    try:
+        from .models_cadastros import Cliente
+        clientes = Cliente.objects.filter(
+            Q(propriedade=propriedade) | Q(propriedade__isnull=True),
+            ativo=True
+        ).order_by('nome')
+    except ImportError:
+        messages.error(request, 'Módulo de clientes não disponível.')
+        return redirect('propriedade_modulos', propriedade_id=propriedade.id)
+    
+    context = {
+        'propriedade': propriedade,
+        'clientes': clientes,
+    }
+    return render(request, 'gestao_rural/clientes_lista.html', context)
+
+
+@login_required
+def consultar_cpf_cnpj_api(request):
+    """
+    API para consultar dados por CPF/CNPJ
+    """
+    from django.http import JsonResponse
+    from .services.consulta_cpf_cnpj import consultar_dados_cpf_cnpj
+    
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Método não permitido'}, status=405)
+    
+    cpf_cnpj = request.GET.get('cpf_cnpj', '').strip()
+    
+    if not cpf_cnpj:
+        return JsonResponse({'error': 'CPF/CNPJ não informado'}, status=400)
+    
+    try:
+        dados = consultar_dados_cpf_cnpj(cpf_cnpj)
+        
+        if dados:
+            # Verificar se é CPF (que tem limitações)
+            if dados.get('eh_cpf'):
+                # Verificar se CPF é inválido
+                if dados.get('cpf_invalido'):
+                    return JsonResponse({
+                        'success': False,
+                        'eh_cpf': True,
+                        'cpf_invalido': True,
+                        'message': dados.get('mensagem', 'CPF inválido')
+                    })
+                else:
+                    return JsonResponse({
+                        'success': False,
+                        'eh_cpf': True,
+                        'dados': dados,  # Ainda retornar dados para preencher tipo_pessoa
+                        'message': dados.get('mensagem', 'CPF detectado. APIs públicas não fornecem dados completos. Preencha manualmente.')
+                    })
+            else:
+                return JsonResponse({
+                    'success': True,
+                    'dados': dados
+                })
+        else:
+            return JsonResponse({
+                'success': False,
+                'message': 'Dados não encontrados ou CPF/CNPJ inválido'
+            })
+            
+    except Exception as e:
+        logger.error(f"Erro ao consultar CPF/CNPJ: {e}")
+        return JsonResponse({
+            'success': False,
+            'error': 'Erro ao consultar dados. Tente novamente.'
+        }, status=500)
+
+
+@login_required
+def consultar_cep_api(request):
+    """
+    API para consultar endereço por CEP
+    """
+    from django.http import JsonResponse
+    from .services.consulta_cpf_cnpj import ConsultaCPFCNPJ
+    
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Método não permitido'}, status=405)
+    
+    cep = request.GET.get('cep', '').strip()
+    
+    if not cep:
+        return JsonResponse({'error': 'CEP não informado'}, status=400)
+    
+    try:
+        service = ConsultaCPFCNPJ()
+        dados = service.consultar_cep(cep)
+        
+        if dados:
+            return JsonResponse({
+                'success': True,
+                'dados': dados
+            })
+        else:
+            return JsonResponse({
+                'success': False,
+                'message': 'CEP não encontrado'
+            })
+            
+    except Exception as e:
+        logger.error(f"Erro ao consultar CEP: {e}")
+        return JsonResponse({
+            'success': False,
+            'error': 'Erro ao consultar CEP. Tente novamente.'
+        }, status=500)
+
+
+@login_required
+def cliente_novo(request, propriedade_id):
+    """Cadastrar novo cliente"""
+    propriedade = get_object_or_404(
+        Propriedade,
+        id=propriedade_id,
+        produtor__usuario_responsavel=request.user
+    )
+    
+    try:
+        from .models_cadastros import Cliente
+    except ImportError:
+        messages.error(request, 'Módulo de clientes não disponível.')
+        return redirect('propriedade_modulos', propriedade_id=propriedade.id)
+    
+    if request.method == 'POST':
+        form = ClienteForm(request.POST)
+        if form.is_valid():
+            cliente = form.save(commit=False)
+            cliente.propriedade = propriedade
+            cliente.save()
+            messages.success(request, 'Cliente cadastrado com sucesso!')
+            return redirect('clientes_lista', propriedade_id=propriedade.id)
+    else:
+        form = ClienteForm()
+    
+    context = {
+        'propriedade': propriedade,
+        'form': form,
+        'form_type': 'novo'
+    }
+    return render(request, 'gestao_rural/cliente_form.html', context)
+
+
+@login_required
+def cliente_editar(request, propriedade_id, cliente_id):
+    """Editar cliente existente"""
+    propriedade = get_object_or_404(
+        Propriedade,
+        id=propriedade_id,
+        produtor__usuario_responsavel=request.user
+    )
+    
+    try:
+        from .models_cadastros import Cliente
+    except ImportError:
+        messages.error(request, 'Módulo de clientes não disponível.')
+        return redirect('propriedade_modulos', propriedade_id=propriedade.id)
+    
+    cliente = get_object_or_404(Cliente, id=cliente_id, propriedade=propriedade)
+    
+    if request.method == 'POST':
+        form = ClienteForm(request.POST, instance=cliente)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Cliente atualizado com sucesso!')
+            return redirect('clientes_lista', propriedade_id=propriedade.id)
+    else:
+        form = ClienteForm(instance=cliente)
+    
+    context = {
+        'propriedade': propriedade,
+        'cliente': cliente,
+        'form': form,
+        'form_type': 'editar'
+    }
+    return render(request, 'gestao_rural/cliente_form.html', context)
+
+
+@login_required
+def cliente_excluir(request, propriedade_id, cliente_id):
+    """Excluir cliente"""
+    propriedade = get_object_or_404(
+        Propriedade,
+        id=propriedade_id,
+        produtor__usuario_responsavel=request.user
+    )
+    
+    try:
+        from .models_cadastros import Cliente
+    except ImportError:
+        messages.error(request, 'Módulo de clientes não disponível.')
+        return redirect('propriedade_modulos', propriedade_id=propriedade.id)
+    
+    cliente = get_object_or_404(Cliente, id=cliente_id, propriedade=propriedade)
+    
+    if request.method == 'POST':
+        nome = cliente.nome
+        cliente.delete()
+        messages.success(request, f'Cliente "{nome}" excluído com sucesso!')
+        return redirect('clientes_lista', propriedade_id=propriedade.id)
+    
+    context = {
+        'propriedade': propriedade,
+        'cliente': cliente,
+    }
+    return render(request, 'gestao_rural/cliente_excluir.html', context)
 
 
 def obter_saldo_atual_propriedade(propriedade, data_referencia):
@@ -3522,7 +3854,7 @@ def projeto_bancario_editar(request, propriedade_id, projeto_id):
 @login_required
 def dividas_contratos(request, propriedade_id):
     """Lista todos os contratos de dívida de uma propriedade"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     contratos = ContratoDivida.objects.filter(propriedade=propriedade).order_by('-data_inicio')
 
@@ -3687,18 +4019,24 @@ def projeto_bancario_dashboard(request, propriedade_id):
 def propriedade_modulos(request, propriedade_id):
     """Exibe os módulos disponíveis para uma propriedade"""
     propriedade = get_object_or_404(Propriedade, id=propriedade_id, produtor__usuario_responsavel=request.user)
-    
+
+    # Buscar todas as propriedades do usuário para o seletor
+    todas_propriedades = Propriedade.objects.filter(
+        produtor__usuario_responsavel=request.user
+    ).select_related('produtor').order_by('nome_propriedade')
+
     total_animais = (
         InventarioRebanho.objects
         .filter(propriedade=propriedade)
         .aggregate(total=Sum('quantidade'))
         .get('total') or 0
     )
-    
+
     context = {
         'propriedade': propriedade,
+        'todas_propriedades': todas_propriedades,
         'total_animais': total_animais,
     }
-    
+
     return render(request, 'propriedade_modulos.html', context)
 

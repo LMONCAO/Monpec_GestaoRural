@@ -119,6 +119,12 @@
                         </div>
 
                         <div class="col-md-6">
+                            <label class="form-label">Cota Hilton</label>
+                            <input type="text" class="form-control" id="cota_hilton_display" readonly placeholder="Será calculado automaticamente">
+                            <small class="text-muted">Campo calculado automaticamente baseado na categoria e sexo do animal</small>
+                        </div>
+
+                        <div class="col-md-6">
                             <label class="form-label">Grupo / linha de produção</label>
                             <input type="text" name="grupo_producao" class="form-control" placeholder="Ex: Lote 2025, Núcleo Genético">
                         </div>
@@ -321,6 +327,65 @@
             })
             .catch(() => alert('Não foi possível sugerir o número do brinco automaticamente.'));
     });
+
+    // Função para calcular Cota Hilton baseado na categoria e sexo
+    function calcularCotaHilton() {
+        const categoriaSelect = document.querySelector('select[name="categoria"]');
+        const sexoSelect = document.querySelector('select[name="sexo"]');
+        const cotaHiltonDisplay = document.getElementById('cota_hilton_display');
+        
+        if (!categoriaSelect || !sexoSelect || !cotaHiltonDisplay) return;
+        
+        const categoriaTexto = categoriaSelect.options[categoriaSelect.selectedIndex]?.text || '';
+        const sexo = sexoSelect.value;
+        const nomeCategoria = categoriaTexto.toLowerCase();
+        
+        let cotaHilton = '';
+        
+        if (categoriaTexto && sexo) {
+            if (nomeCategoria.includes('bezerro') && sexo === 'M') {
+                cotaHilton = 'Bezerro';
+            } else if (nomeCategoria.includes('bezerra') || (nomeCategoria.includes('bezerro') && sexo === 'F')) {
+                cotaHilton = 'Bezerra';
+            } else if (nomeCategoria.includes('garrote')) {
+                cotaHilton = 'Garrote';
+            } else if (nomeCategoria.includes('novilha')) {
+                cotaHilton = 'Novilha';
+            } else if (nomeCategoria.includes('boi') && nomeCategoria.includes('magro')) {
+                cotaHilton = 'Boi Magro';
+            } else if (nomeCategoria.includes('boi')) {
+                cotaHilton = 'Boi';
+            } else if (nomeCategoria.includes('primípara') || nomeCategoria.includes('primipara')) {
+                cotaHilton = 'Primípara';
+            } else if (nomeCategoria.includes('multípara') || nomeCategoria.includes('multipara')) {
+                cotaHilton = 'Multípara';
+            } else if (nomeCategoria.includes('vaca') && nomeCategoria.includes('descarte')) {
+                cotaHilton = 'Vaca Descarte';
+            } else if (nomeCategoria.includes('touro')) {
+                cotaHilton = 'Touro';
+            } else if (nomeCategoria.includes('matriz')) {
+                cotaHilton = 'Matriz';
+            } else if (categoriaTexto) {
+                cotaHilton = categoriaTexto;
+            }
+        }
+        
+        cotaHiltonDisplay.value = cotaHilton || 'Será calculado automaticamente';
+    }
+    
+    // Adicionar listeners para atualizar quando categoria ou sexo mudarem
+    const categoriaSelect = document.querySelector('select[name="categoria"]');
+    const sexoSelect = document.querySelector('select[name="sexo"]');
+    
+    if (categoriaSelect) {
+        categoriaSelect.addEventListener('change', calcularCotaHilton);
+    }
+    if (sexoSelect) {
+        sexoSelect.addEventListener('change', calcularCotaHilton);
+    }
+    
+    // Calcular inicialmente
+    calcularCotaHilton();
 })();
 </script>
 {% endblock %}

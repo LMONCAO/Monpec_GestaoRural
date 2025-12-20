@@ -14,6 +14,7 @@ from django.db.models import Q, Sum
 from decimal import Decimal
 from datetime import date, datetime
 from .models import Propriedade
+from .decorators import obter_propriedade_com_permissao
 from .models_funcionarios import (
     Funcionario, FolhaPagamento, Holerite, PontoFuncionario,
     DescontoFuncionario, CalculadoraImpostos
@@ -23,7 +24,7 @@ from .models_funcionarios import (
 @login_required
 def funcionarios_dashboard(request, propriedade_id):
     """Dashboard de funcionários"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     funcionarios = Funcionario.objects.filter(propriedade=propriedade)
     funcionarios_ativos = funcionarios.filter(situacao='ATIVO')
@@ -53,7 +54,7 @@ def funcionarios_dashboard(request, propriedade_id):
 @login_required
 def funcionarios_lista(request, propriedade_id):
     """Lista de funcionários"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     funcionarios = Funcionario.objects.filter(propriedade=propriedade).order_by('nome')
     
     context = {
@@ -67,7 +68,7 @@ def funcionarios_lista(request, propriedade_id):
 @login_required
 def funcionario_novo(request, propriedade_id):
     """Cadastrar novo funcionário"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     if request.method == 'POST':
         funcionario = Funcionario(propriedade=propriedade)
@@ -116,7 +117,7 @@ def funcionario_novo(request, propriedade_id):
 @login_required
 def folha_pagamento_processar(request, propriedade_id):
     """Processar folha de pagamento"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     if request.method == 'POST':
         competencia = request.POST.get('competencia')  # Formato: MM/AAAA
@@ -248,7 +249,7 @@ def processar_holerite(funcionario, folha, competencia):
 @login_required
 def folha_pagamento_detalhes(request, propriedade_id, folha_id):
     """Detalhes da folha de pagamento"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     folha = get_object_or_404(FolhaPagamento, id=folha_id, propriedade=propriedade)
     
     holerites = Holerite.objects.filter(folha_pagamento=folha).order_by('funcionario__nome')
@@ -270,7 +271,7 @@ def holerite_pdf(request, propriedade_id, holerite_id):
     from reportlab.pdfgen import canvas
     from io import BytesIO
     
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     holerite = get_object_or_404(Holerite, id=holerite_id, folha_pagamento__propriedade=propriedade)
     
     buffer = BytesIO()

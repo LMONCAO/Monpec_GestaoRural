@@ -1,0 +1,118 @@
+{% extends "base_modulos_unificado.html" %}
+
+{% block title %}Detalhes da Folha de Pagamento - Sistema MONPEC{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">
+                        <i class="bi bi-file-earmark-text text-primary"></i>
+                        Folha de Pagamento - {{ folha.competencia }}
+                    </h2>
+                    <p class="text-muted mb-0">Detalhes da folha de pagamento processada</p>
+                </div>
+                <a href="{% url 'funcionarios_dashboard' propriedade.id %}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Voltar
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resumo da Folha -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card shadow-sm">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">Competência</h6>
+                    <h4>{{ folha.competencia }}</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">Total Proventos</h6>
+                    <h4 class="text-success">R$ {{ folha.total_proventos|floatformat:2 }}</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">Total Descontos</h6>
+                    <h4 class="text-danger">R$ {{ folha.total_descontos|floatformat:2 }}</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">Total Líquido</h6>
+                    <h4 class="text-primary">R$ {{ folha.total_liquido|floatformat:2 }}</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Holerites -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-people"></i>
+                        Holerites ({{ holerites|length }})
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if holerites %}
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Funcionário</th>
+                                    <th>CPF</th>
+                                    <th>Cargo</th>
+                                    <th>Proventos</th>
+                                    <th>Descontos</th>
+                                    <th>Líquido</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for holerite in holerites %}
+                                <tr>
+                                    <td>{{ holerite.funcionario.nome }}</td>
+                                    <td>{{ holerite.funcionario.cpf }}</td>
+                                    <td>{{ holerite.funcionario.cargo }}</td>
+                                    <td class="text-success">R$ {{ holerite.total_proventos|floatformat:2 }}</td>
+                                    <td class="text-danger">R$ {{ holerite.total_descontos|floatformat:2 }}</td>
+                                    <td class="text-primary"><strong>R$ {{ holerite.total_liquido|floatformat:2 }}</strong></td>
+                                    <td>
+                                        <a href="{% url 'holerite_pdf' propriedade.id holerite.id %}" 
+                                           class="btn btn-sm btn-outline-primary" target="_blank">
+                                            <i class="bi bi-file-pdf"></i> PDF
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i>
+                        Nenhum holerite encontrado para esta folha.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
