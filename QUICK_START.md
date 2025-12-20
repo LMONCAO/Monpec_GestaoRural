@@ -150,6 +150,7 @@ Para acessar de outros dispositivos na mesma rede:
 
 
 
+<<<<<<< HEAD
 
 
 
@@ -161,3 +162,5 @@ Para acessar de outros dispositivos na mesma rede:
 
 
 
+=======
+>>>>>>> 82f662d03a852eab216d20cd9d12193f5dbd2881

@@ -136,3 +136,5 @@ python manage.py migrate --run-syncdb
 - Use métodos seguros de transferência
 - Mantenha backups regulares
 
+
+
