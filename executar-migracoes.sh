@@ -73,3 +73,4 @@ gcloud run jobs execute migrate-monpec --region=us-central1 --wait
 echo ""
 echo -e "${GREEN}Migrações executadas com sucesso!${NC}"
 
+

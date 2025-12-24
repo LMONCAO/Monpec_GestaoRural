@@ -103,3 +103,4 @@ gcloud run services logs read monpec --region us-central1 --limit 100 | grep -i 
 **Configure o DNS do www.monpec.com.br** e **as variáveis de ambiente** para o sistema funcionar completamente!
 
 
+

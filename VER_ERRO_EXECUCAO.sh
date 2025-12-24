@@ -42,3 +42,4 @@ gcloud run jobs describe $JOB_NAME --region $REGION --format="value(spec.templat
 echo ""
 
 
+

@@ -61,3 +61,4 @@ gcloud run services update monpec \
 echo ""
 echo -e "${GREEN}Variáveis configuradas com sucesso!${NC}"
 
+

@@ -257,3 +257,4 @@ class ConfiguracaoMarketing(models.Model):
         return config
 
 
+

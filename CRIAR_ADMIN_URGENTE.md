@@ -124,3 +124,4 @@ gcloud logging read "resource.type=cloud_run_job AND resource.labels.job_name=mo
 
 
 
+

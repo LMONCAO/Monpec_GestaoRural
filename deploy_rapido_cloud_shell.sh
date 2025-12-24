@@ -47,3 +47,4 @@ echo "   gcloud run jobs create migrate-monpec --image gcr.io/$PROJECT_ID/monpec
 echo ""
 
 
+

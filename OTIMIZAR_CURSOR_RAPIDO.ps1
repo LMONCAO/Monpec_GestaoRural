@@ -69,3 +69,4 @@ Write-Host "Se o Cursor ainda estiver lento, tente reiniciá-lo." -ForegroundCol
 
 
 
+

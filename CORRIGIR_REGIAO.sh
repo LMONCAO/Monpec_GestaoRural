@@ -41,3 +41,4 @@ echo "gcloud run jobs execute migrate-monpec --region $REGION_CORRETO"
 echo ""
 
 
+

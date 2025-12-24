@@ -18,3 +18,4 @@ echo "Fazendo build..."
 gcloud builds submit --tag gcr.io/monpec-sistema-rural/monpec:latest
 
 
+

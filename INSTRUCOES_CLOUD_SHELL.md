@@ -134,3 +134,4 @@ gcloud logging read "resource.type=cloud_run_job" --limit 20 --format="table(tim
 
 
 
+

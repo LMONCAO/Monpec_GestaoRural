@@ -47,3 +47,4 @@ echo "2. Configure os registros DNS no seu provedor de domínio"
 echo ""
 
 
+

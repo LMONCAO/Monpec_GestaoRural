@@ -42,3 +42,4 @@ echo "  - O Cloud SQL está acessível?"
 echo ""
 
 
+

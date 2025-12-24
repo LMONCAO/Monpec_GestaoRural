@@ -69,3 +69,4 @@ echo "  gcloud run services logs read $SERVICE_NAME --region $REGION --limit 20"
 echo ""
 
 
+

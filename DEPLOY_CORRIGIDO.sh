@@ -92,3 +92,4 @@ gcloud run services describe $SERVICE_NAME --region $REGION --format="value(stat
 echo ""
 
 
+

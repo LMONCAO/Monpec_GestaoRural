@@ -354,3 +354,4 @@ E) 📈 Falta de projeções e planejamento
     return criados
 
 
+

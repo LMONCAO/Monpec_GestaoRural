@@ -287,3 +287,4 @@ Você pode adicionar variáveis personalizadas nas configurações!
 Siga os próximos passos acima para ativar e começar a usar!
 
 
+

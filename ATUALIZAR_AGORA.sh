@@ -92,3 +92,4 @@ echo "   gcloud run services logs read $SERVICE_NAME --region $REGION --limit 50
 echo ""
 
 
+

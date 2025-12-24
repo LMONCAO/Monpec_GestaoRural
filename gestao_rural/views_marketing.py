@@ -562,3 +562,4 @@ def configuracao_marketing(request):
     return render(request, 'gestao_rural/marketing/configuracao.html', context)
 
 
+

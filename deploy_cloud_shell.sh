@@ -59,3 +59,4 @@ echo "Acesse o console: https://console.cloud.google.com/run/detail/us-central1/
 echo ""
 
 
+

@@ -36,3 +36,4 @@ echo "Variáveis de ambiente configuradas com sucesso!"
 echo ""
 
 
+

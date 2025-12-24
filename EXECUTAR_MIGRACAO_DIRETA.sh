@@ -39,3 +39,4 @@ echo "   ./VER_LOGS_ERRO.sh"
 echo ""
 
 
+
