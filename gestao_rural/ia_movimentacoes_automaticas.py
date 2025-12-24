@@ -8,7 +8,7 @@ from decimal import Decimal
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Tuple
 from collections import defaultdict
-from .models import MovimentacaoProjetada, CategoriaAnimal, InventarioRebanho
+from .models import MovimentacaoProjetada, CategoriaAnimal, InventarioRebanho, Propriedade
 from .ia_identificacao_fazendas import SistemaIdentificacaoFazendas, PerfilFazenda
 
 class SistemaMovimentacoesAutomaticas:
@@ -125,6 +125,35 @@ class SistemaMovimentacoesAutomaticas:
                 vendas = self._gerar_vendas_automaticas(propriedade, data_referencia, saldo_pos_evolucao, perfil, identificacao['estrategias'], nascimentos_ano, ano_atual, saldos_iniciais_ano)
                 movimentacoes.extend(vendas)
                 
+                # 6.1. VENDAS CONFIGURADAS (quantidade fixa, ex: 100 cabeças a cada 60 dias)
+                # Processar vendas configuradas com proteção contra saldo negativo
+                try:
+                    from gestao_rural.views import processar_vendas_configuradas
+                    # Calcular saldo atual após vendas automáticas
+                    saldo_apos_vendas_auto = self._calcular_saldo_final(saldo_pos_evolucao, [], [], vendas, [], [], [])
+                    # Converter saldo para formato esperado (Dict[CategoriaAnimal, int])
+                    saldo_para_vendas = {}
+                    for categoria_nome, quantidade in saldo_apos_vendas_auto.items():
+                        try:
+                            categoria_obj = CategoriaAnimal.objects.get(nome=categoria_nome)
+                            saldo_para_vendas[categoria_obj] = quantidade
+                        except CategoriaAnimal.DoesNotExist:
+                            pass
+                    # Processar vendas configuradas
+                    vendas_configuradas = processar_vendas_configuradas(propriedade, data_referencia, saldo_para_vendas)
+                    # As vendas já foram salvas no banco pela função, apenas adicionar à lista
+                    for venda_info in vendas_configuradas:
+                        venda_obj = MovimentacaoProjetada.objects.filter(
+                            propriedade=propriedade,
+                            data_movimentacao=data_referencia,
+                            tipo_movimentacao='VENDA',
+                            categoria=venda_info['categoria']
+                        ).order_by('-id').first()
+                        if venda_obj:
+                            movimentacoes.append(venda_obj)
+                except Exception as e:
+                    print(f"    [AVISO] Erro ao processar vendas configuradas: {e}")
+                
                 # 7. COMPRAS (baseado no perfil)
                 compras = self._gerar_compras_automaticas(propriedade, data_referencia, saldo_pos_evolucao, perfil, identificacao['estrategias'])
                 movimentacoes.extend(compras)
@@ -137,6 +166,37 @@ class SistemaMovimentacoesAutomaticas:
                     # Passar saldo após promoções para verificar saldo real disponível
                     transferencias = self._gerar_transferencias_automaticas(propriedade, data_referencia, saldo_pos_evolucao, perfil, ano_atual)
                 movimentacoes.extend(transferencias)
+                
+                # 8.1. TRANSFERÊNCIAS CONFIGURADAS (entre propriedades específicas)
+                # Processar transferências configuradas para propriedades de destino
+                try:
+                    from gestao_rural.views import processar_transferencias_configuradas
+                    # Buscar todas as propriedades do mesmo produtor
+                    propriedades_destino = Propriedade.objects.filter(produtor=propriedade.produtor).exclude(id=propriedade.id)
+                    for propriedade_destino in propriedades_destino:
+                        transferencias_config = processar_transferencias_configuradas(propriedade_destino, data_referencia)
+                        # As transferências já foram salvas no banco pela função
+                        for transf_info in transferencias_config:
+                            if transf_info.get('tipo') == 'TRANSFERENCIA':
+                                # Buscar movimentações de transferência criadas
+                                mov_saida = MovimentacaoProjetada.objects.filter(
+                                    propriedade=transf_info['origem'],
+                                    data_movimentacao=data_referencia,
+                                    tipo_movimentacao='TRANSFERENCIA_SAIDA',
+                                    categoria=transf_info['categoria']
+                                ).order_by('-id').first()
+                                mov_entrada = MovimentacaoProjetada.objects.filter(
+                                    propriedade=propriedade_destino,
+                                    data_movimentacao=data_referencia,
+                                    tipo_movimentacao='TRANSFERENCIA_ENTRADA',
+                                    categoria=transf_info['categoria']
+                                ).order_by('-id').first()
+                                if mov_saida:
+                                    movimentacoes.append(mov_saida)
+                                if mov_entrada:
+                                    movimentacoes.append(mov_entrada)
+                except Exception as e:
+                    print(f"    [AVISO] Erro ao processar transferências configuradas: {e}")
                 
                 # 9. CALCULAR SALDO FINAL APÓS TODAS AS MOVIMENTAÇÕES
                 saldo_final = self._calcular_saldo_final(saldo_pos_evolucao, [], [], vendas, compras, transferencias, [])

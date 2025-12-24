@@ -1,0 +1,78 @@
+{% extends "base_modulos_unificado.html" %}
+
+{% block title %}Anexo IV - Cadastro de Produtor Rural - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-user"></i> ANEXO IV - CADASTRO DE PRODUTOR RURAL
+                    </h4>
+                    <small>Conforme Instrução Normativa MAPA nº 17/2006</small>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <p><strong>Propriedade:</strong> {{ propriedade.nome_propriedade }}</p>
+                            <p><strong>Município:</strong> {{ propriedade.municipio }} - {{ propriedade.uf }}</p>
+                        </div>
+                        <div class="col-md-6 text-right">
+                            <p><strong>Data de Emissão:</strong> {{ data_emissao|date:"d/m/Y" }}</p>
+                        </div>
+                    </div>
+
+                    {% if produtor %}
+                    <div class="card">
+                        <div class="card-body">
+                            <h5>Dados do Produtor Rural</h5>
+                            <p><strong>Nome:</strong> {{ produtor.nome|default:"—" }}</p>
+                            <p><strong>CPF/CNPJ:</strong> {{ produtor.cpf_cnpj|default:"—" }}</p>
+                            <p><strong>RG:</strong> {{ produtor.rg|default:"—" }}</p>
+                            <p><strong>Endereço:</strong> {{ produtor.endereco|default:"—" }}</p>
+                            <p><strong>Telefone:</strong> {{ produtor.telefone|default:"—" }}</p>
+                            <p><strong>Email:</strong> {{ produtor.email|default:"—" }}</p>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-warning">
+                        Produtor rural não cadastrado no sistema.
+                    </div>
+                    {% endif %}
+
+                    <div class="mt-4 text-center">
+                        <a href="{% url 'relatorio_sisbov_anexo_iv_pdf' propriedade.id %}" class="btn btn-danger">
+                            <i class="fas fa-file-pdf"></i> Exportar PDF
+                        </a>
+                        <a href="{% url 'relatorios_sisbov_menu' propriedade.id %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Voltar
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -470,6 +470,10 @@ def curral_painel(request, propriedade_id):
     O layout está DEFINITIVO - melhorias apenas em modais e programação
     """
     propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
+    
+    # Se for usuário demo, redirecionar para página informativa
+    if request.user.username in ['demo_monpec', 'demo']:
+        return redirect('curral_info_demo', propriedade_id=propriedade_id)
 
     catalogo_manejos = _montar_catalogo_manejos(propriedade)
     protocolos_iatf = []
@@ -693,6 +697,10 @@ def curral_dashboard_v3(request, propriedade_id):
     O layout está DEFINITIVO - melhorias apenas em modais e programação
     """
     propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
+    
+    # Se for usuário demo, redirecionar para página informativa
+    if request.user.username in ['demo_monpec', 'demo']:
+        return redirect('curral_info_demo', propriedade_id=propriedade_id)
 
     # Buscar sessão ativa
     sessao_ativa = (
@@ -788,6 +796,10 @@ def curral_dashboard_v4(request, propriedade_id):
     O layout está DEFINITIVO - melhorias apenas em modais e programação
     """
     propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
+
+    # Se for usuário demo, redirecionar para página informativa
+    if request.user.username in ['demo_monpec', 'demo']:
+        return redirect('curral_info_demo', propriedade_id=propriedade_id)
 
     # Buscar sessão ativa
     sessao_ativa = (
@@ -986,708 +998,732 @@ def _avaliar_situacao_bnd(consta_bnd: bool, presente_no_sistema: bool) -> str:
 @login_required
 def curral_identificar_codigo(request, propriedade_id):
     """Verifica se o código pertence a um animal existente ou ao estoque de brincos."""
-
-    # Aceita tanto GET quanto POST
-    if request.method not in ['GET', 'POST']:
-        return JsonResponse({'status': 'erro', 'mensagem': 'Método não permitido.'}, status=405)
-
-    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
-    # Aceita código tanto de GET quanto de POST
-    animal_id_especifico = None
-    if request.method == 'POST':
-        try:
-            import json
-            data = json.loads(request.body)
-            codigo_bruto = data.get('codigo', '').strip()
-            animal_id_especifico = data.get('animal_id')  # ID específico quando selecionado no modal
-        except (json.JSONDecodeError, AttributeError):
-            codigo_bruto = request.POST.get('codigo', '').strip()
+    try:
+        # Aceita tanto GET quanto POST
+        if request.method not in ['GET', 'POST']:
+            return JsonResponse({'status': 'erro', 'mensagem': 'Método não permitido.'}, status=405)
+
+        propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+        
+        # Aceita código tanto de GET quanto de POST
+        animal_id_especifico = None
+        codigo_bruto = ''
+        if request.method == 'POST':
             try:
-                animal_id_especifico = int(request.POST.get('animal_id', 0)) or None
+                import json
+                data = json.loads(request.body)
+                codigo_bruto = data.get('codigo', '').strip()
+                animal_id_especifico = data.get('animal_id')  # ID específico quando selecionado no modal
+            except (json.JSONDecodeError, AttributeError):
+                codigo_bruto = request.POST.get('codigo', '').strip()
+                try:
+                    animal_id_especifico = int(request.POST.get('animal_id', 0)) or None
+                except (ValueError, TypeError):
+                    animal_id_especifico = None
+        else:
+            codigo_bruto = request.GET.get('codigo', '').strip()
+            try:
+                animal_id_especifico = int(request.GET.get('animal_id', 0)) or None
             except (ValueError, TypeError):
                 animal_id_especifico = None
-    else:
-        codigo_bruto = request.GET.get('codigo', '').strip()
-        try:
-            animal_id_especifico = int(request.GET.get('animal_id', 0)) or None
-        except (ValueError, TypeError):
-            animal_id_especifico = None
-    
-    # Se foi fornecido um animal_id específico, buscar diretamente e pular a busca
-    animal = None
-    if animal_id_especifico:
-        animal = AnimalIndividual.objects.filter(
-            id=animal_id_especifico,
-            propriedade=propriedade
-        ).select_related('categoria', 'propriedade__produtor').first()
         
-        if not animal:
+        # Se foi fornecido um animal_id específico, buscar diretamente e pular a busca
+        animal = None
+        if animal_id_especifico:
+            animal = AnimalIndividual.objects.filter(
+                id=animal_id_especifico,
+                propriedade=propriedade
+            ).select_related('categoria', 'propriedade__produtor').first()
+            
+            if not animal:
+                return JsonResponse(
+                    {'status': 'erro', 'mensagem': 'Animal não encontrado.'},
+                    status=404,
+                )
+        
+        if not codigo_bruto and not animal_id_especifico:
             return JsonResponse(
-                {'status': 'erro', 'mensagem': 'Animal não encontrado.'},
-                status=404,
+                {'status': 'erro', 'mensagem': 'Informe o código do brinco/SISBOV.'},
+                status=400,
             )
-    
-    if not codigo_bruto and not animal_id_especifico:
-        return JsonResponse(
-            {'status': 'erro', 'mensagem': 'Informe o código do brinco/SISBOV.'},
-            status=400,
-        )
-    
-    codigo = _normalizar_codigo(codigo_bruto) if codigo_bruto else ''
-    parece_sisbov = len(codigo) == 15
+        
+        codigo = _normalizar_codigo(codigo_bruto) if codigo_bruto else ''
+        parece_sisbov = len(codigo) == 15
 
-    if not codigo or len(codigo) < 3:
-        return JsonResponse(
-            {'status': 'erro', 'mensagem': 'Código muito curto. Digite pelo menos 3 caracteres.'},
-            status=400,
-        )
+        if not codigo or len(codigo) < 3:
+            return JsonResponse(
+                {'status': 'erro', 'mensagem': 'Código muito curto. Digite pelo menos 3 caracteres.'},
+                status=400,
+            )
 
-    # Filtros para busca de animais - mais abrangente
-    # Busca por: número de manejo, SISBOV, RFID (código eletrônico) e número do brinco
-    filtros_animais = (
-        Q(codigo_sisbov=codigo) | 
-        Q(numero_brinco=codigo) | 
-        Q(codigo_eletronico=codigo) |
-        Q(numero_manejo=codigo)
-    )
-    
-    # Para códigos de 6 dígitos (número de manejo típico), busca EXATA e PRECISA
-    if len(codigo) == 6:
-        # PRIORIDADE 1: Busca exata no campo numero_manejo (MAIS PRECISO)
-        filtros_animais |= Q(numero_manejo=codigo)
-        # PRIORIDADE 2: Busca EXATA nas posições 8-13 do SISBOV (15 dígitos)
-        # Regex: 8 dígitos iniciais (posições 0-7) + código de 6 dígitos (posições 8-13) + 1 dígito verificador (posição 14)
-        filtros_animais |= Q(codigo_sisbov__regex=rf'^\d{{8}}{re.escape(codigo)}\d$')
-        # PRIORIDADE 3: Busca nos últimos 6 dígitos do numero_brinco (apenas se terminar exatamente)
-        filtros_animais |= Q(numero_brinco__endswith=codigo)
-        # NÃO usa __contains para evitar falsos positivos
-    
-    # Para códigos de 7 dígitos (também pode ser número de manejo)
-    if len(codigo) == 7:
-        # PRIORIDADE 1: Busca exata no campo numero_manejo
-        filtros_animais |= Q(numero_manejo=codigo)
-        # PRIORIDADE 2: Busca nos últimos 7 dígitos do SISBOV
-        filtros_animais |= Q(codigo_sisbov__endswith=codigo)
-        # PRIORIDADE 3: Busca nos últimos 7 dígitos do numero_brinco
-        filtros_animais |= Q(numero_brinco__endswith=codigo)
-        # NÃO usa __contains para evitar falsos positivos
-    
-    # Para códigos de 6-7 dígitos, busca exata no número de manejo já foi feita acima
-    # Não adiciona busca por substring para códigos de 6-7 dígitos para evitar falsos positivos
-    
-    # Para códigos SISBOV completos (15 dígitos), também busca pelos últimos dígitos
-    if len(codigo) == 15:
-        codigo_final = codigo[-7:]  # Últimos 7 dígitos
-        codigo_manejo = codigo[8:14]  # Posições 8-13 (6 dígitos do número de manejo)
-        filtros_animais |= (
-            Q(codigo_sisbov__endswith=codigo_final) |
-            Q(numero_brinco__endswith=codigo_final) |
-            Q(numero_manejo=codigo_final) |
-            Q(numero_manejo=codigo_manejo)  # Também busca pelos 6 dígitos do manejo
+        # Filtros para busca de animais - mais abrangente
+        # Busca por: número de manejo, SISBOV, RFID (código eletrônico) e número do brinco
+        filtros_animais = (
+            Q(codigo_sisbov=codigo) | 
+            Q(numero_brinco=codigo) | 
+            Q(codigo_eletronico=codigo) |
+            Q(numero_manejo=codigo)
         )
-    
-    # Filtros para busca no estoque de brincos - mais abrangente
-    filtros_brinco = Q(numero_brinco=codigo) | Q(codigo_rfid=codigo)
-    
-    # Para códigos SISBOV completos (15 dígitos), também busca no número do brinco
-    if len(codigo) == 15:
-        filtros_brinco |= Q(numero_brinco=codigo)
-        # Também tenta buscar por código parcial (últimos dígitos)
-        if len(codigo) >= 7:
-            codigo_parcial = codigo[-7:]
-            filtros_brinco |= Q(numero_brinco__endswith=codigo_parcial)
-    
-    # Para códigos de 7 dígitos, busca com regex e também busca parcial
-    if len(codigo) == 7:
-        filtros_animais |= Q(codigo_sisbov__regex=rf'{codigo}\d$') | Q(numero_brinco__regex=rf'{codigo}\d$')
-        filtros_brinco |= Q(numero_brinco__regex=rf'{codigo}\d$') | Q(numero_brinco__endswith=codigo)
-    
-    # Para qualquer código, também tenta buscar como substring no número do brinco
-    if len(codigo) >= 6:
-        filtros_brinco |= Q(numero_brinco__contains=codigo)
+        
+        # Para códigos de 6 dígitos (número de manejo típico), busca EXATA e PRECISA
+        if len(codigo) == 6:
+            # PRIORIDADE 1: Busca exata no campo numero_manejo (MAIS PRECISO)
+            filtros_animais |= Q(numero_manejo=codigo)
+            # PRIORIDADE 2: Busca EXATA nas posições 8-13 do SISBOV (15 dígitos)
+            # Regex: 8 dígitos iniciais (posições 0-7) + código de 6 dígitos (posições 8-13) + 1 dígito verificador (posição 14)
+            filtros_animais |= Q(codigo_sisbov__regex=rf'^\d{{8}}{re.escape(codigo)}\d$')
+            # PRIORIDADE 3: Busca nos últimos 6 dígitos do numero_brinco (apenas se terminar exatamente)
+            filtros_animais |= Q(numero_brinco__endswith=codigo)
+            # NÃO usa __contains para evitar falsos positivos
+        
+        # Para códigos de 7 dígitos (também pode ser número de manejo)
+        if len(codigo) == 7:
+            # PRIORIDADE 1: Busca exata no campo numero_manejo
+            filtros_animais |= Q(numero_manejo=codigo)
+            # PRIORIDADE 2: Busca nos últimos 7 dígitos do SISBOV
+            filtros_animais |= Q(codigo_sisbov__endswith=codigo)
+            # PRIORIDADE 3: Busca nos últimos 7 dígitos do numero_brinco
+            filtros_animais |= Q(numero_brinco__endswith=codigo)
+            # NÃO usa __contains para evitar falsos positivos
+        
+        # Para códigos de 6-7 dígitos, busca exata no número de manejo já foi feita acima
+        # Não adiciona busca por substring para códigos de 6-7 dígitos para evitar falsos positivos
+        
+        # Para códigos SISBOV completos (15 dígitos), também busca pelos últimos dígitos
+        if len(codigo) == 15:
+            codigo_final = codigo[-7:]  # Últimos 7 dígitos
+            codigo_manejo = codigo[8:14]  # Posições 8-13 (6 dígitos do número de manejo)
+            filtros_animais |= (
+                Q(codigo_sisbov__endswith=codigo_final) |
+                Q(numero_brinco__endswith=codigo_final) |
+                Q(numero_manejo=codigo_final) |
+                Q(numero_manejo=codigo_manejo)  # Também busca pelos 6 dígitos do manejo
+            )
+        
+        # Filtros para busca no estoque de brincos - mais abrangente
+        filtros_brinco = Q(numero_brinco=codigo) | Q(codigo_rfid=codigo)
+        
+        # Para códigos SISBOV completos (15 dígitos), também busca no número do brinco
+        if len(codigo) == 15:
+            filtros_brinco |= Q(numero_brinco=codigo)
+            # Também tenta buscar por código parcial (últimos dígitos)
+            if len(codigo) >= 7:
+                codigo_parcial = codigo[-7:]
+                filtros_brinco |= Q(numero_brinco__endswith=codigo_parcial)
+        
+        # Para códigos de 7 dígitos, busca com regex e também busca parcial
+        if len(codigo) == 7:
+            filtros_animais |= Q(codigo_sisbov__regex=rf'{codigo}\d$') | Q(numero_brinco__regex=rf'{codigo}\d$')
+            filtros_brinco |= Q(numero_brinco__regex=rf'{codigo}\d$') | Q(numero_brinco__endswith=codigo)
+        
+        # Para qualquer código, também tenta buscar como substring no número do brinco
+        if len(codigo) >= 6:
+            filtros_brinco |= Q(numero_brinco__contains=codigo)
 
-    # NOVA LÓGICA: Buscar TODOS os animais que correspondem (para detectar duplicidades)
-    # Se buscar por SISBOV completo, retorna direto
-    # Se buscar por manejo ou RFID, coleta TODOS e verifica duplicidade
-    # Se animal_id foi fornecido, já temos o animal e pulamos a busca
-    
-    animais_encontrados = []
-    busca_por_sisbov = len(codigo) == 15
-    
-    # Se já temos o animal (fornecido por animal_id), pular busca
-    if not animal:
-        # Busca direta por SISBOV (código completo de 15 dígitos)
-        # IMPORTANTE: Para SISBOV completo, buscar em codigo_sisbov e numero_brinco (normalizado)
-        if busca_por_sisbov:
-            # PRIORIDADE 1: Busca EXATA por codigo_sisbov e numero_brinco
-            # Também tenta busca que contém o código (para casos com formatação)
-            animal = (
-                AnimalIndividual.objects.filter(
-                    propriedade=propriedade
-                ).filter(
+        # NOVA LÓGICA: Buscar TODOS os animais que correspondem (para detectar duplicidades)
+        # Se buscar por SISBOV completo, retorna direto
+        # Se buscar por manejo ou RFID, coleta TODOS e verifica duplicidade
+        # Se animal_id foi fornecido, já temos o animal e pulamos a busca
+        
+        animais_encontrados = []
+        busca_por_sisbov = len(codigo) == 15
+        
+        # Se já temos o animal (fornecido por animal_id), pular busca
+        if not animal:
+            # PRIMEIRO: Tentar busca direta simples (mais rápida e confiável)
+            animal_direto = (
+                AnimalIndividual.objects.filter(propriedade=propriedade)
+                .filter(
                     Q(codigo_sisbov=codigo) | 
-                    Q(numero_brinco=codigo) |
-                    Q(codigo_sisbov__icontains=codigo) |
-                    Q(numero_brinco__icontains=codigo)
+                    Q(numero_brinco=codigo) | 
+                    Q(codigo_eletronico=codigo) |
+                    Q(numero_manejo=codigo)
                 )
                 .select_related('categoria', 'propriedade__produtor')
                 .first()
             )
-            
-            # Se não encontrou com busca exata, tenta busca normalizada em TODOS os animais
-            # Isso é necessário porque o código pode estar salvo com formatação diferente (espaços, traços, etc.)
-            if not animal:
-                animais_candidatos = (
-                    AnimalIndividual.objects.filter(propriedade=propriedade)
+            if animal_direto:
+                animal = animal_direto
+                animais_encontrados = [animal]
+            # Busca direta por SISBOV (código completo de 15 dígitos)
+            # IMPORTANTE: Para SISBOV completo, buscar em codigo_sisbov e numero_brinco (normalizado)
+            if busca_por_sisbov:
+                # PRIORIDADE 1: Busca EXATA por codigo_sisbov e numero_brinco
+                # Também tenta busca que contém o código (para casos com formatação)
+                animal = (
+                    AnimalIndividual.objects.filter(
+                        propriedade=propriedade
+                    ).filter(
+                        Q(codigo_sisbov=codigo) | 
+                        Q(numero_brinco=codigo) |
+                        Q(codigo_sisbov__icontains=codigo) |
+                        Q(numero_brinco__icontains=codigo)
+                    )
                     .select_related('categoria', 'propriedade__produtor')
+                    .first()
                 )
                 
-                for animal_candidato in animais_candidatos:
-                    # Normaliza e compara codigo_sisbov
-                    sisbov_normalizado = _normalizar_codigo(str(animal_candidato.codigo_sisbov or ''))
-                    if sisbov_normalizado == codigo and len(sisbov_normalizado) == 15:
-                        animal = animal_candidato
-                        break
+                # Se não encontrou com busca exata, tenta busca normalizada em TODOS os animais
+                # Isso é necessário porque o código pode estar salvo com formatação diferente (espaços, traços, etc.)
+                if not animal:
+                    animais_candidatos = (
+                        AnimalIndividual.objects.filter(propriedade=propriedade)
+                        .select_related('categoria', 'propriedade__produtor')
+                    )
                     
-                    # Se não encontrou, tenta normalizar numero_brinco também
-                    if not animal:
-                        brinco_normalizado = _normalizar_codigo(str(animal_candidato.numero_brinco or ''))
-                        if brinco_normalizado == codigo and len(brinco_normalizado) == 15:
+                    for animal_candidato in animais_candidatos:
+                        # Normaliza e compara codigo_sisbov
+                        sisbov_normalizado = _normalizar_codigo(str(animal_candidato.codigo_sisbov or ''))
+                        if sisbov_normalizado == codigo and len(sisbov_normalizado) == 15:
                             animal = animal_candidato
                             break
+                        
+                        # Se não encontrou, tenta normalizar numero_brinco também
+                        if not animal:
+                            brinco_normalizado = _normalizar_codigo(str(animal_candidato.numero_brinco or ''))
+                            if brinco_normalizado == codigo and len(brinco_normalizado) == 15:
+                                animal = animal_candidato
+                                break
+                
+                    # Se encontrou por SISBOV, retorna direto (SISBOV é único)
+                    if animal:
+                        animais_encontrados = [animal]
+            else:
+                # Busca por manejo ou RFID - coleta TODOS os animais que correspondem
+                # Primeiro tenta com filtros diretos
+                animais_diretos = list(
+                    AnimalIndividual.objects.filter(propriedade=propriedade)
+                    .filter(filtros_animais)
+                    .select_related('categoria', 'propriedade__produtor')
+                )
             
-                # Se encontrou por SISBOV, retorna direto (SISBOV é único)
-                if animal:
-                    animais_encontrados = [animal]
-        else:
-            # Busca por manejo ou RFID - coleta TODOS os animais que correspondem
-            # Primeiro tenta com filtros diretos
-            animais_diretos = list(
-                AnimalIndividual.objects.filter(propriedade=propriedade)
-                .filter(filtros_animais)
-                .select_related('categoria', 'propriedade__produtor')
+                # Depois tenta busca normalizada em Python
+                if len(codigo) >= 6:
+                    animais_candidatos = (
+                        AnimalIndividual.objects.filter(propriedade=propriedade)
+                        .select_related('categoria', 'propriedade__produtor')
+                    )
+                    
+                    for animal_candidato in animais_candidatos:
+                        # Pula se já está na lista
+                        if animal_candidato in animais_diretos:
+                            continue
+                            
+                        sisbov_normalizado = _normalizar_codigo(animal_candidato.codigo_sisbov or '')
+                        brinco_normalizado = _normalizar_codigo(animal_candidato.numero_brinco or '')
+                        eletronico_normalizado = _normalizar_codigo(animal_candidato.codigo_eletronico or '')
+                        manejo_normalizado = _normalizar_codigo(animal_candidato.numero_manejo or '')
+                        
+                        # Se não tem numero_manejo salvo, tenta extrair do SISBOV
+                        if not manejo_normalizado:
+                            if sisbov_normalizado:
+                                manejo_normalizado = _extrair_numero_manejo(sisbov_normalizado)
+                            elif brinco_normalizado and len(brinco_normalizado) >= 6:
+                                manejo_normalizado = brinco_normalizado[-6:] if len(brinco_normalizado) >= 6 else brinco_normalizado[-7:]
+                        
+                        corresponde = False
+                        
+                        # PRIORIDADE 1: Verifica correspondência por código eletrônico (RFID) - EXATA
+                        if eletronico_normalizado == codigo:
+                            corresponde = True
+                        # PRIORIDADE 2: Verifica correspondência por número de manejo - EXATA
+                        elif manejo_normalizado == codigo:
+                            corresponde = True
+                        # PRIORIDADE 3: Para códigos de 6 dígitos, verifica nas posições corretas do SISBOV
+                        elif len(codigo) == 6:
+                            # Verifica se o número de manejo está nas posições 8-13 do SISBOV (15 dígitos)
+                            if sisbov_normalizado and len(sisbov_normalizado) == 15:
+                                manejo_extraido = sisbov_normalizado[8:14]  # Posições 8-13 (6 dígitos)
+                                if manejo_extraido == codigo:
+                                    corresponde = True
+                            # Verifica se o número de manejo está no final do brinco (últimos 6 dígitos) - EXATA
+                            elif brinco_normalizado and len(brinco_normalizado) >= 6:
+                                if brinco_normalizado[-6:] == codigo:
+                                    corresponde = True
+                        # PRIORIDADE 4: Para códigos de 7 dígitos, verifica no final do SISBOV
+                        elif len(codigo) == 7:
+                            if sisbov_normalizado and sisbov_normalizado.endswith(codigo):
+                                corresponde = True
+                            elif brinco_normalizado and brinco_normalizado.endswith(codigo):
+                                corresponde = True
+                        
+                        if corresponde:
+                            animais_diretos.append(animal_candidato)
+            
+                    # Remove duplicatas mantendo ordem
+                    animais_encontrados = []
+                    ids_vistos = set()
+                    for animal_candidato in animais_diretos:
+                        if animal_candidato.id not in ids_vistos:
+                            animais_encontrados.append(animal_candidato)
+                            ids_vistos.add(animal_candidato.id)
+        
+        # Verificar se encontrou animais
+        if not animal:
+            if len(animais_encontrados) == 0:
+                animal = None
+                # DEBUG: Tentar busca direta como fallback
+                animal_fallback = (
+                    AnimalIndividual.objects.filter(propriedade=propriedade)
+                    .filter(
+                        Q(codigo_sisbov=codigo) | 
+                        Q(numero_brinco=codigo) | 
+                        Q(codigo_eletronico=codigo) |
+                        Q(numero_manejo=codigo)
+                    )
+                    .select_related('categoria', 'propriedade__produtor')
+                    .first()
+                )
+                if animal_fallback:
+                    animal = animal_fallback
+            elif len(animais_encontrados) == 1:
+                animal = animais_encontrados[0]
+            else:
+                # Múltiplos animais encontrados - retornar lista para escolha
+                # IMPORTANTE: Verificar se todos têm SISBOV
+                animais_com_sisbov = []
+                for animal_candidato in animais_encontrados:
+                    sisbov = animal_candidato.codigo_sisbov or animal_candidato.numero_brinco or ''
+                    if not sisbov:
+                        continue  # Pula animais sem SISBOV
+                    
+                    numero_manejo = animal_candidato.numero_manejo or _extrair_numero_manejo(sisbov)
+                    animais_com_sisbov.append({
+                        'id': animal_candidato.id,
+                        'codigo_sisbov': sisbov,
+                        'numero_manejo': numero_manejo,
+                        'codigo_eletronico': animal_candidato.codigo_eletronico or '',
+                        'raca': getattr(animal_candidato, 'raca', '') or '',
+                        'sexo': animal_candidato.get_sexo_display() if hasattr(animal_candidato, 'get_sexo_display') else '',
+                        'data_nascimento': animal_candidato.data_nascimento.strftime('%d/%m/%Y') if animal_candidato.data_nascimento else '',
+                        'categoria': getattr(animal_candidato.categoria, 'nome', '') if animal_candidato.categoria else '',
+                        'peso_atual': float(animal_candidato.peso_atual_kg) if animal_candidato.peso_atual_kg else None,
+                    })
+                
+                if len(animais_com_sisbov) == 0:
+                    # Nenhum animal tem SISBOV - retornar erro
+                    return JsonResponse(
+                        {
+                            'status': 'erro',
+                            'mensagem': 'Código encontrado, mas nenhum animal possui SISBOV cadastrado. O código não foi encontrado.',
+                        },
+                        status=404,
+                    )
+                elif len(animais_com_sisbov) == 1:
+                    # Apenas um tem SISBOV - usar esse
+                    animal_id = animais_com_sisbov[0]['id']
+                    animal = AnimalIndividual.objects.filter(id=animal_id, propriedade=propriedade).first()
+                else:
+                    # Múltiplos animais com SISBOV - retornar lista para escolha
+                    return JsonResponse(
+                        {
+                            'status': 'duplicidade',
+                            'codigo_lido': codigo,
+                            'animais': animais_com_sisbov,
+                            'mensagem': f'Foram encontrados {len(animais_com_sisbov)} animais com o mesmo número de manejo ou código RFID. Selecione o animal correto pelo SISBOV completo:',
+                        }
+                    )
+        
+        if animal:
+            # ANIMAL JÁ CADASTRADO: Retornar dados do animal para preencher card e ir para pesagem
+            # IMPORTANTE: O brinco é o SISBOV completo (15 dígitos)
+            # O número de manejo é extraído do SISBOV (posições 8-13, 6 dígitos)
+            # Exemplo: 105500376195129 -> número de manejo = 619512 (posições 8-13)
+            
+            # Usa o numero_manejo do banco se existir, senão calcula
+            numero_manejo = animal.numero_manejo or _extrair_numero_manejo(animal.codigo_sisbov or animal.numero_brinco or '')
+            # Se não tinha numero_manejo salvo, salva agora
+            if not animal.numero_manejo and numero_manejo:
+                animal.numero_manejo = numero_manejo
+                animal.save(update_fields=['numero_manejo'])
+            consta_bnd = True  # Integração real com o BND poderá substituir esta regra.
+            situacao_bnd = _avaliar_situacao_bnd(consta_bnd, presente_no_sistema=True)
+
+            pesagens = list(
+                CurralEvento.objects.filter(animal=animal, tipo_evento='PESAGEM')
+                .order_by('-data_evento')[:3]
+            )
+            pesagem_atual = pesagens[0] if pesagens else None
+            pesagem_anterior = pesagens[1] if len(pesagens) > 1 else None
+
+            def serializar_pesagem(evento):
+                if not evento:
+                    return None
+                data_local = localtime(evento.data_evento)
+                return {
+                    'peso': float(evento.peso_kg) if evento.peso_kg is not None else None,
+                    'data': data_local.date().isoformat(),
+                    'data_hora': data_local.isoformat(),
+                }
+            pesagens_historico = [serializar_pesagem(evento) for evento in pesagens if evento]
+
+            peso_atual_valor = None
+            if animal.peso_atual_kg is not None:
+                peso_atual_valor = float(animal.peso_atual_kg)
+            elif pesagem_atual and pesagem_atual.peso_kg is not None:
+                peso_atual_valor = float(pesagem_atual.peso_kg)
+
+            if pesagem_atual:
+                data_peso_atual = serializar_pesagem(pesagem_atual)['data']
+            elif animal.data_atualizacao:
+                data_peso_atual = localtime(animal.data_atualizacao).date().isoformat()
+            else:
+                data_peso_atual = None
+
+            data_nascimento_format = animal.data_nascimento.strftime('%d/%m/%Y') if animal.data_nascimento else ''
+            data_cadastro_format = animal.data_identificacao.strftime('%d/%m/%Y') if animal.data_identificacao else ''
+            idade_meses = None
+            if animal.data_nascimento:
+                hoje = date.today()
+                idade_meses = (hoje.year - animal.data_nascimento.year) * 12 + (hoje.month - animal.data_nascimento.month)
+                if hoje.day < animal.data_nascimento.day:
+                    idade_meses -= 1
+                idade_meses = max(idade_meses, 0)
+
+            lote_atual_nome = getattr(animal.lote_atual, 'nome', '') if getattr(animal, 'lote_atual', None) else ''
+
+            prenhez_evento = (
+                CurralEvento.objects
+                .filter(animal=animal)
+                .exclude(prenhez_status__in=[None, '', 'DESCONHECIDO'])
+                .order_by('-data_evento')
+                .first()
+            )
+            status_reprodutivo = ''
+            if prenhez_evento:
+                status_reprodutivo = prenhez_evento.get_prenhez_status_display()
+                if status_reprodutivo == 'Não Prenha':
+                    status_reprodutivo = 'Vazia'
+                elif status_reprodutivo == 'Desconhecido':
+                    status_reprodutivo = ''
+
+            origem_reprodutiva = ''
+            nome_mae = getattr(animal, 'nome_mae', '')
+            numero_mae = getattr(animal, 'numero_mae', '')
+            nascimento_info = (
+                Nascimento.objects.filter(animal_individual=animal)
+                .select_related('mae', 'iatf', 'monta_natural')
+                .order_by('-data_nascimento')
+                .first()
+            )
+            if nascimento_info:
+                if nascimento_info.iatf_id:
+                    origem_reprodutiva = 'IATF (diagnóstico da mãe)'
+                elif nascimento_info.monta_natural_id:
+                    origem_reprodutiva = 'Monta Natural (diagnóstico da mãe)'
+                if not nome_mae:
+                    nome_mae = nascimento_info.mae.nome or ''
+                if not numero_mae:
+                    numero_mae = nascimento_info.mae.numero_brinco or nascimento_info.mae.codigo_sisbov or ''
+
+            primeira_movimentacao = animal.movimentacoes.order_by('data_movimentacao', 'id').first()
+            origem_cadastro_display = ''
+            if primeira_movimentacao:
+                tipo_mov = primeira_movimentacao.get_tipo_movimentacao_display()
+                origem_cadastro_display = tipo_mov
+                motivo = (primeira_movimentacao.motivo_detalhado or '').lower()
+                if 'ajuste' in motivo and 'sis' in motivo:
+                    origem_cadastro_display = 'Ajuste SISBOV'
+                elif primeira_movimentacao.tipo_movimentacao == 'NASCIMENTO':
+                    origem_cadastro_display = 'Nascimento'
+                elif primeira_movimentacao.tipo_movimentacao == 'COMPRA':
+                    origem_cadastro_display = 'Compra'
+            if not origem_cadastro_display and nascimento_info:
+                origem_cadastro_display = 'Nascimento'
+
+            return JsonResponse(
+                {
+                    'status': 'animal',
+                    'dados': {
+                        'id': animal.id,
+                        'numero_brinco': animal.numero_brinco,
+                        'codigo_sisbov': animal.codigo_sisbov or animal.numero_brinco,
+                        'codigo_eletronico': animal.codigo_eletronico or '',
+                        'numero_manejo': numero_manejo,
+                        'nome_animal': getattr(animal, 'nome', ''),
+                        'raca': getattr(animal, 'raca', '') or '',
+                        'sexo': animal.get_sexo_display() if hasattr(animal, 'get_sexo_display') else '',
+                        'idade_meses': idade_meses,
+                        'data_nascimento': data_nascimento_format,
+                        'data_cadastro': data_cadastro_format,
+                        'categoria': getattr(animal.categoria, 'nome', ''),
+                        'status': animal.get_status_display(),
+                        'status_sanitario': animal.get_status_sanitario_display(),
+                        'peso_atual': peso_atual_valor,
+                        'observacoes': str(animal.observacoes) if animal.observacoes else '',
+                        'status_bnd': str(animal.status_bnd) if animal.status_bnd else '',
+                        'proprietario': getattr(animal.propriedade.produtor, 'nome', '') if hasattr(animal.propriedade, 'produtor') else '',
+                        'propriedade': animal.propriedade.nome_propriedade if animal.propriedade else '',
+                        'data_cadastro_sisbov': animal.data_identificacao.strftime('%d/%m/%Y') if animal.data_identificacao else '',
+                        'nome_mae': nome_mae,
+                        'numero_mae': numero_mae,
+                        'data_peso_atual': data_peso_atual,
+                        'pesagem_atual': serializar_pesagem(pesagem_atual),
+                        'pesagem_anterior': serializar_pesagem(pesagem_anterior),
+                        'pesagens_historico': pesagens_historico,
+                        'consta_bnd': consta_bnd,
+                        'situacao_bnd': situacao_bnd,
+                        'lote_atual': lote_atual_nome,
+                        'status_reprodutivo': status_reprodutivo,
+                        'origem_reprodutiva': origem_reprodutiva,
+                        'origem_cadastro': origem_cadastro_display,
+                    },
+                    'mensagem': 'Animal localizado no rebanho.',
+                }
+            )
+
+        # Busca brinco no estoque - tenta múltiplas estratégias
+        # IMPORTANTE: Só buscar em estoque se NÃO encontrou animal cadastrado
+        # Se encontrou animal, não buscar em estoque (animal já está cadastrado)
+        brincos_encontrados = []
+        brinco = None
+        
+        if not animal:
+            # Coleta TODOS os brincos que correspondem (pode haver múltiplos com mesmo manejo/RFID mas SISBOV diferentes)
+            codigo_normalizado = _normalizar_codigo(codigo)
+            
+            # Busca todos os brincos disponíveis e normaliza em Python
+            # IMPORTANTE: Excluir brincos EM_USO (já associados a animais)
+            brincos_disponiveis = (
+                BrincoAnimal.objects.filter(propriedade=propriedade)
+                .exclude(status='EM_USO')
+                .select_related('propriedade__produtor')
             )
         
-        # Depois tenta busca normalizada em Python
-        if len(codigo) >= 6:
-            animais_candidatos = (
-                AnimalIndividual.objects.filter(propriedade=propriedade)
-                .select_related('categoria', 'propriedade__produtor')
-            )
-            
-            for animal_candidato in animais_candidatos:
-                # Pula se já está na lista
-                if animal_candidato in animais_diretos:
-                    continue
-                    
-                sisbov_normalizado = _normalizar_codigo(animal_candidato.codigo_sisbov or '')
-                brinco_normalizado = _normalizar_codigo(animal_candidato.numero_brinco or '')
-                eletronico_normalizado = _normalizar_codigo(animal_candidato.codigo_eletronico or '')
-                manejo_normalizado = _normalizar_codigo(animal_candidato.numero_manejo or '')
+            for brinco_candidato in brincos_disponiveis:
+                brinco_normalizado = _normalizar_codigo(brinco_candidato.numero_brinco or '')
+                rfid_normalizado = _normalizar_codigo(brinco_candidato.codigo_rfid or '')
+                manejo_candidato = _extrair_numero_manejo(brinco_candidato.numero_brinco or '')
                 
-                # Se não tem numero_manejo salvo, tenta extrair do SISBOV
-                if not manejo_normalizado:
-                    if sisbov_normalizado:
-                        manejo_normalizado = _extrair_numero_manejo(sisbov_normalizado)
-                    elif brinco_normalizado and len(brinco_normalizado) >= 6:
-                        manejo_normalizado = brinco_normalizado[-6:] if len(brinco_normalizado) >= 6 else brinco_normalizado[-7:]
+                # Para códigos de 6 dígitos, usar o próprio código como número de manejo
+                # Para códigos maiores, extrair o número de manejo
+                if len(codigo_normalizado) == 6:
+                    manejo_codigo = codigo_normalizado  # Usar o código diretamente
+                else:
+                    manejo_codigo = _extrair_numero_manejo(codigo)
                 
                 corresponde = False
                 
-                # PRIORIDADE 1: Verifica correspondência por código eletrônico (RFID) - EXATA
-                if eletronico_normalizado == codigo:
+                # Verifica correspondência exata por SISBOV completo
+                if brinco_normalizado == codigo_normalizado:
                     corresponde = True
-                # PRIORIDADE 2: Verifica correspondência por número de manejo - EXATA
-                elif manejo_normalizado == codigo:
+                # Verifica correspondência por RFID
+                elif rfid_normalizado == codigo_normalizado and rfid_normalizado:
                     corresponde = True
-                # PRIORIDADE 3: Para códigos de 6 dígitos, verifica nas posições corretas do SISBOV
-                elif len(codigo) == 6:
-                    # Verifica se o número de manejo está nas posições 8-13 do SISBOV (15 dígitos)
-                    if sisbov_normalizado and len(sisbov_normalizado) == 15:
-                        manejo_extraido = sisbov_normalizado[8:14]  # Posições 8-13 (6 dígitos)
-                        if manejo_extraido == codigo:
-                            corresponde = True
-                    # Verifica se o número de manejo está no final do brinco (últimos 6 dígitos) - EXATA
-                    elif brinco_normalizado and len(brinco_normalizado) >= 6:
-                        if brinco_normalizado[-6:] == codigo:
-                            corresponde = True
-                # PRIORIDADE 4: Para códigos de 7 dígitos, verifica no final do SISBOV
-                elif len(codigo) == 7:
-                    if sisbov_normalizado and sisbov_normalizado.endswith(codigo):
+                # Verifica correspondência por número de manejo
+                elif manejo_candidato and manejo_codigo and manejo_candidato == manejo_codigo:
+                    corresponde = True
+                # Para códigos SISBOV completos, também tenta comparar os últimos dígitos
+                elif len(codigo_normalizado) == 15 and len(brinco_normalizado) == 15:
+                    if codigo_normalizado[-7:] == brinco_normalizado[-7:]:
                         corresponde = True
-                    elif brinco_normalizado and brinco_normalizado.endswith(codigo):
+                # Para códigos de 6 dígitos, verifica se o número de manejo do brinco corresponde
+                elif len(codigo_normalizado) == 6:
+                    # Verifica se o número de manejo extraído do brinco corresponde ao código
+                    if manejo_candidato == codigo_normalizado:
+                        corresponde = True
+                    # Verifica se o código está nas posições 8-13 do SISBOV (15 dígitos)
+                    elif len(brinco_normalizado) == 15:
+                        manejo_extraido_brinco = brinco_normalizado[8:14]  # Posições 8-13
+                        if manejo_extraido_brinco == codigo_normalizado:
+                            corresponde = True
+                # Para códigos parciais (7+ dígitos), verifica se termina com o código
+                elif len(codigo_normalizado) >= 7:
+                    if (brinco_normalizado.endswith(codigo_normalizado) or 
+                        (rfid_normalizado and rfid_normalizado.endswith(codigo_normalizado))):
                         corresponde = True
                 
                 if corresponde:
-                    animais_diretos.append(animal_candidato)
-        
-            # Remove duplicatas mantendo ordem
-            animais_encontrados = []
-            ids_vistos = set()
-            for animal_candidato in animais_diretos:
-                if animal_candidato.id not in ids_vistos:
-                    animais_encontrados.append(animal_candidato)
-                    ids_vistos.add(animal_candidato.id)
-    
-    # Verificar se encontrou animais
-    if not animal:
-        if len(animais_encontrados) == 0:
-            animal = None
-        elif len(animais_encontrados) == 1:
-            animal = animais_encontrados[0]
-    else:
-        # Múltiplos animais encontrados - retornar lista para escolha
-        # IMPORTANTE: Verificar se todos têm SISBOV
-        animais_com_sisbov = []
-        for animal_candidato in animais_encontrados:
-            sisbov = animal_candidato.codigo_sisbov or animal_candidato.numero_brinco or ''
-            if not sisbov:
-                continue  # Pula animais sem SISBOV
+                    brincos_encontrados.append(brinco_candidato)
             
-            numero_manejo = animal_candidato.numero_manejo or _extrair_numero_manejo(sisbov)
-            animais_com_sisbov.append({
-                'id': animal_candidato.id,
-                'codigo_sisbov': sisbov,
-                'numero_manejo': numero_manejo,
-                'codigo_eletronico': animal_candidato.codigo_eletronico or '',
-                'raca': getattr(animal_candidato, 'raca', '') or '',
-                'sexo': animal_candidato.get_sexo_display() if hasattr(animal_candidato, 'get_sexo_display') else '',
-                'data_nascimento': animal_candidato.data_nascimento.strftime('%d/%m/%Y') if animal_candidato.data_nascimento else '',
-                'categoria': getattr(animal_candidato.categoria, 'nome', '') if animal_candidato.categoria else '',
-                'peso_atual': float(animal_candidato.peso_atual_kg) if animal_candidato.peso_atual_kg else None,
-            })
+            # Se encontrou apenas um, retorna diretamente
+            if len(brincos_encontrados) == 1:
+                brinco = brincos_encontrados[0]
+            # Se encontrou múltiplos, retorna lista para escolha
+            elif len(brincos_encontrados) > 1:
+                brincos_opcoes = []
+                for brinco_opcao in brincos_encontrados:
+                    numero_manejo_opcao = _extrair_numero_manejo(brinco_opcao.numero_brinco or '')
+                    brincos_opcoes.append({
+                        'id': brinco_opcao.id,
+                        'numero_brinco': brinco_opcao.numero_brinco,
+                        'codigo_rfid': brinco_opcao.codigo_rfid or '',
+                        'numero_manejo': numero_manejo_opcao,
+                        'tipo_brinco': brinco_opcao.get_tipo_brinco_display(),
+                        'codigo_lote': brinco_opcao.codigo_lote or '',
+                        'fornecedor': brinco_opcao.fornecedor or '',
+                        'data_aquisicao': brinco_opcao.data_aquisicao.strftime('%d/%m/%Y') if brinco_opcao.data_aquisicao else '',
+                    })
+                
+                return JsonResponse(
+                    {
+                        'status': 'estoque_multiplos',
+                        'codigo_lido': codigo,
+                        'brincos': brincos_opcoes,
+                        'mensagem': f'Foram encontrados {len(brincos_encontrados)} brincos com o mesmo manejo/RFID. Selecione o SISBOV correto.',
+                    }
+                )
+            
+            # Se encontrou exatamente um brinco em estoque
+            if brinco:
+                numero_manejo = _extrair_numero_manejo(brinco.numero_brinco or '')
+                consta_bnd = True  # Ajustar conforme integração futura com o BND.
+                situacao_bnd = _avaliar_situacao_bnd(consta_bnd, presente_no_sistema=True)
+                return JsonResponse(
+                    {
+                        'status': 'estoque',
+                        'dados': {
+                            'id': brinco.id,
+                            'numero_brinco': brinco.numero_brinco,
+                            'codigo_rfid': brinco.codigo_rfid or '',
+                            'tipo_brinco': brinco.get_tipo_brinco_display(),
+                            'status': brinco.get_status_display(),
+                            'codigo_lote': brinco.codigo_lote or '',
+                            'fornecedor': brinco.fornecedor or '',
+                            'proprietario': getattr(brinco.propriedade.produtor, 'nome', '') if hasattr(brinco.propriedade, 'produtor') else '',
+                            'propriedade': brinco.propriedade.nome_propriedade if brinco.propriedade else '',
+                            'data_cadastro_sisbov': brinco.data_aquisicao.strftime('%d/%m/%Y') if brinco.data_aquisicao else '',
+                            'numero_manejo': numero_manejo,
+                            'pesagem_atual': None,
+                            'pesagem_anterior': None,
+                            'pesagens_historico': [],
+                            'consta_bnd': consta_bnd,
+                            'situacao_bnd': situacao_bnd,
+                        },
+                        'mensagem': 'Brinco disponível em estoque.',
+                    }
+                )
+
+        # Modo de simulação: retornar dados simulados quando o animal não for encontrado
+        modo_simulacao = request.GET.get('simulacao', '').lower() == 'true' or \
+                         request.META.get('HTTP_X_SIMULACAO', '').lower() == 'true'
         
-        if len(animais_com_sisbov) == 0:
-            # Nenhum animal tem SISBOV - retornar erro
+        if modo_simulacao:
+            # Gerar dados simulados baseados no código
+            # Extrair informações do código
+            numero_manejo = _extrair_numero_manejo(codigo) if len(codigo) >= 7 else codigo[-6:] if len(codigo) >= 6 else codigo
+            
+            # Gerar dados aleatórios mas consistentes baseados no código
+            random.seed(hash(codigo) % 1000000)  # Usar hash do código para consistência
+            
+            racas = ['Nelore', 'Angus', 'Brahman', 'Hereford', 'Brangus', 'Canchim', 'Tabapuã']
+            raca = random.choice(racas)
+            sexo = 'F' if random.random() < 0.5 else 'M'
+            
+            # Idade entre 6 e 60 meses
+            idade_meses = random.randint(6, 60)
+            data_nascimento = date.today() - timedelta(days=idade_meses * 30)
+            data_nascimento_format = data_nascimento.strftime('%d/%m/%Y')
+            
+            # Peso baseado na idade e sexo
+            if sexo == 'M':
+                peso_base = 200 + (idade_meses * 5)
+            else:
+                peso_base = 180 + (idade_meses * 4)
+            peso_atual = round(peso_base + random.uniform(-30, 30), 1)
+            
+            # Categoria baseada na idade e sexo
+            if idade_meses < 12:
+                categoria_nome = 'Bezerros (0-12m)' if sexo == 'M' else 'Bezerras (0-12m)'
+            elif idade_meses < 24:
+                categoria_nome = 'Garrotes (12-24m)' if sexo == 'M' else 'Novilhas (12-24m)'
+            else:
+                categoria_nome = 'Bois Magros (24-36m)' if sexo == 'M' else 'Vacas Adultas'
+            
+            # Gerar histórico de pesagens (2-3 pesagens anteriores)
+            num_pesagens = random.randint(2, 3)
+            pesagens_historico = []
+            peso_anterior = peso_atual - random.uniform(20, 50)
+            
+            for i in range(num_pesagens):
+                dias_atras = (num_pesagens - i) * 60  # Pesagens a cada ~60 dias
+                data_pesagem = date.today() - timedelta(days=dias_atras)
+                peso_pesagem = peso_anterior + (i * random.uniform(15, 25))
+                pesagens_historico.append({
+                    'peso': round(peso_pesagem, 1),
+                    'data': data_pesagem.isoformat(),
+                    'data_hora': datetime.combine(data_pesagem, datetime.min.time()).isoformat(),
+                })
+            
+            pesagem_atual = pesagens_historico[-1] if pesagens_historico else None
+            pesagem_anterior = pesagens_historico[-2] if len(pesagens_historico) > 1 else None
+            
+            # Status reprodutivo para fêmeas adultas
+            status_reprodutivo = ''
+            if sexo == 'F' and idade_meses >= 18:
+                status_reprodutivo = random.choice(['Prenha', 'Vazia', 'Não avaliada'])
+            
+            consta_bnd = parece_sisbov
+            situacao_bnd = _avaliar_situacao_bnd(consta_bnd=consta_bnd, presente_no_sistema=True)
+            
             return JsonResponse(
                 {
-                    'status': 'erro',
-                    'mensagem': 'Código encontrado, mas nenhum animal possui SISBOV cadastrado. O código não foi encontrado.',
+                    'status': 'animal',
+                    'dados': {
+                        'id': None,  # Animal simulado não tem ID
+                        'numero_brinco': codigo[-7:] if len(codigo) >= 7 else codigo,
+                        'codigo_sisbov': codigo if parece_sisbov else codigo,
+                        'codigo_eletronico': '',
+                        'numero_manejo': numero_manejo,
+                        'nome_animal': '',
+                        'raca': raca,
+                        'sexo': 'Fêmea' if sexo == 'F' else 'Macho',
+                        'idade_meses': idade_meses,
+                        'data_nascimento': data_nascimento_format,
+                        'data_cadastro': data_nascimento_format,
+                        'categoria': categoria_nome,
+                        'status': 'Ativo',
+                        'status_sanitario': 'Regular',
+                        'peso_atual': peso_atual,
+                        'observacoes': 'Animal simulado para testes',
+                        'proprietario': propriedade.produtor.nome if hasattr(propriedade, 'produtor') and propriedade.produtor else '',
+                        'propriedade': propriedade.nome_propriedade,
+                        'data_cadastro_sisbov': data_nascimento_format,
+                        'nome_mae': '',
+                        'numero_mae': '',
+                        'data_peso_atual': pesagem_atual['data'] if pesagem_atual else date.today().isoformat(),
+                        'pesagem_atual': pesagem_atual,
+                        'pesagem_anterior': pesagem_anterior,
+                        'pesagens_historico': pesagens_historico,
+                        'consta_bnd': consta_bnd,
+                        'situacao_bnd': situacao_bnd,
+                        'lote_atual': '',
+                        'status_reprodutivo': status_reprodutivo,
+                        'origem_reprodutiva': '',
+                        'origem_cadastro': 'Simulação',
+                    },
+                    'mensagem': 'Animal simulado (modo de teste).',
+                    'simulado': True,
+                }
+            )
+        
+        return JsonResponse(
+                {
+                    'status': 'nao_encontrado',
+                    'mensagem': 'Código não encontrado no rebanho ou no estoque de brincos.',
+                    'consta_bnd': parece_sisbov,
+                    'situacao_bnd': _avaliar_situacao_bnd(consta_bnd=parece_sisbov, presente_no_sistema=False),
+                    'codigo_consultado': codigo,
                 },
                 status=404,
             )
-        elif len(animais_com_sisbov) == 1:
-            # Apenas um tem SISBOV - usar esse
-            animal_id = animais_com_sisbov[0]['id']
-            animal = AnimalIndividual.objects.filter(id=animal_id, propriedade=propriedade).first()
-        else:
-            # Múltiplos animais com SISBOV - retornar lista para escolha
-            return JsonResponse(
-                {
-                    'status': 'duplicidade',
-                    'codigo_lido': codigo,
-                    'animais': animais_com_sisbov,
-                    'mensagem': f'Foram encontrados {len(animais_com_sisbov)} animais com o mesmo número de manejo ou código RFID. Selecione o animal correto pelo SISBOV completo:',
-                }
-            )
     
-    if animal:
-        # ANIMAL JÁ CADASTRADO: Retornar dados do animal para preencher card e ir para pesagem
-        # IMPORTANTE: O brinco é o SISBOV completo (15 dígitos)
-        # O número de manejo é extraído do SISBOV (posições 8-13, 6 dígitos)
-        # Exemplo: 105500376195129 -> número de manejo = 619512 (posições 8-13)
-        
-        # Usa o numero_manejo do banco se existir, senão calcula
-        numero_manejo = animal.numero_manejo or _extrair_numero_manejo(animal.codigo_sisbov or animal.numero_brinco or '')
-        # Se não tinha numero_manejo salvo, salva agora
-        if not animal.numero_manejo and numero_manejo:
-            animal.numero_manejo = numero_manejo
-            animal.save(update_fields=['numero_manejo'])
-        consta_bnd = True  # Integração real com o BND poderá substituir esta regra.
-        situacao_bnd = _avaliar_situacao_bnd(consta_bnd, presente_no_sistema=True)
-
-        pesagens = list(
-            CurralEvento.objects.filter(animal=animal, tipo_evento='PESAGEM')
-            .order_by('-data_evento')[:3]
-        )
-        pesagem_atual = pesagens[0] if pesagens else None
-        pesagem_anterior = pesagens[1] if len(pesagens) > 1 else None
-
-        def serializar_pesagem(evento):
-            if not evento:
-                return None
-            data_local = localtime(evento.data_evento)
-            return {
-                'peso': float(evento.peso_kg) if evento.peso_kg is not None else None,
-                'data': data_local.date().isoformat(),
-                'data_hora': data_local.isoformat(),
-            }
-        pesagens_historico = [serializar_pesagem(evento) for evento in pesagens if evento]
-
-        peso_atual_valor = None
-        if animal.peso_atual_kg is not None:
-            peso_atual_valor = float(animal.peso_atual_kg)
-        elif pesagem_atual and pesagem_atual.peso_kg is not None:
-            peso_atual_valor = float(pesagem_atual.peso_kg)
-
-        if pesagem_atual:
-            data_peso_atual = serializar_pesagem(pesagem_atual)['data']
-        elif animal.data_atualizacao:
-            data_peso_atual = localtime(animal.data_atualizacao).date().isoformat()
-        else:
-            data_peso_atual = None
-
-        data_nascimento_format = animal.data_nascimento.strftime('%d/%m/%Y') if animal.data_nascimento else ''
-        data_cadastro_format = animal.data_identificacao.strftime('%d/%m/%Y') if animal.data_identificacao else ''
-        idade_meses = None
-        if animal.data_nascimento:
-            hoje = date.today()
-            idade_meses = (hoje.year - animal.data_nascimento.year) * 12 + (hoje.month - animal.data_nascimento.month)
-            if hoje.day < animal.data_nascimento.day:
-                idade_meses -= 1
-            idade_meses = max(idade_meses, 0)
-
-        lote_atual_nome = getattr(animal.lote_atual, 'nome', '') if getattr(animal, 'lote_atual', None) else ''
-
-        prenhez_evento = (
-            CurralEvento.objects
-            .filter(animal=animal)
-            .exclude(prenhez_status__in=[None, '', 'DESCONHECIDO'])
-            .order_by('-data_evento')
-            .first()
-        )
-        status_reprodutivo = ''
-        if prenhez_evento:
-            status_reprodutivo = prenhez_evento.get_prenhez_status_display()
-            if status_reprodutivo == 'Não Prenha':
-                status_reprodutivo = 'Vazia'
-            elif status_reprodutivo == 'Desconhecido':
-                status_reprodutivo = ''
-
-        origem_reprodutiva = ''
-        nome_mae = getattr(animal, 'nome_mae', '')
-        numero_mae = getattr(animal, 'numero_mae', '')
-        nascimento_info = (
-            Nascimento.objects.filter(animal_individual=animal)
-            .select_related('mae', 'iatf', 'monta_natural')
-            .order_by('-data_nascimento')
-            .first()
-        )
-        if nascimento_info:
-            if nascimento_info.iatf_id:
-                origem_reprodutiva = 'IATF (diagnóstico da mãe)'
-            elif nascimento_info.monta_natural_id:
-                origem_reprodutiva = 'Monta Natural (diagnóstico da mãe)'
-            if not nome_mae:
-                nome_mae = nascimento_info.mae.nome or ''
-            if not numero_mae:
-                numero_mae = nascimento_info.mae.numero_brinco or nascimento_info.mae.codigo_sisbov or ''
-
-        primeira_movimentacao = animal.movimentacoes.order_by('data_movimentacao', 'id').first()
-        origem_cadastro_display = ''
-        if primeira_movimentacao:
-            tipo_mov = primeira_movimentacao.get_tipo_movimentacao_display()
-            origem_cadastro_display = tipo_mov
-            motivo = (primeira_movimentacao.motivo_detalhado or '').lower()
-            if 'ajuste' in motivo and 'sis' in motivo:
-                origem_cadastro_display = 'Ajuste SISBOV'
-            elif primeira_movimentacao.tipo_movimentacao == 'NASCIMENTO':
-                origem_cadastro_display = 'Nascimento'
-            elif primeira_movimentacao.tipo_movimentacao == 'COMPRA':
-                origem_cadastro_display = 'Compra'
-        if not origem_cadastro_display and nascimento_info:
-            origem_cadastro_display = 'Nascimento'
-
-        # Calcular métricas de desempenho de peso
-        periodo_dias = None
-        ganho_peso = None
-        ganho_peso_diario = None
-
-        if pesagem_atual and pesagem_anterior:
-            try:
-                if (hasattr(pesagem_atual, 'peso_kg') and hasattr(pesagem_anterior, 'peso_kg') and
-                    pesagem_atual.peso_kg is not None and pesagem_anterior.peso_kg is not None):
-                    ganho_peso = float(pesagem_atual.peso_kg) - float(pesagem_anterior.peso_kg)
-                    if (hasattr(pesagem_atual, 'data_evento') and hasattr(pesagem_anterior, 'data_evento') and
-                        pesagem_atual.data_evento and pesagem_anterior.data_evento):
-                        periodo_dias = (pesagem_atual.data_evento.date() - pesagem_anterior.data_evento.date()).days
-                        if periodo_dias > 0:
-                            ganho_peso_diario = ganho_peso / periodo_dias
-                        elif periodo_dias == 0:
-                            periodo_dias = 1  # Evitar divisão por zero
-                            ganho_peso_diario = ganho_peso
-            except (AttributeError, TypeError, ValueError) as e:
-                logger.warning(f'Erro ao calcular desempenho de peso para animal {animal.id}: {e}')
-                periodo_dias = None
-                ganho_peso = None
-                ganho_peso_diario = None
-
-        return JsonResponse(
-            {
-                'status': 'animal',
-                'dados': {
-                    'id': animal.id,
-                    'numero_brinco': animal.numero_brinco,
-                    'codigo_sisbov': animal.codigo_sisbov or animal.numero_brinco,
-                    'codigo_eletronico': animal.codigo_eletronico or '',
-                    'numero_manejo': numero_manejo,
-                    'nome_animal': getattr(animal, 'nome', ''),
-                    'raca': getattr(animal, 'raca', '') or '',
-                    'sexo': animal.get_sexo_display() if hasattr(animal, 'get_sexo_display') else '',
-                    'idade_meses': idade_meses,
-                    'data_nascimento': data_nascimento_format,
-                    'data_cadastro': data_cadastro_format,
-                    'categoria': getattr(animal.categoria, 'nome', ''),
-                    'status': animal.get_status_display(),
-                    'status_sanitario': animal.get_status_sanitario_display(),
-                    'peso_atual': peso_atual_valor,
-                    'observacoes': animal.observacoes or '',
-                    'proprietario': getattr(animal.propriedade.produtor, 'nome', '') if hasattr(animal.propriedade, 'produtor') else '',
-                    'propriedade': animal.propriedade.nome_propriedade if animal.propriedade else '',
-                    'data_cadastro_sisbov': animal.data_identificacao.strftime('%d/%m/%Y') if animal.data_identificacao else '',
-                    'nome_mae': nome_mae,
-                    'numero_mae': numero_mae,
-                    'data_peso_atual': data_peso_atual,
-                    'pesagem_atual': serializar_pesagem(pesagem_atual),
-                    'pesagem_anterior': serializar_pesagem(pesagem_anterior),
-                    'pesagens_historico': pesagens_historico,
-                    'periodo_dias': periodo_dias,
-                    'ganho_peso': ganho_peso,
-                    'ganho_peso_diario': ganho_peso_diario,
-                    'consta_bnd': consta_bnd,
-                    'situacao_bnd': situacao_bnd,
-                    'lote_atual': lote_atual_nome,
-                    'status_reprodutivo': status_reprodutivo,
-                    'origem_reprodutiva': origem_reprodutiva,
-                    'origem_cadastro': origem_cadastro_display,
-                    'cota_hilton': animal.cota_hilton or animal.classificacao_zootecnica or '',
-                    'classificacao_zootecnica': animal.classificacao_zootecnica or '',
-                },
-                'mensagem': 'Animal localizado no rebanho.',
-            }
-        )
-
-    # Busca brinco no estoque - tenta múltiplas estratégias
-    # Coleta TODOS os brincos que correspondem (pode haver múltiplos com mesmo manejo/RFID mas SISBOV diferentes)
-    brincos_encontrados = []
-    codigo_normalizado = _normalizar_codigo(codigo)
-    
-    # Busca todos os brincos disponíveis e normaliza em Python
-    brincos_disponiveis = (
-        BrincoAnimal.objects.filter(propriedade=propriedade)
-        .exclude(status='EM_USO')
-        .select_related('propriedade__produtor')
-    )
-    
-    for brinco_candidato in brincos_disponiveis:
-        brinco_normalizado = _normalizar_codigo(brinco_candidato.numero_brinco or '')
-        rfid_normalizado = _normalizar_codigo(brinco_candidato.codigo_rfid or '')
-        manejo_candidato = _extrair_numero_manejo(brinco_candidato.numero_brinco or '')
-        
-        # Para códigos de 6 dígitos, usar o próprio código como número de manejo
-        # Para códigos maiores, extrair o número de manejo
-        if len(codigo_normalizado) == 6:
-            manejo_codigo = codigo_normalizado  # Usar o código diretamente
-        else:
-            manejo_codigo = _extrair_numero_manejo(codigo)
-        
-        corresponde = False
-        
-        # Verifica correspondência exata por SISBOV completo
-        if brinco_normalizado == codigo_normalizado:
-            corresponde = True
-        # Verifica correspondência por RFID
-        elif rfid_normalizado == codigo_normalizado and rfid_normalizado:
-            corresponde = True
-        # Verifica correspondência por número de manejo
-        elif manejo_candidato and manejo_codigo and manejo_candidato == manejo_codigo:
-            corresponde = True
-        # Para códigos SISBOV completos, também tenta comparar os últimos dígitos
-        elif len(codigo_normalizado) == 15 and len(brinco_normalizado) == 15:
-            if codigo_normalizado[-7:] == brinco_normalizado[-7:]:
-                corresponde = True
-        # Para códigos de 6 dígitos, verifica se o número de manejo do brinco corresponde
-        elif len(codigo_normalizado) == 6:
-            # Verifica se o número de manejo extraído do brinco corresponde ao código
-            if manejo_candidato == codigo_normalizado:
-                corresponde = True
-            # Verifica se o código está nas posições 8-13 do SISBOV (15 dígitos)
-            elif len(brinco_normalizado) == 15:
-                manejo_extraido_brinco = brinco_normalizado[8:14]  # Posições 8-13
-                if manejo_extraido_brinco == codigo_normalizado:
-                    corresponde = True
-        # Para códigos parciais (7+ dígitos), verifica se termina com o código
-        elif len(codigo_normalizado) >= 7:
-            if (brinco_normalizado.endswith(codigo_normalizado) or 
-                (rfid_normalizado and rfid_normalizado.endswith(codigo_normalizado))):
-                corresponde = True
-        
-        if corresponde:
-            brincos_encontrados.append(brinco_candidato)
-    
-    # Se encontrou apenas um, retorna diretamente
-    brinco = None
-    if len(brincos_encontrados) == 1:
-        brinco = brincos_encontrados[0]
-    # Se encontrou múltiplos, retorna lista para escolha
-    elif len(brincos_encontrados) > 1:
-        brincos_opcoes = []
-        for brinco_opcao in brincos_encontrados:
-            numero_manejo_opcao = _extrair_numero_manejo(brinco_opcao.numero_brinco or '')
-            brincos_opcoes.append({
-                'id': brinco_opcao.id,
-                'numero_brinco': brinco_opcao.numero_brinco,
-                'codigo_rfid': brinco_opcao.codigo_rfid or '',
-                'numero_manejo': numero_manejo_opcao,
-                'tipo_brinco': brinco_opcao.get_tipo_brinco_display(),
-                'codigo_lote': brinco_opcao.codigo_lote or '',
-                'fornecedor': brinco_opcao.fornecedor or '',
-                'data_aquisicao': brinco_opcao.data_aquisicao.strftime('%d/%m/%Y') if brinco_opcao.data_aquisicao else '',
-            })
+    except Exception as e:
+        # Log do erro para debug
+        import traceback
+        error_trace = traceback.format_exc()
+        logger.error(f"❌ ERRO em curral_identificar_codigo: {str(e)}")
+        logger.error(f"📋 Traceback:\n{error_trace}")
         
         return JsonResponse(
             {
-                'status': 'estoque_multiplos',
-                'codigo_lido': codigo,
-                'brincos': brincos_opcoes,
-                'mensagem': f'Foram encontrados {len(brincos_encontrados)} brincos com o mesmo manejo/RFID. Selecione o SISBOV correto.',
-            }
+                'status': 'erro',
+                'mensagem': f'Erro ao buscar animal: {str(e)}. Verifique o código informado.',
+                'erro_detalhado': str(e) if request.user.is_staff else None,  # Só mostra detalhes para staff
+            },
+            status=500,
         )
-    
-    # Se encontrou exatamente um
-    if brinco:
-        numero_manejo = _extrair_numero_manejo(brinco.numero_brinco or '')
-        consta_bnd = True  # Ajustar conforme integração futura com o BND.
-        situacao_bnd = _avaliar_situacao_bnd(consta_bnd, presente_no_sistema=True)
-        return JsonResponse(
-            {
-                'status': 'estoque',
-                'dados': {
-                    'id': brinco.id,
-                    'numero_brinco': brinco.numero_brinco,
-                    'codigo_rfid': brinco.codigo_rfid or '',
-                    'tipo_brinco': brinco.get_tipo_brinco_display(),
-                    'status': brinco.get_status_display(),
-                    'codigo_lote': brinco.codigo_lote or '',
-                    'fornecedor': brinco.fornecedor or '',
-                    'proprietario': getattr(brinco.propriedade.produtor, 'nome', '') if hasattr(brinco.propriedade, 'produtor') else '',
-                    'propriedade': brinco.propriedade.nome_propriedade if brinco.propriedade else '',
-                    'data_cadastro_sisbov': brinco.data_aquisicao.strftime('%d/%m/%Y') if brinco.data_aquisicao else '',
-                    'numero_manejo': numero_manejo,
-                    'pesagem_atual': None,
-                    'pesagem_anterior': None,
-                    'pesagens_historico': [],
-                    'consta_bnd': consta_bnd,
-                    'situacao_bnd': situacao_bnd,
-                },
-                'mensagem': 'Brinco disponível em estoque.',
-            }
-        )
-
-    # Modo de simulação: retornar dados simulados quando o animal não for encontrado
-    modo_simulacao = request.GET.get('simulacao', '').lower() == 'true' or \
-                     request.META.get('HTTP_X_SIMULACAO', '').lower() == 'true'
-    
-    if modo_simulacao:
-        # Gerar dados simulados baseados no código
-        # Extrair informações do código
-        numero_manejo = _extrair_numero_manejo(codigo) if len(codigo) >= 7 else codigo[-6:] if len(codigo) >= 6 else codigo
-        
-        # Gerar dados aleatórios mas consistentes baseados no código
-        random.seed(hash(codigo) % 1000000)  # Usar hash do código para consistência
-        
-        racas = ['Nelore', 'Angus', 'Brahman', 'Hereford', 'Brangus', 'Canchim', 'Tabapuã']
-        raca = random.choice(racas)
-        sexo = 'F' if random.random() < 0.5 else 'M'
-        
-        # Idade entre 6 e 60 meses
-        idade_meses = random.randint(6, 60)
-        data_nascimento = date.today() - timedelta(days=idade_meses * 30)
-        data_nascimento_format = data_nascimento.strftime('%d/%m/%Y')
-        
-        # Peso baseado na idade e sexo
-        if sexo == 'M':
-            peso_base = 200 + (idade_meses * 5)
-        else:
-            peso_base = 180 + (idade_meses * 4)
-        peso_atual = round(peso_base + random.uniform(-30, 30), 1)
-        
-        # Categoria baseada na idade e sexo
-        if idade_meses < 12:
-            categoria_nome = 'Bezerros (0-12m)' if sexo == 'M' else 'Bezerras (0-12m)'
-        elif idade_meses < 24:
-            categoria_nome = 'Garrotes (12-24m)' if sexo == 'M' else 'Novilhas (12-24m)'
-        else:
-            categoria_nome = 'Bois Magros (24-36m)' if sexo == 'M' else 'Vacas Adultas'
-        
-        # Gerar histórico de pesagens (2-3 pesagens anteriores)
-        num_pesagens = random.randint(2, 3)
-        pesagens_historico = []
-        peso_anterior = peso_atual - random.uniform(20, 50)
-        
-        for i in range(num_pesagens):
-            dias_atras = (num_pesagens - i) * 60  # Pesagens a cada ~60 dias
-            data_pesagem = date.today() - timedelta(days=dias_atras)
-            peso_pesagem = peso_anterior + (i * random.uniform(15, 25))
-            pesagens_historico.append({
-                'peso': round(peso_pesagem, 1),
-                'data': data_pesagem.isoformat(),
-                'data_hora': datetime.combine(data_pesagem, datetime.min.time()).isoformat(),
-            })
-        
-        pesagem_atual = pesagens_historico[-1] if pesagens_historico else None
-        pesagem_anterior = pesagens_historico[-2] if len(pesagens_historico) > 1 else None
-        
-        # Status reprodutivo para fêmeas adultas
-        status_reprodutivo = ''
-        if sexo == 'F' and idade_meses >= 18:
-            status_reprodutivo = random.choice(['Prenha', 'Vazia', 'Não avaliada'])
-        
-        consta_bnd = parece_sisbov
-        situacao_bnd = _avaliar_situacao_bnd(consta_bnd=consta_bnd, presente_no_sistema=True)
-        
-        return JsonResponse(
-            {
-                'status': 'animal',
-                'dados': {
-                    'id': None,  # Animal simulado não tem ID
-                    'numero_brinco': codigo[-7:] if len(codigo) >= 7 else codigo,
-                    'codigo_sisbov': codigo if parece_sisbov else codigo,
-                    'codigo_eletronico': '',
-                    'numero_manejo': numero_manejo,
-                    'nome_animal': '',
-                    'raca': raca,
-                    'sexo': 'Fêmea' if sexo == 'F' else 'Macho',
-                    'idade_meses': idade_meses,
-                    'data_nascimento': data_nascimento_format,
-                    'data_cadastro': data_nascimento_format,
-                    'categoria': categoria_nome,
-                    'status': 'Ativo',
-                    'status_sanitario': 'Regular',
-                    'peso_atual': peso_atual,
-                    'observacoes': 'Animal simulado para testes',
-                    'proprietario': propriedade.produtor.nome if hasattr(propriedade, 'produtor') and propriedade.produtor else '',
-                    'propriedade': propriedade.nome_propriedade,
-                    'data_cadastro_sisbov': data_nascimento_format,
-                    'nome_mae': '',
-                    'numero_mae': '',
-                    'data_peso_atual': pesagem_atual['data'] if pesagem_atual else date.today().isoformat(),
-                    'pesagem_atual': pesagem_atual,
-                    'pesagem_anterior': pesagem_anterior,
-                    'pesagens_historico': pesagens_historico,
-                    'consta_bnd': consta_bnd,
-                    'situacao_bnd': situacao_bnd,
-                    'lote_atual': '',
-                    'status_reprodutivo': status_reprodutivo,
-                    'origem_reprodutiva': '',
-                    'origem_cadastro': 'Simulação',
-                },
-                'mensagem': 'Animal simulado (modo de teste).',
-                'simulado': True,
-            }
-        )
-    
-    return JsonResponse(
-        {
-            'status': 'nao_encontrado',
-            'mensagem': 'Código não encontrado no rebanho ou no estoque de brincos.',
-            'consta_bnd': parece_sisbov,
-            'situacao_bnd': _avaliar_situacao_bnd(consta_bnd=parece_sisbov, presente_no_sistema=False),
-            'codigo_consultado': codigo,
-        },
-        status=404,
-    )
 
 
 @login_required
@@ -4433,6 +4469,10 @@ def curral_tela_unica(request, propriedade_id):
     """Tela única do curral - PWA mobile-first com todas funcionalidades integradas."""
     propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
+    # Se for usuário demo, redirecionar para página informativa
+    if request.user.username in ['demo_monpec', 'demo']:
+        return redirect('curral_info_demo', propriedade_id=propriedade_id)
+    
     # Buscar dados necessários
     lotes = CurralLote.objects.filter(
         sessao__propriedade=propriedade
@@ -4496,4 +4536,21 @@ def curral_tela_unica(request, propriedade_id):
     }
     
     return render(request, 'gestao_rural/curral_tela_unica.html', context)
+
+
+@login_required
+def curral_info_demo(request, propriedade_id):
+    """Página informativa sobre a Tela Curral para usuários de demonstração"""
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
+    
+    # Verificar se é usuário demo
+    if request.user.username not in ['demo_monpec', 'demo']:
+        messages.error(request, 'Esta página é apenas para usuários de demonstração.')
+        return redirect('curral_painel', propriedade_id=propriedade_id)
+    
+    context = {
+        'propriedade': propriedade,
+    }
+    
+    return render(request, 'site/curral_info_demo.html', context)
 

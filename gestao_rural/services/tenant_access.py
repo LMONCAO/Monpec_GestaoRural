@@ -67,6 +67,7 @@ def criar_ou_atualizar_usuario(
     perfil: str,
     modulos: Optional[Sequence[str]] = None,
     senha_definida: Optional[str] = None,
+    username: Optional[str] = None,
     criado_por: Optional[User] = None,
 ) -> NovoUsuarioResultado:
     """
@@ -85,19 +86,29 @@ def criar_ou_atualizar_usuario(
         if usuario.tenant_profile.assinatura != assinatura:
             raise TenantAccessError("Este e-mail já está vinculado a outra conta MONPEC.")
     elif not usuario:
-        username_base = _gerar_username_base(nome or email_normalizado.split("@")[0])
-        username = username_base
-        sufixo = 1
-        while User.objects.filter(username=username).exists():
-            username = f"{username_base[:15]}{sufixo}"
-            sufixo += 1
+        # Usar username fornecido ou gerar automaticamente
+        if username:
+            # Validar se username já existe
+            if User.objects.filter(username=username).exists():
+                raise TenantAccessError(f"O username '{username}' já está em uso. Escolha outro.")
+            username_final = username
+        else:
+            # Gerar username automaticamente
+            username_base = _gerar_username_base(nome or email_normalizado.split("@")[0])
+            username_final = username_base
+            sufixo = 1
+            while User.objects.filter(username=username_final).exists():
+                username_final = f"{username_base[:15]}{sufixo}"
+                sufixo += 1
+        
         senha_temporaria = senha_definida or _gerar_senha_temporaria()
         usuario = User.objects.create_user(
-            username=username,
+            username=username_final,
             email=email_normalizado,
             password=senha_temporaria,
             first_name=(nome or "").split(" ")[0][:30],
             last_name=" ".join((nome or "").split(" ")[1:])[:150],
+            is_active=True,  # Usuários criados por admin ficam ativos por padrão
         )
     else:
         # Usuário existe, mas ainda não possui perfil de tenant
@@ -154,8 +165,13 @@ def registrar_login_tenant(usuario: User) -> None:
 
 def usuario_eh_admin(usuario: User) -> bool:
     """Retorna True se o usuário tiver permissão administrativa no tenant."""
+    # Superuser sempre é admin
+    if usuario.is_superuser:
+        return True
+    # Usuário com assinatura (master) é admin
     if hasattr(usuario, "assinatura"):
         return True
+    # Verificar perfil de tenant
     perfil = getattr(usuario, "tenant_profile", None)
     if not perfil:
         return False

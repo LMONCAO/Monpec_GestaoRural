@@ -1,0 +1,215 @@
+{% extends "base_modulos_unificado.html" %}
+
+{% block title %}Setores de Compras - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'compras_dashboard' propriedade.id %}">Compras</a></li>
+            <li class="breadcrumb-item active">Setores</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
+        <div>
+            <h2 class="mb-0"><i class="bi bi-diagram-3 text-primary me-2"></i>Setores de Compras</h2>
+            <small class="text-muted">Defina responsáveis para autorizar ordens de compra e controlar o fluxo por centro de custo.</small>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'setor_compra_novo' propriedade.id %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle me-1"></i>Novo setor
+            </a>
+            {% if mostrar_inativos %}
+            <a href="{% url 'setores_compra_lista' propriedade.id %}" class="btn btn-outline-secondary">
+                Exibir apenas ativos
+            </a>
+            {% else %}
+            <a href="{% url 'setores_compra_lista' propriedade.id %}?mostrar=inativos" class="btn btn-outline-secondary">
+                Incluir inativos
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Setor</th>
+                            <th>Código</th>
+                            <th>Responsável</th>
+                            <th>Total de requisições</th>
+                            <th>Status</th>
+                            <th class="text-end">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for setor in setores %}
+                        <tr>
+                            <td>
+                                <strong>{{ setor.nome }}</strong>
+                                {% if setor.descricao %}
+                                <div class="small text-muted">{{ setor.descricao }}</div>
+                                {% endif %}
+                            </td>
+                            <td>{{ setor.codigo|default:"-" }}</td>
+                            <td>
+                                {% if setor.responsavel %}
+                                    {{ setor.responsavel.get_full_name|default:setor.responsavel.username }}
+                                {% else %}
+                                    <span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>Não definido</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark border">{{ setor.total_requisicoes }}</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-{% if setor.ativo %}success{% else %}secondary{% endif %}">
+                                    {% if setor.ativo %}Ativo{% else %}Inativo{% endif %}
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="{% url 'setor_compra_editar' propriedade.id setor.id %}" class="btn btn-outline-primary">
+                                        Editar
+                                    </a>
+                                    <form method="post" action="{% url 'setor_compra_alterar_status' propriedade.id setor.id %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-outline-secondary">
+                                            {% if setor.ativo %}Inativar{% else %}Ativar{% endif %}
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">
+                                Nenhum setor cadastrado até o momento.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+{% block title %}Setores de Compras - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'compras_dashboard' propriedade.id %}">Compras</a></li>
+            <li class="breadcrumb-item active">Setores</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
+        <div>
+            <h2 class="mb-0"><i class="bi bi-diagram-3 text-primary me-2"></i>Setores de Compras</h2>
+            <small class="text-muted">Defina responsáveis para autorizar ordens de compra e controlar o fluxo por centro de custo.</small>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'setor_compra_novo' propriedade.id %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle me-1"></i>Novo setor
+            </a>
+            {% if mostrar_inativos %}
+            <a href="{% url 'setores_compra_lista' propriedade.id %}" class="btn btn-outline-secondary">
+                Exibir apenas ativos
+            </a>
+            {% else %}
+            <a href="{% url 'setores_compra_lista' propriedade.id %}?mostrar=inativos" class="btn btn-outline-secondary">
+                Incluir inativos
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Setor</th>
+                            <th>Código</th>
+                            <th>Responsável</th>
+                            <th>Total de requisições</th>
+                            <th>Status</th>
+                            <th class="text-end">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for setor in setores %}
+                        <tr>
+                            <td>
+                                <strong>{{ setor.nome }}</strong>
+                                {% if setor.descricao %}
+                                <div class="small text-muted">{{ setor.descricao }}</div>
+                                {% endif %}
+                            </td>
+                            <td>{{ setor.codigo|default:"-" }}</td>
+                            <td>
+                                {% if setor.responsavel %}
+                                    {{ setor.responsavel.get_full_name|default:setor.responsavel.username }}
+                                {% else %}
+                                    <span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>Não definido</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark border">{{ setor.total_requisicoes }}</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-{% if setor.ativo %}success{% else %}secondary{% endif %}">
+                                    {% if setor.ativo %}Ativo{% else %}Inativo{% endif %}
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="{% url 'setor_compra_editar' propriedade.id setor.id %}" class="btn btn-outline-primary">
+                                        Editar
+                                    </a>
+                                    <form method="post" action="{% url 'setor_compra_alterar_status' propriedade.id setor.id %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-outline-secondary">
+                                            {% if setor.ativo %}Inativar{% else %}Ativar{% endif %}
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">
+                                Nenhum setor cadastrado até o momento.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+
+
+
+
+
+

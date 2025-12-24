@@ -116,3 +116,44 @@ def verificar_propriedade_usuario_json(view_func):
     return wrapper
 
 
+def bloquear_demo_cadastro(view_func):
+    """
+    Decorator que bloqueia operações de cadastro (criar, editar, excluir) para usuários demo.
+    Redireciona para o dashboard com mensagem de aviso.
+    
+    Uso:
+        @login_required
+        @bloquear_demo_cadastro
+        def minha_view(request, ...):
+            ...
+    """
+    from django.contrib import messages
+    from django.shortcuts import redirect
+    
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        # Verificar se o usuário está autenticado
+        if not request.user.is_authenticated:
+            from django.contrib.auth.views import redirect_to_login
+            return redirect_to_login(request.get_full_path())
+        
+        # Verificar se é usuário demo
+        if request.user.username in ['demo_monpec', 'demo']:
+            # Bloquear qualquer acesso (GET, POST, PUT, PATCH, DELETE) para páginas de cadastro/edição
+            messages.warning(
+                request,
+                '⚠️ <strong>Versão de Demonstração:</strong> Operações de cadastro, edição e exclusão estão desabilitadas na versão demo. '
+                'Adquira o sistema completo para ter acesso a todas as funcionalidades.'
+            )
+            # Tentar redirecionar para a página de módulos da propriedade se disponível
+            propriedade_id = kwargs.get('propriedade_id')
+            if propriedade_id:
+                return redirect('propriedade_modulos', propriedade_id=propriedade_id)
+            return redirect('dashboard')
+        
+        # Para usuários normais, executar a view normalmente
+        return view_func(request, *args, **kwargs)
+    
+    return wrapper
+
+

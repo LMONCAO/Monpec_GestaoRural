@@ -1,0 +1,106 @@
+{% extends 'base_modulos_unificado.html' %}
+{% load formatacao_br %}
+
+{% block title %}Emissão de Boletos - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block breadcrumb_extra %}
+    <li class="breadcrumb-item">
+        <a href="{% url 'financeiro_dashboard' propriedade.id %}">
+            <i class="bi bi-cash-coin me-1"></i>Financeiro
+        </a>
+    </li>
+    <li class="breadcrumb-item active">Boletos</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="submenu-page-header">
+        <div class="d-flex align-items-start gap-4">
+            <div class="submenu-page-icon bg-info bg-opacity-10 text-info">
+                <i class="bi bi-receipt-cutoff"></i>
+            </div>
+            <div class="flex-grow-1">
+                <h1 class="submenu-page-title mb-1">Emissão de Boletos</h1>
+                <p class="submenu-page-description mb-0">
+                    Gere boletos para as contas a receber da propriedade {{ propriedade.nome_propriedade }}.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="card-moderno">
+        <div class="card-body-moderno">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Vencimento</th>
+                            <th>Descrição</th>
+                            <th>Cliente</th>
+                            <th class="text-end">Valor</th>
+                            <th>Status</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if contas_receber %}
+                            {% for conta in contas_receber %}
+                                <tr>
+                                    <td>{{ conta.data_vencimento|data_br }}</td>
+                                    <td>
+                                        <div class="fw-semibold">{{ conta.descricao }}</div>
+                                        {% if conta.categoria %}
+                                            <small class="text-muted">{{ conta.categoria }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if conta.cliente %}
+                                            {{ conta.cliente }}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        <span class="fw-bold text-success">{{ conta.valor|moeda_br }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge
+                                            {% if conta.status == 'PENDENTE' %}bg-warning text-dark
+                                            {% elif conta.status == 'VENCIDA' %}bg-danger
+                                            {% else %}bg-secondary{% endif %}">
+                                            {{ conta.get_status_display }}
+                                        </span>
+                                    </td>
+                                    <td class="text-end">
+                                        <a href="{% url 'financeiro_boleto_gerar' propriedade.id conta.id %}" 
+                                           class="btn btn-outline-primary btn-sm">
+                                            <i class="bi bi-file-earmark-pdf me-1"></i> Gerar Boleto
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center py-5">
+                                    <i class="bi bi-inboxes display-6 text-muted d-block mb-2"></i>
+                                    <p class="text-muted mb-0">Nenhuma conta a receber disponível para gerar boleto.</p>
+                                    <a href="{% url 'financeiro_contas_receber' propriedade.id %}" class="btn btn-primary mt-3">
+                                        <i class="bi bi-plus-circle me-1"></i> Criar Conta a Receber
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+
+
+
+

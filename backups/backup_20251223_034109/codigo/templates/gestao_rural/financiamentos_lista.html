@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% load formatacao_br %}
+
+{% block title %}Financiamentos - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2><i class="bi bi-credit-card"></i> Financiamentos</h2>
+                    <p class="text-muted mb-0">Propriedade: {{ propriedade.nome_propriedade }}</p>
+                </div>
+                <div>
+                    <a href="{% url 'endividamento_dashboard' propriedade.id %}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Voltar
+                    </a>
+                    <a href="{% url 'financiamento_novo' propriedade.id %}" class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i> Novo Financiamento
+                    </a>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-list-ul"></i> Lista de Financiamentos
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if financiamentos %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Tipo</th>
+                                        <th>Nome</th>
+                                        <th>Valor Financiado</th>
+                                        <th>Taxa Juros</th>
+                                        <th>Prazo (meses)</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for financiamento in financiamentos %}
+                                        <tr>
+                                            <td>{{ financiamento.get_tipo_display }}</td>
+                                            <td>{{ financiamento.nome }}</td>
+                                            <td>{{ financiamento.valor_financiado|moeda_br }}</td>
+                                            <td>{{ financiamento.taxa_juros|percentual_br:2 }} a.m.</td>
+                                            <td>{{ financiamento.prazo_meses|numero_br:0 }}</td>
+                                            <td>
+                                                <a href="{% url 'financiamento_editar' propriedade.id financiamento.id %}" class="btn btn-sm btn-warning">
+                                                    <i class="bi bi-pencil"></i> Editar
+                                                </a>
+                                                <a href="{% url 'financiamento_excluir' propriedade.id financiamento.id %}" class="btn btn-sm btn-danger">
+                                                    <i class="bi bi-trash"></i> Excluir
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i> Nenhum financiamento cadastrado.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

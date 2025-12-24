@@ -31,7 +31,9 @@ from reportlab.lib.enums import TA_CENTER, TA_LEFT
 @login_required
 def relatorios_dashboard(request, propriedade_id):
     """Dashboard do módulo de relatórios"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    # ✅ SEGURANÇA: Verificar permissão de acesso à propriedade
+    from .decorators import obter_propriedade_com_permissao
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     # Busca dados para resumo
     resumo_dados = gerar_resumo_propriedade(propriedade)
@@ -47,7 +49,9 @@ def relatorios_dashboard(request, propriedade_id):
 @login_required
 def relatorio_final(request, propriedade_id):
     """Relatório final consolidado simples (inventário + indicadores básicos)."""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    # ✅ SEGURANÇA: Verificar permissão de acesso à propriedade
+    from .decorators import obter_propriedade_com_permissao
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
 
     # Inventário mais recente
     from django.db.models import Max
@@ -76,7 +80,9 @@ def relatorio_final(request, propriedade_id):
 @login_required
 def relatorio_inventario(request, propriedade_id):
     """Relatório de inventário do rebanho"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    # ✅ SEGURANÇA: Verificar permissão de acesso à propriedade
+    from .decorators import obter_propriedade_com_permissao
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     # Busca inventário atual
     inventario = InventarioRebanho.objects.filter(propriedade=propriedade).order_by('categoria__nome')
@@ -114,7 +120,9 @@ def relatorio_inventario(request, propriedade_id):
 @login_required
 def relatorio_financeiro(request, propriedade_id):
     """Relatório financeiro completo"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    # ✅ SEGURANÇA: Verificar permissão de acesso à propriedade
+    from .decorators import obter_propriedade_com_permissao
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     # Dados financeiros
     dados_financeiros = gerar_dados_financeiros(propriedade)
@@ -137,7 +145,9 @@ def relatorio_financeiro(request, propriedade_id):
 @login_required
 def relatorio_custos(request, propriedade_id):
     """Relatório de custos de produção"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    # ✅ SEGURANÇA: Verificar permissão de acesso à propriedade
+    from .decorators import obter_propriedade_com_permissao
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     # Custos fixos
     custos_fixos = CustoFixo.objects.filter(propriedade=propriedade, ativo=True)
@@ -179,7 +189,9 @@ def relatorio_custos(request, propriedade_id):
 @login_required
 def relatorio_endividamento(request, propriedade_id):
     """Relatório de endividamento"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    # ✅ SEGURANÇA: Verificar permissão de acesso à propriedade
+    from .decorators import obter_propriedade_com_permissao
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     # Financiamentos ativos
     financiamentos = Financiamento.objects.filter(propriedade=propriedade, ativo=True)
@@ -219,7 +231,9 @@ def relatorio_endividamento(request, propriedade_id):
 @login_required
 def relatorio_consolidado(request, propriedade_id):
     """Relatório consolidado geral"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    # ✅ SEGURANÇA: Verificar permissão de acesso à propriedade
+    from .decorators import obter_propriedade_com_permissao
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     # Busca todos os dados
     resumo_dados = gerar_resumo_propriedade(propriedade)
@@ -306,7 +320,9 @@ def gerar_dados_financeiros(propriedade):
 @login_required
 def exportar_relatorio_inventario_pdf(request, propriedade_id):
     """Exporta relatório de inventário em PDF"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    # ✅ SEGURANÇA: Verificar permissão de acesso à propriedade
+    from .decorators import obter_propriedade_com_permissao
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     # Busca dados do inventário
     inventario = InventarioRebanho.objects.filter(propriedade=propriedade).order_by('categoria__nome')
@@ -384,7 +400,9 @@ def exportar_relatorio_inventario_pdf(request, propriedade_id):
 @login_required
 def exportar_relatorio_inventario_excel(request, propriedade_id):
     """Exporta relatório de inventário em Excel"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    # ✅ SEGURANÇA: Verificar permissão de acesso à propriedade
+    from .decorators import obter_propriedade_com_permissao
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     # Busca dados do inventário
     inventario = InventarioRebanho.objects.filter(propriedade=propriedade).order_by('categoria__nome')
@@ -447,7 +465,9 @@ def exportar_relatorio_inventario_excel(request, propriedade_id):
 @login_required
 def exportar_relatorio_financeiro_pdf(request, propriedade_id):
     """Exporta relatório financeiro em PDF"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    # ✅ SEGURANÇA: Verificar permissão de acesso à propriedade
+    from .decorators import obter_propriedade_com_permissao
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     # Busca dados financeiros
     dados_financeiros = gerar_dados_financeiros(propriedade)
@@ -528,7 +548,9 @@ def exportar_relatorio_financeiro_pdf(request, propriedade_id):
 @login_required
 def exportar_relatorio_financeiro_excel(request, propriedade_id):
     """Exporta relatório financeiro em Excel"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    # ✅ SEGURANÇA: Verificar permissão de acesso à propriedade
+    from .decorators import obter_propriedade_com_permissao
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     # Busca dados financeiros
     dados_financeiros = gerar_dados_financeiros(propriedade)
@@ -645,7 +667,9 @@ def exportar_relatorio_consolidado_excel(request, propriedade_id):
 @login_required
 def relatorio_pecuaria_pdf(request, propriedade_id):
     """Gera relatório de Pecuária em PDF"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    # ✅ SEGURANÇA: Verificar permissão de acesso à propriedade
+    from .decorators import obter_propriedade_com_permissao
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     try:
         pdf_buffer = gerar_relatorio_pecuaria_pdf(propriedade)
@@ -661,7 +685,9 @@ def relatorio_pecuaria_pdf(request, propriedade_id):
 @login_required
 def relatorio_nutricao_pdf(request, propriedade_id):
     """Gera relatório de Nutrição em PDF"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    # ✅ SEGURANÇA: Verificar permissão de acesso à propriedade
+    from .decorators import obter_propriedade_com_permissao
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     try:
         pdf_buffer = gerar_relatorio_nutricao_pdf(propriedade)
@@ -677,7 +703,9 @@ def relatorio_nutricao_pdf(request, propriedade_id):
 @login_required
 def relatorio_operacoes_pdf(request, propriedade_id):
     """Gera relatório de Operações em PDF"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    # ✅ SEGURANÇA: Verificar permissão de acesso à propriedade
+    from .decorators import obter_propriedade_com_permissao
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     try:
         pdf_buffer = gerar_relatorio_operacoes_pdf(propriedade)
@@ -693,7 +721,9 @@ def relatorio_operacoes_pdf(request, propriedade_id):
 @login_required
 def relatorio_compras_pdf(request, propriedade_id):
     """Gera relatório de Compras em PDF"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    # ✅ SEGURANÇA: Verificar permissão de acesso à propriedade
+    from .decorators import obter_propriedade_com_permissao
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     try:
         pdf_buffer = gerar_relatorio_compras_pdf(propriedade)
@@ -709,7 +739,9 @@ def relatorio_compras_pdf(request, propriedade_id):
 @login_required
 def relatorio_projetos_bancarios_pdf(request, propriedade_id):
     """Gera relatório de Projetos Bancários em PDF"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    # ✅ SEGURANÇA: Verificar permissão de acesso à propriedade
+    from .decorators import obter_propriedade_com_permissao
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     try:
         pdf_buffer = gerar_relatorio_projetos_bancarios_pdf(propriedade)

@@ -1,0 +1,211 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load formatacao_br %}
+
+{% block title %}Editar Transferência - MONPEC{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'transferencias_lista' %}">Transferências</a></li>
+            <li class="breadcrumb-item active">Editar Transferência</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1"><i class="bi bi-pencil-square text-primary me-2"></i>Editar Transferência</h2>
+            <p class="text-muted mb-0">ID: #{{ transferencia.id }}</p>
+        </div>
+        <div>
+            <a href="{% url 'transferencias_lista' %}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Voltar
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-file-earmark-text me-2"></i>Dados da Transferência</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.propriedade_origem.id_for_label }}" class="form-label">
+                                    <i class="bi bi-geo-alt"></i> Propriedade de Origem <span class="text-danger">*</span>
+                                </label>
+                                {{ form.propriedade_origem }}
+                                {% if form.propriedade_origem.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.propriedade_origem.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.propriedade_destino.id_for_label }}" class="form-label">
+                                    <i class="bi bi-geo-alt-fill"></i> Propriedade de Destino <span class="text-danger">*</span>
+                                </label>
+                                {{ form.propriedade_destino }}
+                                {% if form.propriedade_destino.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.propriedade_destino.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.categoria.id_for_label }}" class="form-label">
+                                    <i class="bi bi-tag"></i> Categoria <span class="text-danger">*</span>
+                                </label>
+                                {{ form.categoria }}
+                                {% if form.categoria.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.categoria.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.quantidade.id_for_label }}" class="form-label">
+                                    <i class="bi bi-123"></i> Quantidade <span class="text-danger">*</span>
+                                </label>
+                                {{ form.quantidade }}
+                                {% if form.quantidade.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.quantidade.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.data_transferencia.id_for_label }}" class="form-label">
+                                    <i class="bi bi-calendar"></i> Data da Transferência <span class="text-danger">*</span>
+                                </label>
+                                {{ form.data_transferencia }}
+                                {% if form.data_transferencia.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.data_transferencia.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.tipo_transferencia.id_for_label }}" class="form-label">
+                                    <i class="bi bi-arrow-left-right"></i> Tipo de Transferência
+                                </label>
+                                {{ form.tipo_transferencia }}
+                                {% if form.tipo_transferencia.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.tipo_transferencia.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.status.id_for_label }}" class="form-label">
+                                    <i class="bi bi-check-circle"></i> Status
+                                </label>
+                                {{ form.status }}
+                                {% if form.status.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.status.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.observacao.id_for_label }}" class="form-label">
+                                <i class="bi bi-card-text"></i> Observações
+                            </label>
+                            {{ form.observacao }}
+                            {% if form.observacao.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.observacao.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="d-flex justify-content-end gap-2">
+                            <a href="{% url 'transferencias_lista' %}" class="btn btn-secondary">
+                                <i class="bi bi-x-circle me-1"></i>Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle me-1"></i>Atualizar Transferência
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Informações da Transferência</h6>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-5">Origem:</dt>
+                        <dd class="col-sm-7">{{ transferencia.propriedade_origem.nome_propriedade }}</dd>
+                        
+                        <dt class="col-sm-5">Destino:</dt>
+                        <dd class="col-sm-7">{{ transferencia.propriedade_destino.nome_propriedade }}</dd>
+                        
+                        <dt class="col-sm-5">Categoria:</dt>
+                        <dd class="col-sm-7">{{ transferencia.categoria.nome }}</dd>
+                        
+                        <dt class="col-sm-5">Quantidade:</dt>
+                        <dd class="col-sm-7">{{ transferencia.quantidade|numero_br }}</dd>
+                        
+                        <dt class="col-sm-5">Data:</dt>
+                        <dd class="col-sm-7">{{ transferencia.data_transferencia|date:"d/m/Y" }}</dd>
+                        
+                        <dt class="col-sm-5">Status:</dt>
+                        <dd class="col-sm-7">
+                            {% if transferencia.status == "REALIZADA" %}
+                                <span class="badge bg-success">Realizada</span>
+                            {% elif transferencia.status == "AGENDADA" %}
+                                <span class="badge bg-warning text-dark">Agendada</span>
+                            {% elif transferencia.status == "CANCELADA" %}
+                                <span class="badge bg-danger">Cancelada</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ transferencia.get_status_display }}</span>
+                            {% endif %}
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

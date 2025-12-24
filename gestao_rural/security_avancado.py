@@ -281,17 +281,8 @@ def verificar_assinatura_ativa_para_pagamento(usuario: User) -> Tuple[bool, str]
     try:
         assinatura = AssinaturaCliente.objects.get(usuario=usuario)
         
-        # Verificar se já tem assinatura ativa
-        if assinatura.status == AssinaturaCliente.Status.ATIVA:
-            return False, "Você já possui uma assinatura ativa."
-        
-        # Verificar se tem assinatura pendente recente
-        if assinatura.status == AssinaturaCliente.Status.PENDENTE:
-            # Verificar se foi criada há menos de 1 hora
-            tempo_decorrido = timezone.now() - assinatura.criado_em
-            if tempo_decorrido < timedelta(hours=1):
-                return False, "Você já tem um pagamento pendente. Aguarde a confirmação."
-        
+        # Permitir múltiplos checkouts - não bloquear por assinatura ativa ou pendente
+        # O usuário pode tentar pagar novamente se necessário
         return True, "OK"
         
     except AssinaturaCliente.DoesNotExist:

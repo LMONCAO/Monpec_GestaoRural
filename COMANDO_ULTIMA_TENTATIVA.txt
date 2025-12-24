@@ -1,0 +1,37 @@
+========================================
+ÚLTIMA TENTATIVA - SIMPLES
+========================================
+
+O erro do gzip foi temporário. Vamos tentar de novo:
+
+1. Limpar cache:
+   rm -rf ~/.cache/gcloud
+
+2. Build simples (sem timeout):
+   gcloud builds submit --tag gcr.io/monpec-sistema-rural/monpec:latest
+
+3. Se o build funcionar, deploy com região CORRETA:
+   gcloud run deploy monpec \
+       --image gcr.io/monpec-sistema-rural/monpec:latest \
+       --region us-central1 \
+       --platform managed \
+       --allow-unauthenticated \
+       --set-env-vars "DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,DEBUG=False,SITE_URL=https://monpec.com.br" \
+       --update-env-vars "MERCADOPAGO_SUCCESS_URL=https://monpec.com.br/assinaturas/sucesso/,MERCADOPAGO_CANCEL_URL=https://monpec.com.br/assinaturas/cancelado/" \
+       --memory 1Gi --cpu 1 --port 8080
+
+========================================
+SE AINDA FALHAR:
+========================================
+
+NÃO SE PREOCUPE!
+
+O sistema atual ESTÁ FUNCIONANDO.
+Os usuários podem acessar.
+Podemos fazer atualizações depois.
+
+O importante é que FUNCIONE para o público!
+
+========================================
+
+

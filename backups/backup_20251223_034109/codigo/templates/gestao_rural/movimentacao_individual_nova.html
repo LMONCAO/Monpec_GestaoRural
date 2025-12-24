@@ -1,0 +1,178 @@
+{% extends "base_modulos_unificado.html" %}
+{% load formatacao_br %}
+{% now "Y-m-d" as hoje %}
+
+{% block title %}Nova Movimentação - {{ animal.numero_brinco }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'animal_individual_detalhes' propriedade.id animal.id %}">{{ animal.numero_brinco }}</a></li>
+            <li class="breadcrumb-item active">Registrar Movimentação</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-arrows-move me-2"></i>Registrar Movimentação SISBOV</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" class="row g-3">
+                        {% csrf_token %}
+
+                        <div class="col-md-6">
+                            <label class="form-label">Tipo de Movimentação *</label>
+                            <select name="tipo_movimentacao" class="form-select" required>
+                                <option value="NASCIMENTO">Nascimento</option>
+                                <option value="COMPRA">Compra</option>
+                                <option value="VENDA">Venda</option>
+                                <option value="TRANSFERENCIA_ENTRADA">Transferência - Entrada</option>
+                                <option value="TRANSFERENCIA_SAIDA">Transferência - Saída</option>
+                                <option value="MORTE">Morte</option>
+                                <option value="MUDANCA_CATEGORIA">Mudança de Categoria</option>
+                                <option value="PESAGEM">Pesagem</option>
+                                <option value="VACINACAO">Vacinação</option>
+                                <option value="TRATAMENTO">Tratamento</option>
+                                <option value="OUTROS">Outros</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Data *</label>
+                            <input type="date" name="data_movimentacao" class="form-control" value="{{ hoje }}" required>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Propriedade de Origem</label>
+                            <select name="propriedade_origem" class="form-select">
+                                <option value="">Selecione...</option>
+                                {% for prop in propriedades %}
+                                <option value="{{ prop.id }}">{{ prop.nome_propriedade }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Propriedade de Destino</label>
+                            <select name="propriedade_destino" class="form-select">
+                                <option value="">Selecione...</option>
+                                {% for prop in propriedades %}
+                                <option value="{{ prop.id }}">{{ prop.nome_propriedade }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Categoria Nova</label>
+                            <select name="categoria_nova" class="form-select">
+                                <option value="">Manter atual</option>
+                                {% for categoria in categorias %}
+                                <option value="{{ categoria.id }}">{{ categoria.nome }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Peso (kg)</label>
+                            <input type="number" step="0.01" name="peso_kg" class="form-control" placeholder="Informe se houve pesagem">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Valor (R$)</label>
+                            <input type="number" step="0.01" name="valor" class="form-control" placeholder="Utilize em compras/vendas">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Tipo de Documento *</label>
+                            <select name="documento_tipo" class="form-select" required>
+                                {% for valor, rotulo in documento_tipo_choices %}
+                                <option value="{{ valor }}">{{ rotulo }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="numero_documento" class="form-label">Número do Documento</label>
+                            <input type="text" name="numero_documento" id="numero_documento" class="form-control" placeholder="Ex: Nota Fiscal 123" />
+                        </div>
+                        <div class="col-md-4">
+                            <label for="documento_emissor" class="form-label">Emissor do Documento</label>
+                            <input type="text" name="documento_emissor" id="documento_emissor" class="form-control" placeholder="Órgão ou empresa responsável" />
+                        </div>
+                        <div class="col-md-4">
+                            <label for="data_documento" class="form-label">Data do Documento</label>
+                            <input type="date" name="data_documento" id="data_documento" class="form-control" />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">Quantidade de Animais</label>
+                            <input type="number" name="quantidade_animais" class="form-control" min="1" value="1">
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">Status Sanitário</label>
+                            <select name="status_sanitario" class="form-select">
+                                {% for valor, rotulo in status_sanitario_choices %}
+                                <option value="{{ valor }}" {% if animal.status_sanitario == valor %}selected{% endif %}>{{ rotulo }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">Lote Atual</label>
+                            <select name="lote_atual" class="form-select">
+                                <option value="">Manter atual</option>
+                                {% for lote in lotes %}
+                                <option value="{{ lote.id }}" {% if animal.lote_atual_id == lote.id %}selected{% endif %}>
+                                    {{ lote.nome }} - Sessão {{ lote.sessao.nome }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label">Motivo detalhado / Observações obrigatórias</label>
+                            <textarea name="motivo_detalhado" rows="2" class="form-control" placeholder="Explique a movimentação, motivo da saída, tratamento realizado..."></textarea>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label">Observações</label>
+                            <textarea name="observacoes" rows="3" class="form-control" placeholder="Detalhes obrigatórios para auditoria SISBOV"></textarea>
+                        </div>
+
+                        <div class="col-12 d-flex gap-2">
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-check-circle me-1"></i>Registrar
+                            </button>
+                            <a href="{% url 'animal_individual_detalhes' propriedade.id animal.id %}" class="btn btn-outline-secondary">Cancelar</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-shield-check me-2"></i>Regras de Comunicação SISBOV</h6>
+                </div>
+                <div class="card-body small text-muted">
+                    <ul class="mb-0">
+                        <li>Nascimentos devem ser registrados até 30 dias após o evento;</li>
+                        <li>Compras e transferências exigem GTA e nota fiscal anexadas ao histórico;</li>
+                        <li>Mortes precisam indicar motivo e data para baixa no rebanho;</li>
+                        <li>Mudanças de categoria devem refletir o estágio produtivo real;</li>
+                        <li>Pesagens e tratamentos auxiliam nas auditorias de bem-estar;</li>
+                        <li>Guarde todos os comprovantes físicos por no mínimo 5 anos.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

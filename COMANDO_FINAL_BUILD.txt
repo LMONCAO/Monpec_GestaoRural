@@ -1,0 +1,42 @@
+========================================
+COMANDO FINAL PARA RESOLVER BUILD
+========================================
+
+O problema: django-logging==0.1.0 não existe, mas está sendo tentado instalar.
+
+SOLUÇÃO RÁPIDA:
+
+1. No Cloud Shell, execute:
+   sed -i '/django-logging/d' requirements_producao.txt
+
+2. Verificar se foi removido:
+   grep django-logging requirements_producao.txt
+   (não deve retornar nada)
+
+3. Fazer build (pode levar 10-15 minutos):
+   gcloud builds submit --tag gcr.io/monpec-sistema-rural/monpec:latest --timeout=20m
+
+4. AGUARDE o build terminar completamente!
+
+5. Fazer deploy com região CORRETA (us-central1):
+   gcloud run deploy monpec \
+       --image gcr.io/monpec-sistema-rural/monpec:latest \
+       --region us-central1 \
+       --platform managed \
+       --allow-unauthenticated \
+       --set-env-vars "DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,DEBUG=False,SITE_URL=https://monpec.com.br" \
+       --update-env-vars "MERCADOPAGO_SUCCESS_URL=https://monpec.com.br/assinaturas/sucesso/,MERCADOPAGO_CANCEL_URL=https://monpec.com.br/assinaturas/cancelado/" \
+       --memory 1Gi --cpu 1 --timeout 300 --max-instances 10 --min-instances 1 --port 8080
+
+========================================
+SE O BUILD AINDA FALHAR:
+========================================
+
+O django-logging pode ser dependência de outro pacote.
+Nesse caso, precisamos identificar qual pacote está causando isso.
+
+Verifique os logs do build para ver qual pacote está tentando instalar django-logging.
+
+========================================
+
+

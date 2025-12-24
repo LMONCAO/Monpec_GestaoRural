@@ -58,7 +58,18 @@ class PlanoAssinatura(models.Model):
     nome = models.CharField(max_length=120, unique=True, verbose_name="Nome do plano")
     slug = models.SlugField(max_length=120, unique=True, verbose_name="Slug")
     descricao = models.TextField(blank=True, verbose_name="Descrição")
-    stripe_price_id = models.CharField(max_length=120, unique=True, verbose_name="Stripe Price ID")
+    stripe_price_id = models.CharField(
+        max_length=120, 
+        blank=True, 
+        verbose_name="Stripe Price ID",
+        help_text="ID do preço no Stripe (opcional se usar outro gateway)"
+    )
+    mercadopago_preapproval_id = models.CharField(
+        max_length=120,
+        blank=True,
+        verbose_name="Mercado Pago Preapproval ID",
+        help_text="ID do plano de assinatura no Mercado Pago (opcional)"
+    )
     preco_mensal_referencia = models.DecimalField(
         max_digits=10,
         decimal_places=2,
@@ -142,6 +153,28 @@ class AssinaturaCliente(models.Model):
         blank=True,
         verbose_name="Stripe Subscription ID"
     )
+    mercadopago_customer_id = models.CharField(
+        max_length=120,
+        blank=True,
+        verbose_name="Mercado Pago Customer ID"
+    )
+    mercadopago_subscription_id = models.CharField(
+        max_length=120,
+        blank=True,
+        verbose_name="Mercado Pago Subscription ID"
+    )
+    gateway_pagamento = models.CharField(
+        max_length=50,
+        default='stripe',
+        choices=[
+            ('stripe', 'Stripe'),
+            ('mercadopago', 'Mercado Pago'),
+            ('asaas', 'Asaas'),
+            ('gerencianet', 'Gerencianet'),
+        ],
+        verbose_name="Gateway de Pagamento",
+        help_text="Gateway usado para esta assinatura"
+    )
     ultimo_checkout_id = models.CharField(
         max_length=120,
         blank=True,
@@ -157,6 +190,12 @@ class AssinaturaCliente(models.Model):
         verbose_name="Cancelamento ao término do período"
     )
     metadata = models.JSONField(default=dict, blank=True, verbose_name="Metadados adicionais")
+    data_liberacao = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name="Data de Liberação",
+        help_text="Data a partir da qual o usuário terá acesso ao sistema. Se não definida, o acesso será imediato após pagamento confirmado."
+    )
     criado_em = models.DateTimeField(auto_now_add=True, verbose_name="Criado em")
     atualizado_em = models.DateTimeField(auto_now=True, verbose_name="Atualizado em")
 
@@ -167,11 +206,28 @@ class AssinaturaCliente(models.Model):
         indexes = [
             models.Index(fields=['stripe_customer_id']),
             models.Index(fields=['stripe_subscription_id']),
+            models.Index(fields=['mercadopago_customer_id']),
+            models.Index(fields=['mercadopago_subscription_id']),
+            models.Index(fields=['gateway_pagamento']),
         ]
 
     def __str__(self):
         return f"{self.usuario} - {self.get_status_display()}"
 
+    @property
+    def acesso_liberado(self) -> bool:
+        """
+        Verifica se o acesso está liberado baseado na data de liberação.
+        Se não houver data_liberacao definida, considera liberado se status for ATIVA.
+        """
+        if not self.data_liberacao:
+            # Se não há data de liberação, acesso é imediato após pagamento
+            return self.status == self.Status.ATIVA
+        
+        from django.utils import timezone
+        hoje = timezone.now().date()
+        return self.status == self.Status.ATIVA and hoje >= self.data_liberacao
+    
     @property
     def ativa(self):
         return self.status == self.Status.ATIVA
@@ -2308,6 +2364,21 @@ class AnimalIndividual(models.Model):
         choices=STATUS_REPRODUTIVO_CHOICES,
         default='INDEFINIDO',
         verbose_name="Status Reprodutivo"
+    )
+
+    STATUS_BND_CHOICES = [
+        ('CONFORME', 'Conforme BND'),
+        ('DIVERGENTE', 'Divergente BND'),
+        ('NAO_CONFORME', 'Não Conforme'),
+    ]
+
+    status_bnd = models.CharField(
+        max_length=20,
+        choices=STATUS_BND_CHOICES,
+        blank=True,
+        null=True,
+        verbose_name="Status BND",
+        help_text="Status de conformidade com o Banco Nacional de Dados (BND)"
     )
 
     data_ultima_cobertura = models.DateField(

@@ -1,0 +1,46 @@
+========================================
+INSTRUÇÕES PARA DEPLOY NO CLOUD SHELL
+========================================
+
+1. No Cloud Shell, navegue até o diretório do projeto:
+   cd ~/Monpec_GestaoRural
+   (ou onde estiver o projeto)
+
+2. Execute o deploy:
+   chmod +x deploy_rapido_cloud_shell.sh
+   ./deploy_rapido_cloud_shell.sh
+
+OU execute diretamente:
+
+   gcloud builds submit --tag gcr.io/monpec-sistema-rural/monpec:latest
+
+   gcloud run deploy monpec \
+       --image gcr.io/monpec-sistema-rural/monpec:latest \
+       --region us-central1 \
+       --platform managed \
+       --allow-unauthenticated \
+       --set-env-vars "DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,DEBUG=False,SITE_URL=https://monpec.com.br" \
+       --update-env-vars "MERCADOPAGO_SUCCESS_URL=https://monpec.com.br/assinaturas/sucesso/,MERCADOPAGO_CANCEL_URL=https://monpec.com.br/assinaturas/cancelado/" \
+       --memory 1Gi --cpu 1 --timeout 300 --max-instances 10 --min-instances 1 --port 8080
+
+3. Após o deploy, configure as variáveis de ambiente:
+   gcloud run services update monpec --region us-central1 \
+       --update-env-vars "MERCADOPAGO_ACCESS_TOKEN=APP_USR-7331944463149248-122310-414426720444c3c1d60cf733585d7821-2581972940,MERCADOPAGO_PUBLIC_KEY=APP_USR-49fe9640-f5b1-4fac-a280-2e28fbd0fea3,SECRET_KEY=SUA_SECRET_KEY"
+
+4. Configure o domínio:
+   gcloud run domain-mappings create --service monpec --domain monpec.com.br --region us-central1
+   gcloud run domain-mappings create --service monpec --domain www.monpec.com.br --region us-central1
+
+5. Aplique as migrações:
+   gcloud run jobs create migrate-monpec \
+       --image gcr.io/monpec-sistema-rural/monpec:latest \
+       --region us-central1 \
+       --command python \
+       --args "manage.py,migrate" \
+       --set-env-vars "DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp"
+   
+   gcloud run jobs execute migrate-monpec --region us-central1
+
+========================================
+
+

@@ -1,0 +1,94 @@
+{% extends "base_modulos_unificado.html" %}
+
+{% block title %}Cadastrar Brincos em Lote - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'brincos_lista' propriedade.id %}">Brincos</a></li>
+            <li class="breadcrumb-item active">Cadastro em Lote</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-lg-7">
+            <div class="card">
+                <div class="card-header bg-warning">
+                    <h5 class="mb-0"><i class="bi bi-tags me-2"></i>Cadastrar Brincos Oficiais</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" class="row g-3">
+                        {% csrf_token %}
+                        <div class="col-md-6">
+                            <label class="form-label">Tipo de Brinco *</label>
+                            <select name="tipo_brinco" class="form-select" required>
+                                <option value="VISUAL">Visual</option>
+                                <option value="ELETRONICO">Eletrônico (RFID)</option>
+                                <option value="BOTTON">Botton</option>
+                                <option value="BOLINHA">Bolinha</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Data de Aquisição</label>
+                            <input type="date" name="data_aquisicao" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Código do Lote</label>
+                            <input type="text" name="codigo_lote" class="form-control" placeholder="Identificador do lote de brincos">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Fornecedor</label>
+                            <input type="text" name="fornecedor" class="form-control" placeholder="Empresa fornecedora">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Prefixo</label>
+                            <input type="text" name="prefixo" class="form-control" placeholder="Ex: 105" maxlength="15">
+                            <small class="text-muted">Opcional. Apenas números. O brinco final deve ter 15 dígitos.</small>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Número Inicial *</label>
+                            <input type="number" name="numero_inicial" class="form-control" value="1" min="0" required>
+                            <small class="text-muted">Será completado para totalizar 15 dígitos.</small>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Quantidade *</label>
+                            <input type="number" name="quantidade" class="form-control" min="1" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Valor Unitário (R$)</label>
+                            <input type="number" step="0.01" name="valor_unitario" class="form-control" placeholder="Opcional">
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-warning">
+                                <i class="bi bi-save me-1"></i>Salvar Brincos
+                            </button>
+                            <a href="{% url 'brincos_lista' propriedade.id %}" class="btn btn-outline-secondary ms-2">Cancelar</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-clipboard-check me-2"></i>Orientações SISBOV</h6>
+                </div>
+                <div class="card-body small text-muted">
+                    <ul class="mb-0">
+                        <li>Brincos precisam seguir numeração sequencial e única;</li>
+                        <li>Brincos eletrônicos devem estar homologados no PNIB;</li>
+                        <li>Registre a data de aquisição para rastreabilidade de lotes;</li>
+                        <li>Mantenha estoque de segurança para reposições imediatas;</li>
+                        <li>Brincos danificados ou perdidos devem ser baixados e substituídos;</li>
+                        <li>Respeite o padrão de 15 dígitos e prefixos definidos pelo MAPA quando aplicável.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

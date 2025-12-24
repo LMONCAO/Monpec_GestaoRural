@@ -1,0 +1,95 @@
+{% extends "base_modulos_unificado.html" %}
+
+{% block title %}Livro Sanitário SISBOV - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'rastreabilidade_dashboard' propriedade.id %}">Rastreabilidade</a></li>
+            <li class="breadcrumb-item active">Livro Sanitário</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+        <div>
+            <h2 class="mb-0"><i class="bi bi-shield-check text-info me-2"></i>Registros Sanitários (Vacinações e Tratamentos)</h2>
+            <small class="text-muted">Conforme exigências SISBOV / PNCRB</small>
+        </div>
+        <button class="btn btn-outline-secondary" onclick="window.print()"><i class="bi bi-printer me-1"></i>Imprimir / PDF</button>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label">Data inicial</label>
+                    <input type="date" name="data_inicio" value="{{ data_inicio|date:'Y-m-d' }}" class="form-control">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Data final</label>
+                    <input type="date" name="data_fim" value="{{ data_fim|date:'Y-m-d' }}" class="form-control">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Tipo</label>
+                    <select name="tipo_sanitario" class="form-select">
+                        <option value="">Vacinações e Tratamentos</option>
+                        <option value="VACINACAO" {% if tipo_sanitario == 'VACINACAO' %}selected{% endif %}>Somente Vacinações</option>
+                        <option value="TRATAMENTO" {% if tipo_sanitario == 'TRATAMENTO' %}selected{% endif %}>Somente Tratamentos</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Brinco</label>
+                    <input type="text" name="busca" value="{{ busca }}" class="form-control" placeholder="Número do brinco">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-info w-100"><i class="bi bi-search me-1"></i>Filtrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header bg-light">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Registros sanitários</h5>
+                <span class="badge bg-info">{{ total_registros }} registros</span>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Data</th>
+                            <th>Brinco</th>
+                            <th>Tipo</th>
+                            <th>Categoria</th>
+                            <th>Descrição</th>
+                            <th>Responsável / Observações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for mov in registros %}
+                        <tr>
+                            <td>{{ mov.data_movimentacao|date:"d/m/Y" }}</td>
+                            <td><strong>{{ mov.animal.numero_brinco }}</strong></td>
+                            <td>{{ mov.get_tipo_movimentacao_display }}</td>
+                            <td>{{ mov.animal.categoria.nome }}</td>
+                            <td>{{ mov.numero_documento|default:"-" }}</td>
+                            <td>{{ mov.observacoes|default:"-" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">Nenhum registro sanitário encontrado para os filtros informados.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,714 @@
+{% extends 'base_modulos_unificado.html' %}
+{% load static %}
+
+{% block title %}Parâmetros - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block breadcrumb_extra %}
+    <li class="breadcrumb-item">
+        <a href="{% url 'pecuaria_dashboard' propriedade.id %}">
+            <i class="bi bi-cow"></i> Pecuária
+        </a>
+    </li>
+    <li class="breadcrumb-item active">
+        <i class="bi bi-sliders"></i> Parâmetros
+    </li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .parametros-container {
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+    
+    .section-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        margin-bottom: 2rem;
+        overflow: hidden;
+    }
+    
+    .section-header {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        color: white;
+        padding: 1.25rem 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    .section-header i {
+        font-size: 1.5rem;
+    }
+    
+    .section-header h5 {
+        margin: 0;
+        font-weight: 600;
+        font-size: 1.1rem;
+    }
+    
+    .section-body {
+        padding: 1.5rem;
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-label {
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+    
+    .form-control {
+        border-radius: 8px;
+        border: 1px solid #d1d5db;
+        padding: 0.625rem 0.875rem;
+        transition: all 0.2s;
+    }
+    
+    .form-control:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    
+    .table-politicas {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .table-politicas thead {
+        background: #f9fafb;
+    }
+    
+    .table-politicas th {
+        padding: 0.875rem;
+        text-align: left;
+        font-weight: 600;
+        color: #374151;
+        font-size: 0.875rem;
+        border-bottom: 2px solid #e5e7eb;
+    }
+    
+    .table-politicas td {
+        padding: 1rem;
+        border-bottom: 1px solid #e5e7eb;
+        vertical-align: middle;
+    }
+    
+    .table-politicas tbody tr:hover {
+        background: #f9fafb;
+    }
+    
+    .input-small {
+        width: 100px;
+        text-align: center;
+    }
+    
+    .badge-saldo {
+        padding: 0.375rem 0.75rem;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 0.875rem;
+    }
+    
+    .btn-action {
+        border-radius: 8px;
+        padding: 0.5rem 1rem;
+        font-weight: 500;
+        transition: all 0.2s;
+    }
+    
+    .btn-primary {
+        background: #3b82f6;
+        border-color: #3b82f6;
+    }
+    
+    .btn-primary:hover {
+        background: #2563eb;
+        border-color: #2563eb;
+    }
+    
+    .alert-info {
+        background: #eff6ff;
+        border-color: #bfdbfe;
+        color: #1e40af;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid parametros-container">
+    <!-- Cabeçalho -->
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h2 class="mb-1">
+                <i class="bi bi-sliders text-primary me-2"></i>
+                Parâmetros de Projeção
+            </h2>
+            <p class="text-muted mb-0">
+                Configure taxas reprodutivas, mortalidade e políticas de vendas
+            </p>
+        </div>
+    </div>
+
+    <form method="post" id="form-parametros">
+        {% csrf_token %}
+        <input type="hidden" name="politica_vendas_data" id="politica-vendas-data">
+
+        <!-- Parâmetros Básicos -->
+        <div class="section-card">
+            <div class="section-header">
+                <i class="bi bi-gear"></i>
+                <h5>Parâmetros Básicos</h5>
+            </div>
+            <div class="section-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label" for="{{ form.taxa_natalidade_anual.id_for_label }}">
+                                Taxa de Natalidade Anual (%)
+                            </label>
+                            {{ form.taxa_natalidade_anual }}
+                            {% if form.taxa_natalidade_anual.errors %}
+                                <div class="text-danger small mt-1">{{ form.taxa_natalidade_anual.errors }}</div>
+                            {% endif %}
+                            <small class="text-muted">Percentual de fêmeas que parirão por ano</small>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label" for="{{ form.periodicidade.id_for_label }}">
+                                Periodicidade
+                            </label>
+                            {{ form.periodicidade }}
+                            {% if form.periodicidade.errors %}
+                                <div class="text-danger small mt-1">{{ form.periodicidade.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label" for="{{ form.taxa_mortalidade_bezerros_anual.id_for_label }}">
+                                Mortalidade de Bezerros (%)
+                            </label>
+                            {{ form.taxa_mortalidade_bezerros_anual }}
+                            {% if form.taxa_mortalidade_bezerros_anual.errors %}
+                                <div class="text-danger small mt-1">{{ form.taxa_mortalidade_bezerros_anual.errors }}</div>
+                            {% endif %}
+                            <small class="text-muted">Animais de 0 a 12 meses</small>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label" for="{{ form.taxa_mortalidade_adultos_anual.id_for_label }}">
+                                Mortalidade de Adultos (%)
+                            </label>
+                            {{ form.taxa_mortalidade_adultos_anual }}
+                            {% if form.taxa_mortalidade_adultos_anual.errors %}
+                                <div class="text-danger small mt-1">{{ form.taxa_mortalidade_adultos_anual.errors }}</div>
+                            {% endif %}
+                            <small class="text-muted">Animais com mais de 12 meses</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label" for="{{ form.percentual_venda_machos_anual.id_for_label }}">
+                                Venda de Machos (%)
+                            </label>
+                            {{ form.percentual_venda_machos_anual }}
+                            {% if form.percentual_venda_machos_anual.errors %}
+                                <div class="text-danger small mt-1">{{ form.percentual_venda_machos_anual.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label" for="{{ form.percentual_venda_femeas_anual.id_for_label }}">
+                                Venda de Fêmeas (%)
+                            </label>
+                            {{ form.percentual_venda_femeas_anual }}
+                            {% if form.percentual_venda_femeas_anual.errors %}
+                                <div class="text-danger small mt-1">{{ form.percentual_venda_femeas_anual.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Política de Vendas por Categoria -->
+        <div class="section-card">
+            <div class="section-header" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                <i class="bi bi-cash-stack"></i>
+                <h5>Política de Vendas por Categoria</h5>
+            </div>
+            <div class="section-body">
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Configure percentuais de venda e reposição para cada categoria de animal.
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table-politicas">
+                        <thead>
+                            <tr>
+                                <th>Categoria</th>
+                                <th class="text-center">Saldo Atual</th>
+                                <th class="text-center">% Venda</th>
+                                <th class="text-center">Qtd Venda</th>
+                                <th class="text-center">Valor/Cabeça</th>
+                                <th class="text-center">Reposição</th>
+                                <th class="text-center" id="col-fazenda-origem" style="display:none;">Fazenda Origem</th>
+                                <th class="text-center" id="col-saldo-origem" style="display:none;">Saldo Origem</th>
+                                <th class="text-center" id="col-qtd-transferir" style="display:none;">Qtd Transferir</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-politicas">
+                            {% for item in categorias_com_politica %}
+                            {% with categoria=item.categoria politica=item.politica %}
+                            <tr data-categoria-id="{{ categoria.id }}" data-categoria-nome="{{ categoria.nome }}">
+                                <td><strong>{{ categoria.nome }}</strong></td>
+                                <td class="text-center">
+                                    <span class="badge-saldo bg-info text-white" data-saldo-categoria="{{ categoria.id }}">
+                                        <i class="bi bi-hourglass-split"></i> Carregando...
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    <input type="number" 
+                                           class="form-control input-small perc-venda" 
+                                           data-categoria="{{ categoria.id }}"
+                                           min="0" max="100" step="0.1" 
+                                           value="{{ politica.percentual_venda|default:0 }}">
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge-saldo bg-warning text-dark qtd-venda" data-categoria="{{ categoria.id }}">
+                                        {{ politica.quantidade_venda|default:0 }}
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    <input type="number" 
+                                           class="form-control input-small valor-cabeca" 
+                                           data-categoria="{{ categoria.id }}"
+                                           min="0" step="0.01" 
+                                           value="{{ politica.valor_por_cabeca_personalizado|default:0 }}">
+                                </td>
+                                <td class="text-center">
+                                    <select class="form-control reposicao-tipo" 
+                                            data-categoria="{{ categoria.id }}" 
+                                            style="width: 140px;">
+                                        <option value="NAO_REP" {% if not politica or politica.reposicao_tipo == 'NAO_REP' %}selected{% endif %}>Não repor</option>
+                                        {% if outras_fazendas %}
+                                        <option value="TRANSFERENCIA" {% if politica and politica.reposicao_tipo == 'TRANSFERENCIA' %}selected{% endif %}>Transferência</option>
+                                        {% endif %}
+                                        <option value="COMPRA" {% if politica and politica.reposicao_tipo == 'COMPRA' %}selected{% endif %}>Compra</option>
+                                    </select>
+                                </td>
+                                <td class="text-center col-fazenda-origem" style="display:none;">
+                                    <select class="form-control fazenda-origem" 
+                                            data-categoria="{{ categoria.id }}"
+                                            style="width: 180px;">
+                                        <option value="">Selecione...</option>
+                                        {% for fazenda in outras_fazendas %}
+                                        <option value="{{ fazenda.id }}" {% if politica and politica.origem_fazenda_id == fazenda.id %}selected{% endif %}>
+                                            {{ fazenda.nome_propriedade }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                                <td class="text-center col-saldo-origem" style="display:none;">
+                                    <span class="badge-saldo bg-secondary text-white saldo-origem" data-categoria="{{ categoria.id }}">
+                                        <i class="bi bi-hourglass-split"></i> -
+                                    </span>
+                                </td>
+                                <td class="text-center col-qtd-transferir" style="display:none;">
+                                    <span class="badge-saldo bg-success text-white qtd-transferir" data-categoria="{{ categoria.id }}">
+                                        {{ politica.quantidade_transferir|default:0 }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endwith %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Botões de Ação -->
+        <div class="d-flex justify-content-end gap-2 mb-4">
+            <a href="{% url 'pecuaria_dashboard' propriedade.id %}" class="btn btn-outline-secondary btn-action">
+                <i class="bi bi-x-circle me-1"></i>Cancelar
+            </a>
+            <button type="submit" class="btn btn-primary btn-action">
+                <i class="bi bi-check-circle me-1"></i>Salvar Parâmetros
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+// Estado global
+const estado = {
+    saldosAtuais: {},
+    saldosOrigem: {},
+    carregando: false
+};
+
+// Inicialização
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Inicializando página de parâmetros...');
+    
+    // Carregar saldos atuais
+    carregarSaldosAtuais();
+    
+    // Configurar event listeners
+    configurarEventListeners();
+    
+    // Configurar formulário
+    configurarFormulario();
+});
+
+// Carregar saldos atuais
+function carregarSaldosAtuais() {
+    fetch(`/propriedade/{{ propriedade.id }}/pecuaria/inventario/dados/`)
+        .then(response => response.json())
+        .then(data => {
+            // Combinar saldos por nome e por ID para compatibilidade
+            estado.saldosAtuais = {...(data.saldos || {}), ...(data.saldos_por_id || {})};
+            // Também adicionar formato id_X para compatibilidade com template
+            if (data.saldos_por_id) {
+                Object.keys(data.saldos_por_id).forEach(id => {
+                    estado.saldosAtuais[`id_${id}`] = data.saldos_por_id[id];
+                });
+            }
+            console.log('Saldos carregados:', estado.saldosAtuais);
+            atualizarSaldosNaTela();
+            calcularVendas();
+        })
+        .catch(error => {
+            console.error('Erro ao carregar saldos:', error);
+            estado.saldosAtuais = {};
+        });
+}
+
+// Atualizar saldos na tela
+function atualizarSaldosNaTela() {
+    document.querySelectorAll('[data-saldo-categoria]').forEach(badge => {
+        const categoriaId = badge.dataset.saldoCategoria;
+        const row = badge.closest('tr');
+        const categoriaNome = row ? row.dataset.categoriaNome : '';
+        
+        let saldo = 0;
+        // Tentar buscar por ID primeiro (formato id_X)
+        if (estado.saldosAtuais[`id_${categoriaId}`] !== undefined) {
+            saldo = estado.saldosAtuais[`id_${categoriaId}`];
+        } 
+        // Tentar buscar pelo ID direto
+        else if (estado.saldosAtuais[categoriaId] !== undefined) {
+            saldo = estado.saldosAtuais[categoriaId];
+        }
+        // Tentar buscar pelo nome da categoria
+        else if (categoriaNome && estado.saldosAtuais[categoriaNome] !== undefined) {
+            saldo = estado.saldosAtuais[categoriaNome];
+        }
+        
+        badge.textContent = saldo;
+        badge.className = `badge-saldo ${saldo > 0 ? 'bg-success text-white' : 'bg-secondary text-white'}`;
+        badge.innerHTML = `<i class="bi bi-${saldo > 0 ? 'check-circle' : 'x-circle'}"></i> ${saldo}`;
+    });
+}
+
+// Calcular vendas
+function calcularVendas() {
+    document.querySelectorAll('.perc-venda').forEach(input => {
+        const categoriaId = input.dataset.categoria;
+        const row = input.closest('tr');
+        const categoriaNome = row ? row.dataset.categoriaNome : '';
+        
+        const percentual = parseFloat(input.value) || 0;
+        
+        // Buscar saldo com múltiplas tentativas
+        let saldo = 0;
+        if (estado.saldosAtuais[`id_${categoriaId}`] !== undefined) {
+            saldo = estado.saldosAtuais[`id_${categoriaId}`];
+        } else if (estado.saldosAtuais[categoriaId] !== undefined) {
+            saldo = estado.saldosAtuais[categoriaId];
+        } else if (categoriaNome && estado.saldosAtuais[categoriaNome] !== undefined) {
+            saldo = estado.saldosAtuais[categoriaNome];
+        }
+        
+        const qtdVenda = Math.floor(saldo * percentual / 100);
+        const badge = row.querySelector(`.qtd-venda[data-categoria="${categoriaId}"]`);
+        
+        if (badge) {
+            badge.textContent = qtdVenda;
+            badge.className = `badge-saldo ${qtdVenda > 0 ? 'bg-info text-white' : 'bg-secondary text-white'}`;
+        }
+        
+        calcularTransferencia(categoriaId);
+    });
+}
+
+// Calcular transferência
+function calcularTransferencia(categoriaId) {
+    const row = document.querySelector(`tr[data-categoria-id="${categoriaId}"]`);
+    if (!row) return;
+    
+    const reposicaoTipo = row.querySelector('.reposicao-tipo').value;
+    const qtdVenda = parseInt(row.querySelector('.qtd-venda').textContent) || 0;
+    const saldoOrigem = estado.saldosOrigem[categoriaId] || 0;
+    
+    if (reposicaoTipo === 'TRANSFERENCIA') {
+        const qtdTransferir = Math.min(qtdVenda, saldoOrigem);
+        const badge = row.querySelector('.qtd-transferir');
+        if (badge) {
+            badge.textContent = qtdTransferir;
+        }
+    }
+}
+
+// Carregar saldo da fazenda origem
+function carregarSaldoOrigem(categoriaId, fazendaId) {
+    if (!fazendaId) return;
+    
+    const badge = document.querySelector(`.saldo-origem[data-categoria="${categoriaId}"]`);
+    if (badge) {
+        badge.innerHTML = '<i class="bi bi-hourglass-split"></i> Carregando...';
+    }
+    
+    fetch(`/api/saldo-fazenda/${fazendaId}/${categoriaId}/`)
+        .then(response => response.json())
+        .then(data => {
+            const saldo = data.saldo || 0;
+            estado.saldosOrigem[categoriaId] = saldo;
+            
+            if (badge) {
+                badge.textContent = saldo;
+                badge.className = `badge-saldo ${saldo > 0 ? 'bg-success text-white' : 'bg-danger text-white'}`;
+                badge.innerHTML = `<i class="bi bi-${saldo > 0 ? 'check-circle' : 'x-circle'}"></i> ${saldo}`;
+            }
+            
+            calcularTransferencia(categoriaId);
+        })
+        .catch(error => {
+            console.error('Erro ao carregar saldo origem:', error);
+            estado.saldosOrigem[categoriaId] = 0;
+            if (badge) {
+                badge.innerHTML = '<i class="bi bi-exclamation-triangle"></i> Erro';
+                badge.className = 'badge-saldo bg-danger text-white';
+            }
+        });
+}
+
+// Configurar event listeners
+function configurarEventListeners() {
+    // Percentual de venda
+    document.querySelectorAll('.perc-venda').forEach(input => {
+        input.addEventListener('input', function() {
+            calcularVendas();
+        });
+    });
+    
+    // Tipo de reposição
+    document.querySelectorAll('.reposicao-tipo').forEach(select => {
+        // Verificar estado inicial
+        const categoriaId = select.dataset.categoria;
+        const row = select.closest('tr');
+        const reposicaoTipo = select.value;
+        
+        if (reposicaoTipo === 'TRANSFERENCIA') {
+            // Mostrar colunas de transferência se já estiver selecionado
+            document.getElementById('col-fazenda-origem').style.display = 'table-cell';
+            document.getElementById('col-saldo-origem').style.display = 'table-cell';
+            document.getElementById('col-qtd-transferir').style.display = 'table-cell';
+            row.querySelectorAll('.col-fazenda-origem, .col-saldo-origem, .col-qtd-transferir').forEach(cell => {
+                cell.style.display = 'table-cell';
+            });
+            
+            // Configurar select de fazenda origem
+            const origemSelect = row.querySelector('.fazenda-origem');
+            if (origemSelect && origemSelect.value) {
+                carregarSaldoOrigem(categoriaId, origemSelect.value);
+            }
+        }
+        
+        // Adicionar listener para mudanças
+        select.addEventListener('change', function() {
+            const categoriaId = this.dataset.categoria;
+            const row = this.closest('tr');
+            const reposicaoTipo = this.value;
+            
+            if (reposicaoTipo === 'TRANSFERENCIA') {
+                // Mostrar colunas de transferência
+                document.getElementById('col-fazenda-origem').style.display = 'table-cell';
+                document.getElementById('col-saldo-origem').style.display = 'table-cell';
+                document.getElementById('col-qtd-transferir').style.display = 'table-cell';
+                row.querySelectorAll('.col-fazenda-origem, .col-saldo-origem, .col-qtd-transferir').forEach(cell => {
+                    cell.style.display = 'table-cell';
+                });
+                
+                // Configurar select de fazenda origem
+                const origemSelect = row.querySelector('.fazenda-origem');
+                if (origemSelect) {
+                    if (origemSelect.value) {
+                        carregarSaldoOrigem(categoriaId, origemSelect.value);
+                    }
+                    
+                    // Remover listener anterior se existir e adicionar novo
+                    const novoSelect = origemSelect.cloneNode(true);
+                    origemSelect.parentNode.replaceChild(novoSelect, origemSelect);
+                    novoSelect.addEventListener('change', function() {
+                        carregarSaldoOrigem(categoriaId, this.value);
+                    });
+                }
+            } else {
+                // Ocultar colunas se nenhuma linha usar transferência
+                let temTransferencia = false;
+                document.querySelectorAll('.reposicao-tipo').forEach(s => {
+                    if (s.value === 'TRANSFERENCIA') temTransferencia = true;
+                });
+                
+                if (!temTransferencia) {
+                    document.getElementById('col-fazenda-origem').style.display = 'none';
+                    document.getElementById('col-saldo-origem').style.display = 'none';
+                    document.getElementById('col-qtd-transferir').style.display = 'none';
+                }
+                
+                row.querySelectorAll('.col-fazenda-origem, .col-saldo-origem, .col-qtd-transferir').forEach(cell => {
+                    cell.style.display = 'none';
+                });
+            }
+            
+            calcularTransferencia(categoriaId);
+        });
+    });
+}
+
+// Configurar formulário
+function configurarFormulario() {
+    const form = document.getElementById('form-parametros');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            console.log('Formulário interceptado, processando dados...');
+            try {
+                processarDados();
+            } catch (error) {
+                console.error('Erro ao processar dados:', error);
+                alert('Erro ao processar os dados. Verifique o console para mais detalhes.');
+            }
+        });
+        console.log('Formulário configurado com sucesso');
+    } else {
+        console.error('Formulário form-parametros não encontrado!');
+    }
+}
+
+// Processar dados antes de enviar
+function processarDados() {
+    console.log('Processando dados do formulário...');
+    const politicaVendasData = [];
+    
+    const rows = document.querySelectorAll('#tbody-politicas tr');
+    console.log(`Encontradas ${rows.length} linhas na tabela`);
+    
+    rows.forEach((row, index) => {
+        const categoriaId = row.dataset.categoriaId;
+        if (!categoriaId) {
+            console.warn(`Linha ${index} sem categoriaId, pulando...`);
+            return;
+        }
+        
+        const percVendaInput = row.querySelector('.perc-venda');
+        const qtdVendaSpan = row.querySelector('.qtd-venda');
+        const valorCabecaInput = row.querySelector('.valor-cabeca');
+        const reposicaoTipoSelect = row.querySelector('.reposicao-tipo');
+        const origemFazendaSelect = row.querySelector('.fazenda-origem');
+        const qtdTransferirSpan = row.querySelector('.qtd-transferir');
+        
+        if (!percVendaInput || !qtdVendaSpan || !valorCabecaInput || !reposicaoTipoSelect) {
+            console.warn(`Linha ${index} (categoria ${categoriaId}) está faltando elementos necessários`);
+            return;
+        }
+        
+        const percVenda = parseFloat(percVendaInput.value) || 0;
+        const qtdVenda = parseInt(qtdVendaSpan.textContent.trim()) || 0;
+        const valorCabeca = parseFloat(valorCabecaInput.value) || 0;
+        const reposicaoTipo = reposicaoTipoSelect.value || 'NAO_REP';
+        const origemFazendaId = origemFazendaSelect ? (origemFazendaSelect.value || null) : null;
+        const qtdTransferir = qtdTransferirSpan ? (parseInt(qtdTransferirSpan.textContent.trim()) || 0) : 0;
+        const saldoOrigem = estado.saldosOrigem[categoriaId] || 0;
+        
+        let qtdTransferirReal = 0;
+        let qtdComprar = 0;
+        let reposicaoTipoFinal = reposicaoTipo;
+        
+        if (reposicaoTipo === 'COMPRA') {
+            qtdComprar = qtdVenda;
+        } else if (reposicaoTipo === 'TRANSFERENCIA') {
+            if (!origemFazendaId || saldoOrigem === 0) {
+                reposicaoTipoFinal = 'COMPRA';
+                qtdComprar = qtdVenda;
+            } else if (saldoOrigem < qtdVenda) {
+                qtdTransferirReal = saldoOrigem;
+                qtdComprar = qtdVenda - saldoOrigem;
+                reposicaoTipoFinal = 'AMBOS';
+            } else {
+                qtdTransferirReal = qtdVenda;
+            }
+        }
+        
+        // Incluir mesmo se percentual for 0, para manter todas as categorias
+        politicaVendasData.push({
+            categoria_id: parseInt(categoriaId),
+            percentual_venda: percVenda,
+            quantidade_venda: qtdVenda,
+            valor_por_cabeca_personalizado: valorCabeca,
+            usar_valor_personalizado: valorCabeca > 0,
+            reposicao_tipo: reposicaoTipoFinal,
+            origem_fazenda: origemFazendaId,
+            quantidade_transferir: qtdTransferirReal,
+            quantidade_comprar: qtdComprar
+        });
+        
+        console.log(`Categoria ${categoriaId}: ${percVenda}% venda, ${qtdVenda} qtd, ${reposicaoTipoFinal} reposição`);
+    });
+    
+    const jsonData = JSON.stringify(politicaVendasData);
+    console.log('Dados processados:', jsonData);
+    
+    const hiddenInput = document.getElementById('politica-vendas-data');
+    if (!hiddenInput) {
+        console.error('Campo hidden politica-vendas-data não encontrado!');
+        alert('Erro: Campo de dados não encontrado. Recarregue a página e tente novamente.');
+        return;
+    }
+    
+    hiddenInput.value = jsonData;
+    console.log('Campo hidden preenchido com sucesso');
+    
+    const form = document.getElementById('form-parametros');
+    if (!form) {
+        console.error('Formulário form-parametros não encontrado!');
+        alert('Erro: Formulário não encontrado. Recarregue a página e tente novamente.');
+        return;
+    }
+    
+    console.log('Submetendo formulário...');
+    form.submit();
+}
+</script>
+{% endblock %}

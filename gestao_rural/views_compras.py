@@ -34,6 +34,7 @@ from .models_compras_financeiro import (
     ItemRecebimentoCompra, EventoFluxoCompra,
     SetorPropriedade, ConviteCotacaoFornecedor,
     ContaPagar, OrcamentoCompraMensal, AjusteOrcamentoCompra,
+    AutorizacaoExcedenteOrcamento,
     Produto, CategoriaProduto,
 )
 from .models_cadastros import Cliente
@@ -204,7 +205,12 @@ def montar_contexto_orcamento(propriedade, setor, data_referencia=None, ignorar_
     }
 
 
-def validar_orcamento_para_valor(propriedade, setor, data_emissao, valor, ignorar_ordem=None):
+def validar_orcamento_para_valor(propriedade, setor, data_emissao, valor, ignorar_ordem=None, verificar_autorizacao=True):
+    """
+    Valida se o valor excede o orçamento.
+    Se verificar_autorizacao=True, verifica se há autorização de excedente aprovada.
+    Retorna None se está OK, ou dict com informações do excedente se não está OK.
+    """
     if valor <= Decimal('0.00'):
         return None
 
@@ -215,10 +221,19 @@ def validar_orcamento_para_valor(propriedade, setor, data_emissao, valor, ignora
     if orcamento.excede_limite(valor, ignorar_ordem=ignorar_ordem):
         utilizado = orcamento.valor_utilizado(ignorar_ordem=ignorar_ordem)
         saldo_disponivel = orcamento.total_limite - utilizado
+        valor_excedente = valor - saldo_disponivel
+        
+        # Verificar se há autorização de excedente
+        autorizacao = None
+        if verificar_autorizacao:
+            autorizacao = orcamento.tem_autorizacao_excedente(valor, ignorar_ordem)
+        
         return {
             'orcamento': orcamento,
             'utilizado': utilizado,
             'saldo_disponivel': saldo_disponivel,
+            'valor_excedente': valor_excedente,
+            'autorizacao': autorizacao,
         }
     return None
 
@@ -255,6 +270,20 @@ def compras_dashboard(request, propriedade_id):
     ).select_related('fornecedor')
     valor_compras_mes = sum(nf.valor_total for nf in nfes_mes if nf.tipo == 'ENTRADA')
     
+    # Orçamento Mensal - Calculado por parcelas (ContaPagar) com vencimento no mês
+    hoje = date.today()
+    orcamento_mes = _buscar_orcamento(propriedade, None, hoje)
+    valor_orcamento_mes = Decimal('0.00')
+    valor_comprometido_mes = Decimal('0.00')
+    saldo_disponivel_mes = Decimal('0.00')
+    percentual_utilizado_mes = 0
+    
+    if orcamento_mes:
+        valor_orcamento_mes = orcamento_mes.total_limite
+        valor_comprometido_mes = orcamento_mes.valor_utilizado()
+        saldo_disponivel_mes = orcamento_mes.saldo_disponivel()
+        percentual_utilizado_mes = orcamento_mes.percentual_utilizado()
+    
     # Estatísticas
     nfes_pendentes = NotaFiscal.objects.filter(
         propriedade=propriedade,
@@ -290,6 +319,12 @@ def compras_dashboard(request, propriedade_id):
         autorizacao_setor_status='PENDENTE',
     ).count()
     
+    # Cotações recebidas
+    cotacoes_recebidas = CotacaoFornecedor.objects.filter(
+        requisicao__propriedade=propriedade,
+        status='RECEBIDA'
+    ).count()
+    
     context = {
         'propriedade': propriedade,
         'fornecedores': fornecedores,
@@ -308,6 +343,13 @@ def compras_dashboard(request, propriedade_id):
         'convites_total': convites_total,
         'requisicoes_pendentes': requisicoes_pendentes,
         'ordens_autorizacao_pendente': ordens_autorizacao_pendente,
+        'cotacoes_recebidas': cotacoes_recebidas,
+        # Informações de orçamento mensal
+        'orcamento_mes': orcamento_mes,
+        'valor_orcamento_mes': valor_orcamento_mes,
+        'valor_comprometido_mes': valor_comprometido_mes,
+        'saldo_disponivel_mes': saldo_disponivel_mes,
+        'percentual_utilizado_mes': percentual_utilizado_mes,
     }
     
     return render(request, 'gestao_rural/compras_dashboard.html', context)
@@ -1427,27 +1469,76 @@ def ordem_compra_nova(request, propriedade_id):
 
             setor_validacao = ordem.setor or (requisicao.setor if requisicao else None)
             data_emissao = form.cleaned_data.get('data_emissao') or timezone.localdate()
+            
+            # Verificar se há autorização de excedente informada no formulário
+            autorizacao_id = request.POST.get('autorizacao_excedente_id')
+            autorizacao_excedente = None
+            if autorizacao_id:
+                try:
+                    from .models_compras_financeiro import AutorizacaoExcedenteOrcamento
+                    autorizacao_excedente = AutorizacaoExcedenteOrcamento.objects.get(
+                        id=autorizacao_id,
+                        status='APROVADA'
+                    )
+                except:
+                    autorizacao_excedente = None
+            
             validacao = validar_orcamento_para_valor(
                 propriedade,
                 setor_validacao,
                 data_emissao,
                 valor_previsto,
+                verificar_autorizacao=True,
             )
 
             if validacao:
                 orcamento = validacao['orcamento']
                 saldo_disponivel = validacao['saldo_disponivel']
-                if saldo_disponivel < Decimal('0.00'):
-                    saldo_disponivel = Decimal('0.00')
-                mensagem = (
-                    f"Orçamento mensal excedido para {orcamento.get_mes_display()}/{orcamento.ano}. "
-                    f"Disponível: R$ {saldo_disponivel:.2f}. Solicite limite extra emergencial."
-                )
-                form.add_error(None, mensagem)
-                setor_contexto = setor_validacao
-                data_contexto = data_emissao
+                valor_excedente = validacao.get('valor_excedente', Decimal('0.00'))
+                autorizacao = validacao.get('autorizacao') or autorizacao_excedente
+                
+                # Se não tem autorização, bloquear
+                if not autorizacao:
+                    if saldo_disponivel < Decimal('0.00'):
+                        saldo_disponivel = Decimal('0.00')
+                    mensagem = (
+                        f"Orçamento mensal excedido para {orcamento.get_mes_display()}/{orcamento.ano}. "
+                        f"Disponível: R$ {saldo_disponivel:.2f}. "
+                        f"Excedente: R$ {valor_excedente:.2f}. "
+                        f"É necessário solicitar autorização da gerência para prosseguir."
+                    )
+                    form.add_error(None, mensagem)
+                    setor_contexto = setor_validacao
+                    data_contexto = data_emissao
+                else:
+                    # Tem autorização, pode prosseguir
+                    ordem.save()
+                    # Vincular autorização à ordem se ainda não estiver vinculada
+                    if autorizacao and not autorizacao.ordem_compra:
+                        autorizacao.ordem_compra = ordem
+                        autorizacao.save(update_fields=['ordem_compra'])
+                    # Gerar conta a pagar para a ordem
+                    gerar_conta_pagar_para_ordem(ordem)
+                    
+                    if requisicao:
+                        requisicao.ordem_compra = ordem
+                        status_anterior = requisicao.status
+                        requisicao.status = 'ORDEM_EMITIDA'
+                        requisicao.save(update_fields=['ordem_compra', 'status', 'atualizado_em'])
+                        EventoFluxoCompra.objects.create(
+                            requisicao=requisicao,
+                            etapa='EMISSAO_OC',
+                            status_anterior=status_anterior,
+                            status_novo=requisicao.status,
+                            usuario=request.user,
+                            comentario=f"Ordem {ordem.numero_ordem} emitida a partir da requisição."
+                        )
+                    messages.success(request, 'Ordem de compra criada com sucesso!')
+                    return redirect('ordem_compra_detalhes', propriedade_id=propriedade.id, ordem_id=ordem.id)
             else:
                 ordem.save()
+                # Gerar conta a pagar para a ordem
+                gerar_conta_pagar_para_ordem(ordem)
 
                 if requisicao:
                     requisicao.ordem_compra = ordem
@@ -2498,6 +2589,102 @@ def validar_cfop_ajax(request):
     
     resultado = validar_cfop(cfop, tipo_operacao)
     return JsonResponse(resultado)
+
+
+@login_required
+def autorizacao_excedente_solicitar(request, propriedade_id):
+    """Solicitar autorização para exceder orçamento"""
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
+    
+    if request.method == 'POST':
+        orcamento_id = request.POST.get('orcamento_id')
+        valor_total = Decimal(request.POST.get('valor_total', '0'))
+        justificativa = request.POST.get('justificativa', '')
+        ordem_id = request.POST.get('ordem_id')
+        
+        try:
+            orcamento = OrcamentoCompraMensal.objects.get(id=orcamento_id, propriedade=propriedade)
+            ordem = None
+            if ordem_id:
+                ordem = OrdemCompra.objects.get(id=ordem_id, propriedade=propriedade)
+            
+            utilizado = orcamento.valor_utilizado(ignorar_ordem=ordem)
+            saldo = orcamento.total_limite - utilizado
+            valor_excedente = valor_total - saldo if valor_total > saldo else Decimal('0.00')
+            
+            if valor_excedente <= Decimal('0.00'):
+                messages.error(request, 'Não há excedente de orçamento para autorizar.')
+                return redirect('compras_dashboard', propriedade_id=propriedade.id)
+            
+            autorizacao = AutorizacaoExcedenteOrcamento.objects.create(
+                orcamento=orcamento,
+                ordem_compra=ordem,
+                valor_excedente=valor_excedente,
+                valor_total_compra=valor_total,
+                justificativa=justificativa,
+                status='PENDENTE',
+                solicitado_por=request.user,
+            )
+            
+            messages.success(request, 'Solicitação de autorização enviada com sucesso! Aguarde aprovação da gerência.')
+            if ordem:
+                return redirect('ordem_compra_detalhes', propriedade_id=propriedade.id, ordem_id=ordem.id)
+            return redirect('compras_dashboard', propriedade_id=propriedade.id)
+        except (OrcamentoCompraMensal.DoesNotExist, OrdemCompra.DoesNotExist, ValueError) as e:
+            messages.error(request, 'Erro ao processar solicitação de autorização.')
+            return redirect('compras_dashboard', propriedade_id=propriedade.id)
+    
+    return redirect('compras_dashboard', propriedade_id=propriedade.id)
+
+
+@login_required
+def autorizacao_excedente_aprovar(request, propriedade_id, autorizacao_id):
+    """Aprovar ou reprovar autorização de excedente"""
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
+    
+    try:
+        autorizacao = AutorizacaoExcedenteOrcamento.objects.get(
+            id=autorizacao_id,
+            orcamento__propriedade=propriedade,
+            status='PENDENTE'
+        )
+    except AutorizacaoExcedenteOrcamento.DoesNotExist:
+        messages.error(request, 'Autorização não encontrada ou já processada.')
+        return redirect('compras_dashboard', propriedade_id=propriedade.id)
+    
+    if request.method == 'POST':
+        acao = request.POST.get('acao')
+        observacoes = request.POST.get('observacoes', '')
+        
+        if acao == 'aprovar':
+            autorizacao.status = 'APROVADA'
+            autorizacao.aprovado_por = request.user
+            autorizacao.data_aprovacao = timezone.now()
+            autorizacao.observacoes_aprovacao = observacoes
+            autorizacao.save()
+            
+            messages.success(request, 'Autorização de excedente aprovada com sucesso!')
+        elif acao == 'reprovar':
+            autorizacao.status = 'REPROVADA'
+            autorizacao.aprovado_por = request.user
+            autorizacao.data_aprovacao = timezone.now()
+            autorizacao.observacoes_aprovacao = observacoes
+            autorizacao.save()
+            
+            messages.success(request, 'Autorização de excedente reprovada.')
+        else:
+            messages.error(request, 'Ação inválida.')
+            return redirect('compras_dashboard', propriedade_id=propriedade.id)
+        
+        if autorizacao.ordem_compra:
+            return redirect('ordem_compra_detalhes', propriedade_id=propriedade.id, ordem_id=autorizacao.ordem_compra.id)
+        return redirect('compras_dashboard', propriedade_id=propriedade.id)
+    
+    context = {
+        'propriedade': propriedade,
+        'autorizacao': autorizacao,
+    }
+    return render(request, 'gestao_rural/autorizacao_excedente_aprovar.html', context)
 
 
 @login_required

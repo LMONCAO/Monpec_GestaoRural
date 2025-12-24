@@ -1,0 +1,73 @@
+{% extends "base_modulos_unificado.html" %}
+{% load formatacao_br %}
+
+{% block title %}Estoques de Suplementação - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'nutricao_dashboard' propriedade.id %}">Nutrição</a></li>
+            <li class="breadcrumb-item active">Estoques de Suplementação</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+        <div>
+            <h2 class="mb-0"><i class="bi bi-box-seam text-success me-2"></i>Estoques de Suplementação</h2>
+            <small class="text-muted">Acompanhe níveis atuais, mínimo e valorização</small>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'compra_suplementacao_nova' propriedade.id %}" class="btn btn-success">
+                <i class="bi bi-cart-plus me-1"></i>Registrar Compra
+            </a>
+            <a href="{% url 'distribuicao_suplementacao_nova' propriedade.id %}" class="btn btn-outline-success">
+                <i class="bi bi-send-check me-1"></i>Registrar Distribuição
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Suplemento</th>
+                            <th class="text-end">Qtd. Atual</th>
+                            <th class="text-end">Qtd. Mínima</th>
+                            <th class="text-end">Valor Médio (R$)</th>
+                            <th class="text-end">Valor Total (R$)</th>
+                            <th>Localização</th>
+                            <th>Observações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for estoque in estoques %}
+                        <tr class="{% if estoque.quantidade_atual <= estoque.quantidade_minima %}table-warning{% endif %}">
+                            <td>
+                                <strong>{{ estoque.tipo_suplemento }}</strong>
+                                <div class="small text-muted">Unidade: {{ estoque.unidade_medida }}</div>
+                            </td>
+                            <td class="text-end">{{ estoque.quantidade_atual|numero_br:2 }}</td>
+                            <td class="text-end">{{ estoque.quantidade_minima|numero_br:2 }}</td>
+                            <td class="text-end">{{ estoque.valor_unitario_medio|moeda_br }}</td>
+                            <td class="text-end">{{ estoque.valor_total_estoque|moeda_br }}</td>
+                            <td>{{ estoque.localizacao|default:"-" }}</td>
+                            <td>{{ estoque.observacoes|default:"-" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">Nenhum estoque cadastrado.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

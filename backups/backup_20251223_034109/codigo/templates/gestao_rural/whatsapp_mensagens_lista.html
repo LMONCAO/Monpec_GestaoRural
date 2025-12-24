@@ -1,0 +1,254 @@
+{% extends "base_clean.html" %}
+{% load humanize %}
+
+{% block title %}Mensagens WhatsApp - {{ propriedade.nome }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fab fa-whatsapp text-success"></i> Mensagens WhatsApp</h2>
+        <a href="{% url 'pecuaria_completa_dashboard' propriedade.id %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Voltar
+        </a>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Mensagens Recebidas</h5>
+        </div>
+        <div class="card-body">
+            {% if mensagens %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Data/Hora</th>
+                            <th>Número</th>
+                            <th>Tipo</th>
+                            <th>Registro</th>
+                            <th>Status</th>
+                            <th>Dados Extraídos</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for msg in mensagens %}
+                        <tr>
+                            <td>{{ msg.data_recebimento|date:"d/m/Y H:i" }}</td>
+                            <td>{{ msg.numero_whatsapp }}</td>
+                            <td>
+                                {% if msg.tipo_mensagem == 'audio' %}
+                                    <i class="fas fa-microphone text-primary"></i> Áudio
+                                {% else %}
+                                    <i class="fas fa-comment text-info"></i> Texto
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if msg.tipo_registro == 'NASCIMENTO' %}
+                                    <span class="badge bg-info"><i class="fas fa-baby"></i> Nascimento</span>
+                                {% elif msg.tipo_registro == 'SUPLEMENTACAO' %}
+                                    <span class="badge bg-success"><i class="fas fa-wheat-awn"></i> Suplementação</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ msg.get_tipo_registro_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if msg.status == 'PROCESSADO' %}
+                                    <span class="badge bg-success">{{ msg.get_status_display }}</span>
+                                {% elif msg.status == 'ERRO' %}
+                                    <span class="badge bg-danger">{{ msg.get_status_display }}</span>
+                                {% elif msg.status == 'PROCESSANDO' %}
+                                    <span class="badge bg-warning">{{ msg.get_status_display }}</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ msg.get_status_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if msg.dados_extraidos %}
+                                    <small>
+                                        {% if msg.tipo_registro == 'NASCIMENTO' %}
+                                            {% if msg.dados_extraidos.brinco_bezerro %}
+                                                <strong>Brinco do bezerro:</strong> {{ msg.dados_extraidos.brinco_bezerro }}<br>
+                                            {% endif %}
+                                            {% if msg.dados_extraidos.brinco_mae %}
+                                                <strong>Brinco da mãe:</strong> {{ msg.dados_extraidos.brinco_mae }}<br>
+                                            {% endif %}
+                                            {% if msg.dados_extraidos.sexo %}
+                                                <strong>Sexo:</strong> {% if msg.dados_extraidos.sexo == 'M' %}Macho{% else %}Fêmea{% endif %}<br>
+                                            {% endif %}
+                                            {% if msg.dados_extraidos.raca %}
+                                                <strong>Raça:</strong> {{ msg.dados_extraidos.raca }}<br>
+                                            {% endif %}
+                                            {% if msg.dados_extraidos.cor %}
+                                                <strong>Cor:</strong> {{ msg.dados_extraidos.cor }}<br>
+                                            {% endif %}
+                                            {% if msg.dados_extraidos.peso %}
+                                                <strong>Peso:</strong> {{ msg.dados_extraidos.peso }} kg<br>
+                                            {% endif %}
+                                            {% if msg.dados_extraidos.invernada %}
+                                                <strong>Invernada:</strong> {{ msg.dados_extraidos.invernada }}<br>
+                                            {% endif %}
+                                            {% if msg.dados_extraidos.hora_nascimento %}
+                                                <strong>Hora:</strong> {{ msg.dados_extraidos.hora_nascimento }}<br>
+                                            {% endif %}
+                                        {% elif msg.tipo_registro == 'SUPLEMENTACAO' %}
+                                            {% if msg.dados_extraidos.tipo_suplementacao %}
+                                                <strong>Tipo de suplementação:</strong> {{ msg.dados_extraidos.tipo_suplementacao }}<br>
+                                            {% endif %}
+                                            {% if msg.dados_extraidos.nome_produto %}
+                                                <strong>Produto:</strong> {{ msg.dados_extraidos.nome_produto }}<br>
+                                            {% endif %}
+                                            {% if msg.dados_extraidos.quantidade_original_sacos %}
+                                                <strong>Quantidade:</strong> {{ msg.dados_extraidos.quantidade_original_sacos }} sacos ({{ msg.dados_extraidos.quantidade }} kg)<br>
+                                            {% elif msg.dados_extraidos.quantidade %}
+                                                <strong>Quantidade:</strong> {{ msg.dados_extraidos.quantidade }} kg<br>
+                                            {% endif %}
+                                            {% if msg.dados_extraidos.invernada %}
+                                                <strong>Invernada:</strong> {{ msg.dados_extraidos.invernada }}<br>
+                                            {% endif %}
+                                            {% if msg.dados_extraidos.data %}
+                                                <strong>Data:</strong> {{ msg.dados_extraidos.data }}<br>
+                                            {% endif %}
+                                        {% endif %}
+                                    </small>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if msg.status == 'ERRO' %}
+                                    <button class="btn btn-sm btn-primary" onclick="reprocessarMensagem({{ msg.id }})">
+                                        <i class="fas fa-redo"></i> Reprocessar
+                                    </button>
+                                {% endif %}
+                                {% if msg.conteudo_texto %}
+                                    <button class="btn btn-sm btn-info" onclick="verTexto({{ msg.id }})">
+                                        <i class="fas fa-eye"></i> Ver Texto
+                                    </button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> Nenhuma mensagem recebida ainda.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card shadow-sm mt-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0"><i class="fas fa-info-circle"></i> Como Usar</h5>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-primary">
+                <strong>📌 Tipos de Registro Suportados:</strong><br>
+                O sistema detecta automaticamente se é <strong>Nascimento</strong> ou <strong>Distribuição de Suplementação</strong> baseado no conteúdo da mensagem.
+            </div>
+            
+            <h6 class="mt-3">1. Para Nascimentos:</h6>
+            <p>Mencione palavras como: "nascimento", "nasceu", "bezerro", "vaca teve"</p>
+            <ul>
+                <li><strong>Brinco da mãe:</strong> "A vaca com brinco 1234..."</li>
+                <li><strong>Brinco do bezerro:</strong> "O bezerro tem brinco 5678..."</li>
+                <li><strong>Sexo:</strong> "É um macho" ou "É uma fêmea"</li>
+                <li><strong>Peso (opcional):</strong> "Pesou 35 quilos"</li>
+                <li><strong>Raça (opcional):</strong> "Raça Nelore"</li>
+                <li><strong>Cor (opcional):</strong> "Cor branca"</li>
+                <li><strong>Invernada (opcional):</strong> "Invernada 1"</li>
+            </ul>
+            
+            <h6 class="mt-3">2. Para Distribuição de Suplementação:</h6>
+            <p>Mencione palavras como: "distribuí", "distribuir", "suplementação", "ração", "sal mineral"</p>
+            <ul>
+                <li><strong>Tipo de suplementação:</strong> "Sal mineral", "Ração", "Suplemento proteico"</li>
+                <li><strong>Produto (opcional):</strong> "Produto Boi Forte" ou "Nome do produto Boi Forte"</li>
+                <li><strong>Quantidade:</strong> "2 sacos" ou "2 sacos" (o sistema converte automaticamente conforme cadastro do estoque)</li>
+                <li><strong>Invernada:</strong> "Invernada 1" ou "Na invernada São João"</li>
+            </ul>
+            <div class="alert alert-warning mt-2">
+                <strong>⚠️ Importante:</strong> A quantidade deve ser informada em <strong>sacos</strong>. 
+                O sistema faz a conversão automaticamente conforme o cadastro do estoque (ex: "50 kg por saco" nas observações do estoque).
+            </div>
+            
+            <div class="alert alert-warning mt-3">
+                <strong>Exemplo - Nascimento:</strong><br>
+                "Olá, acabei de registrar um nascimento. A vaca com brinco 1234 teve um bezerro. 
+                O bezerro tem brinco 5678, é um macho, pesou 35 quilos, raça Nelore, cor branca, 
+                na invernada 1. Nasceu hoje, parto normal."
+            </div>
+            
+            <div class="alert alert-success mt-2">
+                <strong>Exemplo - Distribuição de Suplementação:</strong><br>
+                "Olá, acabei de distribuir suplementação. Tipo sal mineral, produto Boi Forte, quantidade 2 sacos, 
+                na invernada 1. Distribuí hoje."
+            </div>
+            
+            <div class="alert alert-info mt-2">
+                <strong>Ordem dos dados registrados:</strong><br>
+                <strong>Nascimento:</strong> Brinco do bezerro, Brinco da mãe, Sexo, Raça, Cor, Peso, Invernada, Hora, Observação<br>
+                <strong>Suplementação:</strong> Tipo de suplementação, Produto (se informado), Quantidade, Invernada, Data, Observação
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para ver texto -->
+<div class="modal fade" id="modalTexto" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Texto Transcrito</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="textoConteudo"></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function reprocessarMensagem(msgId) {
+    if (!confirm('Deseja reprocessar esta mensagem?')) return;
+    
+    fetch(`/whatsapp/mensagem/${msgId}/reprocessar/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            alert('Mensagem processada com sucesso!');
+            location.reload();
+        } else {
+            alert('Erro: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('Erro ao reprocessar: ' + error);
+    });
+}
+
+function verTexto(msgId) {
+    // Buscar texto da mensagem
+    fetch(`/api/whatsapp/mensagem/${msgId}/texto/`)
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('textoConteudo').textContent = data.texto || 'Texto não disponível';
+        new bootstrap.Modal(document.getElementById('modalTexto')).show();
+    })
+    .catch(() => {
+        alert('Erro ao carregar texto');
+    });
+}
+</script>
+{% endblock %}
+

@@ -1,0 +1,248 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro Realizado - MONPEC</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+        }
+        .form-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 100%;
+            padding: 40px;
+            animation: slideIn 0.5s ease-out;
+        }
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 30px;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+        .success-icon i {
+            font-size: 40px;
+            color: white;
+        }
+        h2 {
+            color: #333;
+            font-weight: 700;
+            margin-bottom: 10px;
+            font-size: 28px;
+            text-align: center;
+        }
+        .subtitle {
+            color: #666;
+            font-size: 16px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .form-data-card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .data-row:last-child {
+            border-bottom: none;
+        }
+        .data-label {
+            font-weight: 600;
+            color: #495057;
+            font-size: 14px;
+        }
+        .data-value {
+            color: #212529;
+            font-size: 14px;
+            text-align: right;
+            word-break: break-word;
+        }
+        .credentials-box {
+            background: linear-gradient(135deg, #e7f3ff 0%, #d1ecf1 100%);
+            border: 2px solid #b3d9ff;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 25px 0;
+        }
+        .credentials-box h4 {
+            color: #004085;
+            font-size: 18px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .credential-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(0, 64, 133, 0.1);
+        }
+        .credential-item:last-child {
+            border-bottom: none;
+        }
+        .credential-label {
+            font-weight: 700;
+            color: #004085;
+            font-size: 15px;
+        }
+        .credential-value {
+            color: #212529;
+            font-size: 15px;
+            font-family: 'Courier New', monospace;
+            background: white;
+            padding: 5px 12px;
+            border-radius: 6px;
+            border: 1px solid #b3d9ff;
+        }
+        .redirect-info {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 600;
+            display: inline-block;
+            margin-top: 20px;
+            text-align: center;
+            width: 100%;
+            animation: countdownPulse 1s infinite;
+        }
+        @keyframes countdownPulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.02);
+            }
+        }
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <div class="success-icon">
+            <i class="bi bi-check-circle-fill"></i>
+        </div>
+        <h2>Cadastro Realizado com Sucesso!</h2>
+        <p class="subtitle">Seus dados foram registrados. Redirecionando para o login...</p>
+        
+        <div class="form-data-card">
+            <div class="data-row">
+                <span class="data-label">Nome:</span>
+                <span class="data-value">{{ nome }}</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Email:</span>
+                <span class="data-value">{{ email }}</span>
+            </div>
+            {% if telefone %}
+            <div class="data-row">
+                <span class="data-label">Telefone:</span>
+                <span class="data-value">{{ telefone }}</span>
+            </div>
+            {% endif %}
+            {% if empresa %}
+            <div class="data-row">
+                <span class="data-label">Empresa/Fazenda:</span>
+                <span class="data-value">{{ empresa }}</span>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="credentials-box">
+            <h4>Credenciais de Demonstração</h4>
+            <div class="credential-item">
+                <span class="credential-label">Usuário:</span>
+                <span class="credential-value">demo_monpec</span>
+            </div>
+            <div class="credential-item">
+                <span class="credential-label">Senha:</span>
+                <span class="credential-value">demo123</span>
+            </div>
+        </div>
+        
+        <div class="redirect-info">
+            Redirecionando para o login em <span id="countdown">5</span> segundos...
+            <div class="spinner"></div>
+        </div>
+    </div>
+
+    <script>
+        let countdown = 5;
+        const countdownElement = document.getElementById('countdown');
+        const loginUrl = '{{ login_url }}';
+
+        const interval = setInterval(() => {
+            countdown--;
+            countdownElement.textContent = countdown;
+            
+            if (countdown <= 0) {
+                clearInterval(interval);
+                window.location.href = loginUrl;
+            }
+        }, 1000);
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+

@@ -1,0 +1,58 @@
+========================================
+CORRIGIR ERRO DE AUTENTICAÇÃO
+========================================
+
+O erro "UNAUTHENTICATED" significa que o token de autenticação expirou.
+
+SOLUÇÃO RÁPIDA:
+
+1. Reautenticar:
+   gcloud auth login
+
+2. Configurar credenciais de aplicação:
+   gcloud auth application-default login
+
+3. Verificar autenticação:
+   gcloud auth list
+
+4. Executar migração novamente:
+   gcloud run jobs execute migrate-monpec --region us-central1 --wait
+
+========================================
+COMANDOS COMPLETOS:
+========================================
+
+# Reautenticar
+gcloud auth login
+
+# Configurar credenciais de aplicação (importante para jobs)
+gcloud auth application-default login
+
+# Verificar
+gcloud auth list
+gcloud config get-value project
+
+# Executar migração
+gcloud run jobs execute migrate-monpec --region us-central1 --wait
+
+========================================
+ALTERNATIVA: Usar Service Account
+========================================
+
+Se o problema persistir, você pode precisar configurar uma Service Account:
+
+1. Criar Service Account (se não existir):
+   gcloud iam service-accounts create cloud-run-sa --display-name="Cloud Run Service Account"
+
+2. Dar permissões:
+   gcloud projects add-iam-policy-binding monpec-sistema-rural \
+     --member="serviceAccount:cloud-run-sa@monpec-sistema-rural.iam.gserviceaccount.com" \
+     --role="roles/run.invoker"
+
+3. Usar no job:
+   gcloud run jobs update migrate-monpec --region us-central1 \
+     --service-account cloud-run-sa@monpec-sistema-rural.iam.gserviceaccount.com
+
+========================================
+
+

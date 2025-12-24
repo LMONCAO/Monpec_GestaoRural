@@ -7,8 +7,14 @@ from decimal import Decimal
 from datetime import datetime, timedelta
 from .models import Propriedade
 from .decorators import obter_propriedade_com_permissao
-from .models_patrimonio import TipoBem, BemPatrimonial
-from .forms_imobilizado import BemPatrimonialForm, TipoBemForm
+try:
+    from .models_patrimonio import TipoBem, BemPatrimonial
+    from .forms_imobilizado import BemPatrimonialForm, TipoBemForm
+except ImportError:
+    TipoBem = None
+    BemPatrimonial = None
+    BemPatrimonialForm = None
+    TipoBemForm = None
 
 # Importar CategoriaImobilizadoForm com fallback
 try:
@@ -35,18 +41,29 @@ except ImportError:
 @login_required
 def imobilizado_dashboard(request, propriedade_id):
     """Dashboard do módulo de imobilizado"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id, produtor__usuario_responsavel=request.user)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     # Busca bens ativos
-    bens = BemPatrimonial.objects.filter(
-        propriedade=propriedade, 
-        ativo=True
-    ).order_by('-data_aquisicao')
-    
-    # Calcula totais
-    valor_total_bens = bens.aggregate(
-        total=Sum('valor_aquisicao')
-    )['total'] or Decimal('0.00')
+    if BemPatrimonial:
+        try:
+            bens = BemPatrimonial.objects.filter(
+                propriedade=propriedade, 
+                ativo=True
+            ).order_by('-data_aquisicao')
+            
+            # Calcula totais
+            valor_total_bens = bens.aggregate(
+                total=Sum('valor_aquisicao')
+            )['total'] or Decimal('0.00')
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f'Erro ao buscar bens patrimoniais (tabela pode não existir): {e}')
+            bens = []
+            valor_total_bens = Decimal('0.00')
+    else:
+        bens = []
+        valor_total_bens = Decimal('0.00')
     
     # Calcular valor_depreciado manualmente (não é campo do banco)
     valor_depreciado = Decimal('0.00')
@@ -112,13 +129,24 @@ def imobilizado_dashboard(request, propriedade_id):
 @login_required
 def bens_lista(request, propriedade_id):
     """Lista todos os bens da propriedade"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id, produtor__usuario_responsavel=request.user)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
+    
+    if not BemPatrimonial:
+        messages.warning(request, 'Módulo de bens patrimoniais não está disponível.')
+        return redirect('propriedade_modulos', propriedade_id=propriedade_id)
     
     # Filtros
     categoria_filter = request.GET.get('categoria', '')
     status_filter = request.GET.get('status', '')
     
-    bens = BemPatrimonial.objects.filter(propriedade=propriedade)
+    try:
+        bens = BemPatrimonial.objects.filter(propriedade=propriedade)
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f'Erro ao buscar bens patrimoniais (tabela pode não existir): {e}')
+        messages.warning(request, 'Erro ao buscar bens patrimoniais. A tabela pode não estar disponível.')
+        return redirect('propriedade_modulos', propriedade_id=propriedade_id)
     
     if categoria_filter:
         bens = bens.filter(tipo_bem__categoria__id=categoria_filter)
@@ -164,7 +192,11 @@ def bens_lista(request, propriedade_id):
 @login_required
 def bem_novo(request, propriedade_id):
     """Adiciona novo bem"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id, produtor__usuario_responsavel=request.user)
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
+    
+    if not BemPatrimonial or not BemPatrimonialForm:
+        messages.warning(request, 'Módulo de bens patrimoniais não está disponível.')
+        return redirect('propriedade_modulos', propriedade_id=propriedade_id)
     
     if request.method == 'POST':
         form = BemPatrimonialForm(request.POST)
@@ -366,7 +398,14 @@ def calcular_depreciacao_automatica(request, propriedade_id):
         return redirect('imobilizado_dashboard', propriedade_id=propriedade_id)
     
     # GET - mostrar página de confirmação
-    bens = BemPatrimonial.objects.filter(propriedade=propriedade, ativo=True)
+    try:
+        bens = BemPatrimonial.objects.filter(propriedade=propriedade, ativo=True)
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f'Erro ao buscar bens patrimoniais (tabela pode não existir): {e}')
+        messages.warning(request, 'Erro ao buscar bens patrimoniais. A tabela pode não estar disponível.')
+        return redirect('propriedade_modulos', propriedade_id=propriedade_id)
     
     context = {
         'propriedade': propriedade,

@@ -1,0 +1,164 @@
+{% extends 'base_modulos_unificado.html' %}
+{% load formatacao_br %}
+
+{% block title %}Editar Custo Fixo - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item">
+    <a href="{% url 'custos_dashboard' propriedade.id %}">Financeiro</a>
+</li>
+<li class="breadcrumb-item">
+    <a href="{% url 'custos_fixos_lista' propriedade.id %}">Custos Fixos</a>
+</li>
+<li class="breadcrumb-item active">Editar</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card-moderno">
+                <div class="card-header-moderno">
+                    <h5 class="mb-0">
+                        <i class="bi bi-pencil"></i> Editar Custo Fixo
+                    </h5>
+                </div>
+                <div class="card-body-moderno">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {% if message.tags == 'success' %}
+                                    <i class="bi bi-check-circle"></i>
+                                {% else %}
+                                    <i class="bi bi-exclamation-triangle"></i>
+                                {% endif %}
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <form method="POST">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="{{ form.nome_custo.id_for_label }}" class="form-label">Nome do Custo *</label>
+                            {{ form.nome_custo }}
+                            {% if form.nome_custo.errors %}
+                                <div class="text-danger">{{ form.nome_custo.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.tipo_custo.id_for_label }}" class="form-label">Tipo de Custo *</label>
+                                {{ form.tipo_custo }}
+                                {% if form.tipo_custo.errors %}
+                                    <div class="text-danger">{{ form.tipo_custo.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.valor_mensal.id_for_label }}" class="form-label">Valor Mensal (R$) *</label>
+                                {{ form.valor_mensal }}
+                                {% if form.valor_mensal.errors %}
+                                    <div class="text-danger">{{ form.valor_mensal.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.tipo_periodo.id_for_label }}" class="form-label">Tipo de Período *</label>
+                            {{ form.tipo_periodo }}
+                            {% if form.tipo_periodo.errors %}
+                                <div class="text-danger">{{ form.tipo_periodo.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div id="mesesField" class="mb-3" style="display: none;">
+                            <label class="form-label">Meses Aplicáveis</label>
+                            <div class="row">
+                                {% for month_id, month_name in meses_choices %}
+                                <div class="col-md-3 mb-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="meses_aplicaveis" 
+                                               value="{{ month_id }}" id="mes{{ month_id }}"
+                                               {% if month_id in form.meses_aplicaveis.value %}checked{% endif %}>
+                                        <label class="form-check-label" for="mes{{ month_id }}">{{ month_name }}</label>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div id="periodoField" style="display: none;">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ form.data_inicio.id_for_label }}" class="form-label">Data de Início</label>
+                                    {{ form.data_inicio }}
+                                    {% if form.data_inicio.errors %}
+                                        <div class="text-danger">{{ form.data_inicio.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ form.data_fim.id_for_label }}" class="form-label">Data de Fim</label>
+                                    {{ form.data_fim }}
+                                    {% if form.data_fim.errors %}
+                                        <div class="text-danger">{{ form.data_fim.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.descricao.id_for_label }}" class="form-label">Descrição</label>
+                            {{ form.descricao }}
+                            {% if form.descricao.errors %}
+                                <div class="text-danger">{{ form.descricao.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check">
+                                {{ form.ativo }}
+                                <label class="form-check-label" for="{{ form.ativo.id_for_label }}">
+                                    Custo ativo
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn-moderno flex-fill">
+                                <i class="bi bi-check-circle"></i> Salvar Alterações
+                            </button>
+                            <a href="{% url 'custos_fixos_lista' propriedade.id %}" class="btn-moderno btn-outline-secondary flex-fill">
+                                <i class="bi bi-x-circle"></i> Cancelar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function togglePeriodoFields() {
+    const tipoPeriodo = document.getElementById('{{ form.tipo_periodo.id_for_label }}').value;
+    const mesesField = document.getElementById('mesesField');
+    const periodoField = document.getElementById('periodoField');
+    
+    if (tipoPeriodo === 'MESES_ESPECIFICOS') {
+        mesesField.style.display = 'block';
+        periodoField.style.display = 'none';
+    } else if (tipoPeriodo === 'PERIODO_ESPECIFICO') {
+        mesesField.style.display = 'none';
+        periodoField.style.display = 'block';
+    } else {
+        mesesField.style.display = 'none';
+        periodoField.style.display = 'none';
+    }
+}
+document.getElementById('{{ form.tipo_periodo.id_for_label }}').addEventListener('change', togglePeriodoFields);
+togglePeriodoFields();
+</script>
+{% endblock %}
+

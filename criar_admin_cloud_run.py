@@ -16,7 +16,13 @@ User = get_user_model()
 # Credenciais do admin
 username = 'admin'
 email = 'admin@monpec.com.br'
-password = 'Monpec2025!'
+# ✅ SEGURANÇA: Usar variável de ambiente ao invés de senha hardcoded
+password = os.getenv('ADMIN_PASSWORD')
+if not password:
+    print("❌ ERRO: Variável de ambiente ADMIN_PASSWORD não configurada!")
+    print("   Configure a variável antes de executar:")
+    print("   export ADMIN_PASSWORD='sua-senha-segura'")
+    exit(1)
 
 print("=" * 60)
 print("CRIANDO/ATUALIZANDO SUPERUSUÁRIO")

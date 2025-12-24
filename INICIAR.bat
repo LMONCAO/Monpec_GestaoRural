@@ -5,75 +5,59 @@ color 0A
 
 echo ========================================
 echo   MONPEC - INICIAR SERVIDOR
-echo   Sistema de Gestão Rural
+echo   Sistema de Gestao Rural
 echo ========================================
 echo.
 
 cd /d "%~dp0"
-echo [INFO] Diretório: %CD%
-echo.
-
-REM ========================================
-REM PARAR SERVIDORES ANTERIORES
-REM ========================================
-echo [1/4] Parando servidores anteriores...
-taskkill /F /IM python.exe >nul 2>&1
-taskkill /F /IM python311\python.exe >nul 2>&1
-timeout /t 2 /nobreak >nul
-echo [OK] Servidores anteriores parados
+echo [INFO] Diretorio: %CD%
 echo.
 
 REM ========================================
 REM VERIFICAR PYTHON
 REM ========================================
-echo [2/4] Verificando Python...
-if exist "python311\python.exe" (
-    set PYTHON_CMD=python311\python.exe
-    echo [OK] Usando Python local
-) else (
-    python --version >nul 2>&1
-    if errorlevel 1 (
-        echo [ERRO] Python não encontrado!
-        pause
-        exit /b 1
-    )
-    set PYTHON_CMD=python
-    echo [OK] Usando Python do sistema
+echo [1/3] Verificando Python...
+python --version >nul 2>&1
+if errorlevel 1 (
+    echo [ERRO] Python nao encontrado!
+    echo [INFO] Instale Python 3.11+ e tente novamente
+    pause
+    exit /b 1
 )
-
-%PYTHON_CMD% --version
+python --version
+echo [OK] Python encontrado
 echo.
 
 REM ========================================
-REM VERIFICAR SISTEMA
+REM VERIFICAR MIGRACOES
 REM ========================================
-echo [3/4] Verificando sistema...
-%PYTHON_CMD% manage.py check --deploy >nul 2>&1
+echo [2/3] Verificando migracoes...
+python manage.py migrate --no-input
 if errorlevel 1 (
-    echo [AVISO] Alguns avisos encontrados (pode ser normal)
+    echo [AVISO] Erro ao executar migracoes
 ) else (
-    echo [OK] Sistema verificado
+    echo [OK] Migracoes verificadas
 )
 echo.
 
 REM ========================================
 REM INICIAR SERVIDOR
 REM ========================================
-echo [4/4] Iniciando servidor Django...
+echo [3/3] Iniciando servidor Django...
 echo.
 echo ========================================
 echo   SERVIDOR INICIANDO
 echo ========================================
 echo.
 echo [INFO] Servidor: http://localhost:8000
-echo [INFO] Login: admin / Senha: admin
+echo [INFO] Acesso na rede: http://192.168.0.100:8000 (ajuste o IP)
 echo.
 echo [INFO] Pressione Ctrl+C para parar o servidor
 echo.
 echo ========================================
 echo.
 
-%PYTHON_CMD% manage.py runserver 0.0.0.0:8000
+python manage.py runserver 0.0.0.0:8000
 
 if errorlevel 1 (
     echo.
@@ -81,6 +65,7 @@ if errorlevel 1 (
     echo.
     pause
 )
+<<<<<<< Updated upstream
 
 
 
@@ -110,3 +95,23 @@ if errorlevel 1 (
 
 =======
 >>>>>>> 82f662d03a852eab216d20cd9d12193f5dbd2881
+=======
+>>>>>>> Stashed changes
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

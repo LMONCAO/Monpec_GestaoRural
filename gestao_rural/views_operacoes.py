@@ -22,10 +22,18 @@ from .models_operacional import (
     Empreiteiro, ServicoEmpreiteiro,
     Equipamento, ManutencaoEquipamento, TipoEquipamento
 )
-from .models_funcionarios import (
-    Funcionario, FolhaPagamento, Holerite, PontoFuncionario, DescontoFuncionario
-)
-from .models_funcionarios import CalculadoraImpostos
+try:
+    from .models_funcionarios import (
+        Funcionario, FolhaPagamento, Holerite, PontoFuncionario, DescontoFuncionario
+    )
+    from .models_funcionarios import CalculadoraImpostos
+except ImportError:
+    Funcionario = None
+    FolhaPagamento = None
+    Holerite = None
+    PontoFuncionario = None
+    DescontoFuncionario = None
+    CalculadoraImpostos = None
 
 
 @login_required
@@ -60,15 +68,26 @@ def operacoes_dashboard(request, propriedade_id):
     ).count()
     
     # ========== FUNCIONÁRIOS ==========
-    funcionarios_ativos = Funcionario.objects.filter(
-        propriedade=propriedade,
-        situacao='ATIVO'
-    ).count()
-    
-    folha_mensal = sum(f.salario_base for f in Funcionario.objects.filter(
-        propriedade=propriedade,
-        situacao='ATIVO'
-    ))
+    if Funcionario:
+        try:
+            funcionarios_ativos = Funcionario.objects.filter(
+                propriedade=propriedade,
+                situacao='ATIVO'
+            ).count()
+            
+            folha_mensal = sum(f.salario_base or Decimal('0') for f in Funcionario.objects.filter(
+                propriedade=propriedade,
+                situacao='ATIVO'
+            ))
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f'Erro ao buscar funcionários (tabela pode não existir): {e}')
+            funcionarios_ativos = 0
+            folha_mensal = Decimal('0')
+    else:
+        funcionarios_ativos = 0
+        folha_mensal = Decimal('0')
     
     context = {
         'propriedade': propriedade,

@@ -1,0 +1,284 @@
+{% extends "base_moderno.html" %}
+{% load static %}
+
+{% block title %}Minhas Propriedades - Sistema Monpec{% endblock %}
+
+{% block extra_css %}
+<style>
+    .properties-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 50px 0;
+        margin: -20px -15px 40px -15px;
+        border-radius: 0 0 30px 30px;
+        text-align: center;
+    }
+    
+    .property-card {
+        background: white;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+        transition: all 0.4s ease;
+        height: 100%;
+        border: 2px solid transparent;
+    }
+    
+    .property-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+        border-color: #667eea;
+    }
+    
+    .property-image {
+        height: 200px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .property-image::before {
+        content: '';
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        opacity: 0.3;
+    }
+    
+    .property-icon {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 64px;
+        color: rgba(255,255,255,0.9);
+    }
+    
+    .property-badge {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        background: rgba(255,255,255,0.95);
+        color: #667eea;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    
+    .property-body {
+        padding: 25px;
+    }
+    
+    .property-title {
+        font-size: 20px;
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 8px;
+    }
+    
+    .property-location {
+        color: #6c757d;
+        font-size: 14px;
+        margin-bottom: 20px;
+    }
+    
+    .property-location i {
+        color: #667eea;
+        margin-right: 5px;
+    }
+    
+    .property-stats {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+        margin: 20px 0;
+    }
+    
+    .stat-box {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 12px;
+        text-align: center;
+    }
+    
+    .stat-box-value {
+        font-size: 22px;
+        font-weight: 700;
+        color: #667eea;
+        display: block;
+        margin-bottom: 5px;
+    }
+    
+    .stat-box-label {
+        font-size: 12px;
+        color: #6c757d;
+        text-transform: uppercase;
+    }
+    
+    .property-actions {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        margin-top: 20px;
+    }
+    
+    .btn-property {
+        padding: 12px;
+        border-radius: 10px;
+        font-size: 14px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        border: 2px solid;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+    }
+    
+    .btn-view {
+        background: white;
+        color: #667eea;
+        border-color: #667eea;
+    }
+    
+    .btn-view:hover {
+        background: #667eea;
+        color: white;
+    }
+    
+    .btn-manage {
+        background: #667eea;
+        color: white;
+        border-color: #667eea;
+    }
+    
+    .btn-manage:hover {
+        background: #764ba2;
+        border-color: #764ba2;
+        transform: translateY(-2px);
+    }
+    
+    .btn-add-property {
+        background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        color: white;
+        border: none;
+        padding: 16px 40px;
+        border-radius: 12px;
+        font-size: 16px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-add-property:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px rgba(67, 233, 123, 0.3);
+    }
+    
+    @media (max-width: 768px) {
+        .property-stats {
+            grid-template-columns: 1fr;
+        }
+        
+        .property-actions {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Cabeçalho -->
+    <div class="properties-header">
+        <div class="container">
+            <h1 class="display-4 mb-3">
+                <i class="fas fa-map-marked-alt"></i> Minhas Propriedades
+            </h1>
+            <p class="lead">Gerencie todas as suas fazendas em um só lugar</p>
+        </div>
+    </div>
+    
+    <div class="container">
+        <!-- Botão Adicionar Propriedade -->
+        <div class="text-center mb-5">
+            <a href="{% url 'propriedade_nova' produtor.id %}" class="btn btn-add-property">
+                <i class="fas fa-plus-circle"></i> Adicionar Nova Propriedade
+            </a>
+        </div>
+        
+        <!-- Grid de Propriedades -->
+        <div class="row g-4">
+            {% for propriedade in propriedades %}
+            <div class="col-lg-4 col-md-6">
+                <div class="property-card">
+                    <!-- Imagem/Ícone -->
+                    <div class="property-image">
+                        <div class="property-icon">
+                            <i class="fas fa-tractor"></i>
+                        </div>
+                        <div class="property-badge">
+                            <i class="fas fa-horse"></i> {{ propriedade.total_animais|default:"0" }} animais
+                        </div>
+                    </div>
+                    
+                    <!-- Conteúdo -->
+                    <div class="property-body">
+                        <h5 class="property-title">{{ propriedade.nome }}</h5>
+                        <p class="property-location">
+                            <i class="fas fa-map-marker-alt"></i> {{ propriedade.municipio }}, {{ propriedade.estado }}
+                        </p>
+                        
+                        <!-- Estatísticas -->
+                        <div class="property-stats">
+                            <div class="stat-box">
+                                <span class="stat-box-value">{{ propriedade.area_total|default:"0" }}</span>
+                                <span class="stat-box-label">Hectares</span>
+                            </div>
+                            <div class="stat-box">
+                                <span class="stat-box-value">{{ propriedade.valor_total|default:"R$ 0"|safe }}</span>
+                                <span class="stat-box-label">Valor Total</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Informações Adicionais -->
+                        <div class="mt-3">
+                            <small class="text-muted">
+                                <i class="fas fa-chart-pie"></i> {{ propriedade.perfil|default:"Ciclo Completo" }}
+                            </small>
+                            <br>
+                            <small class="text-muted">
+                                <i class="fas fa-calendar"></i> Cadastrada em {{ propriedade.data_cadastro|date:"d/m/Y" }}
+                            </small>
+                        </div>
+                        
+                        <!-- Ações -->
+                        <div class="property-actions">
+                            <a href="{% url 'propriedade_editar' propriedade.id %}" class="btn-property btn-view">
+                                <i class="fas fa-edit"></i> Editar
+                            </a>
+                            <a href="{% url 'pecuaria_dashboard' propriedade.id %}" class="btn-property btn-manage">
+                                <i class="fas fa-cogs"></i> Gerenciar
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12">
+                <div class="text-center py-5">
+                    <i class="fas fa-map-marked-alt" style="font-size: 80px; color: #dee2e6;"></i>
+                    <h4 class="mt-4 text-muted">Nenhuma propriedade cadastrada</h4>
+                    <p class="text-muted">Comece adicionando sua primeira fazenda</p>
+                    <a href="{% url 'propriedade_nova' produtor.id %}" class="btn btn-add-property mt-3">
+                        <i class="fas fa-plus-circle"></i> Adicionar Primeira Propriedade
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+

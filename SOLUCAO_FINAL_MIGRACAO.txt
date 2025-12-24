@@ -1,0 +1,82 @@
+========================================
+SOLUÇÃO FINAL PARA MIGRAÇÃO FALHANDO
+========================================
+
+A migração continua falhando. Vamos diagnosticar e corrigir:
+
+PASSO 1: Ver logs detalhados do erro
+========================================
+
+gcloud logging read "resource.type=cloud_run_job AND resource.labels.job_name=migrate-monpec" --limit 50 --format="table(timestamp,severity,textPayload)"
+
+Isso mostrará o erro real que está causando a falha.
+
+PASSO 2: Verificar variáveis de ambiente
+========================================
+
+# Ver variáveis do serviço
+gcloud run services describe monpec --region us-central1 --format="value(spec.template.spec.containers[0].env)"
+
+# Ver variáveis do job
+gcloud run jobs describe migrate-monpec --region us-central1 --format="value(spec.template.spec.containers[0].env)"
+
+# Comparar e garantir que são iguais, especialmente DB_*
+
+PASSO 3: Atualizar job com variáveis corretas
+========================================
+
+SERVICE_ENV=$(gcloud run services describe monpec --region us-central1 --format="value(spec.template.spec.containers[0].env)")
+gcloud run jobs update migrate-monpec --region us-central1 --update-env-vars "$SERVICE_ENV"
+
+PASSO 4: Verificar se DB_HOST está correto
+========================================
+
+O DB_HOST deve estar no formato:
+- /cloudsql/PROJECT_ID:REGION:INSTANCE_NAME
+
+Exemplo:
+/cloudsql/monpec-sistema-rural:us-central1:monpec-db
+
+Se estiver usando IP, pode não funcionar. Use o formato Unix Socket.
+
+PASSO 5: Executar novamente
+========================================
+
+gcloud run jobs execute migrate-monpec --region us-central1 --wait
+
+PASSO 6: Se ainda falhar - Ver detalhes da execução
+========================================
+
+# Pegar nome da última execução
+EXEC_NAME=$(gcloud run jobs executions list --job migrate-monpec --region us-central1 --limit 1 --format="value(name)")
+
+# Ver detalhes
+gcloud run jobs executions describe $EXEC_NAME --region us-central1
+
+========================================
+ALTERNATIVA: Executar migrações manualmente
+========================================
+
+Se o job continuar falhando, você pode executar as migrações manualmente:
+
+1. Conectar ao Cloud SQL via Cloud SQL Proxy
+2. Executar: python manage.py migrate
+
+Ou criar um script Python que execute as migrações e rodar como job.
+
+========================================
+VERIFICAR SE O PROBLEMA É AUTENTICAÇÃO
+========================================
+
+O erro pode ser de permissões. Verifique:
+
+gcloud projects get-iam-policy monpec-sistema-rural --flatten="bindings[].members" --filter="bindings.members:l.moncaosilva@gmail.com"
+
+Certifique-se de ter as permissões:
+- roles/run.admin
+- roles/cloudsql.client
+- roles/cloudsql.instanceUser
+
+========================================
+
+

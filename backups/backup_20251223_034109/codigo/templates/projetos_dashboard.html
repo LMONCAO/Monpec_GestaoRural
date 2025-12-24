@@ -1,0 +1,385 @@
+{% extends "base_moderno.html" %}
+{% load static %}
+
+{% block title %}Gestão de Projetos - Sistema Monpec{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/identidade_visual.css' %}">
+<style>
+    .projects-header {
+    background: linear-gradient(135deg, #6495ed 0%, #8b6f47 100%);
+        color: white;
+        padding: 50px 0;
+        margin: -20px -15px 40px -15px;
+        border-radius: 0 0 30px 30px;
+    }
+    
+    .project-card {
+        background: white;
+        border-radius: var(--border-radius-lg);
+        padding: 25px;
+        box-shadow: var(--shadow-md);
+        transition: var(--transition);
+        border-top: 4px solid;
+        margin-bottom: 25px;
+    }
+    
+    .project-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-lg);
+    }
+    
+.project-card.expansao { border-top-color: #6495ed; }
+    .project-card.infraestrutura { border-top-color: #2d7a4f; }
+    .project-card.tecnologia { border-top-color: #2b6cb0; }
+    .project-card.melhoria { border-top-color: #8b6f47; }
+    
+    .project-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: 20px;
+    }
+    
+    .project-title {
+        font-size: 20px;
+        font-weight: 700;
+    color: #6495ed;
+        margin-bottom: 5px;
+    }
+    
+    .project-type {
+        display: inline-block;
+        padding: 6px 16px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        background: #f5f7fa;
+    color: #6495ed;
+    }
+    
+    .project-status {
+        padding: 8px 20px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 600;
+    }
+    
+    .status-planejamento { background: #e2e8f0; color: #6495ed; }
+    .status-andamento { background: #c6f6d5; color: #2d7a4f; }
+    .status-pausado { background: #fed7d7; color: #c53030; }
+    .status-concluido { background: #bee3f8; color: #2b6cb0; }
+    
+    .project-progress {
+        margin: 20px 0;
+    }
+    
+    .progress-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 10px;
+    }
+    
+    .progress-bar-container {
+        height: 30px;
+        background: #e8ecf1;
+        border-radius: 15px;
+        overflow: hidden;
+        position: relative;
+    }
+    
+    .progress-bar-fill {
+        height: 100%;
+    background: linear-gradient(90deg, #6495ed 0%, #8b6f47 100%);
+        border-radius: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 600;
+        transition: width 1s ease;
+    }
+    
+    .project-details {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 15px;
+        margin-top: 20px;
+    }
+    
+    .detail-box {
+        text-align: center;
+        padding: 15px;
+        background: #f5f7fa;
+        border-radius: var(--border-radius);
+    }
+    
+    .detail-value {
+        font-size: 18px;
+        font-weight: 700;
+        color: #6495ed;
+    }
+    
+    .detail-label {
+        font-size: 11px;
+        color: #8895a7;
+        margin-top: 5px;
+        text-transform: uppercase;
+    }
+    
+    .health-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 16px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 600;
+    }
+    
+    .health-saudavel {
+        background: rgba(45, 122, 79, 0.1);
+        color: #2d7a4f;
+    }
+    
+    .health-atencao {
+        background: rgba(214, 158, 46, 0.1);
+        color: #d69e2e;
+    }
+    
+    .health-risco {
+        background: rgba(197, 48, 48, 0.1);
+        color: #c53030;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Cabeçalho -->
+    <div class="projects-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="display-4 mb-3">
+                        <i class="fas fa-project-diagram"></i> Gestão de Projetos
+                    </h1>
+                    <p class="lead">Planeje, acompanhe e controle todos os seus projetos rurais</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <button class="btn btn-light btn-lg" data-bs-toggle="modal" data-bs-target="#novoProjeto">
+                        <i class="fas fa-plus-circle"></i> Novo Projeto
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <!-- Estatísticas -->
+        <div class="row mb-4 g-3">
+            <div class="col-lg-3 col-md-6">
+                <div class="kpi-financial">
+                    <div class="kpi-label">Total de Projetos</div>
+                    <div class="kpi-value" style="color: #6495ed;">8</div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="kpi-financial">
+                    <div class="kpi-label">Em Andamento</div>
+                    <div class="kpi-value" style="color: #2d7a4f;">4</div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="kpi-financial">
+                    <div class="kpi-label">Investimento Total</div>
+                    <div class="kpi-value" style="color: #8b6f47;">R$ 850k</div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="kpi-financial">
+                    <div class="kpi-label">Taxa de Sucesso</div>
+                    <div class="kpi-value" style="color: #2b6cb0;">87.5%</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Lista de Projetos -->
+        <h4 class="text-azul-marinho mb-4">
+            <i class="fas fa-list"></i> Projetos Ativos
+        </h4>
+        
+        <!-- Projeto 1 -->
+        <div class="project-card expansao">
+            <div class="project-header">
+                <div>
+                    <div class="project-title">
+                        <i class="fas fa-chart-line"></i> Expansão do Rebanho 2025
+                    </div>
+                    <span class="project-type">
+                        <i class="fas fa-tag"></i> Expansão
+                    </span>
+                </div>
+                <div class="text-end">
+                    <span class="project-status status-andamento">
+                        <i class="fas fa-spinner fa-pulse"></i> Em Andamento
+                    </span>
+                    <div class="mt-2">
+                        <span class="health-indicator health-saudavel">
+                            <i class="fas fa-check-circle"></i> Saudável
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="project-progress">
+                <div class="progress-header">
+                    <span class="fw-bold text-azul-marinho">Progresso</span>
+                    <span class="fw-bold" style="color: #8b6f47;">50%</span>
+                </div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill" style="width: 50%;">50%</div>
+                </div>
+            </div>
+            
+            <div class="project-details">
+                <div class="detail-box">
+                    <div class="detail-value">R$ 250k</div>
+                    <div class="detail-label">Orçamento</div>
+                </div>
+                <div class="detail-box">
+                    <div class="detail-value">R$ 125k</div>
+                    <div class="detail-label">Realizado</div>
+                </div>
+                <div class="detail-box">
+                    <div class="detail-value">12 meses</div>
+                    <div class="detail-label">Prazo Restante</div>
+                </div>
+            </div>
+            
+            <div class="mt-3 d-flex gap-2">
+                <button class="btn btn-monpec-outline btn-sm flex-fill">
+                    <i class="fas fa-eye"></i> Detalhes
+                </button>
+                <button class="btn btn-monpec-primary btn-sm flex-fill">
+                    <i class="fas fa-edit"></i> Atualizar
+                </button>
+            </div>
+        </div>
+        
+        <!-- Projeto 2 -->
+        <div class="project-card infraestrutura">
+            <div class="project-header">
+                <div>
+                    <div class="project-title">
+                        <i class="fas fa-warehouse"></i> Reforma de Curral e Pasto
+                    </div>
+                    <span class="project-type">
+                        <i class="fas fa-tag"></i> Infraestrutura
+                    </span>
+                </div>
+                <div class="text-end">
+                    <span class="project-status status-andamento">
+                        <i class="fas fa-spinner fa-pulse"></i> Em Andamento
+                    </span>
+                    <div class="mt-2">
+                        <span class="health-indicator health-atencao">
+                            <i class="fas fa-exclamation-triangle"></i> Atenção
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="project-progress">
+                <div class="progress-header">
+                    <span class="fw-bold text-azul-marinho">Progresso</span>
+                    <span class="fw-bold" style="color: #8b6f47;">65%</span>
+                </div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill" style="width: 65%; background: linear-gradient(90deg, #2d7a4f 0%, #38a169 100%);">65%</div>
+                </div>
+            </div>
+            
+            <div class="project-details">
+                <div class="detail-box">
+                    <div class="detail-value">R$ 180k</div>
+                    <div class="detail-label">Orçamento</div>
+                </div>
+                <div class="detail-box">
+                    <div class="detail-value">R$ 135k</div>
+                    <div class="detail-label">Realizado</div>
+                </div>
+                <div class="detail-box">
+                    <div class="detail-value">3 meses</div>
+                    <div class="detail-label">Prazo Restante</div>
+                </div>
+            </div>
+            
+            <div class="mt-3 d-flex gap-2">
+                <button class="btn btn-monpec-outline btn-sm flex-fill">
+                    <i class="fas fa-eye"></i> Detalhes
+                </button>
+                <button class="btn btn-monpec-primary btn-sm flex-fill">
+                    <i class="fas fa-edit"></i> Atualizar
+                </button>
+            </div>
+        </div>
+        
+        <!-- Projeto 3 -->
+        <div class="project-card tecnologia">
+            <div class="project-header">
+                <div>
+                    <div class="project-title">
+                        <i class="fas fa-laptop"></i> Implantação de Sistema IA
+                    </div>
+                    <span class="project-type">
+                        <i class="fas fa-tag"></i> Tecnologia
+                    </span>
+                </div>
+                <div class="text-end">
+                    <span class="project-status status-concluido">
+                        <i class="fas fa-check-circle"></i> Concluído
+                    </span>
+                    <div class="mt-2">
+                        <span class="health-indicator health-saudavel">
+                            <i class="fas fa-trophy"></i> Sucesso
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="project-progress">
+                <div class="progress-header">
+                    <span class="fw-bold text-azul-marinho">Progresso</span>
+                    <span class="fw-bold" style="color: #8b6f47;">100%</span>
+                </div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill" style="width: 100%; background: linear-gradient(90deg, #2b6cb0 0%, #3182ce 100%);">100%</div>
+                </div>
+            </div>
+            
+            <div class="project-details">
+                <div class="detail-box">
+                    <div class="detail-value">R$ 35k</div>
+                    <div class="detail-label">Orçamento</div>
+                </div>
+                <div class="detail-box">
+                    <div class="detail-value">R$ 32k</div>
+                    <div class="detail-label">Realizado</div>
+                </div>
+                <div class="detail-box">
+                    <div class="detail-value">Concluído</div>
+                    <div class="detail-label">Status</div>
+                </div>
+            </div>
+            
+            <div class="mt-3 d-flex gap-2">
+                <button class="btn btn-monpec-outline btn-sm flex-fill">
+                    <i class="fas fa-file-pdf"></i> Relatório Final
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,115 @@
+{% extends "base_modulos_unificado.html" %}
+{% load formatacao_br %}
+
+{% block title %}IATFs Individuais - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'iatf_dashboard' propriedade.id %}">IATF</a></li>
+            <li class="breadcrumb-item active">Lista</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-heart-pulse text-danger me-2"></i>IATFs Individuais</h2>
+        <a href="{% url 'iatf_individual_novo' propriedade.id %}" class="btn btn-danger">
+            <i class="bi bi-plus-circle me-1"></i>Nova IATF
+        </a>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label for="status" class="form-label">Status</label>
+                    <select class="form-select" id="status" name="status">
+                        <option value="">Todos</option>
+                        <option value="PROGRAMADA" {% if status_filter == 'PROGRAMADA' %}selected{% endif %}>Programada</option>
+                        <option value="REALIZADA" {% if status_filter == 'REALIZADA' %}selected{% endif %}>Realizada</option>
+                        <option value="CANCELADA" {% if status_filter == 'CANCELADA' %}selected{% endif %}>Cancelada</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="resultado" class="form-label">Resultado</label>
+                    <select class="form-select" id="resultado" name="resultado">
+                        <option value="">Todos</option>
+                        <option value="PREMIDA" {% if resultado_filter == 'PREMIDA' %}selected{% endif %}>Prenha</option>
+                        <option value="VAZIA" {% if resultado_filter == 'VAZIA' %}selected{% endif %}>Vazia</option>
+                        <option value="PENDENTE" {% if resultado_filter == 'PENDENTE' %}selected{% endif %}>Pendente</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="search" class="form-label">Buscar</label>
+                    <input type="text" class="form-control" id="search" name="search" value="{{ search }}" placeholder="Número do brinco...">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-search me-1"></i>Filtrar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabela -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Animal</th>
+                            <th>Protocolo</th>
+                            <th>Data Início</th>
+                            <th>Data IATF</th>
+                            <th>Status</th>
+                            <th>Resultado</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for iatf in iatfs %}
+                        <tr>
+                            <td><strong>{{ iatf.animal_individual.numero_brinco }}</strong></td>
+                            <td>{{ iatf.protocolo.nome }}</td>
+                            <td>{{ iatf.data_inicio_protocolo|date:"d/m/Y" }}</td>
+                            <td>{{ iatf.data_iatf|date:"d/m/Y"|default:"-" }}</td>
+                            <td>
+                                <span class="badge bg-{% if iatf.status == 'REALIZADA' %}success{% elif iatf.status == 'CANCELADA' %}danger{% else %}warning{% endif %}">
+                                    {{ iatf.get_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if iatf.resultado %}
+                                <span class="badge bg-{% if iatf.resultado == 'PREMIDA' %}success{% elif iatf.resultado == 'VAZIA' %}danger{% else %}secondary{% endif %}">
+                                    {{ iatf.get_resultado_display }}
+                                </span>
+                                {% else %}
+                                <span class="badge bg-secondary">Pendente</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'iatf_individual_detalhes' propriedade.id iatf.id %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted">Nenhuma IATF encontrada</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+

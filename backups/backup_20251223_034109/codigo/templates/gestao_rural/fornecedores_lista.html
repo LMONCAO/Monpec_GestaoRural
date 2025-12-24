@@ -1,0 +1,69 @@
+{% extends "base_modulos_unificado.html" %}
+
+{% block title %}Fornecedores - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'compras_dashboard' propriedade.id %}">Compras</a></li>
+            <li class="breadcrumb-item active">Fornecedores</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+        <div>
+            <h2 class="mb-0"><i class="bi bi-truck text-primary me-2"></i>Fornecedores</h2>
+            <small class="text-muted">Base compartilhada com Financeiro e Operações</small>
+        </div>
+        <a href="{% url 'fornecedor_novo' propriedade.id %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle me-1"></i>Novo fornecedor
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Nome</th>
+                            <th>Tipo</th>
+                            <th>CPF/CNPJ</th>
+                            <th>Contato</th>
+                            <th>Cidade/UF</th>
+                            <th>Observações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for fornecedor in fornecedores %}
+                        <tr>
+                            <td>
+                                <strong>{{ fornecedor.nome }}</strong>
+                                {% if fornecedor.nome_fantasia %}
+                                <div class="small text-muted">{{ fornecedor.nome_fantasia }}</div>
+                                {% endif %}
+                            </td>
+                            <td>{{ fornecedor.get_tipo_display }}</td>
+                            <td>{{ fornecedor.cpf_cnpj|default:"-" }}</td>
+                            <td>
+                                <div>{{ fornecedor.telefone|default:"-" }}</div>
+                                <div class="small text-muted">{{ fornecedor.email|default:"" }}</div>
+                            </td>
+                            <td>{{ fornecedor.cidade|default:"-" }} / {{ fornecedor.estado|default:"-" }}</td>
+                            <td>{{ fornecedor.observacoes|default:"-" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">Nenhum fornecedor cadastrado.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

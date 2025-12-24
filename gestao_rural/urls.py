@@ -4,7 +4,6 @@ from . import views_exportacao
 from . import views_cenarios
 from . import views_rastreabilidade
 from . import views_relatorios_rastreabilidade
-from . import views_relatorios_sisbov
 from . import views_pecuaria_completa
 from . import views_nutricao
 from . import views_operacoes
@@ -21,7 +20,9 @@ from . import views_seguranca
 from . import views_relatorios_customizados
 from . import views_demo
 from . import views_whatsapp
-from . import views_fiscal
+from . import views_relatorios_consolidados
+from . import views_justificativa_endividamento
+from . import views_marketing
 
 urlpatterns = [
     # Autenticação
@@ -31,12 +32,14 @@ urlpatterns = [
     # Dashboard principal
     path('dashboard/', views.dashboard, name='dashboard'),
 
-    # Assinaturas e Stripe
+    # Assinaturas e Pagamentos
     path('assinaturas/', views_assinaturas.assinaturas_dashboard, name='assinaturas_dashboard'),
     path('assinaturas/plano/<slug:plano_slug>/checkout/', views_assinaturas.iniciar_checkout, name='assinaturas_checkout'),
     path('assinaturas/sucesso/', views_assinaturas.checkout_sucesso, name='assinaturas_sucesso'),
     path('assinaturas/cancelado/', views_assinaturas.checkout_cancelado, name='assinaturas_cancelado'),
-    path('assinaturas/webhook/', views_assinaturas.stripe_webhook, name='stripe_webhook'),
+    path('pre-lancamento/', views_assinaturas.pre_lancamento, name='pre_lancamento'),
+    # Removido: webhook do Stripe - usando apenas Mercado Pago
+    path('assinaturas/webhook/mercadopago/', views_assinaturas.mercadopago_webhook, name='mercadopago_webhook'),
     
     # Gestão de usuários do tenant
     path('usuarios/', views_usuarios_tenant.tenant_usuarios_dashboard, name='tenant_usuarios_dashboard'),
@@ -54,9 +57,7 @@ urlpatterns = [
     path('produtor/<int:produtor_id>/excluir/', views.produtor_excluir, name='produtor_excluir'),
     
     # Gestão de propriedades
-    path('propriedades/', views.minhas_propriedades, name='minhas_propriedades'),  # URL simplificada
     path('produtor/<int:produtor_id>/propriedades/', views.propriedades_lista, name='propriedades_lista'),
-    path('propriedade/nova/', views.propriedade_nova_auto, name='propriedade_nova_auto'),  # URL simplificada
     path('produtor/<int:produtor_id>/propriedade/nova/', views.propriedade_nova, name='propriedade_nova'),
     path('propriedade/<int:propriedade_id>/editar/', views.propriedade_editar, name='propriedade_editar'),
     path('propriedade/<int:propriedade_id>/excluir/', views.propriedade_excluir, name='propriedade_excluir'),
@@ -64,21 +65,18 @@ urlpatterns = [
     # Dashboard de Módulos
     path('propriedade/<int:propriedade_id>/modulos/', views.propriedade_modulos, name='propriedade_modulos'),
     
-    # Módulo Planejamento (Independente)
-    path('propriedade/<int:propriedade_id>/planejamento/', views_pecuaria_completa.pecuaria_planejamento_dashboard, name='planejamento_dashboard'),
-    path('propriedade/<int:propriedade_id>/planejamento/api/', views_pecuaria_completa.pecuaria_planejamentos_api, name='planejamento_api'),
-    path('propriedade/<int:propriedade_id>/planejamento/<int:planejamento_id>/resumo/', views_pecuaria_completa.pecuaria_planejamento_resumo_api, name='planejamento_resumo_api'),
-    
     # Módulo Pecuária Completa (Consolidado)
     path('propriedade/<int:propriedade_id>/pecuaria/', views_pecuaria_completa.pecuaria_completa_dashboard, name='pecuaria_completa_dashboard'),
     path('propriedade/<int:propriedade_id>/pecuaria/dashboard/', views_pecuaria_completa.pecuaria_completa_dashboard, name='pecuaria_dashboard'),  # Alias para compatibilidade
     path('propriedade/<int:propriedade_id>/pecuaria/dashboard/consulta/', views_pecuaria_completa.dashboard_consulta_api, name='dashboard_consulta_api'),
+    path('propriedade/<int:propriedade_id>/pecuaria/inventario/', views.pecuaria_inventario, name='pecuaria_inventario'),
     path('propriedade/<int:propriedade_id>/pecuaria/parametros/', views.pecuaria_parametros, name='pecuaria_parametros'),
     path('propriedade/<int:propriedade_id>/pecuaria/parametros-avancados/', views.pecuaria_parametros_avancados, name='pecuaria_parametros_avancados'),
     path('propriedade/<int:propriedade_id>/pecuaria/testar-transferencias/', views.testar_transferencias, name='testar_transferencias'),
     path('api/saldo-fazenda/<int:fazenda_id>/<int:categoria_id>/', views.obter_saldo_fazenda_ajax, name='obter_saldo_fazenda_ajax'),
     path('propriedade/<int:propriedade_id>/inventario/saldo/<int:categoria_id>/', views.buscar_saldo_inventario, name='buscar_saldo_inventario'),
     path('propriedade/<int:propriedade_id>/pecuaria/projecao/', views.pecuaria_projecao, name='pecuaria_projecao'),
+    path('propriedade/<int:propriedade_id>/pecuaria/projecao/demo/planilha/', views.pecuaria_projecao_demo_planilha, name='pecuaria_projecao_demo_planilha'),
     path('propriedade/<int:propriedade_id>/pecuaria/planejamento/', views_pecuaria_completa.pecuaria_planejamento_dashboard, name='pecuaria_planejamento_dashboard'),
     path('propriedade/<int:propriedade_id>/pecuaria/planejamento/api/', views_pecuaria_completa.pecuaria_planejamentos_api, name='pecuaria_planejamentos_api'),
     path('propriedade/<int:propriedade_id>/pecuaria/planejamento/<int:planejamento_id>/resumo/', views_pecuaria_completa.pecuaria_planejamento_resumo_api, name='pecuaria_planejamento_resumo_api'),
@@ -92,10 +90,26 @@ urlpatterns = [
     path('propriedade/<int:propriedade_id>/pecuaria/vendas-projecao/', views_cenarios.relatorio_vendas_projecao, name='relatorio_vendas_projecao'),
     path('propriedade/<int:propriedade_id>/pecuaria/vendas-projecao/<int:ano>/', views_cenarios.relatorio_vendas_anual, name='relatorio_vendas_anual'),
     path('propriedade/<int:propriedade_id>/pecuaria/vendas-projecao/<int:ano>/<int:mes>/', views_cenarios.relatorio_vendas_mensal, name='relatorio_vendas_mensal'),
+    path('propriedade/<int:propriedade_id>/pecuaria/venda/<int:venda_id>/editar-cliente/', views_cenarios.editar_cliente_venda, name='editar_cliente_venda'),
+    path('propriedade/<int:propriedade_id>/pecuaria/clientes/buscar/', views_cenarios.buscar_clientes_ajax, name='buscar_clientes_ajax'),
+    path('propriedade/<int:propriedade_id>/pecuaria/venda/<int:venda_id>/atualizar-peso-unitario/', views_cenarios.atualizar_peso_unitario_venda, name='atualizar_peso_unitario_venda'),
+    path('propriedade/<int:propriedade_id>/pecuaria/venda/<int:venda_id>/atualizar-valor-por-kg/', views_cenarios.atualizar_valor_por_kg_venda, name='atualizar_valor_por_kg_venda'),
+    path('propriedade/<int:propriedade_id>/pecuaria/vendas-projecao/relatorio-consolidado-pdf/', views_cenarios.relatorio_vendas_consolidado_pdf, name='relatorio_vendas_consolidado_pdf'),
+    path('propriedade/<int:propriedade_id>/pecuaria/vendas-projecao/exportar-pdf/', views_cenarios.exportar_relatorio_vendas_pdf, name='exportar_relatorio_vendas_pdf'),
+    path('propriedade/<int:propriedade_id>/pecuaria/vendas-projecao/exportar-excel/', views_cenarios.exportar_relatorio_vendas_excel, name='exportar_relatorio_vendas_excel'),
     path('propriedade/<int:propriedade_id>/pecuaria/inventario/dados/', views.pecuaria_inventario_dados, name='pecuaria_inventario_dados'),
+    
+    # Rastreabilidade (dentro de Pecuária) - Comentado pois as funções estão em views_rastreabilidade
+    # path('propriedade/<int:propriedade_id>/pecuaria/rastreabilidade/animais/', views_pecuaria_completa.animais_individuais_lista, name='animais_individuais_lista'),
+    # path('propriedade/<int:propriedade_id>/pecuaria/rastreabilidade/animal/novo/', views_pecuaria_completa.animal_individual_novo, name='animal_individual_novo'),
+    # path('propriedade/<int:propriedade_id>/pecuaria/rastreabilidade/animal/<int:animal_id>/', views_pecuaria_completa.animal_individual_detalhes, name='animal_individual_detalhes'),
     
     # Reprodução (dentro de Pecuária)
     path('propriedade/<int:propriedade_id>/pecuaria/reproducao/', views_pecuaria_completa.reproducao_dashboard, name='reproducao_dashboard'),
+    # path('propriedade/<int:propriedade_id>/pecuaria/reproducao/touros/', views_pecuaria_completa.touros_lista, name='touros_lista'),
+    # path('propriedade/<int:propriedade_id>/pecuaria/reproducao/touro/novo/', views_pecuaria_completa.touro_novo, name='touro_novo'),
+    # path('propriedade/<int:propriedade_id>/pecuaria/reproducao/estacao-monta/nova/', views_pecuaria_completa.estacao_monta_nova, name='estacao_monta_nova'),
+    # path('propriedade/<int:propriedade_id>/pecuaria/reproducao/iatf/nova/', views_pecuaria_completa.iatf_nova, name='iatf_nova'),
     path('propriedade/<int:propriedade_id>/pecuaria/pesagens/', views_pesagem.pesagem_dashboard, name='pesagem_dashboard'),
     path('propriedade/<int:propriedade_id>/pecuaria/pesagens/nova/', views_pesagem.pesagem_nova, name='pesagem_nova'),
     
@@ -119,9 +133,9 @@ urlpatterns = [
 
     # Super Tela de Curral / Manejo
     # Rotas específicas devem vir ANTES da rota genérica
-    # NOTA: curral/v3/ e curral/v4/ estão definidos em sistema_rural/urls.py para garantir prioridade
+    # NOTA: curral/v3/ está definido em sistema_rural/urls.py para garantir prioridade
     # Mas também adicionamos aqui como backup
-    path('propriedade/<int:propriedade_id>/curral/v4/', views_curral.curral_dashboard_v4, name='curral_dashboard_v4'),
+    path('propriedade/<int:propriedade_id>/curral/demo/', views_curral.curral_info_demo, name='curral_info_demo'),
     path('propriedade/<int:propriedade_id>/curral/v3/', views_curral.curral_dashboard_v3, name='curral_dashboard_v3'),
     path('propriedade/<int:propriedade_id>/curral/painel/', views_curral.curral_painel, name='curral_painel'),
     path('propriedade/<int:propriedade_id>/curral/tela-unica/', views_curral.curral_tela_unica, name='curral_tela_unica'),
@@ -145,7 +159,6 @@ urlpatterns = [
     path('propriedade/<int:propriedade_id>/curral/api/sessao/criar/', views_curral.curral_criar_sessao_api, name='curral_criar_sessao_api'),
     path('propriedade/<int:propriedade_id>/curral/api/sessao/encerrar/', views_curral.curral_encerrar_sessao_api, name='curral_encerrar_sessao_api'),
     path('propriedade/<int:propriedade_id>/curral/api/sessao/stats/', views_curral.curral_stats_sessao_api, name='curral_stats_sessao_api'),
-    path('propriedade/<int:propriedade_id>/curral/api/sessao/animais/', views_curral.curral_animais_sessao_api, name='curral_animais_sessao_api'),
     path('propriedade/<int:propriedade_id>/curral/api/stats/', views_curral.curral_stats_api, name='curral_stats_api'),
     path('propriedade/<int:propriedade_id>/curral/api/pesagem/', views_curral.curral_salvar_pesagem_api, name='curral_salvar_pesagem_api'),
     path('propriedade/<int:propriedade_id>/curral/api/pesagem/editar/', views_curral.curral_editar_pesagem_api, name='curral_editar_pesagem_api'),
@@ -191,23 +204,7 @@ urlpatterns = [
     path('propriedade/<int:propriedade_id>/compras/ordem/<int:ordem_id>/recebimento/', views_compras.recebimento_compra_novo, name='recebimento_compra_novo'),
     path('propriedade/<int:propriedade_id>/compras/notas-fiscais/', views_compras.notas_fiscais_lista, name='notas_fiscais_lista'),
     path('propriedade/<int:propriedade_id>/compras/nota-fiscal/upload/', views_compras.nota_fiscal_upload, name='nota_fiscal_upload'),
-    path('propriedade/<int:propriedade_id>/compras/nota-fiscal/emitir/', views_compras.nota_fiscal_emitir, name='nota_fiscal_emitir'),
-    
-    # Produtos (Cadastro Fiscal)
-    path('propriedade/<int:propriedade_id>/compras/produtos/', views_compras.produtos_lista, name='produtos_lista'),
-    path('propriedade/<int:propriedade_id>/compras/produto/novo/', views_compras.produto_novo, name='produto_novo'),
-    path('propriedade/<int:propriedade_id>/compras/produto/<int:produto_id>/editar/', views_compras.produto_editar, name='produto_editar'),
-    path('propriedade/<int:propriedade_id>/compras/produto/<int:produto_id>/sincronizar/', views_compras.produto_sincronizar, name='produto_sincronizar'),
-    path('propriedade/<int:propriedade_id>/compras/categorias-produto/', views_compras.categorias_produto_lista, name='categorias_produto_lista'),
-    path('propriedade/<int:propriedade_id>/compras/categoria-produto/nova/', views_compras.categoria_produto_nova, name='categoria_produto_nova'),
-    
-    # AJAX
-    path('ajax/consultar-ncm/', views_compras.consultar_ncm_ajax, name='consultar_ncm_ajax'),
-    path('ajax/validar-cfop/', views_compras.validar_cfop_ajax, name='validar_cfop_ajax'),
-    path('ajax/buscar-produtos/', views_compras.buscar_produtos_ajax, name='buscar_produtos_ajax'),
-    
     path('propriedade/<int:propriedade_id>/compras/nota-fiscal/<int:nota_id>/', views_compras.nota_fiscal_detalhes, name='nota_fiscal_detalhes'),
-    path('propriedade/<int:propriedade_id>/compras/sincronizar-nfe-recebidas/', views_compras.sincronizar_nfe_recebidas, name='sincronizar_nfe_recebidas'),
     
     # Módulo Financeiro (novo)
     path('propriedade/<int:propriedade_id>/financeiro/', views_financeiro.financeiro_dashboard, name='financeiro_dashboard'),
@@ -225,16 +222,6 @@ urlpatterns = [
     path('propriedade/<int:propriedade_id>/financeiro/centros-custo/', views_financeiro.centros_custo_lista, name='financeiro_centros_custo'),
     path('propriedade/<int:propriedade_id>/financeiro/centros-custo/nova/', views_financeiro.centro_custo_novo, name='financeiro_centro_custo_novo'),
     path('propriedade/<int:propriedade_id>/financeiro/centros-custo/<int:centro_id>/editar/', views_financeiro.centro_custo_editar, name='financeiro_centro_custo_editar'),
-    
-    # Grupos de Despesas
-    path('propriedade/<int:propriedade_id>/financeiro/despesas/grupos/', views_financeiro.despesas_grupos_lista, name='financeiro_despesas_grupos'),
-    path('propriedade/<int:propriedade_id>/financeiro/despesas/grupos/novo/', views_financeiro.despesas_grupo_novo, name='financeiro_despesas_grupo_novo'),
-    path('propriedade/<int:propriedade_id>/financeiro/despesas/grupos/<int:grupo_id>/editar/', views_financeiro.despesas_grupo_editar, name='financeiro_despesas_grupo_editar'),
-    
-    # Despesas Configuradas
-    path('propriedade/<int:propriedade_id>/financeiro/despesas/configuradas/', views_financeiro.despesas_configuradas_lista, name='financeiro_despesas_configuradas'),
-    path('propriedade/<int:propriedade_id>/financeiro/despesas/configuradas/nova/', views_financeiro.despesa_configurada_nova, name='financeiro_despesa_configurada_nova'),
-    path('propriedade/<int:propriedade_id>/financeiro/despesas/configuradas/<int:despesa_id>/editar/', views_financeiro.despesa_configurada_editar, name='financeiro_despesa_configurada_editar'),
     
     # Contas a Pagar
     path('propriedade/<int:propriedade_id>/financeiro/contas-pagar/', views_financeiro.contas_pagar_lista, name='financeiro_contas_pagar'),
@@ -266,6 +253,27 @@ urlpatterns = [
     path('propriedade/<int:propriedade_id>/financeiro/lcdpr/', views_financeiro_avancado.lcdpr, name='financeiro_lcdpr'),
     path('propriedade/<int:propriedade_id>/financeiro/lcdpr/exportar/pdf/', views_financeiro_avancado.lcdpr_exportar_pdf, name='financeiro_lcdpr_exportar_pdf'),
     path('propriedade/<int:propriedade_id>/financeiro/lcdpr/exportar/excel/', views_financeiro_avancado.lcdpr_exportar_excel, name='financeiro_lcdpr_exportar_excel'),
+    
+    # Gestão de Despesas Fixas e Variáveis
+    path('propriedade/<int:propriedade_id>/financeiro/despesas/grupos/', views_financeiro.despesas_grupos_lista, name='financeiro_despesas_grupos'),
+    path('propriedade/<int:propriedade_id>/financeiro/despesas/grupos/novo/', views_financeiro.despesas_grupo_novo, name='financeiro_despesas_grupo_novo'),
+    path('propriedade/<int:propriedade_id>/financeiro/despesas/grupos/<int:grupo_id>/editar/', views_financeiro.despesas_grupo_editar, name='financeiro_despesas_grupo_editar'),
+    path('propriedade/<int:propriedade_id>/financeiro/despesas/configuradas/', views_financeiro.despesas_configuradas_lista, name='financeiro_despesas_configuradas'),
+    path('propriedade/<int:propriedade_id>/financeiro/despesas/configuradas/nova/', views_financeiro.despesa_configurada_nova, name='financeiro_despesa_configurada_nova'),
+    path('propriedade/<int:propriedade_id>/financeiro/despesas/configuradas/<int:despesa_id>/editar/', views_financeiro.despesa_configurada_editar, name='financeiro_despesa_configurada_editar'),
+    path('propriedade/<int:propriedade_id>/financeiro/receitas/anuais/', views_financeiro.receitas_anuais_lista, name='financeiro_receitas_anuais'),
+    path('propriedade/<int:propriedade_id>/financeiro/receitas/anuais/nova/', views_financeiro.receita_anual_nova, name='financeiro_receita_anual_nova'),
+    path('propriedade/<int:propriedade_id>/financeiro/receitas/anuais/<int:receita_id>/editar/', views_financeiro.receita_anual_editar, name='financeiro_receita_anual_editar'),
+    
+    # Relatórios Financeiros
+    path('propriedade/<int:propriedade_id>/financeiro/relatorios/fluxo-caixa/', views_financeiro.relatorio_fluxo_caixa, name='financeiro_relatorio_fluxo_caixa'),
+    path('propriedade/<int:propriedade_id>/financeiro/relatorios/balanco-dre/', views_financeiro.relatorio_balanco_dre, name='financeiro_relatorio_balanco_dre'),
+    path('propriedade/<int:propriedade_id>/financeiro/relatorios/balanco-dre/exportar/pdf/', views_financeiro.exportar_dre_pdf, name='financeiro_exportar_dre_pdf'),
+    path('propriedade/<int:propriedade_id>/financeiro/integrar-vendas/', views_financeiro.integrar_vendas_financeiro, name='financeiro_integrar_vendas'),
+    path('propriedade/<int:propriedade_id>/financeiro/saldos-consolidados/', views_financeiro.saldos_consolidados_anuais, name='financeiro_saldos_consolidados'),
+    path('propriedade/<int:propriedade_id>/financeiro/planilha-despesas/', views_financeiro.planilha_despesas_porcentual, name='financeiro_planilha_despesas'),
+    path('propriedade/<int:propriedade_id>/financeiro/planilha-despesas/atualizar-porcentual/', views_financeiro.atualizar_porcentual_despesa_ajax, name='financeiro_atualizar_porcentual_ajax'),
+    path('propriedade/<int:propriedade_id>/financeiro/planilha-despesas/gerar-lancamentos/', views_financeiro.gerar_lancamentos_planilha, name='financeiro_gerar_lancamentos_planilha'),
     
     # Exportações DRE
     path('propriedade/<int:propriedade_id>/financeiro/dre/exportar/pdf/', views_financeiro_avancado.dre_exportar_pdf, name='financeiro_dre_exportar_pdf'),
@@ -313,16 +321,6 @@ urlpatterns = [
     path('categorias/<int:categoria_id>/editar/', views.categoria_editar, name='categoria_editar'),
     path('categorias/<int:categoria_id>/excluir/', views.categoria_excluir, name='categoria_excluir'),
     
-    # Gestão de Clientes
-    path('propriedade/<int:propriedade_id>/clientes/', views.clientes_lista, name='clientes_lista'),
-    path('propriedade/<int:propriedade_id>/cliente/novo/', views.cliente_novo, name='cliente_novo'),
-    
-    # APIs de consulta
-    path('api/consultar-cpf-cnpj/', views.consultar_cpf_cnpj_api, name='consultar_cpf_cnpj_api'),
-    path('api/consultar-cep/', views.consultar_cep_api, name='consultar_cep_api'),
-    path('propriedade/<int:propriedade_id>/cliente/<int:cliente_id>/editar/', views.cliente_editar, name='cliente_editar'),
-    path('propriedade/<int:propriedade_id>/cliente/<int:cliente_id>/excluir/', views.cliente_excluir, name='cliente_excluir'),
-    
     # Gestão de Custos
     path('custos/', include('gestao_rural.urls_custos')),
     
@@ -353,8 +351,6 @@ urlpatterns = [
     # Sistema de Rastreabilidade Bovina - PNIB
     path('propriedade/<int:propriedade_id>/rastreabilidade/', views_rastreabilidade.rastreabilidade_dashboard, name='rastreabilidade_dashboard'),
     path('propriedade/<int:propriedade_id>/rastreabilidade/importar-bnd/', views_rastreabilidade.importar_bnd_sisbov, name='importar_bnd_sisbov'),
-    path('propriedade/<int:propriedade_id>/rastreabilidade/importar-bnd/preview/', views_rastreabilidade.preview_importacao_bnd_sisbov, name='preview_importacao_bnd_sisbov'),
-    path('propriedade/<int:propriedade_id>/rastreabilidade/importar-bnd/resultado/', views_rastreabilidade.resultado_importacao_bnd_sisbov, name='resultado_importacao_bnd_sisbov'),
     path('propriedade/<int:propriedade_id>/rastreabilidade/animais/', views_rastreabilidade.animais_individuais_lista, name='animais_individuais_lista'),
     path('propriedade/<int:propriedade_id>/rastreabilidade/animal/novo/', views_rastreabilidade.animal_individual_novo, name='animal_individual_novo'),
     path('propriedade/<int:propriedade_id>/rastreabilidade/animal/<int:animal_id>/', views_rastreabilidade.animal_individual_detalhes, name='animal_individual_detalhes'),
@@ -384,9 +380,6 @@ urlpatterns = [
     # Exportação de Relatórios PNIB
     path('propriedade/<int:propriedade_id>/rastreabilidade/relatorios/identificacao-individual/pdf/', views_relatorios_rastreabilidade.exportar_identificacao_individual_pdf, name='exportar_identificacao_individual_pdf'),
     path('propriedade/<int:propriedade_id>/rastreabilidade/relatorios/movimentacao-animais/pdf/', views_relatorios_rastreabilidade.exportar_movimentacao_animais_pdf, name='exportar_movimentacao_animais_pdf'),
-    
-    # Relatórios SISBOV - Anexos IV a XIX (IN 17/2006)
-    path('', include('gestao_rural.urls_relatorios_sisbov')),
     
     # Exportação de Anexos IN 51/MAPA - PDF
     path('propriedade/<int:propriedade_id>/rastreabilidade/relatorio/anexo-i/pdf/', views_relatorios_rastreabilidade.exportar_anexo_i_pdf, name='exportar_anexo_i_pdf'),
@@ -422,9 +415,47 @@ urlpatterns = [
     path('propriedade/<int:propriedade_id>/whatsapp/mensagens/', views_whatsapp.whatsapp_mensagens_lista, name='whatsapp_mensagens_lista'),
     path('whatsapp/mensagem/<int:mensagem_id>/reprocessar/', views_whatsapp.whatsapp_reprocessar, name='whatsapp_reprocessar'),
     
-    # Integração Fiscal - Sintegra e Receita Federal
-    path('propriedade/<int:propriedade_id>/fiscal/', views_fiscal.fiscal_dashboard, name='fiscal_dashboard'),
-    path('propriedade/<int:propriedade_id>/fiscal/sintegra/download/', views_fiscal.download_sintegra, name='download_sintegra'),
-    path('propriedade/<int:propriedade_id>/fiscal/sped/download/', views_fiscal.download_sped, name='download_sped'),
-    path('propriedade/<int:propriedade_id>/fiscal/validar/', views_fiscal.validar_dados_fiscais, name='validar_dados_fiscais'),
+    # Relatórios Consolidados Multi-Propriedade (Sistema Marcelo Sanguino)
+    path('relatorios-consolidados/', views_relatorios_consolidados.dashboard_consolidado, name='relatorios_consolidados_dashboard'),
+    path('relatorios-consolidados/cenarios/', views_relatorios_consolidados.cenarios_consolidados, name='cenarios_consolidados'),
+    path('relatorios-consolidados/rebanho/', views_relatorios_consolidados.relatorio_rebanho_consolidado, name='relatorio_rebanho_consolidado'),
+    path('relatorios-consolidados/bens/', views_relatorios_consolidados.relatorio_bens_consolidado, name='relatorio_bens_consolidado'),
+    path('relatorios-consolidados/dre/', views_relatorios_consolidados.relatorio_dre_consolidado, name='relatorio_dre_consolidado'),
+    path('relatorios-consolidados/fluxo-caixa/', views_relatorios_consolidados.relatorio_fluxo_caixa_consolidado, name='relatorio_fluxo_caixa_consolidado'),
+    path('relatorios-consolidados/completo-emprestimo/', views_relatorios_consolidados.relatorio_completo_emprestimo, name='relatorio_completo_emprestimo'),
+    path('relatorios-consolidados/completo-emprestimo/exportar/pdf/', views_relatorios_consolidados.exportar_relatorio_completo_pdf, name='exportar_relatorio_completo_pdf'),
+    
+    # Justificativa de Endividamento
+    path('justificativa-endividamento/', views_justificativa_endividamento.justificativa_endividamento, name='justificativa_endividamento'),
+    path('justificativa-endividamento/relatorio-completo/', views_justificativa_endividamento.relatorio_justificativa_completo, name='relatorio_justificativa_completo'),
+    path('justificativa-endividamento/importar-scr/', views_justificativa_endividamento.importar_scr, name='importar_scr'),
+    
+    # ========== MARKETING - Geração de Posts e Captura de Leads ==========
+    # Dashboard
+    path('marketing/', views_marketing.marketing_dashboard, name='marketing_dashboard'),
+    
+    # Templates de Posts
+    path('marketing/templates/', views_marketing.templates_list, name='marketing_templates'),
+    path('marketing/templates/novo/', views_marketing.template_create, name='marketing_template_create'),
+    path('marketing/templates/<int:template_id>/editar/', views_marketing.template_edit, name='marketing_template_edit'),
+    path('marketing/templates/<int:template_id>/deletar/', views_marketing.template_delete, name='marketing_template_delete'),
+    path('marketing/templates/popular/', views_marketing.popular_templates, name='marketing_popular_templates'),
+    
+    # Posts Gerados
+    path('marketing/posts/', views_marketing.posts_list, name='marketing_posts'),
+    path('marketing/posts/gerar/', views_marketing.gerar_post, name='marketing_gerar_post'),
+    path('marketing/posts/gerar-semana/', views_marketing.gerar_posts_semana, name='marketing_gerar_posts_semana'),
+    path('marketing/posts/<int:post_id>/editar/', views_marketing.post_edit, name='marketing_post_edit'),
+    path('marketing/posts/<int:post_id>/deletar/', views_marketing.post_delete, name='marketing_post_delete'),
+    
+    # Leads
+    path('marketing/leads/', views_marketing.leads_list, name='marketing_leads'),
+    path('marketing/leads/<int:lead_id>/', views_marketing.lead_detail, name='marketing_lead_detail'),
+    
+    # Configurações
+    path('marketing/configuracao/', views_marketing.configuracao_marketing, name='marketing_configuracao'),
+    
+    # Landing Page (PÚBLICA - sem login)
+    path('acesso-gratuito/', views_marketing.landing_page_gratuita, name='landing_page_gratuita'),
+    path('acesso-gratuito/sucesso/', views_marketing.landing_page_sucesso, name='landing_page_sucesso'),
 ]

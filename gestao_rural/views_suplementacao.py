@@ -26,7 +26,9 @@ from .models_controles_operacionais import (
 @login_required
 def suplementacao_dashboard(request, propriedade_id):
     """Dashboard de suplementação"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    # ✅ SEGURANÇA: Verificar permissão de acesso à propriedade
+    from .decorators import obter_propriedade_com_permissao
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     # Estoque atual
     estoques = EstoqueSuplementacao.objects.filter(propriedade=propriedade)
@@ -78,7 +80,9 @@ def suplementacao_dashboard(request, propriedade_id):
 @login_required
 def estoque_suplementacao_lista(request, propriedade_id):
     """Lista de estoques de suplementação"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    # ✅ SEGURANÇA: Verificar permissão de acesso à propriedade
+    from .decorators import obter_propriedade_com_permissao
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     estoques = EstoqueSuplementacao.objects.filter(propriedade=propriedade).order_by('tipo_suplemento')
     
     context = {
@@ -92,7 +96,9 @@ def estoque_suplementacao_lista(request, propriedade_id):
 @login_required
 def estoque_suplementacao_novo(request, propriedade_id):
     """Cadastrar novo estoque de suplementação"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    # ✅ SEGURANÇA: Verificar permissão de acesso à propriedade
+    from .decorators import obter_propriedade_com_permissao
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     if request.method == 'POST':
         estoque = EstoqueSuplementacao(propriedade=propriedade)
@@ -123,7 +129,9 @@ def estoque_suplementacao_novo(request, propriedade_id):
 @login_required
 def compra_suplementacao_nova(request, propriedade_id):
     """Registrar compra de suplementação"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    # ✅ SEGURANÇA: Verificar permissão de acesso à propriedade
+    from .decorators import obter_propriedade_com_permissao
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     estoques = EstoqueSuplementacao.objects.filter(propriedade=propriedade)
     
     if request.method == 'POST':
@@ -155,7 +163,9 @@ def compra_suplementacao_nova(request, propriedade_id):
 @login_required
 def distribuicao_suplementacao_nova(request, propriedade_id):
     """Registrar distribuição de suplementação no pasto"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    # ✅ SEGURANÇA: Verificar permissão de acesso à propriedade
+    from .decorators import obter_propriedade_com_permissao
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     estoques = EstoqueSuplementacao.objects.filter(propriedade=propriedade)
     pastagens = Pastagem.objects.filter(propriedade=propriedade)
     
@@ -207,7 +217,9 @@ def distribuicao_suplementacao_nova(request, propriedade_id):
 @login_required
 def estoque_suplementacao_detalhes(request, propriedade_id, estoque_id):
     """Detalhes do estoque de suplementação"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    # ✅ SEGURANÇA: Verificar permissão de acesso à propriedade
+    from .decorators import obter_propriedade_com_permissao
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     estoque = get_object_or_404(EstoqueSuplementacao, id=estoque_id, propriedade=propriedade)
     
     # Histórico de compras

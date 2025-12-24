@@ -11,6 +11,7 @@ from django.db import transaction
 from django.utils import timezone
 from django.core.mail import send_mail
 from django.conf import settings
+from .decorators import bloquear_demo_cadastro
 import logging
 from datetime import datetime, timedelta, date
 from decimal import Decimal, InvalidOperation
@@ -35,83 +36,31 @@ def google_search_console_verification(request):
 
 def landing_page(request):
     """Página pública do sistema antes do login."""
+    # Se o usuário já estiver autenticado, redirecionar para o dashboard
     if request.user.is_authenticated:
         return redirect('dashboard')
-
-    # Limpar mensagens de warning/error que não são relacionadas ao formulário de contato
-    # Isso evita que mensagens internas do sistema (como erros de brincos/lotes) apareçam na landing page
-    from django.contrib.messages import get_messages
-    storage = get_messages(request)
-    mensagens_validas = []
     
-    # Filtrar mensagens: remover mensagens internas do sistema que não fazem sentido na landing page
-    for message in storage:
-        mensagem_texto = str(message).lower()
-        
-        # Remover mensagens sobre brincos, lotes, animais, etc. que são do sistema interno
-        if any(palavra in mensagem_texto for palavra in [
-            'brinco', 'lote', 'localizado para o', 'animal', 'propriedade', 
-            'cadastro', 'editar', 'excluir', 'salvo', 'atualizado'
-        ]):
-            continue  # Não adicionar essas mensagens
-        
-        # Manter apenas mensagens relacionadas ao formulário de contato
-        if any(palavra in mensagem_texto for palavra in ['contato', 'enviar', 'mensagem', 'preencha', 'tente novamente']):
-            mensagens_validas.append((message.level, message.message, message.tags))
+    # Limpar mensagens antigas que não sejam relacionadas a um envio recente
+    # Verificar se há um parâmetro indicando que acabamos de processar um formulário
+    if 'form_submitted' not in request.GET:
+        # Se não foi um submit recente, limpar todas as mensagens antigas da sessão
+        # Isso evita que mensagens de sucesso apareçam quando o usuário apenas acessa a página
+        storage = messages.get_messages(request)
+        # Consumir todas as mensagens para limpar a sessão
+        list(storage)
+        # Marcar como usado para garantir limpeza
+        storage.used = True
     
-    # Consumir todas as mensagens antigas
-    list(storage)  # Isso consome as mensagens do storage
-    
-    # Recriar apenas as mensagens válidas (relacionadas ao contato)
-    for level, msg, tags in mensagens_validas:
-        messages.add_message(request, level, msg, extra_tags=tags)
-
-    features = [
-        {
-            'icone': 'bi-speedometer2',
-            'titulo': 'Dashboard integrado',
-            'descricao': 'Indicadores completos para tomada de decisão em tempo real para propriedades rurais.',
-        },
-        {
-            'icone': 'bi-diagram-3',
-            'titulo': 'Planejamento pecuário',
-            'descricao': 'Cenários, planejamento nutricional e reprodução com projeções automáticas.',
-        },
-        {
-            'icone': 'bi-cash-coin',
-            'titulo': 'Controle financeiro',
-            'descricao': 'Gestão de custos, vendas, dívidas e fluxo de caixa em um único lugar.',
-        },
-        {
-            'icone': 'bi-shield-check',
-            'titulo': 'Rastreabilidade completa',
-            'descricao': 'Registro individual dos animais, movimentações e relatórios oficiais PNIB.',
-        },
-    ]
-
-    depoimentos = [
-        {
-            'nome': 'André Souza',
-            'cargo': 'Produtor de corte em Goiás',
-            'texto': '“Centralizamos toda a gestão do rebanho em um único painel e reduzimos custos em 18% no primeiro ano.”',
-        },
-        {
-            'nome': 'Carla Menezes',
-            'cargo': 'Consultora agropecuária',
-            'texto': '“Com o MONPEC conseguimos acompanhar os indicadores dos clientes em tempo real e otimizar decisões estratégicas.”',
-        },
-    ]
-
-    context = {
-        'features': features,
-        'depoimentos': depoimentos,
-    }
-    return render(request, 'site/landing_page.html', context)
+    # Renderizar a landing page normalmente
+    return render(request, 'site/landing_page.html')
 
 
 def contato_submit(request):
     """Processa o formulário de contato e envia email e WhatsApp"""
+    from django.core.cache import cache
+    
     if request.method == 'POST':
+        tipo_formulario = request.POST.get('tipo_formulario', 'contato').strip()
         nome = request.POST.get('nome', '').strip()
         email = request.POST.get('email', '').strip()
         telefone = request.POST.get('telefone', '').strip()
@@ -119,23 +68,62 @@ def contato_submit(request):
         mensagem = request.POST.get('mensagem', '').strip()
         
         # Validação básica
-        if not nome or not email or not mensagem:
+        if not nome or not email:
             messages.error(request, 'Por favor, preencha todos os campos obrigatórios.')
             url_redirect = reverse('landing_page') + '#contato'
             return redirect(url_redirect)
         
-        # Validação de formato de email
-        from django.core.validators import validate_email
-        from django.core.exceptions import ValidationError
-        try:
-            validate_email(email)
-        except ValidationError:
-            messages.error(request, 'Por favor, informe um endereço de email válido.')
-            url_redirect = reverse('landing_page') + '#contato'
-            return redirect(url_redirect)
+        # Se for formulário de demonstração, verificar se o email já foi usado
+        if tipo_formulario == 'demonstracao':
+            cache_key = f'demo_email_{email.lower()}'
+            if cache.get(cache_key):
+                # Email já foi usado - mostrar popup e redirecionar após 5 segundos
+                context = {
+                    'email': email,
+                    'login_url': reverse('login') + '?demo=true',
+                }
+                return render(request, 'site/email_duplicado_popup.html', context)
+            
+            # Adicionar email ao cache (30 dias)
+            cache.set(cache_key, True, 60 * 60 * 24 * 30)
+            
+            # Enviar email ANTES de mostrar a página de cadastro
+            try:
+                assunto = f'Nova solicitação de demonstração - MONPEC'
+                corpo_email = f"""
+Nova solicitação de demonstração recebida através do formulário do site MONPEC:
+
+Nome: {nome}
+Email: {email}
+Telefone: {telefone}
+Empresa/Fazenda: {empresa or 'Não informado'}
+
+---
+Esta mensagem foi enviada automaticamente através do formulário de demonstração do site MONPEC.
+"""
+                send_mail(
+                    subject=assunto,
+                    message=corpo_email,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=['monpecnfe@gmail.com'],
+                    fail_silently=True,  # Não bloquear se houver erro
+                )
+                logger.info(f'Email de demonstração enviado com sucesso de {email}')
+            except Exception as e:
+                logger.error(f'Erro ao enviar email de demonstração: {str(e)}')
+            
+            # Mostrar página de cadastro realizado com os dados
+            context = {
+                'nome': nome,
+                'email': email,
+                'telefone': telefone,
+                'empresa': empresa,
+                'login_url': reverse('login') + f'?demo=true&email={urllib.parse.quote(email)}&nome={urllib.parse.quote(nome)}',
+            }
+            return render(request, 'site/formulario_cadastro_sucesso.html', context)
         
         # Preparar mensagem para email
-        assunto = f'Nova mensagem de contato - MONPEC'
+        assunto = f'Nova mensagem de contato - MONPEC' if tipo_formulario == 'contato' else f'Nova solicitação de demonstração - MONPEC'
         corpo_email = f"""
 Nova mensagem recebida através do formulário de contato do site MONPEC:
 
@@ -145,7 +133,7 @@ Telefone: {telefone}
 Empresa/Fazenda: {empresa or 'Não informado'}
 
 Mensagem:
-{mensagem}
+{mensagem or 'Solicitação de demonstração'}
 
 ---
 Esta mensagem foi enviada automaticamente através do formulário de contato do site MONPEC.
@@ -157,7 +145,7 @@ Esta mensagem foi enviada automaticamente através do formulário de contato do 
                 subject=assunto,
                 message=corpo_email,
                 from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=['l.moncaosilva@gmail.com'],
+                recipient_list=['monpecnfe@gmail.com'],
                 fail_silently=False,
             )
             logger.info(f'Email de contato enviado com sucesso de {email}')
@@ -182,7 +170,7 @@ Esta mensagem foi enviada automaticamente através do formulário de contato do 
 *Empresa/Fazenda:* {empresa or 'Não informado'}
 
 *Mensagem:*
-{mensagem}
+{mensagem or 'Solicitação de demonstração'}
 
 ---
 Enviado automaticamente através do formulário de contato do site MONPEC."""
@@ -217,9 +205,9 @@ Enviado automaticamente através do formulário de contato do site MONPEC."""
             url_whatsapp = f'https://wa.me/{telefone_whatsapp}?text={mensagem_encoded}'
             logger.error(f'Erro ao enviar WhatsApp: {str(e)}. Link criado: {url_whatsapp}')
         
-        messages.success(request, 'Mensagem enviada com sucesso! Redirecionando para a página de pagamento...')
-        # Redirecionar para a página de pagamento da Hotmart
-        return redirect('https://pay.hotmart.com/O102944551F')
+        # Se for contato normal, redirecionar para landing page com mensagem de sucesso
+        messages.success(request, 'Mensagem enviada! Logo um dos nossos consultores retornará sua solicitação.')
+        return redirect(reverse('landing_page') + '#contato?form_submitted=1')
     
     # Se não for POST, redirecionar para landing page
     return redirect('landing_page')
@@ -231,12 +219,10 @@ from .models import (
     SCRBancoCentral, DividaBanco, ContratoDivida, AmortizacaoContrato,
     ProjetoBancario, DocumentoProjeto, PlanejamentoAnual
 )
-from .decorators import obter_propriedade_com_permissao
 from .forms import (
     ProdutorRuralForm, PropriedadeForm, InventarioRebanhoForm,
     ParametrosProjecaoForm, MovimentacaoProjetadaForm, CategoriaAnimalForm
 )
-from .forms_completos import ClienteForm
 
 
 def login_view(request):
@@ -275,65 +261,70 @@ def login_view(request):
             minutos = int(tempo_restante / 60)
             segundos = int(tempo_restante % 60)
             messages.error(
-                request,
-                f'<div class="error-title">⚠️ Bloqueio por tentativas</div>'
-                f'<div class="error-warning">Após 5 tentativas falhas, o sistema bloqueia por 1 minuto.</div>'
-                f'<div class="error-hint">Aguarde {minutos}min {segundos}s antes de tentar novamente.</div>'
+                request, 
+                f'⚠️ <strong>Bloqueio por tentativas:</strong> Após 5 tentativas falhas, o sistema bloqueia por 1 minuto. '
+                f'Aguarde {minutos}min {segundos}s antes de tentar novamente. '
                 f'Possíveis causas: senha incorreta, conta desativada ou e-mail não verificado.'
             )
             return render(request, 'gestao_rural/login_clean.html', {'mostrar_info_ajuda': True})
         
-        # Verifica se o usuário existe antes de autenticar
+        # Verificar se é email ou username e autenticar
         from django.contrib.auth.models import User
-        try:
-            usuario_existe = User.objects.filter(username=username).exists()
-        except Exception as e:
-            logger.error(f'Erro ao verificar usuário: {e}')
-            messages.error(
-                request, 
-                '❌ Erro ao verificar credenciais. Por favor, tente novamente ou entre em contato com o suporte.'
-            )
-            return render(request, 'gestao_rural/login_clean.html')
+        user = None
         
-        if not usuario_existe:
-            registrar_tentativa_login_falha(username, ip_address)
-            messages.error(
-                request, 
-                f'<div class="error-title">❌ Usuário não encontrado</div>'
-                f'<div class="error-detail">O usuário "{username}" não existe no sistema.</div>'
-                f'<div class="error-hint">Verifique se o nome de usuário está correto.</div>'
-                f'<div class="error-warning">⚠️ Após 5 tentativas falhas, o sistema bloqueia por 1 minuto.</div>'
-            )
-            registrar_log_auditoria(
-                tipo_acao='LOGIN_FALHA',
-                descricao=f"Tentativa de login com usuário inexistente: {username}",
-                usuario=None,
-                ip_address=ip_address,
-                user_agent=user_agent,
-                nivel_severidade='MEDIO',
-                sucesso=False,
-            )
-            return render(request, 'gestao_rural/login_clean.html')
-        
-        # Tenta autenticar
+        # Tentar autenticar primeiro com username
         try:
             user = authenticate(request, username=username, password=password)
         except Exception as e:
             logger.error(f'Erro na autenticação: {e}')
-            messages.error(
-                request, 
-                '❌ Erro ao processar autenticação. Por favor, tente novamente ou entre em contato com o suporte.'
-            )
-            return render(request, 'gestao_rural/login_clean.html')
+        
+        # Se não funcionar e parecer email, tentar com email
+        if user is None and '@' in username:
+            try:
+                user_by_email = User.objects.get(email=username)
+                user = authenticate(request, username=user_by_email.username, password=password)
+            except User.DoesNotExist:
+                pass
+            except Exception as e:
+                logger.error(f'Erro ao buscar usuário por email: {e}')
+        
+        # Verificar se o usuário existe (para mensagem de erro)
+        if user is None:
+            try:
+                usuario_existe = User.objects.filter(username=username).exists() or User.objects.filter(email=username).exists()
+            except Exception as e:
+                logger.error(f'Erro ao verificar usuário: {e}')
+                messages.error(
+                    request, 
+                    '❌ Erro ao verificar credenciais. Por favor, tente novamente ou entre em contato com o suporte.'
+                )
+                return render(request, 'gestao_rural/login_clean.html')
+            
+            if not usuario_existe:
+                registrar_tentativa_login_falha(username, ip_address)
+                messages.error(
+                    request, 
+                    f'❌ <strong>Usuário não encontrado:</strong> O usuário ou email "{username}" não existe no sistema. '
+                    f'Verifique se está correto. <strong>Após 5 tentativas falhas, o sistema bloqueia por 1 minuto.</strong>'
+                )
+                registrar_log_auditoria(
+                    tipo_acao='LOGIN_FALHA',
+                    descricao=f"Tentativa de login com usuário/email inexistente: {username}",
+                    usuario=None,
+                    ip_address=ip_address,
+                    user_agent=user_agent,
+                    nivel_severidade='MEDIO',
+                    sucesso=False,
+                )
+                return render(request, 'gestao_rural/login_clean.html')
         
         if user is not None:
             if not user.is_active:
                 messages.error(
-                    request,
-                    '<div class="error-title">❌ Conta desativada</div>'
-                    '<div class="error-detail">Esta conta está desabilitada.</div>'
-                    '<div class="error-hint">Entre em contato com o administrador do sistema para reativar sua conta.</div>'
-                    '<div class="error-warning">⚠️ Após 5 tentativas falhas, o sistema bloqueia por 1 minuto.</div>'
+                    request, 
+                    '❌ <strong>Conta desativada:</strong> Esta conta está desabilitada. '
+                    'Entre em contato com o administrador do sistema para reativar sua conta. '
+                    '<strong>Após 5 tentativas falhas, o sistema bloqueia por 1 minuto.</strong>'
                 )
                 registrar_tentativa_login_falha(username, ip_address)
                 registrar_log_auditoria(
@@ -355,10 +346,8 @@ def login_view(request):
                     if not verificacao.email_verificado:
                         messages.warning(
                             request,
-                            '<div class="error-title">⚠️ Verificação de e-mail pendente</div>'
-                            '<div class="error-detail">Por favor, verifique seu e-mail antes de fazer login.</div>'
-                            '<div class="error-hint">Verifique sua caixa de entrada e spam.</div>'
-                            '<div class="error-warning">⚠️ Após 5 tentativas falhas, o sistema bloqueia por 1 minuto.</div>'
+                            '⚠️ <strong>Verificação de e-mail pendente:</strong> Por favor, verifique seu e-mail antes de fazer login. '
+                            'Verifique sua caixa de entrada e spam. <strong>Após 5 tentativas falhas, o sistema bloqueia por 1 minuto.</strong>'
                         )
                         registrar_tentativa_login_falha(username, ip_address)
                         registrar_log_auditoria(
@@ -400,6 +389,55 @@ def login_view(request):
                     next_url = request.GET.get('next') or request.POST.get('next')
                     if next_url:
                         return redirect(next_url)
+                    
+                    # Se for usuário demo, redirecionar para a página de módulos da primeira propriedade
+                    if user.username == 'demo' or user.username == 'demo_monpec':
+                        # Buscar a primeira propriedade do usuário demo (priorizar Monpec1, depois Monpec2, depois Monpec3)
+                        try:
+                            propriedade = Propriedade.objects.filter(
+                                produtor__usuario_responsavel=user,
+                                nome_propriedade__icontains='Monpec1'
+                            ).first()
+                            
+                            if not propriedade:
+                                propriedade = Propriedade.objects.filter(
+                                    produtor__usuario_responsavel=user,
+                                    nome_propriedade__icontains='Monpec2'
+                                ).first()
+                            
+                            if not propriedade:
+                                propriedade = Propriedade.objects.filter(
+                                    produtor__usuario_responsavel=user,
+                                    nome_propriedade__icontains='Monpec3'
+                                ).first()
+                            
+                            if not propriedade:
+                                # Se não encontrar as Monpec, buscar qualquer propriedade
+                                propriedade = Propriedade.objects.filter(
+                                    produtor__usuario_responsavel=user
+                                ).first()
+                            
+                            if propriedade:
+                                # Redirecionar para a página de módulos da propriedade
+                                return redirect('propriedade_modulos', propriedade_id=propriedade.id)
+                            else:
+                                # Se não houver propriedade, ir para o dashboard
+                                return redirect('dashboard')
+                        except Exception as e:
+                            logger.error(f'Erro ao buscar propriedade para usuário demo: {e}')
+                            return redirect('dashboard')
+                    
+                    # Para outros usuários, buscar primeira propriedade ou ir para dashboard
+                    try:
+                        propriedade = Propriedade.objects.filter(
+                            produtor__usuario_responsavel=user
+                        ).first()
+                        
+                        if propriedade:
+                            return redirect('propriedade_modulos', propriedade_id=propriedade.id)
+                    except Exception:
+                        pass
+                    
                     return redirect('dashboard')
                 except Exception as e:
                     logger.error(f'Erro após autenticação bem-sucedida: {e}')
@@ -419,17 +457,15 @@ def login_view(request):
             
             if tentativas_restantes > 0:
                 mensagem = (
-                    f'<div class="error-title">❌ Senha incorreta</div>'
-                    f'<div class="error-detail">Verifique se a senha está digitada corretamente.</div>'
-                    f'<div class="error-warning">⚠️ Você tem <strong>{tentativas_restantes} tentativa(s) restante(s)</strong>.</div>'
-                    f'<div class="error-hint">Após 5 tentativas falhas, o sistema bloqueia por 1 minuto.</div>'
-                    f'<div class="error-hint">Se esqueceu sua senha, use a opção "Esqueceu a senha?".</div>'
+                    f'❌ <strong>Senha incorreta:</strong> Verifique se a senha está digitada corretamente. '
+                    f'<strong>Você tem {tentativas_restantes} tentativa(s) restante(s).</strong> '
+                    f'Após 5 tentativas falhas, o sistema bloqueia por 1 minuto. '
+                    f'Se esqueceu sua senha, use a opção "Esqueceu a senha?".'
                 )
             else:
                 mensagem = (
-                    f'<div class="error-title">❌ Senha incorreta</div>'
-                    f'<div class="error-detail">Você excedeu 5 tentativas falhas.</div>'
-                    f'<div class="error-warning">⚠️ O sistema foi bloqueado por 1 minuto. Aguarde antes de tentar novamente.</div>'
+                    f'❌ <strong>Senha incorreta:</strong> Você excedeu 5 tentativas falhas. '
+                    f'O sistema foi bloqueado por 1 minuto. Aguarde antes de tentar novamente.'
                 )
             
             messages.error(request, mensagem)
@@ -443,11 +479,43 @@ def login_view(request):
                 sucesso=False,
             )
     
+    # Verificar se é modo demonstração
+    is_demo = request.GET.get('demo') == 'true' or request.GET.get('demo') == '1'
+    email_param = request.GET.get('email', '')
+    nome_param = request.GET.get('nome', '')
+    
+    # Se for modo demo, garantir que o usuário demo existe
+    if is_demo:
+        from django.contrib.auth.models import User
+        demo_user, created = User.objects.get_or_create(
+            username='demo_monpec',
+            defaults={
+                'email': 'demo@monpec.com.br',
+                'is_staff': True,
+                'is_superuser': False,
+                'is_active': True,
+            }
+        )
+        if created:
+            demo_user.set_password('demo123')
+            demo_user.save()
+            logger.info('Usuário demo_monpec criado automaticamente')
+        elif not demo_user.check_password('demo123'):
+            # Se o usuário existe mas a senha está diferente, atualizar
+            demo_user.set_password('demo123')
+            demo_user.save()
+            logger.info('Senha do usuário demo_monpec atualizada')
+    
     # Adicionar informações de ajuda no contexto
     from django.conf import settings
     context = {
         'mostrar_info_ajuda': True,
-        'hotmart_checkout_url': getattr(settings, 'HOTMART_CHECKOUT_URL', 'https://pay.hotmart.com/SEU_CODIGO_AQUI'),
+        # Removido: Hotmart - usando apenas Mercado Pago
+        'is_demo': is_demo,
+        'demo_username': 'demo_monpec',
+        'demo_password': 'demo123',
+        'email_param': email_param,
+        'nome_param': nome_param,
     }
     return render(request, 'gestao_rural/login_clean.html', context)
 
@@ -487,41 +555,64 @@ def logout_view(request):
 
 @login_required
 def dashboard(request):
-    """Dashboard principal - redireciona direto para os módulos da primeira propriedade"""
-    # Buscar todas as propriedades do usuário através dos produtores
-    propriedades = Propriedade.objects.filter(
-        produtor__usuario_responsavel=request.user
-    ).select_related('produtor').order_by('nome_propriedade')
-
-    # Se não houver propriedades, mostrar mensagem
-    if not propriedades.exists():
-        messages.info(request, 'Você ainda não possui propriedades cadastradas. Entre em contato com o administrador.')
-        return render(request, 'gestao_rural/dashboard.html', {
-            'propriedades': [],
-            'total_propriedades': 0,
-            'total_animais': 0,
-        })
-
-    # Sempre redirecionar para os módulos da primeira propriedade
-    primeira_propriedade = propriedades.first()
-    return redirect('propriedade_modulos', propriedade_id=primeira_propriedade.id)
+    """Dashboard principal - redireciona para a primeira propriedade disponível"""
+    # Verificar se usuário tem assinatura ativa - se tiver, sempre usar demo
+    from .models import AssinaturaCliente
+    try:
+        assinatura = AssinaturaCliente.objects.get(usuario=request.user)
+        if assinatura.status == AssinaturaCliente.Status.ATIVA:
+            # Usuário assinante - usar conta demo para demonstração
+            from django.contrib.auth.models import User
+            try:
+                demo_user = User.objects.get(username='demo')
+                # Buscar propriedades do demo
+                propriedades = Propriedade.objects.filter(produtor__usuario_responsavel=demo_user)
+            except User.DoesNotExist:
+                # Se não houver demo, usar propriedades do próprio usuário
+                propriedades = Propriedade.objects.filter(produtor__usuario_responsavel=request.user)
+        else:
+            # Usuário sem assinatura ativa - usar suas próprias propriedades
+            propriedades = Propriedade.objects.filter(produtor__usuario_responsavel=request.user)
+    except AssinaturaCliente.DoesNotExist:
+        # Usuário sem assinatura - usar suas próprias propriedades
+        propriedades = Propriedade.objects.filter(produtor__usuario_responsavel=request.user)
+    
+    # Se for usuário demo, buscar propriedades diretamente
+    if request.user.username == 'demo' or request.user.username == 'demo_monpec':
+        propriedades = Propriedade.objects.filter(produtor__usuario_responsavel=request.user)
+    
+    # Buscar primeira propriedade disponível (priorizando Monpec1, Monpec2, Monpec3)
+    propriedade_prioritaria = propriedades.filter(
+        nome_propriedade__icontains='Monpec1'
+    ).first()
+    
+    if not propriedade_prioritaria:
+        propriedade_prioritaria = propriedades.filter(
+            nome_propriedade__icontains='Monpec2'
+        ).first()
+    
+    if not propriedade_prioritaria:
+        propriedade_prioritaria = propriedades.filter(
+            nome_propriedade__icontains='Monpec3'
+        ).first()
+    
+    # Se não encontrou as prioritárias, pegar a primeira disponível
+    if not propriedade_prioritaria:
+        propriedade_prioritaria = propriedades.first()
+    
+    # Se encontrou uma propriedade, redirecionar para seus módulos
+    if propriedade_prioritaria:
+        return redirect('propriedade_modulos', propriedade_id=propriedade_prioritaria.id)
+    
+    # Se não houver propriedades, mostrar mensagem ou redirecionar para cadastro
+    messages.info(request, 'Você ainda não possui propriedades cadastradas. Cadastre uma propriedade para começar.')
+    return redirect('produtor_novo')
 
 
 @login_required
+@bloquear_demo_cadastro
 def produtor_novo(request):
     """Cadastro de novo produtor rural"""
-    # Tentar obter uma propriedade do usuário para o contexto (opcional)
-    propriedade = None
-    todas_propriedades = []
-    try:
-        produtor = ProdutorRural.objects.filter(usuario_responsavel=request.user).first()
-        if produtor:
-            todas_propriedades = Propriedade.objects.filter(produtor=produtor)
-            propriedade = todas_propriedades.first()
-    except Exception as e:
-        logger.debug(f'Erro ao buscar produtor/propriedades para contexto: {e}')
-        # Continuar sem propriedade no contexto - não é crítico
-    
     if request.method == 'POST':
         form = ProdutorRuralForm(request.POST)
         if form.is_valid():
@@ -533,15 +624,11 @@ def produtor_novo(request):
     else:
         form = ProdutorRuralForm()
     
-    context = {
-        'form': form,
-        'propriedade': propriedade,
-        'todas_propriedades': todas_propriedades,
-    }
-    return render(request, 'gestao_rural/produtor_novo.html', context)
+    return render(request, 'gestao_rural/produtor_novo.html', {'form': form})
 
 
 @login_required
+@bloquear_demo_cadastro
 def produtor_editar(request, produtor_id):
     """Edição de produtor rural"""
     produtor = get_object_or_404(ProdutorRural, id=produtor_id, usuario_responsavel=request.user)
@@ -559,6 +646,7 @@ def produtor_editar(request, produtor_id):
 
 
 @login_required
+@bloquear_demo_cadastro
 def produtor_excluir(request, produtor_id):
     """Exclusão de produtor rural"""
     produtor = get_object_or_404(ProdutorRural, id=produtor_id, usuario_responsavel=request.user)
@@ -572,30 +660,6 @@ def produtor_excluir(request, produtor_id):
 
 
 @login_required
-def minhas_propriedades(request):
-    """Lista todas as propriedades do usuário logado - encontra o produtor automaticamente"""
-    # Buscar o produtor associado ao usuário logado
-    try:
-        produtor = ProdutorRural.objects.get(usuario_responsavel=request.user)
-    except ProdutorRural.DoesNotExist:
-        messages.error(request, 'Você ainda não possui um produtor cadastrado. Entre em contato com o administrador.')
-        return redirect('dashboard')
-    except ProdutorRural.MultipleObjectsReturned:
-        # Se houver múltiplos produtores, pegar o primeiro
-        produtor = ProdutorRural.objects.filter(usuario_responsavel=request.user).first()
-    
-    propriedades = Propriedade.objects.filter(produtor=produtor)
-    
-    context = {
-        'produtor': produtor,
-        'propriedades': propriedades,
-        'propriedade': propriedades.first() if propriedades.exists() else None,
-        'todas_propriedades': list(propriedades),
-    }
-    return render(request, 'gestao_rural/propriedades_lista.html', context)
-
-
-@login_required
 def propriedades_lista(request, produtor_id):
     """Lista de propriedades de um produtor"""
     produtor = get_object_or_404(ProdutorRural, id=produtor_id, usuario_responsavel=request.user)
@@ -604,46 +668,8 @@ def propriedades_lista(request, produtor_id):
     context = {
         'produtor': produtor,
         'propriedades': propriedades,
-        'propriedade': propriedades.first() if propriedades.exists() else None,
-        'todas_propriedades': list(propriedades),
     }
     return render(request, 'gestao_rural/propriedades_lista.html', context)
-
-
-@login_required
-def propriedade_nova_auto(request):
-    """Cadastro de nova propriedade - encontra o produtor automaticamente"""
-    # Buscar o produtor associado ao usuário logado
-    try:
-        produtor = ProdutorRural.objects.get(usuario_responsavel=request.user)
-    except ProdutorRural.DoesNotExist:
-        messages.error(request, 'Você ainda não possui um produtor cadastrado. Entre em contato com o administrador.')
-        return redirect('dashboard')
-    except ProdutorRural.MultipleObjectsReturned:
-        # Se houver múltiplos produtores, pegar o primeiro
-        produtor = ProdutorRural.objects.filter(usuario_responsavel=request.user).first()
-    
-    if request.method == 'POST':
-        form = PropriedadeForm(request.POST)
-        if form.is_valid():
-            propriedade = form.save(commit=False)
-            propriedade.produtor = produtor
-            propriedade.save()
-            messages.success(request, 'Propriedade cadastrada com sucesso!')
-            return redirect('minhas_propriedades')
-    else:
-        form = PropriedadeForm()
-    
-    # Obter propriedades para o contexto
-    propriedades = Propriedade.objects.filter(produtor=produtor)
-    
-    context = {
-        'form': form,
-        'produtor': produtor,
-        'propriedade': propriedades.first() if propriedades.exists() else None,
-        'todas_propriedades': list(propriedades),
-    }
-    return render(request, 'gestao_rural/propriedade_nova.html', context)
 
 
 @login_required
@@ -662,19 +688,15 @@ def propriedade_nova(request, produtor_id):
     else:
         form = PropriedadeForm()
     
-    # Obter propriedades para o contexto
-    propriedades = Propriedade.objects.filter(produtor=produtor)
-    
     context = {
         'form': form,
         'produtor': produtor,
-        'propriedade': propriedades.first() if propriedades.exists() else None,
-        'todas_propriedades': list(propriedades),
     }
     return render(request, 'gestao_rural/propriedade_nova.html', context)
 
 
 @login_required
+@bloquear_demo_cadastro
 def propriedade_editar(request, propriedade_id):
     """Edição de propriedade"""
     propriedade = get_object_or_404(Propriedade, id=propriedade_id, produtor__usuario_responsavel=request.user)
@@ -688,18 +710,15 @@ def propriedade_editar(request, propriedade_id):
     else:
         form = PropriedadeForm(instance=propriedade)
     
-    # Obter todas as propriedades do produtor para o contexto
-    todas_propriedades = Propriedade.objects.filter(produtor=propriedade.produtor)
-    
     context = {
         'form': form,
         'propriedade': propriedade,
-        'todas_propriedades': list(todas_propriedades),
     }
     return render(request, 'gestao_rural/propriedade_editar.html', context)
 
 
 @login_required
+@bloquear_demo_cadastro
 def propriedade_excluir(request, propriedade_id):
     """Exclusão de propriedade"""
     propriedade = get_object_or_404(Propriedade, id=propriedade_id, produtor__usuario_responsavel=request.user)
@@ -1106,9 +1125,10 @@ def pecuaria_projecao(request, propriedade_id):
     from collections import defaultdict
     from datetime import date
     
-    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
+    propriedade = get_object_or_404(Propriedade, id=propriedade_id, produtor__usuario_responsavel=request.user)
     
     # Obter inventário mais recente
+    from django.db.models import Max
     data_inventario_recente = InventarioRebanho.objects.filter(
         propriedade=propriedade
     ).aggregate(Max('data_inventario'))['data_inventario__max']
@@ -1238,7 +1258,8 @@ def pecuaria_projecao(request, propriedade_id):
                for termo in ['macho', 'bezerro', 'garrote', 'boi', 'touro'])
     )
     
-    total_geral = sum(item.quantidade for item in inventario)
+    # Total geral deve ser a soma de fêmeas + machos para garantir consistência
+    total_geral = total_femeas + total_machos
     
     # Calcular estatísticas da projeção
     estatisticas = {
@@ -1301,7 +1322,7 @@ def pecuaria_inventario_dados(request, propriedade_id):
     """View para retornar dados do inventário em JSON para a IA"""
     from datetime import date
     
-    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
+    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
     
     # Obter inventário mais recente
     inventario_data = InventarioRebanho.objects.filter(
@@ -1365,6 +1386,208 @@ def pecuaria_inventario_dados(request, propriedade_id):
         'inventario': inventario,
         'data_inventario': inventario_data.data_inventario.strftime('%d/%m/%Y')
     })
+
+
+@login_required
+def pecuaria_projecao_demo_planilha(request, propriedade_id):
+    """View para exibir projeção de demonstração em formato planilha"""
+    propriedade = get_object_or_404(Propriedade, id=propriedade_id, produtor__usuario_responsavel=request.user)
+    
+    # Verificar se é usuário demo
+    if request.user.username not in ['demo_monpec', 'demo']:
+        messages.error(request, 'Esta página é apenas para usuários de demonstração.')
+        return redirect('pecuaria_projecao', propriedade_id=propriedade_id)
+    
+    # Obter número de anos da query string (padrão: 5)
+    anos = int(request.GET.get('anos', 5))
+    
+    # Dados de exemplo para demonstração
+    # Ordenar por idade e sexo: fêmeas primeiro (do mais novo para o mais velho), depois machos (do mais novo para o mais velho)
+    categorias_ordenadas = [
+        # Fêmeas (do mais novo para o mais velho)
+        {'nome': 'Bezerras', 'cor': '#ffc107'},
+        {'nome': 'Novilhas', 'cor': '#fd7e14'},
+        {'nome': 'Primíparas', 'cor': '#e83e8c'},
+        {'nome': 'Vacas', 'cor': '#28a745'},
+        # Machos (do mais novo para o mais velho)
+        {'nome': 'Bezerros', 'cor': '#17a2b8'},
+        {'nome': 'Garrotes', 'cor': '#6c757d'},
+        {'nome': 'Touros', 'cor': '#007bff'},
+    ]
+    
+    dados_demo = {
+        'propriedade': propriedade,
+        'anos': anos,
+        'anos_lista': list(range(1, anos + 1)),
+        'categorias': categorias_ordenadas,
+    }
+    
+    # Gerar dados de exemplo para cada ano e categoria
+    projecao_demo = {}
+    for ano in dados_demo['anos_lista']:
+        ano_atual = datetime.now().year + ano - 1
+        projecao_demo[ano_atual] = {}
+        
+        for categoria in dados_demo['categorias']:
+            nome_cat = categoria['nome']
+            # Valores de exemplo baseados na categoria
+            if nome_cat == 'Vacas':
+                saldo_inicial = 500 if ano == 1 else projecao_demo[ano_atual - 1][nome_cat]['saldo_final']
+                nascimentos = 350
+                compras = 0
+                vendas = 100
+                mortes = 5
+                transferencias_entrada = 0
+                transferencias_saida = 0
+                evolucao = 0
+                saldo_final = saldo_inicial + nascimentos + compras - vendas - mortes + transferencias_entrada - transferencias_saida + evolucao
+                peso_medio = 450.0
+                valor_unitario = 3500.00
+            elif nome_cat == 'Bezerros':
+                saldo_inicial = 200 if ano == 1 else projecao_demo[ano_atual - 1][nome_cat]['saldo_final']
+                nascimentos = 175
+                compras = 0
+                vendas = 50
+                mortes = 3
+                transferencias_entrada = 0
+                transferencias_saida = 0
+                evolucao = -150  # Evoluem para garrotes
+                saldo_final = saldo_inicial + nascimentos + compras - vendas - mortes + transferencias_entrada - transferencias_saida + evolucao
+                peso_medio = 180.0
+                valor_unitario = 1200.00
+            elif nome_cat == 'Bezerras':
+                saldo_inicial = 180 if ano == 1 else projecao_demo[ano_atual - 1][nome_cat]['saldo_final']
+                nascimentos = 175
+                compras = 0
+                vendas = 30
+                mortes = 2
+                transferencias_entrada = 0
+                transferencias_saida = 0
+                evolucao = -150  # Evoluem para novilhas
+                saldo_final = saldo_inicial + nascimentos + compras - vendas - mortes + transferencias_entrada - transferencias_saida + evolucao
+                peso_medio = 170.0
+                valor_unitario = 1100.00
+            elif nome_cat == 'Garrotes':
+                saldo_inicial = 150 if ano == 1 else projecao_demo[ano_atual - 1][nome_cat]['saldo_final']
+                nascimentos = 0
+                compras = 0
+                vendas = 80
+                mortes = 2
+                transferencias_entrada = 150  # Vêm de bezerros
+                transferencias_saida = 0
+                evolucao = -70  # Evoluem para touros ou vendas
+                saldo_final = saldo_inicial + nascimentos + compras - vendas - mortes + transferencias_entrada - transferencias_saida + evolucao
+                peso_medio = 320.0
+                valor_unitario = 2800.00
+            elif nome_cat == 'Novilhas':
+                saldo_inicial = 140 if ano == 1 else projecao_demo[ano_atual - 1][nome_cat]['saldo_final']
+                nascimentos = 0
+                compras = 0
+                vendas = 20
+                mortes = 1
+                transferencias_entrada = 150  # Vêm de bezerras
+                transferencias_saida = 0
+                evolucao = -120  # Evoluem para primíparas
+                saldo_final = saldo_inicial + nascimentos + compras - vendas - mortes + transferencias_entrada - transferencias_saida + evolucao
+                peso_medio = 300.0
+                valor_unitario = 2500.00
+            elif nome_cat == 'Primíparas':
+                saldo_inicial = 120 if ano == 1 else projecao_demo[ano_atual - 1][nome_cat]['saldo_final']
+                nascimentos = 0
+                compras = 0
+                vendas = 30
+                mortes = 1
+                transferencias_entrada = 120  # Vêm de novilhas
+                transferencias_saida = 0
+                evolucao = -90  # Evoluem para vacas
+                saldo_final = saldo_inicial + nascimentos + compras - vendas - mortes + transferencias_entrada - transferencias_saida + evolucao
+                peso_medio = 380.0
+                valor_unitario = 3200.00
+            else:  # Touros
+                saldo_inicial = 30 if ano == 1 else projecao_demo[ano_atual - 1][nome_cat]['saldo_final']
+                nascimentos = 0
+                compras = 5
+                vendas = 2
+                mortes = 1
+                transferencias_entrada = 70  # Vêm de garrotes
+                transferencias_saida = 0
+                evolucao = 0
+                saldo_final = saldo_inicial + nascimentos + compras - vendas - mortes + transferencias_entrada - transferencias_saida + evolucao
+                peso_medio = 650.0
+                valor_unitario = 4500.00
+            
+            valor_total = saldo_final * valor_unitario
+            
+            projecao_demo[ano_atual][nome_cat] = {
+                'saldo_inicial': saldo_inicial,
+                'nascimentos': nascimentos,
+                'compras': compras,
+                'vendas': vendas,
+                'mortes': mortes,
+                'transferencias_entrada': transferencias_entrada,
+                'transferencias_saida': transferencias_saida,
+                'evolucao': evolucao,
+                'saldo_final': saldo_final,
+                'peso_medio': peso_medio,
+                'valor_unitario': valor_unitario,
+                'valor_total': valor_total,
+            }
+    
+    dados_demo['projecao'] = projecao_demo
+    
+    # Calcular totais e médias para cada ano
+    totais_por_ano = {}
+    for ano_atual, dados_ano in projecao_demo.items():
+        total_saldo_inicial = 0
+        total_nascimentos = 0
+        total_compras = 0
+        total_vendas = 0
+        total_mortes = 0
+        total_transf_entrada = 0
+        total_transf_saida = 0
+        total_evolucao = 0
+        total_saldo_final = 0
+        soma_peso_medio = 0
+        soma_valor_unitario = 0
+        total_valor_total = 0
+        contador = 0
+        
+        for categoria in categorias_ordenadas:
+            nome_cat = categoria['nome']
+            if nome_cat in dados_ano:
+                dados = dados_ano[nome_cat]
+                total_saldo_inicial += dados['saldo_inicial']
+                total_nascimentos += dados['nascimentos']
+                total_compras += dados['compras']
+                total_vendas += dados['vendas']
+                total_mortes += dados['mortes']
+                total_transf_entrada += dados['transferencias_entrada']
+                total_transf_saida += dados['transferencias_saida']
+                total_evolucao += dados['evolucao']
+                total_saldo_final += dados['saldo_final']
+                soma_peso_medio += dados['peso_medio']
+                soma_valor_unitario += dados['valor_unitario']
+                total_valor_total += dados['valor_total']
+                contador += 1
+        
+        totais_por_ano[ano_atual] = {
+            'total_saldo_inicial': total_saldo_inicial,
+            'total_nascimentos': total_nascimentos,
+            'total_compras': total_compras,
+            'total_vendas': total_vendas,
+            'total_mortes': total_mortes,
+            'total_transf_entrada': total_transf_entrada,
+            'total_transf_saida': total_transf_saida,
+            'total_evolucao': total_evolucao,
+            'total_saldo_final': total_saldo_final,
+            'media_peso_medio': soma_peso_medio / contador if contador > 0 else 0,
+            'media_valor_unitario': soma_valor_unitario / contador if contador > 0 else 0,
+            'total_valor_total': total_valor_total,
+        }
+    
+    dados_demo['totais_por_ano'] = totais_por_ano
+    
+    return render(request, 'gestao_rural/pecuaria_projecao_demo_planilha.html', dados_demo)
 
 
 def gerar_projecao(propriedade, anos, data_inicio_projecao=None, planejamento=None, cenario=None):
@@ -2249,18 +2472,6 @@ def gerar_resumo_projecao_por_ano(movimentacoes, inventario_inicial, propriedade
 @login_required
 def categorias_lista(request):
     """Lista todas as categorias de animais"""
-    # Tentar obter uma propriedade do usuário para o contexto (opcional)
-    propriedade = None
-    todas_propriedades = []
-    try:
-        produtor = ProdutorRural.objects.filter(usuario_responsavel=request.user).first()
-        if produtor:
-            todas_propriedades = Propriedade.objects.filter(produtor=produtor)
-            propriedade = todas_propriedades.first()
-    except Exception as e:
-        logger.debug(f'Erro ao buscar produtor/propriedades para contexto: {e}')
-        # Continuar sem propriedade no contexto - não é crítico
-    
     # Ordenar: primeiro fêmeas (F), depois machos (M), depois indefinidos (I)
     # Dentro de cada grupo de sexo, ordenar por idade mínima (0-12, 12-24, 24-36, 36+)
     categorias = CategoriaAnimal.objects.filter(ativo=True).annotate(
@@ -2276,30 +2487,12 @@ def categorias_lista(request):
         'idade_minima_meses',  # Por idade mínima dentro de cada sexo (None vai para o final)
         'nome'  # Por nome como último critério
     )
-    
-    context = {
-        'categorias': categorias,
-        'propriedade': propriedade,
-        'todas_propriedades': todas_propriedades,
-    }
-    return render(request, 'gestao_rural/categorias_lista.html', context)
+    return render(request, 'gestao_rural/categorias_lista.html', {'categorias': categorias})
 
 
 @login_required
 def categoria_nova(request):
     """Cria uma nova categoria de animal"""
-    # Tentar obter uma propriedade do usuário para o contexto (opcional)
-    propriedade = None
-    todas_propriedades = []
-    try:
-        produtor = ProdutorRural.objects.filter(usuario_responsavel=request.user).first()
-        if produtor:
-            todas_propriedades = Propriedade.objects.filter(produtor=produtor)
-            propriedade = todas_propriedades.first()
-    except Exception as e:
-        logger.debug(f'Erro ao buscar produtor/propriedades para contexto: {e}')
-        # Continuar sem propriedade no contexto - não é crítico
-    
     if request.method == 'POST':
         form = CategoriaAnimalForm(request.POST)
         if form.is_valid():
@@ -2309,29 +2502,12 @@ def categoria_nova(request):
     else:
         form = CategoriaAnimalForm()
     
-    context = {
-        'form': form,
-        'propriedade': propriedade,
-        'todas_propriedades': todas_propriedades,
-    }
-    return render(request, 'gestao_rural/categoria_nova.html', context)
+    return render(request, 'gestao_rural/categoria_nova.html', {'form': form})
 
 
 @login_required
 def categoria_editar(request, categoria_id):
     """Edita uma categoria existente"""
-    # Tentar obter uma propriedade do usuário para o contexto (opcional)
-    propriedade = None
-    todas_propriedades = []
-    try:
-        produtor = ProdutorRural.objects.filter(usuario_responsavel=request.user).first()
-        if produtor:
-            todas_propriedades = Propriedade.objects.filter(produtor=produtor)
-            propriedade = todas_propriedades.first()
-    except Exception as e:
-        logger.debug(f'Erro ao buscar produtor/propriedades para contexto: {e}')
-        # Continuar sem propriedade no contexto - não é crítico
-    
     categoria = get_object_or_404(CategoriaAnimal, id=categoria_id)
     
     if request.method == 'POST':
@@ -2343,13 +2519,7 @@ def categoria_editar(request, categoria_id):
     else:
         form = CategoriaAnimalForm(instance=categoria)
     
-    context = {
-        'form': form,
-        'categoria': categoria,
-        'propriedade': propriedade,
-        'todas_propriedades': todas_propriedades,
-    }
-    return render(request, 'gestao_rural/categoria_editar.html', context)
+    return render(request, 'gestao_rural/categoria_editar.html', {'form': form, 'categoria': categoria})
 
 
 @login_required
@@ -2402,23 +2572,19 @@ def categoria_excluir(request, categoria_id):
         messages.success(request, f'Categoria "{nome_categoria}" excluída com sucesso!')
         return redirect('categorias_lista')
     
-    # Para GET, mostrar informações de uso (código completo está mais abaixo)
+    # Para GET, mostrar informações de uso
+    inventarios_count = InventarioRebanho.objects.filter(categoria=categoria).count()
+    movimentacoes_count = MovimentacaoProjetada.objects.filter(categoria=categoria).count()
+    
     politicas_count = 0
     configuracoes_count = 0
     try:
-        from .models import PoliticaVendasCategoria
+        from .models import PoliticaVendasCategoria, ConfiguracaoVenda
         politicas_count = PoliticaVendasCategoria.objects.filter(categoria=categoria).count()
-    except (ImportError, AttributeError):
-        pass
-    
-    try:
-        from .models import ConfiguracaoVenda
         configuracoes_count = ConfiguracaoVenda.objects.filter(categoria_venda=categoria).count()
-    except (ImportError, AttributeError):
+    except (ImportError, AttributeError) as e:
+        logging.debug(f"Erro ao verificar políticas e configurações: {e}")
         pass
-    
-    inventarios_count = InventarioRebanho.objects.filter(categoria=categoria).count()
-    movimentacoes_count = MovimentacaoProjetada.objects.filter(categoria=categoria).count()
     
     context = {
         'categoria': categoria,
@@ -2430,228 +2596,6 @@ def categoria_excluir(request, categoria_id):
     }
     
     return render(request, 'gestao_rural/categoria_excluir.html', context)
-
-
-# ==================== GESTÃO DE CLIENTES ====================
-
-@login_required
-def clientes_lista(request, propriedade_id):
-    """Lista de clientes da propriedade"""
-    propriedade = get_object_or_404(
-        Propriedade,
-        id=propriedade_id,
-        produtor__usuario_responsavel=request.user
-    )
-    
-    try:
-        from .models_cadastros import Cliente
-        clientes = Cliente.objects.filter(
-            Q(propriedade=propriedade) | Q(propriedade__isnull=True),
-            ativo=True
-        ).order_by('nome')
-    except ImportError:
-        messages.error(request, 'Módulo de clientes não disponível.')
-        return redirect('propriedade_modulos', propriedade_id=propriedade.id)
-    
-    context = {
-        'propriedade': propriedade,
-        'clientes': clientes,
-    }
-    return render(request, 'gestao_rural/clientes_lista.html', context)
-
-
-@login_required
-def consultar_cpf_cnpj_api(request):
-    """
-    API para consultar dados por CPF/CNPJ
-    """
-    from django.http import JsonResponse
-    from .services.consulta_cpf_cnpj import consultar_dados_cpf_cnpj
-    
-    if request.method != 'GET':
-        return JsonResponse({'error': 'Método não permitido'}, status=405)
-    
-    cpf_cnpj = request.GET.get('cpf_cnpj', '').strip()
-    
-    if not cpf_cnpj:
-        return JsonResponse({'error': 'CPF/CNPJ não informado'}, status=400)
-    
-    try:
-        dados = consultar_dados_cpf_cnpj(cpf_cnpj)
-        
-        if dados:
-            # Verificar se é CPF (que tem limitações)
-            if dados.get('eh_cpf'):
-                # Verificar se CPF é inválido
-                if dados.get('cpf_invalido'):
-                    return JsonResponse({
-                        'success': False,
-                        'eh_cpf': True,
-                        'cpf_invalido': True,
-                        'message': dados.get('mensagem', 'CPF inválido')
-                    })
-                else:
-                    return JsonResponse({
-                        'success': False,
-                        'eh_cpf': True,
-                        'dados': dados,  # Ainda retornar dados para preencher tipo_pessoa
-                        'message': dados.get('mensagem', 'CPF detectado. APIs públicas não fornecem dados completos. Preencha manualmente.')
-                    })
-            else:
-                return JsonResponse({
-                    'success': True,
-                    'dados': dados
-                })
-        else:
-            return JsonResponse({
-                'success': False,
-                'message': 'Dados não encontrados ou CPF/CNPJ inválido'
-            })
-            
-    except Exception as e:
-        logger.error(f"Erro ao consultar CPF/CNPJ: {e}")
-        return JsonResponse({
-            'success': False,
-            'error': 'Erro ao consultar dados. Tente novamente.'
-        }, status=500)
-
-
-@login_required
-def consultar_cep_api(request):
-    """
-    API para consultar endereço por CEP
-    """
-    from django.http import JsonResponse
-    from .services.consulta_cpf_cnpj import ConsultaCPFCNPJ
-    
-    if request.method != 'GET':
-        return JsonResponse({'error': 'Método não permitido'}, status=405)
-    
-    cep = request.GET.get('cep', '').strip()
-    
-    if not cep:
-        return JsonResponse({'error': 'CEP não informado'}, status=400)
-    
-    try:
-        service = ConsultaCPFCNPJ()
-        dados = service.consultar_cep(cep)
-        
-        if dados:
-            return JsonResponse({
-                'success': True,
-                'dados': dados
-            })
-        else:
-            return JsonResponse({
-                'success': False,
-                'message': 'CEP não encontrado'
-            })
-            
-    except Exception as e:
-        logger.error(f"Erro ao consultar CEP: {e}")
-        return JsonResponse({
-            'success': False,
-            'error': 'Erro ao consultar CEP. Tente novamente.'
-        }, status=500)
-
-
-@login_required
-def cliente_novo(request, propriedade_id):
-    """Cadastrar novo cliente"""
-    propriedade = get_object_or_404(
-        Propriedade,
-        id=propriedade_id,
-        produtor__usuario_responsavel=request.user
-    )
-    
-    try:
-        from .models_cadastros import Cliente
-    except ImportError:
-        messages.error(request, 'Módulo de clientes não disponível.')
-        return redirect('propriedade_modulos', propriedade_id=propriedade.id)
-    
-    if request.method == 'POST':
-        form = ClienteForm(request.POST)
-        if form.is_valid():
-            cliente = form.save(commit=False)
-            cliente.propriedade = propriedade
-            cliente.save()
-            messages.success(request, 'Cliente cadastrado com sucesso!')
-            return redirect('clientes_lista', propriedade_id=propriedade.id)
-    else:
-        form = ClienteForm()
-    
-    context = {
-        'propriedade': propriedade,
-        'form': form,
-        'form_type': 'novo'
-    }
-    return render(request, 'gestao_rural/cliente_form.html', context)
-
-
-@login_required
-def cliente_editar(request, propriedade_id, cliente_id):
-    """Editar cliente existente"""
-    propriedade = get_object_or_404(
-        Propriedade,
-        id=propriedade_id,
-        produtor__usuario_responsavel=request.user
-    )
-    
-    try:
-        from .models_cadastros import Cliente
-    except ImportError:
-        messages.error(request, 'Módulo de clientes não disponível.')
-        return redirect('propriedade_modulos', propriedade_id=propriedade.id)
-    
-    cliente = get_object_or_404(Cliente, id=cliente_id, propriedade=propriedade)
-    
-    if request.method == 'POST':
-        form = ClienteForm(request.POST, instance=cliente)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Cliente atualizado com sucesso!')
-            return redirect('clientes_lista', propriedade_id=propriedade.id)
-    else:
-        form = ClienteForm(instance=cliente)
-    
-    context = {
-        'propriedade': propriedade,
-        'cliente': cliente,
-        'form': form,
-        'form_type': 'editar'
-    }
-    return render(request, 'gestao_rural/cliente_form.html', context)
-
-
-@login_required
-def cliente_excluir(request, propriedade_id, cliente_id):
-    """Excluir cliente"""
-    propriedade = get_object_or_404(
-        Propriedade,
-        id=propriedade_id,
-        produtor__usuario_responsavel=request.user
-    )
-    
-    try:
-        from .models_cadastros import Cliente
-    except ImportError:
-        messages.error(request, 'Módulo de clientes não disponível.')
-        return redirect('propriedade_modulos', propriedade_id=propriedade.id)
-    
-    cliente = get_object_or_404(Cliente, id=cliente_id, propriedade=propriedade)
-    
-    if request.method == 'POST':
-        nome = cliente.nome
-        cliente.delete()
-        messages.success(request, f'Cliente "{nome}" excluído com sucesso!')
-        return redirect('clientes_lista', propriedade_id=propriedade.id)
-    
-    context = {
-        'propriedade': propriedade,
-        'cliente': cliente,
-    }
-    return render(request, 'gestao_rural/cliente_excluir.html', context)
 
 
 def obter_saldo_atual_propriedade(propriedade, data_referencia):
@@ -3854,7 +3798,7 @@ def projeto_bancario_editar(request, propriedade_id, projeto_id):
 @login_required
 def dividas_contratos(request, propriedade_id):
     """Lista todos os contratos de dívida de uma propriedade"""
-    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
+    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
     
     contratos = ContratoDivida.objects.filter(propriedade=propriedade).order_by('-data_inicio')
 
@@ -4018,25 +3962,20 @@ def projeto_bancario_dashboard(request, propriedade_id):
 @login_required
 def propriedade_modulos(request, propriedade_id):
     """Exibe os módulos disponíveis para uma propriedade"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id, produtor__usuario_responsavel=request.user)
-
-    # Buscar todas as propriedades do usuário para o seletor
-    todas_propriedades = Propriedade.objects.filter(
-        produtor__usuario_responsavel=request.user
-    ).select_related('produtor').order_by('nome_propriedade')
-
+    from .decorators import obter_propriedade_com_permissao, bloquear_demo_cadastro
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
+    
     total_animais = (
         InventarioRebanho.objects
         .filter(propriedade=propriedade)
         .aggregate(total=Sum('quantidade'))
         .get('total') or 0
     )
-
+    
     context = {
         'propriedade': propriedade,
-        'todas_propriedades': todas_propriedades,
         'total_animais': total_animais,
     }
-
+    
     return render(request, 'propriedade_modulos.html', context)
 

@@ -1,0 +1,42 @@
+# Dockerfile para deploy no Google Cloud Run
+# Imagem base otimizada para Python 3.11
+FROM python:3.11-slim
+
+# Variáveis de ambiente
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Instalar dependências do sistema
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-client \
+    build-essential \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Criar diretório de trabalho
+WORKDIR /app
+
+# Copiar requirements e instalar dependências Python
+COPY requirements.txt .
+RUN pip install --upgrade pip && \
+    pip install -r requirements.txt
+
+# Copiar código da aplicação
+COPY . .
+
+# Criar diretórios necessários
+RUN mkdir -p /app/staticfiles /app/media /app/logs
+
+# Coletar arquivos estáticos (será executado no build)
+# RUN python manage.py collectstatic --noinput || true
+
+# Expor porta (Cloud Run usa a variável PORT)
+ENV PORT=8080
+EXPOSE 8080
+
+# Comando para iniciar a aplicação
+# Cloud Run injeta a variável PORT automaticamente
+CMD exec gunicorn --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 300 --access-logfile - --error-logfile - sistema_rural.wsgi:application
+

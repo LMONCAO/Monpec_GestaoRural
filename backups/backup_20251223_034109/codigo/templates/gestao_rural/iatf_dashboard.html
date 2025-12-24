@@ -1,0 +1,326 @@
+{% extends "base_modulos_unificado.html" %}
+{% load formatacao_br %}
+
+{% block title %}IATF - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'reproducao_dashboard' propriedade.id %}">Reprodução</a></li>
+            <li class="breadcrumb-item active">IATF</li>
+        </ol>
+    </nav>
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1"><i class="bi bi-heart-pulse text-danger me-2"></i>IATF - Inseminação Artificial em Tempo Fixo</h2>
+            <p class="text-muted mb-0">{{ propriedade.nome_propriedade }}</p>
+        </div>
+        <div>
+            <a href="{% url 'lote_iatf_novo' propriedade.id %}" class="btn btn-danger btn-sm">
+                <i class="bi bi-plus-circle me-1"></i>Novo Lote
+            </a>
+            <a href="{% url 'iatf_individual_novo' propriedade.id %}" class="btn btn-outline-danger btn-sm">
+                <i class="bi bi-plus me-1"></i>Nova IATF
+            </a>
+        </div>
+    </div>
+
+    <!-- Cards de Estatísticas -->
+    <div class="row mb-4">
+        <!-- Total IATFs -->
+        <div class="col-md-3 mb-3">
+            <div class="card border h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Total de IATFs</h6>
+                            <h3 class="mb-0">{{ total_iatfs|numero_br }}</h3>
+                        </div>
+                        <div class="text-danger">
+                            <i class="bi bi-heart-pulse fs-1"></i>
+                        </div>
+                    </div>
+                    <p class="text-muted small mb-0 mt-2">Realizadas: {{ iatfs_realizadas }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Taxa de Prenhez -->
+        <div class="col-md-3 mb-3">
+            <div class="card border h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Taxa de Prenhez</h6>
+                            <h3 class="mb-0">{{ taxa_prenhez_geral|percentual_br:1 }}</h3>
+                        </div>
+                        <div class="text-success">
+                            <i class="bi bi-check-circle fs-1"></i>
+                        </div>
+                    </div>
+                    <p class="text-muted small mb-0 mt-2">Prenhezes: {{ prenhezes }} / Vazias: {{ vazias }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lotes Ativos -->
+        <div class="col-md-3 mb-3">
+            <div class="card border h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Lotes Ativos</h6>
+                            <h3 class="mb-0">{{ lotes_ativos|numero_br }}</h3>
+                        </div>
+                        <div class="text-info">
+                            <i class="bi bi-collection fs-1"></i>
+                        </div>
+                    </div>
+                    <p class="text-muted small mb-0 mt-2">IATFs Pendentes: {{ iatfs_pendentes }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sêmen Disponível -->
+        <div class="col-md-3 mb-3">
+            <div class="card border h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Doses de Sêmen</h6>
+                            <h3 class="mb-0">{{ total_doses_disponiveis|numero_br }}</h3>
+                        </div>
+                        <div class="text-warning">
+                            <i class="bi bi-droplet fs-1"></i>
+                        </div>
+                    </div>
+                    <p class="text-muted small mb-0 mt-2">Em Estoque</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Seções -->
+    <div class="row">
+        <!-- Próximas IATFs -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="bi bi-calendar-event me-2"></i>Próximas IATFs</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Animal</th>
+                                    <th>Protocolo</th>
+                                    <th>Data IATF</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for iatf in proximas_iatfs %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'iatf_individual_detalhes' propriedade.id iatf.id %}">
+                                            {{ iatf.animal_individual.numero_brinco }}
+                                        </a>
+                                    </td>
+                                    <td>{{ iatf.protocolo.nome }}</td>
+                                    <td>{{ iatf.data_iatf|date:"d/m/Y" }}</td>
+                                    <td>
+                                        <span class="badge bg-warning">{{ iatf.get_status_display }}</span>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted">Nenhuma IATF programada</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lotes em Andamento -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="bi bi-collection me-2"></i>Lotes em Andamento</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Lote</th>
+                                    <th>Protocolo</th>
+                                    <th>Animais</th>
+                                    <th>Taxa Prenhez</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for lote in lotes_andamento %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'lote_iatf_detalhes' propriedade.id lote.id %}">
+                                            {{ lote.nome_lote }}
+                                        </a>
+                                    </td>
+                                    <td>{{ lote.protocolo.nome }}</td>
+                                    <td>{{ lote.animais_inseminados }}/{{ lote.numero_animais }}</td>
+                                    <td>
+                                        {% if lote.taxa_prenhez %}
+                                        <span class="badge bg-success">{{ lote.taxa_prenhez|percentual_br:1 }}</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">Pendente</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted">Nenhum lote em andamento</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Protocolos Mais Usados -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-list-check me-2"></i>Protocolos Mais Usados</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        {% for protocolo in protocolos_mais_usados %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ protocolo.nome }}</strong>
+                                <br>
+                                <small class="text-muted">Taxa esperada: {{ protocolo.taxa_prenhez_esperada|percentual_br:1 }}</small>
+                            </div>
+                            <span class="badge bg-primary rounded-pill">{{ protocolo.total_uso }}</span>
+                        </div>
+                        {% empty %}
+                        <div class="list-group-item text-center text-muted">
+                            Nenhum protocolo utilizado ainda
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Taxa de Prenhez do Mês -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-graph-up me-2"></i>Desempenho do Mês</h5>
+                </div>
+                <div class="card-body text-center">
+                    <h1 class="display-4 text-success mb-3">{{ taxa_prenhez_mes|percentual_br:1 }}</h1>
+                    <p class="text-muted mb-0">Taxa de Prenhez do Mês Atual</p>
+                    <div class="mt-3">
+                        <div class="d-flex justify-content-around">
+                            <div>
+                                <strong class="text-success">{{ prenhezes_mes }}</strong>
+                                <br>
+                                <small class="text-muted">Prenhezes</small>
+                            </div>
+                            <div>
+                                <strong class="text-danger">{{ iatfs_realizadas_mes }}</strong>
+                                <br>
+                                <small class="text-muted">IATFs Realizadas</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ações Rápidas -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-lightning-charge me-2"></i>Ações Rápidas</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-2">
+                            <a href="{% url 'lote_iatf_novo' propriedade.id %}" class="btn btn-danger w-100">
+                                <i class="bi bi-collection me-1"></i>Novo Lote IATF
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <a href="{% url 'iatf_individual_novo' propriedade.id %}" class="btn btn-outline-danger w-100">
+                                <i class="bi bi-plus-circle me-1"></i>Nova IATF Individual
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <a href="{% url 'lotes_iatf_lista' propriedade.id %}" class="btn btn-outline-info w-100">
+                                <i class="bi bi-list-ul me-1"></i>Ver Lotes
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <a href="{% url 'iatfs_lista' propriedade.id %}" class="btn btn-outline-primary w-100">
+                                <i class="bi bi-list-check me-1"></i>Ver IATFs
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Relatórios -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-file-earmark-text me-2"></i>Relatórios e Exportações</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-2">
+                            <a href="{% url 'iatf_relatorio' propriedade.id %}" class="btn btn-primary w-100 mb-2">
+                                <i class="bi bi-file-earmark-text me-1"></i>Relatório Completo
+                            </a>
+                            <a href="{% url 'iatf_relatorio_etapas' propriedade.id %}" class="btn btn-success w-100">
+                                <i class="bi bi-table me-1"></i>Relatório por Etapas
+                            </a>
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <a href="{% url 'exportar_iatf_excel' propriedade.id %}" class="btn btn-success w-100">
+                                <i class="bi bi-file-earmark-excel me-1"></i>Exportar Excel
+                            </a>
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <a href="{% url 'exportar_iatf_pdf' propriedade.id %}" class="btn btn-danger w-100">
+                                <i class="bi bi-file-earmark-pdf me-1"></i>Exportar PDF
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+

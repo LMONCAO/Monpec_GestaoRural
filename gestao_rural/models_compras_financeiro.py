@@ -230,20 +230,38 @@ class OrcamentoCompraMensal(models.Model):
         return (self.valor_limite or Decimal("0.00")) + (self.limite_extra or Decimal("0.00"))
 
     def valor_utilizado(self, ignorar_ordem=None):
-        filtros = {
+        """
+        Calcula o valor utilizado baseado nas parcelas (ContaPagar) 
+        com vencimento no mês, não pela data de emissão da ordem.
+        """
+        from .models_compras_financeiro import ContaPagar
+        
+        # Buscar todas as contas a pagar com vencimento neste mês/ano
+        filtros_contas = {
             "propriedade": self.propriedade,
-            "data_emissao__year": self.ano,
-            "data_emissao__month": self.mes,
+            "data_vencimento__year": self.ano,
+            "data_vencimento__month": self.mes,
+            "status__in": ["PENDENTE", "VENCIDA"],  # Apenas contas não pagas
         }
+        
+        # Se tem setor, filtrar por ordens de compra do setor
         if self.setor_id:
-            filtros["setor_id"] = self.setor_id
-
-        qs = OrdemCompra.objects.filter(**filtros).exclude(status="CANCELADA")
+            filtros_contas["ordem_compra__setor_id"] = self.setor_id
+        else:
+            # Se não tem setor no orçamento, buscar apenas contas de ordens sem setor (setor=None)
+            filtros_contas["ordem_compra__setor__isnull"] = True
+        
+        # Excluir contas de ordens canceladas
+        qs_contas = ContaPagar.objects.filter(**filtros_contas).exclude(
+            ordem_compra__status="CANCELADA"
+        )
+        
+        # Se há ordem para ignorar, excluir suas contas
         if ignorar_ordem:
-            pk = ignorar_ordem.pk if hasattr(ignorar_ordem, "pk") else ignorar_ordem
-            qs = qs.exclude(pk=pk)
-
-        total = qs.aggregate(total=Sum("valor_total"))['total']
+            ordem_id = ignorar_ordem.pk if hasattr(ignorar_ordem, "pk") else ignorar_ordem
+            qs_contas = qs_contas.exclude(ordem_compra_id=ordem_id)
+        
+        total = qs_contas.aggregate(total=Sum("valor"))['total']
         return total or Decimal("0.00")
 
     def saldo_disponivel(self, ignorar_ordem=None):
@@ -262,6 +280,41 @@ class OrcamentoCompraMensal(models.Model):
             return False
         saldo = self.total_limite - self.valor_utilizado(ignorar_ordem=ignorar_ordem)
         return valor > saldo
+    
+    def tem_autorizacao_excedente(self, valor, ordem_compra=None):
+        """
+        Verifica se há autorização aprovada para exceder o orçamento.
+        Retorna a autorização se existir, None caso contrário.
+        """
+        # Importar aqui para evitar referência circular
+        from .models_compras_financeiro import AutorizacaoExcedenteOrcamento
+        
+        if valor <= Decimal("0.00"):
+            return None
+        
+        saldo = self.total_limite - self.valor_utilizado(ignorar_ordem=ordem_compra)
+        if valor <= saldo:
+            return None  # Não excede, não precisa autorização
+        
+        # Buscar autorização aprovada para este orçamento e valor
+        filtros = {
+            'orcamento': self,
+            'status': 'APROVADA',
+            'valor_excedente__gte': valor - saldo,
+        }
+        
+        if ordem_compra:
+            # Se já tem ordem, buscar autorização específica para ela
+            autorizacao = AutorizacaoExcedenteOrcamento.objects.filter(
+                ordem_compra=ordem_compra,
+                status='APROVADA'
+            ).first()
+            if autorizacao:
+                return autorizacao
+        
+        # Buscar autorização geral aprovada para o orçamento
+        autorizacao = AutorizacaoExcedenteOrcamento.objects.filter(**filtros).first()
+        return autorizacao
 
 
 class AjusteOrcamentoCompra(models.Model):
@@ -298,6 +351,86 @@ class AjusteOrcamentoCompra(models.Model):
     def __str__(self):
         sinal = "+" if self.valor >= 0 else ""
         return f"{sinal}{self.valor} em {self.criado_em:%d/%m/%Y}"
+
+
+class AutorizacaoExcedenteOrcamento(models.Model):
+    """Autorização da gerência para realizar compras que excedem o orçamento mensal."""
+    
+    STATUS_CHOICES = [
+        ('PENDENTE', 'Pendente'),
+        ('APROVADA', 'Aprovada'),
+        ('REPROVADA', 'Reprovada'),
+    ]
+    
+    orcamento = models.ForeignKey(
+        OrcamentoCompraMensal,
+        on_delete=models.CASCADE,
+        related_name="autorizacoes_excedente",
+        verbose_name="Orçamento",
+    )
+    ordem_compra = models.ForeignKey(
+        'OrdemCompra',
+        on_delete=models.CASCADE,
+        related_name="autorizacoes_excedente",
+        null=True,
+        blank=True,
+        verbose_name="Ordem de Compra",
+        help_text="Ordem de compra que excede o orçamento (pode ser None se for pré-autorização)"
+    )
+    valor_excedente = models.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal("0.01"))],
+        verbose_name="Valor Excedente (R$)",
+        help_text="Valor que excede o orçamento disponível"
+    )
+    valor_total_compra = models.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal("0.01"))],
+        verbose_name="Valor Total da Compra (R$)"
+    )
+    justificativa = models.TextField(
+        verbose_name="Justificativa",
+        help_text="Justificativa detalhada para o excedente de orçamento"
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='PENDENTE',
+        verbose_name="Status da Autorização"
+    )
+    solicitado_por = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="autorizacoes_excedente_solicitadas",
+        verbose_name="Solicitado por"
+    )
+    aprovado_por = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="autorizacoes_excedente_aprovadas",
+        verbose_name="Aprovado por"
+    )
+    data_solicitacao = models.DateTimeField(auto_now_add=True, verbose_name="Data de Solicitação")
+    data_aprovacao = models.DateTimeField(null=True, blank=True, verbose_name="Data de Aprovação/Reprovação")
+    observacoes_aprovacao = models.TextField(
+        null=True,
+        blank=True,
+        verbose_name="Observações da Aprovação"
+    )
+    
+    class Meta:
+        verbose_name = "Autorização de Excedente de Orçamento"
+        verbose_name_plural = "Autorizações de Excedente de Orçamento"
+        ordering = ["-data_solicitacao"]
+    
+    def __str__(self):
+        return f"Excedente de R$ {self.valor_excedente} - {self.get_status_display()}"
 
 
 class ConviteCotacaoFornecedor(models.Model):
@@ -485,7 +618,9 @@ class Produto(models.Model):
     ncm = models.CharField(
         max_length=10,
         verbose_name="NCM",
-        help_text="Nomenclatura Comum do Mercosul (ex: 0102.29.00)"
+        help_text="Nomenclatura Comum do Mercosul (ex: 0102.29.00) - OBRIGATÓRIO",
+        blank=False,
+        null=False
     )
     ncm_descricao = models.CharField(
         max_length=500,
@@ -503,6 +638,53 @@ class Produto(models.Model):
         null=True,
         blank=True,
         verbose_name="Data de Validação do NCM"
+    )
+    
+    # Dados Fiscais - Origem da Mercadoria (OBRIGATÓRIO na NF-e)
+    ORIGEM_CHOICES = [
+        ('0', '0 - Nacional, exceto as indicadas nos códigos 3, 4, 5 e 8'),
+        ('1', '1 - Estrangeira - Importação direta, exceto a indicada no código 6'),
+        ('2', '2 - Estrangeira - Adquirida no mercado interno, exceto a indicada no código 7'),
+        ('3', '3 - Nacional, mercadoria ou bem com Conteúdo de Importação superior a 40%'),
+        ('4', '4 - Nacional, cuja produção tenha sido feita em conformidade com os processos produtivos básicos'),
+        ('5', '5 - Nacional, mercadoria ou bem com Conteúdo de Importação inferior ou igual a 40%'),
+        ('6', '6 - Estrangeira - Importação direta, sem similar nacional'),
+        ('7', '7 - Estrangeira - Adquirida no mercado interno, sem similar nacional'),
+        ('8', '8 - Nacional, mercadoria ou bem com Conteúdo de Importação superior a 70%'),
+    ]
+    origem_mercadoria = models.CharField(
+        max_length=1,
+        choices=ORIGEM_CHOICES,
+        default='0',
+        verbose_name="Origem da Mercadoria",
+        help_text="Origem da mercadoria conforme tabela da Receita Federal - OBRIGATÓRIO na NF-e"
+    )
+    
+    # Dados Fiscais - CEST (Código Especificador da Substituição Tributária)
+    cest = models.CharField(
+        max_length=7,
+        blank=True,
+        null=True,
+        verbose_name="CEST",
+        help_text="Código Especificador da Substituição Tributária (7 dígitos) - Obrigatório para alguns produtos"
+    )
+    
+    # Dados Fiscais - GTIN/EAN (Código de Barras)
+    gtin = models.CharField(
+        max_length=14,
+        blank=True,
+        null=True,
+        verbose_name="GTIN/EAN",
+        help_text="Código GTIN (EAN/UPC) do produto (código de barras)"
+    )
+    
+    # Dados Fiscais - Exceção da TIPI
+    ex_tipi = models.CharField(
+        max_length=3,
+        blank=True,
+        null=True,
+        verbose_name="Exceção da TIPI",
+        help_text="Código de exceção da TIPI (quando aplicável)"
     )
     
     # Dados Fiscais - CFOP
@@ -643,21 +825,52 @@ class Produto(models.Model):
         """Validação do modelo"""
         from django.core.exceptions import ValidationError
         
-        # Validar formato do NCM (8 dígitos)
-        if self.ncm:
-            ncm_limpo = self.ncm.replace('.', '').replace('-', '')
-            if len(ncm_limpo) != 8 or not ncm_limpo.isdigit():
+        # Validar formato do NCM (8 dígitos) - OBRIGATÓRIO
+        if not self.ncm:
+            raise ValidationError({
+                'ncm': 'NCM é obrigatório para emissão de NF-e'
+            })
+        
+        ncm_limpo = self.ncm.replace('.', '').replace('-', '')
+        if len(ncm_limpo) != 8 or not ncm_limpo.isdigit():
+            raise ValidationError({
+                'ncm': 'NCM deve ter 8 dígitos numéricos (ex: 0102.29.00)'
+            })
+        
+        # Validar formato do CEST (7 dígitos) se informado
+        if self.cest:
+            cest_limpo = self.cest.replace('.', '').replace('-', '')
+            if len(cest_limpo) != 7 or not cest_limpo.isdigit():
                 raise ValidationError({
-                    'ncm': 'NCM deve ter 8 dígitos numéricos (ex: 0102.29.00)'
+                    'cest': 'CEST deve ter 7 dígitos numéricos (ex: 01.001.00)'
+                })
+        
+        # Validar formato do GTIN/EAN (8, 12, 13 ou 14 dígitos) se informado
+        if self.gtin:
+            gtin_limpo = self.gtin.replace('.', '').replace('-', '')
+            if len(gtin_limpo) not in [8, 12, 13, 14] or not gtin_limpo.isdigit():
+                raise ValidationError({
+                    'gtin': 'GTIN/EAN deve ter 8, 12, 13 ou 14 dígitos numéricos'
                 })
     
     def save(self, *args, **kwargs):
-        """Override save para limpar e formatar NCM"""
+        """Override save para limpar e formatar campos fiscais"""
+        # Formatar NCM (8 dígitos: XXXX.XX.XX)
         if self.ncm:
-            # Remover pontos e traços, depois formatar
             ncm_limpo = self.ncm.replace('.', '').replace('-', '')
             if len(ncm_limpo) == 8:
                 self.ncm = f"{ncm_limpo[:4]}.{ncm_limpo[4:6]}.{ncm_limpo[6:]}"
+        
+        # Formatar CEST (7 dígitos: XX.XXX.XX) se informado
+        if self.cest:
+            cest_limpo = self.cest.replace('.', '').replace('-', '')
+            if len(cest_limpo) == 7:
+                self.cest = f"{cest_limpo[:2]}.{cest_limpo[2:5]}.{cest_limpo[5:]}"
+        
+        # Limpar GTIN/EAN (remover pontos e traços, manter apenas números)
+        if self.gtin:
+            self.gtin = self.gtin.replace('.', '').replace('-', '').strip()
+        
         super().save(*args, **kwargs)
 
 
@@ -870,6 +1083,44 @@ class ItemNotaFiscal(models.Model):
         null=True,
         verbose_name="NCM"
     )
+    ORIGEM_CHOICES = [
+        ('0', '0 - Nacional, exceto as indicadas nos códigos 3, 4, 5 e 8'),
+        ('1', '1 - Estrangeira - Importação direta, exceto a indicada no código 6'),
+        ('2', '2 - Estrangeira - Adquirida no mercado interno, exceto a indicada no código 7'),
+        ('3', '3 - Nacional, mercadoria ou bem com Conteúdo de Importação superior a 40%'),
+        ('4', '4 - Nacional, cuja produção tenha sido feita em conformidade com os processos produtivos básicos'),
+        ('5', '5 - Nacional, mercadoria ou bem com Conteúdo de Importação inferior ou igual a 40%'),
+        ('6', '6 - Estrangeira - Importação direta, sem similar nacional'),
+        ('7', '7 - Estrangeira - Adquirida no mercado interno, sem similar nacional'),
+        ('8', '8 - Nacional, mercadoria ou bem com Conteúdo de Importação superior a 70%'),
+    ]
+    origem_mercadoria = models.CharField(
+        max_length=1,
+        choices=ORIGEM_CHOICES,
+        default='0',
+        verbose_name="Origem da Mercadoria",
+        help_text="Origem da mercadoria conforme tabela da Receita Federal"
+    )
+    cest = models.CharField(
+        max_length=7,
+        blank=True,
+        null=True,
+        verbose_name="CEST",
+        help_text="Código Especificador da Substituição Tributária"
+    )
+    gtin = models.CharField(
+        max_length=14,
+        blank=True,
+        null=True,
+        verbose_name="GTIN/EAN",
+        help_text="Código GTIN (EAN/UPC) do produto"
+    )
+    ex_tipi = models.CharField(
+        max_length=3,
+        blank=True,
+        null=True,
+        verbose_name="Exceção da TIPI"
+    )
     cfop = models.CharField(
         max_length=10,
         blank=True,
@@ -932,6 +1183,14 @@ class ItemNotaFiscal(models.Model):
                 self.descricao = self.produto.descricao
             if not self.ncm:
                 self.ncm = self.produto.ncm
+            if not self.origem_mercadoria:
+                self.origem_mercadoria = self.produto.origem_mercadoria
+            if not self.cest and self.produto.cest:
+                self.cest = self.produto.cest
+            if not self.gtin and self.produto.gtin:
+                self.gtin = self.produto.gtin
+            if not self.ex_tipi and self.produto.ex_tipi:
+                self.ex_tipi = self.produto.ex_tipi
             if not self.unidade_medida:
                 self.unidade_medida = self.produto.unidade_medida
             
@@ -939,7 +1198,7 @@ class ItemNotaFiscal(models.Model):
             if self.nota_fiscal.tipo == 'ENTRADA' and self.produto.cfop_entrada:
                 self.cfop = self.produto.cfop_entrada
             elif self.nota_fiscal.tipo == 'SAIDA':
-                # Verificar se é interestadual (simplificado - pode melhorar)
+                # Verificar se é interestadual
                 if self.nota_fiscal.cliente:
                     cliente_uf = getattr(self.nota_fiscal.cliente, 'estado', '')
                     propriedade_uf = getattr(self.nota_fiscal.propriedade, 'estado', '')
@@ -955,6 +1214,16 @@ class ItemNotaFiscal(models.Model):
         # Calcular valor total
         if self.quantidade and self.valor_unitario:
             self.valor_total = self.quantidade * self.valor_unitario
+        
+        # Calcular impostos se houver alíquotas do produto
+        if self.produto:
+            # ICMS
+            if self.produto.aliquota_icms and self.valor_total:
+                self.valor_icms = (self.valor_total * self.produto.aliquota_icms / 100).quantize(Decimal('0.01'))
+            # IPI
+            if self.produto.aliquota_ipi and self.valor_total:
+                self.valor_ipi = (self.valor_total * self.produto.aliquota_ipi / 100).quantize(Decimal('0.01'))
+        
         super().save(*args, **kwargs)
 
 

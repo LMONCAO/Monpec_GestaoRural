@@ -1,0 +1,95 @@
+{% extends "base_modulos_unificado.html" %}
+{% load formatacao_br %}
+
+{% block title %}Ordens de Compra - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'compras_dashboard' propriedade.id %}">Compras</a></li>
+            <li class="breadcrumb-item active">Ordens de Compra</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+        <div>
+            <h2 class="mb-0"><i class="bi bi-file-earmark-text text-primary me-2"></i>Ordens de compra</h2>
+            <small class="text-muted">Controle completo de requisições e aprovações</small>
+        </div>
+        <a href="{% url 'ordem_compra_nova' propriedade.id %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle me-1"></i>Nova ordem
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Nº Ordem</th>
+                            <th>Data</th>
+                            <th>Fornecedor</th>
+                            <th>Valor total</th>
+                            <th>Status</th>
+                            <th>Setor / Centro de custo</th>
+                            <th>Autorização setor</th>
+                            <th>Entrega prevista</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ordem in ordens %}
+                        <tr>
+                            <td><strong>{{ ordem.numero_ordem }}</strong></td>
+                            <td>{{ ordem.data_emissao|date:"d/m/Y" }}</td>
+                            <td>{{ ordem.fornecedor.nome|default:"-" }}</td>
+                            <td>{{ ordem.valor_total|moeda_br }}</td>
+                            <td>
+                                <span class="badge bg-{% if ordem.status == 'APROVADA' %}success{% elif ordem.status == 'CANCELADA' %}secondary{% else %}warning text-dark{% endif %}">
+                                    {{ ordem.get_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if ordem.setor %}
+                                <div class="fw-semibold">{{ ordem.setor.nome }}</div>
+                                {% endif %}
+                                {% if ordem.centro_custo_display %}
+                                <div class="small text-muted">{{ ordem.centro_custo_display }}</div>
+                                {% endif %}
+                                {% if ordem.plano_conta %}
+                                <div class="small text-muted">{{ ordem.plano_conta }}</div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-{% if ordem.autorizacao_setor_status == 'AUTORIZADA' %}success{% elif ordem.autorizacao_setor_status == 'NEGADA' %}danger{% else %}secondary{% endif %}">
+                                    {{ ordem.get_autorizacao_setor_status_display }}
+                                </span>
+                                {% if ordem.autorizacao_setor_usuario %}
+                                <div class="small text-muted">
+                                    {{ ordem.autorizacao_setor_usuario.get_full_name|default:ordem.autorizacao_setor_usuario.username }}
+                                </div>
+                                {% endif %}
+                            </td>
+                            <td>{{ ordem.data_entrega_prevista|date:"d/m/Y"|default:"-" }}</td>
+                            <td class="text-end">
+                                <a href="{% url 'ordem_compra_detalhes' propriedade.id ordem.id %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-search"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center text-muted py-4">Nenhuma ordem de compra cadastrada.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

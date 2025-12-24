@@ -647,6 +647,16 @@ def relatorio_dre_consolidado(request):
     # Calcular DRE consolidado
     dre_consolidado = calcular_dre_consolidado(propriedades_selecionadas, ano)
     
+    # Verificar se é pessoa física (CPF) ou jurídica (CNPJ)
+    cpf_cnpj = produtor.cpf_cnpj if produtor else ""
+    cpf_cnpj_limpo = cpf_cnpj.replace(".", "").replace("-", "").replace("/", "")
+    is_pessoa_fisica = len(cpf_cnpj_limpo) == 11
+    
+    # Para pessoa física, remover CSLL (não se aplica)
+    if is_pessoa_fisica:
+        dre_consolidado['csll'] = Decimal('0.00')
+        dre_consolidado['total_impostos'] = dre_consolidado.get('irpj', Decimal('0.00'))
+    
     context = {
         'produtor': produtor,
         'propriedades': propriedades,
@@ -654,6 +664,7 @@ def relatorio_dre_consolidado(request):
         'ano': ano,
         'receitas_anuais': receitas_anuais,
         'dre_consolidado': dre_consolidado,
+        'is_pessoa_fisica': is_pessoa_fisica,
     }
     
     return render(request, 'gestao_rural/relatorios_consolidados/dre.html', context)
@@ -742,8 +753,21 @@ def calcular_dre_consolidado(propriedades, ano):
     # LAIR
     lair = resultado_operacional + resultado_financeiro
     
+    # Verificar se é pessoa física (primeira propriedade)
+    primeira_propriedade = propriedades.first()
+    is_pessoa_fisica = False
+    if primeira_propriedade and primeira_propriedade.produtor:
+        cpf_cnpj = primeira_propriedade.produtor.cpf_cnpj or ""
+        cpf_cnpj_limpo = cpf_cnpj.replace(".", "").replace("-", "").replace("/", "")
+        is_pessoa_fisica = len(cpf_cnpj_limpo) == 11
+    
     # Impostos
-    csll = sum(r.csll or Decimal('0.00') for r in receitas_anuais)
+    # Para pessoa física, CSLL não se aplica
+    if is_pessoa_fisica:
+        csll = Decimal('0.00')
+    else:
+        csll = sum(r.csll or Decimal('0.00') for r in receitas_anuais)
+    
     irpj = sum(r.irpj or Decimal('0.00') for r in receitas_anuais)
     total_impostos = csll + irpj
     
@@ -975,7 +999,7 @@ def relatorio_completo_emprestimo(request):
     total_dividas = Decimal('0.00')
     if scr:
         dividas_por_banco = DividaBanco.objects.filter(scr=scr).order_by('banco')
-        total_dividas = sum(d.valor_total_divida for d in dividas_por_banco)
+        total_dividas = sum(d.valor_total for d in dividas_por_banco)
     
     # Capacidade de pagamento
     from .views_justificativa_endividamento import calcular_capacidade_pagamento
@@ -1069,6 +1093,131 @@ def relatorio_completo_emprestimo(request):
 
 
 @login_required
+def exportar_dre_balanco_excel(request):
+    """
+    Exporta DRE e Balanço Patrimonial para Excel
+    Com opção de múltiplos anos lado a lado
+    """
+    from .exportar_dre_multi_anos_excel import exportar_dre_multi_anos_excel
+    from .exportar_excel_financeiro import exportar_dre_balanco_excel as exportar_excel_func
+    from .models import SCRBancoCentral, DividaBanco, BemImobilizado, InventarioRebanho
+    
+    # Buscar produtor
+    produtor = ProdutorRural.objects.filter(usuario_responsavel=request.user).first()
+    if not produtor:
+        return redirect('landing_page')
+    
+    propriedades = Propriedade.objects.filter(produtor=produtor)
+    propriedades_selecionadas_ids = request.GET.getlist('propriedades')
+    
+    if propriedades_selecionadas_ids:
+        propriedades_selecionadas = propriedades.filter(id__in=propriedades_selecionadas_ids)
+    else:
+        propriedades_selecionadas = propriedades
+    
+    # Verificar se é exportação multi-anos ou ano único
+    anos_param = request.GET.getlist('anos')
+    
+    if anos_param:
+        # Exportação multi-anos (2022, 2023, 2024, 2025)
+        anos = []
+        for ano_str in anos_param:
+            try:
+                anos.append(int(ano_str))
+            except (ValueError, TypeError):
+                pass
+        
+        if not anos:
+            anos = [2022, 2023, 2024, 2025]  # Default
+        
+        # Verificar se é pessoa física
+        cpf_cnpj = produtor.cpf_cnpj if produtor else ""
+        cpf_cnpj_limpo = cpf_cnpj.replace(".", "").replace("-", "").replace("/", "")
+        is_pessoa_fisica = len(cpf_cnpj_limpo) == 11
+        
+        # Calcular DRE para cada ano
+        dre_por_ano = {}
+        for ano in anos:
+            dre_consolidado = calcular_dre_consolidado(propriedades_selecionadas, ano)
+            # Para pessoa física, zerar CSLL
+            if is_pessoa_fisica:
+                dre_consolidado['csll'] = Decimal('0.00')
+                dre_consolidado['total_impostos'] = dre_consolidado.get('irpj', Decimal('0.00'))
+            dre_por_ano[ano] = dre_consolidado
+        
+        return exportar_dre_multi_anos_excel(dre_por_ano, propriedades_selecionadas, produtor)
+    
+    # Exportação ano único (compatibilidade)
+    ano = request.GET.get('ano', timezone.now().year)
+    try:
+        ano = int(ano)
+    except (ValueError, TypeError):
+        ano = timezone.now().year
+    
+    # Calcular DRE consolidado
+    dre_consolidado = calcular_dre_consolidado(propriedades_selecionadas, ano)
+    
+    # Preparar dados do DRE para exportação
+    dre_data = {
+        'receita_bruta': dre_consolidado.get('receita_bruta', Decimal('0.00')),
+        'icms_vendas': dre_consolidado.get('icms_vendas', Decimal('0.00')),
+        'funrural_vendas': dre_consolidado.get('funrural_vendas', Decimal('0.00')),
+        'outros_impostos_vendas': dre_consolidado.get('outros_impostos_vendas', Decimal('0.00')),
+        'total_deducoes': dre_consolidado.get('total_deducoes', Decimal('0.00')),
+        'receita_liquida': dre_consolidado.get('receita_liquida', Decimal('0.00')),
+        'cpv': dre_consolidado.get('cpv', Decimal('0.00')),
+        'lucro_bruto': dre_consolidado.get('lucro_bruto', Decimal('0.00')),
+        'despesas_operacionais': dre_consolidado.get('despesas_operacionais', Decimal('0.00')),
+        'resultado_operacional': dre_consolidado.get('resultado_operacional', Decimal('0.00')),
+        'resultado_nao_operacional': dre_consolidado.get('resultado_financeiro', Decimal('0.00')),
+        'resultado_antes_ir': dre_consolidado.get('lair', Decimal('0.00')),
+        'irpj': dre_consolidado.get('irpj', Decimal('0.00')),
+        'csll': dre_consolidado.get('csll', Decimal('0.00')),
+        'total_impostos': dre_consolidado.get('total_impostos', Decimal('0.00')),
+        'resultado_liquido': dre_consolidado.get('resultado_liquido', Decimal('0.00')),
+    }
+    
+    # Calcular Balanço Patrimonial
+    # ATIVO
+    bens_imobilizados = BemImobilizado.objects.filter(
+        propriedade__in=propriedades_selecionadas,
+        ativo=True
+    )
+    valor_imobilizado = sum(b.valor_atual for b in bens_imobilizados)
+    
+    # Rebanho (ativo circulante)
+    inventarios = InventarioRebanho.objects.filter(
+        propriedade__in=propriedades_selecionadas
+    )
+    valor_rebanho = sum(inv.valor_total for inv in inventarios if hasattr(inv, 'valor_total'))
+    
+    ativo_total = valor_imobilizado + valor_rebanho
+    
+    # PASSIVO
+    scr = SCRBancoCentral.objects.filter(produtor=produtor).order_by('-data_referencia_scr').first()
+    total_dividas = Decimal('0.00')
+    if scr:
+        dividas = DividaBanco.objects.filter(scr=scr)
+        total_dividas = sum(d.valor_total for d in dividas)
+    
+    # PATRIMÔNIO LÍQUIDO
+    # PL = Ativo - Passivo
+    # Ou PL = Lucros acumulados
+    lucros_acumulados = dre_consolidado.get('resultado_liquido', Decimal('0.00'))
+    patrimonio_liquido = ativo_total - total_dividas
+    
+    balanco_data = {
+        'ativo_total': ativo_total,
+        'valor_imobilizado': valor_imobilizado,
+        'valor_rebanho': valor_rebanho,
+        'total_dividas': total_dividas,
+        'patrimonio_liquido': patrimonio_liquido,
+        'passivo_pl_total': total_dividas + patrimonio_liquido,
+    }
+    
+    return exportar_excel_func(dre_data, balanco_data, propriedades_selecionadas, produtor, ano)
+
+
 def exportar_relatorio_completo_pdf(request):
     """
     Exporta relatório completo em PDF para comprovação de empréstimo.

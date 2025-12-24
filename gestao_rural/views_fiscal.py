@@ -23,7 +23,9 @@ def fiscal_dashboard(request, propriedade_id):
     """
     Dashboard para geração de arquivos fiscais
     """
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    # ✅ SEGURANÇA: Verificar permissão de acesso à propriedade
+    from .decorators import obter_propriedade_com_permissao
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     # Verificar permissão
     if not request.user.has_perm('gestao_rural.view_propriedade', propriedade):
@@ -48,7 +50,9 @@ def download_sintegra(request, propriedade_id):
     """
     Gera e faz download do arquivo Sintegra
     """
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    # ✅ SEGURANÇA: Verificar permissão de acesso à propriedade
+    from .decorators import obter_propriedade_com_permissao
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     # Verificar permissão
     if not request.user.has_perm('gestao_rural.view_propriedade', propriedade):
@@ -151,7 +155,9 @@ def download_sped(request, propriedade_id):
     """
     Gera e faz download do arquivo SPED Fiscal
     """
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    # ✅ SEGURANÇA: Verificar permissão de acesso à propriedade
+    from .decorators import obter_propriedade_com_permissao
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     # Verificar permissão
     if not request.user.has_perm('gestao_rural.view_propriedade', propriedade):
@@ -238,7 +244,9 @@ def validar_dados_fiscais(request, propriedade_id):
     """
     API para validar dados fiscais da propriedade
     """
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    # ✅ SEGURANÇA: Verificar permissão de acesso à propriedade
+    from .decorators import obter_propriedade_com_permissao
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     if not request.user.has_perm('gestao_rural.view_propriedade', propriedade):
         return JsonResponse({'error': 'Sem permissão'}, status=403)

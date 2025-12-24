@@ -1,0 +1,118 @@
+{% extends 'base_modulos_unificado.html' %}
+{% load static %}
+
+{% block title %}
+    {% if grupo %}Editar{% else %}Novo{% endif %} Grupo de Despesas - {{ propriedade.nome_propriedade }}
+{% endblock %}
+
+{% block breadcrumb_extra %}
+    <li class="breadcrumb-item"><a href="{% url 'financeiro_dashboard' propriedade.id %}">Financeiro</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'financeiro_despesas_grupos' propriedade.id %}">Grupos de Despesas</a></li>
+    <li class="breadcrumb-item active">{% if grupo %}Editar{% else %}Novo{% endif %}</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2>
+                <i class="bi bi-folder me-2"></i>
+                {% if grupo %}Editar{% else %}Novo{% endif %} Grupo de Despesas
+            </h2>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.nome.id_for_label }}" class="form-label">Nome do Grupo *</label>
+                            {{ form.nome }}
+                            {% if form.nome.errors %}
+                                <div class="text-danger">{{ form.nome.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.tipo.id_for_label }}" class="form-label">Tipo *</label>
+                            {{ form.tipo }}
+                            {% if form.tipo.errors %}
+                                <div class="text-danger">{{ form.tipo.errors }}</div>
+                            {% endif %}
+                            <small class="form-text text-muted">Despesas Fixas são constantes, Variáveis dependem da receita.</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.descricao.id_for_label }}" class="form-label">Descrição</label>
+                            {{ form.descricao }}
+                            {% if form.descricao.errors %}
+                                <div class="text-danger">{{ form.descricao.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.ordem.id_for_label }}" class="form-label">Ordem de Exibição</label>
+                                {{ form.ordem }}
+                                {% if form.ordem.errors %}
+                                    <div class="text-danger">{{ form.ordem.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="form-check form-switch mt-4">
+                                    {{ form.ativo }}
+                                    <label class="form-check-label" for="{{ form.ativo.id_for_label }}">
+                                        Ativo
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle me-1"></i>
+                                Salvar
+                            </button>
+                            <a href="{% url 'financeiro_despesas_grupos' propriedade.id %}" class="btn btn-secondary">
+                                <i class="bi bi-x-circle me-1"></i>
+                                Cancelar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

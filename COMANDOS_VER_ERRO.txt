@@ -1,0 +1,31 @@
+========================================
+VER ERRO DETALHADO DA MIGRAÇÃO
+========================================
+
+A execução ainda está falhando. Vamos ver o erro real:
+
+1. Ver detalhes da última execução:
+   gcloud run jobs executions list --job migrate-monpec --region us-central1 --limit 1
+   
+   # Pegar o nome (exemplo: migrate-monpec-xfh9g)
+   gcloud run jobs executions describe migrate-monpec-xfh9g --region us-central1
+
+2. Ver logs do erro:
+   gcloud logging read "resource.type=cloud_run_job AND resource.labels.job_name=migrate-monpec" --limit 30 --format="table(timestamp,severity,textPayload)"
+
+3. Verificar variáveis do job:
+   gcloud run jobs describe migrate-monpec --region us-central1 --format="value(spec.template.spec.containers[0].env)"
+
+4. Verificar Cloud SQL instance:
+   gcloud run jobs describe migrate-monpec --region us-central1 --format="value(spec.template.metadata.annotations)" | grep cloudsql
+
+========================================
+COMANDO RÁPIDO:
+========================================
+
+# Ver logs completos
+gcloud logging read "resource.type=cloud_run_job AND resource.labels.job_name=migrate-monpec" --limit 50 --format="table(timestamp,severity,textPayload)" | grep -A 20 -i "error\|traceback\|exception"
+
+========================================
+
+

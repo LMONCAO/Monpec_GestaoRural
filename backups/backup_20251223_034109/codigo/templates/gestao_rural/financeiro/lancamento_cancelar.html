@@ -1,0 +1,57 @@
+{% extends 'base_modulos_unificado.html' %}
+{% load formatacao_br %}
+
+{% block title %}Cancelar Lançamento - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block breadcrumb_extra %}
+    <li class="breadcrumb-item">
+        <a href="{% url 'financeiro_dashboard' propriedade.id %}">
+            <i class="bi bi-cash-coin me-1"></i>Financeiro
+        </a>
+    </li>
+    <li class="breadcrumb-item">
+        <a href="{% url 'financeiro_lancamentos' propriedade.id %}">
+            Lançamentos
+        </a>
+    </li>
+    <li class="breadcrumb-item active">Cancelar</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="card-moderno border-danger">
+        <div class="card-body-moderno">
+            <h3 class="text-danger mb-3">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                Cancelar lançamento
+            </h3>
+            <p class="text-muted">
+                Esta ação marcará o lançamento <strong>{{ lancamento.descricao }}</strong> no valor de
+                <strong>{{ lancamento.valor|moeda_br }}</strong> como cancelado. Informe um motivo para registrar no histórico.
+            </p>
+
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label class="form-label">Motivo do cancelamento</label>
+                    <textarea name="motivo" class="form-control" rows="4" placeholder="Descreva o motivo do cancelamento"></textarea>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <a href="{% url 'financeiro_lancamentos' propriedade.id %}" class="btn btn-outline-secondary">
+                        Voltar
+                    </a>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-x-circle me-1"></i> Confirmar cancelamento
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+
+

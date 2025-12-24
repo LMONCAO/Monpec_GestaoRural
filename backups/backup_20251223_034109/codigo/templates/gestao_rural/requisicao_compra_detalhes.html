@@ -1,0 +1,415 @@
+{% extends "base_modulos_unificado.html" %}
+{% load formatacao_br %}
+
+{% block title %}Requisição {{ requisicao.numero }} - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'compras_dashboard' propriedade.id %}">Compras</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'requisicoes_compra_lista' propriedade.id %}">Requisições</a></li>
+            <li class="breadcrumb-item active">{{ requisicao.numero }}</li>
+        </ol>
+    </nav>
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                        <div>
+                            <h2 class="h4 mb-1">{{ requisicao.numero }} · {{ requisicao.titulo }}</h2>
+                            <div class="text-muted small">
+                                Criada em {{ requisicao.criado_em|date:"d/m/Y H:i" }} por {{ requisicao.solicitante.get_full_name|default:requisicao.solicitante.username }}
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge bg-{% if requisicao.prioridade == 'URGENTE' %}danger{% elif requisicao.prioridade == 'ALTA' %}warning text-dark{% elif requisicao.prioridade == 'MEDIA' %}primary{% else %}secondary{% endif %} mb-2">
+                                {{ requisicao.get_prioridade_display }}
+                            </span>
+                            <div>
+                                <span class="badge rounded-pill bg-light text-dark border">
+                                    {{ requisicao.get_status_display }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <hr>
+                    <p class="mb-2"><strong>Justificativa:</strong></p>
+                    <p class="text-muted">{{ requisicao.justificativa|linebreaks }}</p>
+
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <small class="text-muted d-block">Data necessária</small>
+                            <span class="fw-semibold">{{ requisicao.data_necessidade|default:"Não informado" }}</span>
+                        </div>
+                        <div class="col-md-4">
+                            <small class="text-muted d-block">Setor</small>
+                            <span class="fw-semibold">
+                                {% if requisicao.setor %}
+                                    {{ requisicao.setor.nome }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="col-md-4 text-md-end">
+                            <small class="text-muted d-block">Total estimado</small>
+                            <span class="fw-semibold">R$ {{ requisicao.total_estimado|floatformat:2 }}</span>
+                        </div>
+                    </div>
+                    <div class="row g-3 mt-2">
+                        <div class="col-md-4">
+                            <small class="text-muted d-block">Centro de custo</small>
+                            <span class="fw-semibold">{{ requisicao.centro_custo_display|default:"-" }}</span>
+                        </div>
+                        <div class="col-md-4">
+                            <small class="text-muted d-block">Plano de contas</small>
+                            <span class="fw-semibold">
+                                {% if requisicao.plano_conta %}
+                                    {{ requisicao.plano_conta }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="col-md-4">
+                            <small class="text-muted d-block">Equipamento</small>
+                            <span class="fw-semibold">
+                                {% if requisicao.equipamento %}
+                                    {{ requisicao.equipamento.nome }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+
+                    {% if requisicao.observacoes %}
+                    <div class="alert alert-light border mt-3">
+                        <strong>Observações adicionais:</strong><br>
+                        {{ requisicao.observacoes|linebreaks }}
+                    </div>
+                    {% endif %}
+
+                    {% if requisicao.ordem_compra %}
+                    <div class="alert alert-success mt-3 mb-0">
+                        <i class="bi bi-file-earmark-text me-2"></i>
+                        Ordem de Compra vinculada:
+                        <a href="{% url 'ordem_compra_detalhes' propriedade.id requisicao.ordem_compra.id %}" class="fw-semibold text-success">
+                            {{ requisicao.ordem_compra.numero_ordem }}
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <form method="post" class="card shadow-sm mb-4">
+                {% csrf_token %}
+                <div class="card-body">
+                    <h4 class="h6 mb-3"><i class="bi bi-gear-fill text-primary me-2"></i>Ações Disponíveis</h4>
+                    <div class="mb-3">
+                        <label for="comentario" class="form-label">Comentário (opcional)</label>
+                        <textarea name="comentario" id="comentario" rows="2" class="form-control" placeholder="Inclua orientações, motivos de reprovação ou observações gerais."></textarea>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                        {% if requisicao.status == 'RASCUNHO' %}
+                        <button type="submit" name="acao" value="enviar_aprovacao" class="btn btn-primary">
+                            <i class="bi bi-send-fill me-1"></i>Enviar para aprovação
+                        </button>
+                        {% endif %}
+
+                        {% if requisicao.status == 'ENVIADA' %}
+                        <button type="submit" name="acao" value="aprovar_gerencia" class="btn btn-success">
+                            Aprovar (Gerente)
+                        </button>
+                        <button type="submit" name="acao" value="reprovar_gerencia" class="btn btn-outline-danger">
+                            Reprovar (Gerente)
+                        </button>
+                        {% endif %}
+
+                        {% if requisicao.status == 'APROVADA_GERENCIA' %}
+                        <button type="submit" name="acao" value="enviar_cotacao" class="btn btn-primary">
+                            Encaminhar para cotação
+                        </button>
+                        {% endif %}
+
+                        {% if requisicao.status == 'EM_COTACAO' or requisicao.status == 'AGUARDANDO_APROVACAO_COMPRAS' %}
+                        <a href="{% url 'cotacao_fornecedor_nova' propriedade.id requisicao.id %}" class="btn btn-outline-primary">
+                            Registrar nova cotação
+                        </a>
+                        {% endif %}
+
+                        {% if requisicao.status == 'AGUARDANDO_APROVACAO_COMPRAS' or requisicao.status == 'APROVADA_COMPRAS' %}
+                        <button type="submit" name="acao" value="aprovar_compras" class="btn btn-success">
+                            Aprovar (Compras)
+                        </button>
+                        <button type="submit" name="acao" value="reprovar_compras" class="btn btn-outline-danger">
+                            Reprovar (Compras)
+                        </button>
+                        {% endif %}
+
+                        {% if requisicao.status == 'APROVADA_COMPRAS' %}
+                        <a href="{% url 'ordem_compra_nova' propriedade.id %}?requisicao={{ requisicao.id }}" class="btn btn-outline-success">
+                            Emitir Ordem de Compra
+                        </a>
+                        <button type="submit" name="acao" value="marcar_ordem_emitida" class="btn btn-primary">
+                            Marcar como OC emitida
+                        </button>
+                        {% endif %}
+
+                        {% if requisicao.ordem_compra and requisicao.status == 'ORDEM_EMITIDA' or requisicao.ordem_compra and requisicao.status == 'AGUARDANDO_RECEBIMENTO' %}
+                        <a href="{% url 'recebimento_compra_novo' propriedade.id requisicao.ordem_compra.id %}" class="btn btn-outline-primary">
+                            Registrar recebimento
+                        </a>
+                        <button type="submit" name="acao" value="marcar_concluida" class="btn btn-success">
+                            Concluir requisição
+                        </button>
+                        {% endif %}
+
+                        {% if requisicao.status != 'CONCLUIDA' and requisicao.status != 'CANCELADA' %}
+                        <button type="submit" name="acao" value="cancelar" class="btn btn-outline-secondary">
+                            Cancelar
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </form>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4 class="h6 mb-0"><i class="bi bi-list-check text-primary me-2"></i>Itens da Requisição</h4>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Descrição</th>
+                                    <th>Unidade</th>
+                                    <th class="text-end">Quantidade</th>
+                                    <th class="text-end">Valor estimado</th>
+                                    <th class="text-end">Total</th>
+                                    <th>Fornecedor preferencial</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in itens %}
+                                <tr>
+                                    <td>{{ item.descricao }}</td>
+                                    <td>{{ item.get_unidade_medida_display }}</td>
+                                    <td class="text-end">{{ item.quantidade }}</td>
+                                    <td class="text-end">R$ {{ item.valor_estimado_unitario|floatformat:2 }}</td>
+                                    <td class="text-end">R$ {{ item.valor_estimado_total|floatformat:2 }}</td>
+                                    <td>{{ item.fornecedor_preferencial|default:"-" }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted py-3">Nenhum item informado.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4 class="h6 mb-0"><i class="bi bi-cash-coin text-primary me-2"></i>Cotações</h4>
+                        <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-light text-dark border">{{ cotacoes|length }} registradas</span>
+                            <span class="badge bg-info-subtle text-info border">
+                                Estimado: {{ total_estimado|moeda_br }}
+                            </span>
+                        </div>
+                    </div>
+
+                    {% if cotacoes %}
+                    <div class="table-responsive mb-3">
+                        <table class="table table-sm table-striped align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Fornecedor</th>
+                                    <th>Status</th>
+                                    <th>Valor total</th>
+                                    <th>Δ estimado</th>
+                                    <th>Frete</th>
+                                    <th>Prazo</th>
+                                    <th>Condições</th>
+                                    <th>Recebida em</th>
+                                    {% if pode_selecionar_vencedor %}<th class="text-end">Ação</th>{% endif %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for cotacao in cotacoes %}
+                                <tr class="{% if cotacao.status == 'SELECIONADA' %}table-success{% elif cotacao.is_melhor_total %}table-info{% endif %}">
+                                    <td class="fw-semibold">{{ cotacao.fornecedor.nome }}</td>
+                                    <td>
+                                        <span class="badge bg-{% if cotacao.status == 'SELECIONADA' %}success{% elif cotacao.status == 'NAO_SELECIONADA' %}secondary{% elif cotacao.status == 'RECEBIDA' %}primary{% else %}secondary{% endif %}">
+                                            {{ cotacao.get_status_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {{ cotacao.valor_total|moeda_br }}
+                                        {% if cotacao.is_melhor_total %}
+                                        <div class="small text-success fw-semibold">Menor total</div>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if cotacao.delta_total is not None %}
+                                            <span class="small fw-semibold {% if cotacao.delta_total > 0 %}text-danger{% elif cotacao.delta_total < 0 %}text-success{% else %}text-muted{% endif %}">
+                                                {{ cotacao.delta_total|moeda_br }}
+                                            </span>
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ cotacao.valor_frete|moeda_br }}</td>
+                                    <td>{{ cotacao.prazo_entrega_estimado|default:"-" }}</td>
+                                    <td>{{ cotacao.condicoes_pagamento|default:"-" }}</td>
+                                    <td>{{ cotacao.atualizado_em|date:"d/m/Y H:i" }}</td>
+                                    {% if pode_selecionar_vencedor %}
+                                    <td class="text-end">
+                                        {% if cotacao.status == 'SELECIONADA' %}
+                                        <span class="badge bg-success-subtle text-success">Selecionada</span>
+                                        {% else %}
+                                        <form method="post" class="d-inline">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="acao" value="selecionar_cotacao">
+                                            <input type="hidden" name="cotacao_id" value="{{ cotacao.id }}">
+                                            <button type="submit" class="btn btn-sm btn-outline-primary">
+                                                Escolher vencedor
+                                            </button>
+                                        </form>
+                                        {% endif %}
+                                    </td>
+                                    {% endif %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <h5 class="h6 text-uppercase text-muted mb-2">Comparativo por item</h5>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Item</th>
+                                    <th class="text-end">Qtd</th>
+                                    <th class="text-end">Estimado (unit)</th>
+                                    {% for cotacao in cotacoes %}
+                                    <th class="text-end">{{ cotacao.fornecedor.nome }}</th>
+                                    {% endfor %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for linha in comparativo_itens %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ linha.item.descricao }}</strong>
+                                        <div class="small text-muted">
+                                            Estimado total: {{ linha.item.valor_estimado_total|moeda_br }}
+                                        </div>
+                                    </td>
+                                    <td class="text-end">{{ linha.item.quantidade }}</td>
+                                    <td class="text-end">{{ linha.item.valor_estimado_unitario|moeda_br }}</td>
+                                    {% for info in linha.cotacoes %}
+                                    <td class="text-end">
+                                        {% if info.valor_unitario is not None %}
+                                            <div>{{ info.valor_unitario|moeda_br }}</div>
+                                            <div class="small text-muted">Total {{ info.valor_total|moeda_br }}</div>
+                                            {% if info.delta_unitario is not None %}
+                                            <div class="small {% if info.delta_unitario > 0 %}text-danger{% elif info.delta_unitario < 0 %}text-success{% else %}text-muted{% endif %}">
+                                                {{ info.delta_unitario|moeda_br }}
+                                                {% if info.delta_unitario_percentual %}
+                                                    ({{ info.delta_unitario_percentual|floatformat:1 }}%)
+                                                {% endif %}
+                                            </div>
+                                            {% endif %}
+                                            {% if info.melhor_preco %}
+                                            <span class="badge bg-success-subtle text-success mt-1">Melhor preço</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    {% endfor %}
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="{{ cotacoes|length|add:1 }}" class="text-center text-muted py-3">Sem itens para comparar.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted mb-0">Nenhuma cotação registrada até o momento. Envie convites para iniciar a análise.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h4 class="h6 mb-3"><i class="bi bi-check2-square text-primary me-2"></i>Aprovações</h4>
+                    <ul class="list-group list-group-flush">
+                        {% for aprovacao in aprovacoes %}
+                        <li class="list-group-item px-0">
+                            <div class="d-flex justify-content-between">
+                                <span class="fw-semibold">{{ aprovacao.get_etapa_display }}</span>
+                                <span class="badge bg-{% if aprovacao.decisao == 'APROVADO' %}success{% elif aprovacao.decisao == 'REPROVADO' %}danger{% else %}secondary{% endif %}">
+                                    {{ aprovacao.get_decisao_display }}
+                                </span>
+                            </div>
+                            <div class="small text-muted">
+                                {{ aprovacao.usuario.get_full_name|default:aprovacao.usuario.username }} • {{ aprovacao.data_decisao|date:"d/m/Y H:i" }}
+                            </div>
+                            {% if aprovacao.comentario %}
+                            <div class="small mt-1">{{ aprovacao.comentario }}</div>
+                            {% endif %}
+                        </li>
+                        {% empty %}
+                        <li class="list-group-item text-muted text-center py-3">
+                            Nenhuma aprovação registrada ainda.
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h4 class="h6 mb-3"><i class="bi bi-clock-history text-primary me-2"></i>Histórico de Eventos</h4>
+                    <div class="timeline">
+                        {% for evento in eventos %}
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <span class="fw-semibold">{{ evento.get_etapa_display }}</span>
+                                <small class="text-muted">{{ evento.criado_em|date:"d/m/Y H:i" }}</small>
+                            </div>
+                            {% if evento.usuario %}
+                            <div class="small text-muted">Por {{ evento.usuario.get_full_name|default:evento.usuario.username }}</div>
+                            {% endif %}
+                            {% if evento.comentario %}
+                            <div class="small mt-1">{{ evento.comentario }}</div>
+                            {% endif %}
+                        </div>
+                        {% empty %}
+                        <p class="text-muted small">Sem eventos registrados.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

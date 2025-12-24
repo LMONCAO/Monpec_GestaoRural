@@ -1,0 +1,121 @@
+================================================================================
+  CONFIGURAÇÃO DE VARIÁVEIS DE AMBIENTE - MONPEC
+================================================================================
+
+✅ DEPLOY CONCLUÍDO COM SUCESSO!
+URL do serviço: https://monpec-fzzfjppzva-uc.a.run.app
+
+================================================================================
+  VARIÁVEIS JÁ CONFIGURADAS
+================================================================================
+
+✓ DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp
+✓ SECRET_KEY=i+feqt4@%n5j_49$am+k2jkn&y6eunmido&t10#_*j!%hlfk-_
+✓ DEBUG=False
+✓ PYTHONUNBUFFERED=1
+✓ Cloud SQL conectado: monpec-sistema-rural:us-central1:monpec-db
+
+================================================================================
+  VARIÁVEIS QUE PRECISAM SER CONFIGURADAS
+================================================================================
+
+Você precisa configurar as seguintes variáveis de ambiente:
+
+1. DB_NAME=monpec_db
+2. DB_USER=monpec_user
+3. DB_PASSWORD=<SENHA_DO_BANCO_DE_DADOS>
+4. MERCADOPAGO_ACCESS_TOKEN=<SEU_ACCESS_TOKEN>
+5. MERCADOPAGO_PUBLIC_KEY=<SUA_PUBLIC_KEY>
+6. SITE_URL=https://monpec.com.br (ou a URL do Cloud Run)
+
+================================================================================
+  COMANDO PARA CONFIGURAR TODAS AS VARIÁVEIS
+================================================================================
+
+Execute o seguinte comando substituindo os valores:
+
+gcloud run services update monpec --region=us-central1 ^
+  --update-env-vars="DB_NAME=monpec_db" ^
+  --update-env-vars="DB_USER=monpec_user" ^
+  --update-env-vars="DB_PASSWORD=SUA_SENHA_DB_AQUI" ^
+  --update-env-vars="CLOUD_SQL_CONNECTION_NAME=monpec-sistema-rural:us-central1:monpec-db" ^
+  --update-env-vars="MERCADOPAGO_ACCESS_TOKEN=SEU_ACCESS_TOKEN_AQUI" ^
+  --update-env-vars="MERCADOPAGO_PUBLIC_KEY=SUA_PUBLIC_KEY_AQUI" ^
+  --update-env-vars="MERCADOPAGO_SUCCESS_URL=https://monpec-fzzfjppzva-uc.a.run.app/assinaturas/sucesso/" ^
+  --update-env-vars="MERCADOPAGO_CANCEL_URL=https://monpec-fzzfjppzva-uc.a.run.app/assinaturas/cancelado/" ^
+  --update-env-vars="SITE_URL=https://monpec-fzzfjppzva-uc.a.run.app" ^
+  --update-env-vars="PAYMENT_GATEWAY_DEFAULT=mercadopago"
+
+================================================================================
+  APLICAR MIGRAÇÕES
+================================================================================
+
+Após configurar as variáveis, execute as migrações:
+
+1. Criar job de migração:
+gcloud run jobs create migrate-monpec ^
+  --image=gcr.io/monpec-sistema-rural/monpec:latest ^
+  --region=us-central1 ^
+  --command=python ^
+  --args=manage.py,migrate ^
+  --set-env-vars="DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp" ^
+  --set-env-vars="SECRET_KEY=i+feqt4@%n5j_49$am+k2jkn&y6eunmido&t10#_*j!%hlfk-_" ^
+  --set-env-vars="DB_NAME=monpec_db" ^
+  --set-env-vars="DB_USER=monpec_user" ^
+  --set-env-vars="DB_PASSWORD=SUA_SENHA_DB_AQUI" ^
+  --set-env-vars="CLOUD_SQL_CONNECTION_NAME=monpec-sistema-rural:us-central1:monpec-db" ^
+  --add-cloudsql-instances=monpec-sistema-rural:us-central1:monpec-db
+
+2. Executar migrações:
+gcloud run jobs execute migrate-monpec --region=us-central1 --wait
+
+================================================================================
+  CRIAR SUPERUSUÁRIO
+================================================================================
+
+Após as migrações, crie um superusuário:
+
+1. Acesse: https://monpec-fzzfjppzva-uc.a.run.app/admin
+2. Ou use o comando:
+gcloud run jobs create create-superuser ^
+  --image=gcr.io/monpec-sistema-rural/monpec:latest ^
+  --region=us-central1 ^
+  --command=python ^
+  --args=manage.py,createsuperuser ^
+  --set-env-vars="DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp" ^
+  --set-env-vars="SECRET_KEY=i+feqt4@%n5j_49$am+k2jkn&y6eunmido&t10#_*j!%hlfk-_" ^
+  --set-env-vars="DB_NAME=monpec_db" ^
+  --set-env-vars="DB_USER=monpec_user" ^
+  --set-env-vars="DB_PASSWORD=SUA_SENHA_DB_AQUI" ^
+  --set-env-vars="CLOUD_SQL_CONNECTION_NAME=monpec-sistema-rural:us-central1:monpec-db" ^
+  --add-cloudsql-instances=monpec-sistema-rural:us-central1:monpec-db ^
+  --interactive
+
+gcloud run jobs execute create-superuser --region=us-central1
+
+================================================================================
+  VERIFICAR STATUS
+================================================================================
+
+Ver logs em tempo real:
+gcloud run services logs tail monpec --region=us-central1
+
+Ver status do serviço:
+gcloud run services describe monpec --region=us-central1
+
+Acessar console:
+https://console.cloud.google.com/run/detail/us-central1/monpec
+
+================================================================================
+  PRÓXIMOS PASSOS
+================================================================================
+
+1. ✅ Deploy concluído
+2. ⏳ Configurar variáveis de ambiente (use os comandos acima)
+3. ⏳ Aplicar migrações
+4. ⏳ Criar superusuário
+5. ⏳ Testar sistema
+6. ⏳ Configurar domínio personalizado (opcional)
+
+================================================================================
+

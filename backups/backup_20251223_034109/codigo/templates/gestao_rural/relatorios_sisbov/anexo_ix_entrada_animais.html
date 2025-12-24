@@ -1,0 +1,90 @@
+{% extends "base_modulos_unificado.html" %}
+
+{% block title %}Anexo IX - Comunicado de Entrada de Animais - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-arrow-circle-down"></i> ANEXO IX - COMUNICADO DE ENTRADA DE ANIMAIS
+                    </h4>
+                    <small>Conforme Instrução Normativa MAPA nº 17/2006</small>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <p><strong>Propriedade:</strong> {{ propriedade.nome_propriedade }}</p>
+                            <p><strong>Período:</strong> {{ data_inicio|date:"d/m/Y" }} a {{ data_fim|date:"d/m/Y" }}</p>
+                        </div>
+                        <div class="col-md-6 text-right">
+                            <p><strong>Data de Emissão:</strong> {{ data_emissao|date:"d/m/Y" }}</p>
+                            <p><strong>Total de Entradas:</strong> {{ entradas|length }}</p>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped">
+                            <thead class="thead-dark">
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Animal (SISBOV)</th>
+                                    <th>Tipo</th>
+                                    <th>Origem</th>
+                                    <th>Peso (kg)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for entrada in entradas %}
+                                <tr>
+                                    <td>{{ entrada.data_movimentacao|date:"d/m/Y" }}</td>
+                                    <td>{{ entrada.animal.codigo_sisbov|default:entrada.animal.numero_brinco|default:"—" }}</td>
+                                    <td>{{ entrada.get_tipo_movimentacao_display }}</td>
+                                    <td>{{ entrada.propriedade_origem.nome_propriedade|default:"—" }}</td>
+                                    <td>{{ entrada.peso_kg|default:"—" }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted">Nenhuma entrada registrada no período.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="mt-4 text-center">
+                        <a href="{% url 'relatorio_sisbov_anexo_ix_pdf' propriedade.id %}" class="btn btn-danger">
+                            <i class="fas fa-file-pdf"></i> Exportar PDF
+                        </a>
+                        <a href="{% url 'relatorios_sisbov_menu' propriedade.id %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Voltar
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

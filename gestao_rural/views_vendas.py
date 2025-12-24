@@ -11,7 +11,9 @@ from .forms_vendas import ParametrosVendaPorCategoriaForm, BulkVendaPorCategoria
 @login_required
 def vendas_por_categoria_lista(request, propriedade_id):
     """Lista os parâmetros de venda por categoria"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    # ✅ SEGURANÇA: Verificar permissão de acesso à propriedade
+    from .decorators import obter_propriedade_com_permissao
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     # Busca parâmetros existentes
     parametros = ParametrosVendaPorCategoria.objects.filter(
@@ -35,7 +37,9 @@ def vendas_por_categoria_lista(request, propriedade_id):
 @login_required
 def vendas_por_categoria_novo(request, propriedade_id):
     """Adiciona novo parâmetro de venda por categoria"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    # ✅ SEGURANÇA: Verificar permissão de acesso à propriedade
+    from .decorators import obter_propriedade_com_permissao
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     if request.method == 'POST':
         form = ParametrosVendaPorCategoriaForm(request.POST, propriedade=propriedade)
@@ -60,7 +64,9 @@ def vendas_por_categoria_novo(request, propriedade_id):
 @login_required
 def vendas_por_categoria_editar(request, propriedade_id, parametro_id):
     """Edita parâmetro de venda por categoria"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    # ✅ SEGURANÇA: Verificar permissão de acesso à propriedade
+    from .decorators import obter_propriedade_com_permissao
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     parametro = get_object_or_404(ParametrosVendaPorCategoria, id=parametro_id, propriedade=propriedade)
     
     if request.method == 'POST':
@@ -84,7 +90,9 @@ def vendas_por_categoria_editar(request, propriedade_id, parametro_id):
 @login_required
 def vendas_por_categoria_bulk(request, propriedade_id):
     """Configuração em massa de vendas por categoria"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    # ✅ SEGURANÇA: Verificar permissão de acesso à propriedade
+    from .decorators import obter_propriedade_com_permissao
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     if request.method == 'POST':
         form = BulkVendaPorCategoriaForm(request.POST, propriedade=propriedade)
@@ -132,7 +140,9 @@ def vendas_por_categoria_bulk(request, propriedade_id):
 @require_http_methods(["POST"])
 def vendas_por_categoria_excluir(request, propriedade_id, parametro_id):
     """Exclui parâmetro de venda por categoria"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    # ✅ SEGURANÇA: Verificar permissão de acesso à propriedade
+    from .decorators import obter_propriedade_com_permissao
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     parametro = get_object_or_404(ParametrosVendaPorCategoria, id=parametro_id, propriedade=propriedade)
     
     categoria_nome = parametro.categoria.nome
@@ -145,7 +155,9 @@ def vendas_por_categoria_excluir(request, propriedade_id, parametro_id):
 @login_required
 def vendas_por_categoria_toggle_status(request, propriedade_id, parametro_id):
     """Ativa/desativa parâmetro de venda por categoria"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    # ✅ SEGURANÇA: Verificar permissão de acesso à propriedade
+    from .decorators import obter_propriedade_com_permissao
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     parametro = get_object_or_404(ParametrosVendaPorCategoria, id=parametro_id, propriedade=propriedade)
     
     parametro.ativo = not parametro.ativo

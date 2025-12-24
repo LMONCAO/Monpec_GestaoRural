@@ -1,0 +1,147 @@
+{% extends "base_modulos_unificado.html" %}
+
+{% block title %}Produtos - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'compras_dashboard' propriedade.id %}">Compras</a></li>
+            <li class="breadcrumb-item active">Produtos</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+        <div>
+            <h2 class="mb-0"><i class="bi bi-box-seam text-success me-2"></i>Cadastro de Produtos</h2>
+            <small class="text-muted">Produtos sincronizados com a Receita Federal</small>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'categorias_produto_lista' propriedade.id %}" class="btn btn-outline-secondary">
+                <i class="bi bi-tags me-1"></i>Categorias
+            </a>
+            <a href="{% url 'produto_novo' propriedade.id %}" class="btn btn-success">
+                <i class="bi bi-plus-circle me-1"></i>Novo Produto
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Buscar</label>
+                    <input type="text" name="busca" class="form-control" value="{{ busca }}" placeholder="Código, descrição ou NCM...">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Categoria</label>
+                    <select name="categoria" class="form-select">
+                        <option value="">Todas</option>
+                        {% for cat in categorias %}
+                        <option value="{{ cat.id }}" {% if categoria_id == cat.id|stringformat:"s" %}selected{% endif %}>
+                            {{ cat.nome }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Status</label>
+                    <select name="ativo" class="form-select">
+                        <option value="">Todos</option>
+                        <option value="1" {% if ativo == "1" %}selected{% endif %}>Ativos</option>
+                        <option value="0" {% if ativo == "0" %}selected{% endif %}>Inativos</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-search me-1"></i>Filtrar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Código</th>
+                            <th>Descrição</th>
+                            <th>Categoria</th>
+                            <th>NCM</th>
+                            <th>CFOP Entrada</th>
+                            <th>CFOP Saída</th>
+                            <th>Unidade</th>
+                            <th>Status</th>
+                            <th>Sincronizado</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for produto in produtos %}
+                        <tr>
+                            <td><strong>{{ produto.codigo }}</strong></td>
+                            <td>{{ produto.descricao }}</td>
+                            <td>{{ produto.categoria.nome|default:"-" }}</td>
+                            <td>
+                                {{ produto.ncm }}
+                                {% if produto.ncm_validado %}
+                                <i class="bi bi-check-circle-fill text-success" title="NCM validado"></i>
+                                {% endif %}
+                            </td>
+                            <td>{{ produto.cfop_entrada|default:"-" }}</td>
+                            <td>
+                                {% if produto.cfop_saida_estadual %}
+                                Estadual: {{ produto.cfop_saida_estadual }}<br>
+                                {% endif %}
+                                {% if produto.cfop_saida_interestadual %}
+                                Interestadual: {{ produto.cfop_saida_interestadual }}
+                                {% endif %}
+                            </td>
+                            <td>{{ produto.get_unidade_medida_display }}</td>
+                            <td>
+                                {% if produto.ativo %}
+                                <span class="badge bg-success">Ativo</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Inativo</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if produto.sincronizado_receita %}
+                                <i class="bi bi-check-circle-fill text-success" title="Sincronizado"></i>
+                                {% else %}
+                                <i class="bi bi-x-circle text-warning" title="Não sincronizado"></i>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'produto_editar' propriedade.id produto.id %}" class="btn btn-outline-primary" title="Editar">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="{% url 'produto_sincronizar' propriedade.id produto.id %}" class="btn btn-outline-info" title="Sincronizar com Receita">
+                                        <i class="bi bi-arrow-repeat"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="10" class="text-center text-muted py-4">
+                                Nenhum produto cadastrado. 
+                                <a href="{% url 'produto_novo' propriedade.id %}">Cadastrar primeiro produto</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

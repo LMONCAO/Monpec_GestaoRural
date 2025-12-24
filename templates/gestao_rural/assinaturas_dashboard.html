@@ -1,141 +1,976 @@
-{% extends "base.html" %}
-
-{% block title %}Planos e Assinaturas{% endblock %}
-
-{% block content %}
-<div class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h1 class="h3 mb-1">Planos e Assinaturas</h1>
-            <p class="text-muted mb-0">Selecione um plano para habilitar seu ambiente exclusivo e iniciar a integração SISBOV/PNIB.</p>
-        </div>
-        {% if assinatura %}
-            <span class="badge bg-primary fs-6">
-                Status atual: {{ assinatura.get_status_display }}
-            </span>
-        {% endif %}
-    </div>
-
-    {% if assinatura and assinatura.ativa %}
-        <div class="alert alert-secondary">
-            Precisa ajustar quem acessa o MONPEC? Utilize o painel de <a href="{% url 'tenant_usuarios_dashboard' %}" class="alert-link">gestão de usuários</a> para definir permissões por módulo.
-        </div>
-    {% endif %}
-
-    {% if workspace %}
-        <div class="alert alert-info">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <strong>Ambiente dedicado:</strong> {{ workspace.alias }}<br>
-                    Status do provisionamento: {{ workspace.get_status_display }}{% if workspace.ultimo_erro %} <br><small class="text-danger">Último erro: {{ workspace.ultimo_erro }}</small>{% endif %}
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planos e Assinaturas - MONPEC</title>
+    
+    <!-- Bootstrap & Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        html, body {
+            width: 100%;
+            overflow-x: hidden;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f8f9fa;
+            color: #212529;
+            margin: 0;
+            padding: 0;
+        }
+        
+        /* Header Padrão do Sistema */
+        .header-padrao {
+            background: #ffffff;
+            border-bottom: 1px solid #e9ecef;
+            padding: 0.75rem 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            width: 100%;
+        }
+        
+        .header-content {
+            max-width: 100%;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 1rem;
+        }
+        
+        .logo-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+            color: #212529;
+        }
+        
+        .logo-header:hover {
+            color: #212529;
+            text-decoration: none;
+        }
+        
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: #000;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+        
+        .logo-text {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #212529;
+        }
+        
+        .btn-modulos {
+            background: #0d6efd;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border: none;
+        }
+        
+        .btn-modulos:hover {
+            background: #0b5ed7;
+            color: white;
+            text-decoration: none;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(13, 110, 253, 0.3);
+        }
+        
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #6c757d;
+            font-size: 0.85rem;
+        }
+        
+        /* Hero Section - Reduzido */
+        .hero-section {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 1rem 1rem;
+            text-align: center;
+            border-bottom: 1px solid #dee2e6;
+            width: 100%;
+        }
+        
+        .hero-content {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+        
+        .hero-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #212529;
+            margin-bottom: 0.25rem;
+        }
+        
+        .hero-subtitle {
+            font-size: 0.9rem;
+            color: #6c757d;
+            margin-bottom: 0.5rem;
+        }
+        
+        /* Container Principal - Sem espaçamento lateral */
+        .main-container {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        /* Container dos Cards - Centralizado */
+        .cards-container {
+            max-width: 1200px;
+            width: 100%;
+            margin: 0 auto;
+        }
+        
+        /* Cards de Planos - Menores e Compactos */
+        .row.g-4 {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 2rem !important;
+        }
+        
+        .row.g-4 > [class*="col-"] {
+            display: flex;
+        }
+        
+        /* Aumentar espaçamento entre cards */
+        .row.g-4 .col-lg-4,
+        .row.g-4 .col-md-6,
+        .row.g-4 .col-sm-12 {
+            margin-bottom: 1.5rem;
+        }
+        
+        .pricing-card {
+            background: #ffffff;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 1rem;
+            width: 100%;
+            height: 100%;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .pricing-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+            border-color: #dee2e6;
+        }
+        
+        .pricing-card.featured {
+            border: 2px solid #0d6efd;
+            background: linear-gradient(to bottom, #ffffff 0%, #f8f9ff 100%);
+        }
+        
+        .pricing-card.featured::before {
+            content: "RECOMENDADO";
+            position: absolute;
+            top: 12px;
+            right: -28px;
+            background: #0d6efd;
+            color: white;
+            padding: 3px 30px;
+            font-size: 0.65rem;
+            font-weight: 600;
+            transform: rotate(45deg);
+            z-index: 1;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .pricing-header {
+            text-align: center;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid #f8f9fa;
+        }
+        
+        .pricing-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #212529;
+            margin-bottom: 0.25rem;
+        }
+        
+        .pricing-description {
+            font-size: 0.8rem;
+            color: #6c757d;
+            margin: 0;
+        }
+        
+        .pricing-price {
+            text-align: center;
+            margin: 0.75rem 0;
+        }
+        
+        .price-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #0d6efd;
+            line-height: 1;
+        }
+        
+        .price-period {
+            font-size: 0.85rem;
+            color: #6c757d;
+            font-weight: 400;
+        }
+        
+        .pricing-features {
+            list-style: none;
+            padding: 0;
+            margin: 0.75rem 0;
+            flex-grow: 1;
+        }
+        
+        .pricing-features li {
+            padding: 0.35rem 0;
+            display: flex;
+            align-items: center;
+            color: #495057;
+            font-size: 0.8rem;
+            border-bottom: 1px solid #f8f9fa;
+        }
+        
+        .pricing-features li:last-child {
+            border-bottom: none;
+        }
+        
+        .pricing-features li i {
+            color: #28a745;
+            margin-right: 0.5rem;
+            font-size: 0.9rem;
+            flex-shrink: 0;
+        }
+        
+        .btn-assinar {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border-radius: 6px;
+            background: #0d6efd;
+            border: none;
+            color: white;
+            transition: all 0.3s ease;
+            margin-top: auto;
+            cursor: pointer;
+        }
+        
+        .btn-assinar:hover:not(:disabled) {
+            background: #0b5ed7;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(13, 110, 253, 0.3);
+            color: white;
+        }
+        
+        .btn-assinar:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-assinar.featured {
+            background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);
+        }
+        
+        /* Card Promocional */
+        .pricing-card.promocional {
+            background: linear-gradient(135deg, #fff9e6 0%, #fff3cd 100%);
+            border: 2px solid #ffc107;
+            position: relative;
+        }
+        
+        .pricing-card.promocional::before {
+            content: "PROMOÇÃO";
+            position: absolute;
+            top: 12px;
+            right: -28px;
+            background: #ffc107;
+            color: #000;
+            padding: 3px 30px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            transform: rotate(45deg);
+            z-index: 1;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        /* Alertas - Compactos */
+        .alert-config {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-left: 4px solid #ffc107;
+            border-radius: 6px;
+            padding: 0.75rem 1rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+        }
+        
+        .alert-info-custom {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            border-left: 4px solid #0dcaf0;
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+        }
+        
+        /* Seção de Benefícios - Compacta */
+        .benefits-section {
+            background: #ffffff;
+            padding: 2rem 1rem;
+            margin-top: 2rem;
+            border-radius: 10px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .benefits-title {
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #212529;
+            margin-bottom: 2rem;
+        }
+        
+        .benefit-item {
+            text-align: center;
+            padding: 1rem;
+        }
+        
+        .benefit-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 0.75rem;
+            color: #0d6efd;
+            font-size: 1.25rem;
+        }
+        
+        .benefit-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #212529;
+            margin-bottom: 0.25rem;
+        }
+        
+        .benefit-description {
+            font-size: 0.85rem;
+            color: #6c757d;
+        }
+        
+        /* Status Badge */
+        .status-badge {
+            display: inline-block;
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.8rem;
+        }
+        
+        .status-ativa {
+            background: #d1e7dd;
+            color: #0f5132;
+        }
+        
+        .status-pendente {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        /* Responsivo - Adaptação para qualquer tela */
+        @media (max-width: 1200px) {
+            .main-container {
+                padding: 1.5rem 1rem;
+            }
+        }
+        
+        @media (max-width: 992px) {
+            .hero-title {
+                font-size: 1.5rem;
+            }
+            
+            .hero-subtitle {
+                font-size: 0.9rem;
+            }
+            
+            .pricing-card {
+                margin-bottom: 1rem;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .header-padrao {
+                padding: 0.5rem 0.75rem;
+            }
+            
+            .header-content {
+                padding: 0 0.5rem;
+            }
+            
+            .logo-text {
+                font-size: 1rem;
+            }
+            
+            .user-info {
+                font-size: 0.8rem;
+            }
+            
+            .hero-section {
+                padding: 0.75rem 0.75rem;
+            }
+            
+            .hero-title {
+                font-size: 1.25rem;
+            }
+            
+            .hero-subtitle {
+                font-size: 0.85rem;
+            }
+            
+            .main-container {
+                padding: 1.5rem 0.75rem;
+            }
+            
+            .pricing-card {
+                padding: 0.875rem;
+                margin-bottom: 1rem;
+            }
+            
+            .pricing-title {
+                font-size: 1rem;
+            }
+            
+            .price-value {
+                font-size: 1.5rem;
+            }
+            
+            .promo-text {
+                font-size: 0.75rem;
+            }
+            
+            .benefits-section {
+                padding: 1.5rem 0.75rem;
+            }
+            
+            .benefits-title {
+                font-size: 1.25rem;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .header-actions {
+                flex-direction: column;
+                align-items: flex-end;
+                gap: 0.5rem;
+            }
+            
+            .logo-header {
+                gap: 0.5rem;
+            }
+            
+            .logo-icon {
+                width: 32px;
+                height: 32px;
+                font-size: 1rem;
+            }
+            
+            .hero-section {
+                padding: 1rem 0.5rem;
+            }
+            
+            .main-container {
+                padding: 1rem 0.5rem;
+            }
+            
+            .pricing-card {
+                padding: 0.875rem;
+            }
+            
+            .pricing-features li {
+                font-size: 0.8rem;
+                padding: 0.4rem 0;
+            }
+            
+            .whatsapp-float {
+                width: 56px !important;
+                height: 56px !important;
+                bottom: 20px !important;
+                right: 20px !important;
+            }
+            
+            .whatsapp-float i {
+                font-size: 28px !important;
+            }
+        }
+        
+        /* Estilos para hover das redes sociais */
+        .social-icons a:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        
+        .whatsapp-float:hover {
+            transform: scale(1.15) translateY(-3px);
+            box-shadow: 0 12px 32px rgba(37, 211, 102, 0.6), 0 6px 12px rgba(0,0,0,0.3) !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header Padrão do Sistema -->
+    <header class="header-padrao">
+        <div class="header-content">
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <a href="{% url 'dashboard' %}" class="logo-header">
+                    <div class="logo-icon">M</div>
+                    <span class="logo-text">MONPEC</span>
+                </a>
+                <a href="{% url 'dashboard' %}" class="btn-modulos">
+                    <i class="bi bi-grid-3x3-gap"></i>
+                    <span>Acessar Módulos</span>
+                </a>
+            </div>
+            <div class="header-actions">
+                <div class="user-info">
+                    <i class="bi bi-person-circle"></i>
+                    <span>Olá, {{ user.first_name|default:user.username }}!</span>
                 </div>
-                {% if workspace.provisionado_em %}
-                    <span class="text-muted small">Provisionado em {{ workspace.provisionado_em|date:"d/m/Y H:i" }}</span>
-                {% endif %}
+                <a href="{% url 'logout' %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-box-arrow-right me-1"></i> Sair
+                </a>
             </div>
         </div>
-    {% endif %}
+    </header>
 
-    {% if not publishable_key %}
-        <div class="alert alert-warning">
-            <strong>Atenção:</strong> defina as variáveis <code>STRIPE_PUBLISHABLE_KEY</code> e <code>STRIPE_SECRET_KEY</code> para habilitar os pagamentos.
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="hero-content">
+            <h1 class="hero-title">Escolha o Plano Ideal para Você</h1>
+            <p class="hero-subtitle">
+                Acesso completo ao sistema de gestão rural mais completo do mercado
+            </p>
+            {% if assinatura %}
+                <span class="status-badge {% if assinatura.ativa %}status-ativa{% else %}status-pendente{% endif %}">
+                    Status: {{ assinatura.get_status_display }}
+                </span>
+            {% endif %}
         </div>
-    {% endif %}
+    </section>
 
-    <div class="row g-4">
-        {% for plano in planos %}
-            <div class="col-md-4">
-                <div class="card shadow-sm h-100">
-                    <div class="card-body d-flex flex-column">
-                        <h2 class="h5">{{ plano.nome }}</h2>
-                        <p class="text-muted flex-grow-1">{{ plano.descricao|default:"Plano ideal para quem está começando a digitalizar o rebanho." }}</p>
-                        {% if plano.preco_mensal_referencia %}
-                            <div class="fs-4 fw-bold mb-3">
-                                R$ {{ plano.preco_mensal_referencia|floatformat:2 }} <small class="text-muted fs-6">/ mês</small>
-                            </div>
+    <!-- Container Principal -->
+    <div class="main-container">
+
+        {% if assinatura and not assinatura.acesso_liberado %}
+            {% if assinatura.data_liberacao %}
+                <div class="alert-info-custom">
+                    <h5><i class="bi bi-calendar-check"></i> Acesso Agendado</h5>
+                    <p class="mb-0">
+                        Seu pagamento foi confirmado! Seu acesso será liberado em 
+                        <strong>{{ assinatura.data_liberacao|date:"d/m/Y" }}</strong>.
+                        Você receberá um e-mail quando o acesso estiver disponível.
+                    </p>
+                </div>
+            {% else %}
+                <div class="alert-config">
+                    <h5><i class="bi bi-clock-history"></i> Aguardando Confirmação</h5>
+                    <p class="mb-0">
+                        Estamos processando seu pagamento. Você receberá um e-mail assim que a confirmação for concluída.
+                    </p>
+                </div>
+            {% endif %}
+        {% endif %}
+
+        <!-- Planos - Todos lado a lado com mesmo layout -->
+        <div class="cards-container">
+            <div class="row g-4 mb-4 justify-content-center">
+            <!-- Card Promocional -->
+            <div class="col-lg-4 col-md-6 col-sm-12">
+                <div class="pricing-card promocional" style="position: relative;">
+                    <div class="pricing-header">
+                        <h3 class="pricing-title">Oferta Especial de Lançamento</h3>
+                        <p class="pricing-description">Promoção por tempo limitado</p>
+                    </div>
+                    
+                    <div class="pricing-price">
+                        <div class="price-value">
+                            R$ 137,90
+                        </div>
+                        <div class="price-period">primeira mensalidade</div>
+                    </div>
+                    
+                    <ul class="pricing-features">
+                        <li><i class="bi bi-check-circle-fill"></i> Licença válida por 1 ano completo</li>
+                        <li><i class="bi bi-check-circle-fill"></i> Pague apenas a primeira mensalidade</li>
+                        <li><i class="bi bi-check-circle-fill"></i> Todos os módulos liberados</li>
+                        <li><i class="bi bi-check-circle-fill"></i> Suporte técnico prioritário</li>
+                        <li><i class="bi bi-check-circle-fill"></i> Atualizações automáticas</li>
+                        <li><i class="bi bi-check-circle-fill"></i> Backup diário dos dados</li>
+                    </ul>
+                    
+                    {% if assinatura and assinatura.ativa %}
+                        <button class="btn btn-success btn-assinar" disabled>
+                            <i class="bi bi-check-circle"></i> Você já possui uma assinatura ativa
+                        </button>
+                    {% else %}
+                        {% if planos and planos.first.slug %}
+                            <button
+                                type="button"
+                                class="btn btn-assinar iniciar-checkout"
+                                data-plano="{{ planos.first.slug }}"
+                                style="background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%); border: none; cursor: pointer;"
+                            >
+                                <i class="bi bi-gift-fill"></i> Aproveitar Oferta Agora
+                            </button>
                         {% else %}
-                            <div class="fs-6 text-muted mb-3">Valor definido conforme tabela Stripe</div>
+                            <button class="btn btn-assinar" disabled style="background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);">
+                                <i class="bi bi-info-circle"></i> Nenhum plano disponível
+                            </button>
                         {% endif %}
-
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Planos Regulares -->
+            {% for plano in planos %}
+                <div class="col-lg-4 col-md-6 col-sm-12">
+                    <div class="pricing-card {% if forloop.first %}featured{% endif %}" style="position: relative;">
+                        <div class="pricing-header">
+                            <h3 class="pricing-title">{% if plano.nome == "Plano Administrador" %}Plano Monpec{% else %}{{ plano.nome }}{% endif %}</h3>
+                            <p class="pricing-description">{{ plano.descricao|default:"Plano completo para gestão rural" }}</p>
+                        </div>
+                        
+                        <div class="pricing-price">
+                            {% if plano.preco_mensal_referencia %}
+                                <div class="price-value">
+                                    R$ {{ plano.preco_mensal_referencia|floatformat:2 }}
+                                </div>
+                            {% else %}
+                                <div class="price-value">
+                                    R$ 137,90
+                                </div>
+                            {% endif %}
+                            <div class="price-period">/mês</div>
+                        </div>
+                        
+                        <ul class="pricing-features">
+                            <li><i class="bi bi-check-circle-fill"></i> Ambiente exclusivo dedicado</li>
+                            <li><i class="bi bi-check-circle-fill"></i> Integração SISBOV/PNIB completa</li>
+                            <li><i class="bi bi-check-circle-fill"></i> Até {{ plano.max_usuarios }} usuário{{ plano.max_usuarios|pluralize }}</li>
+                            <li><i class="bi bi-check-circle-fill"></i> Suporte técnico prioritário</li>
+                            <li><i class="bi bi-check-circle-fill"></i> Atualizações automáticas</li>
+                            <li><i class="bi bi-check-circle-fill"></i> Backup diário dos dados</li>
+                        </ul>
+                        
                         {% if assinatura and assinatura.plano_id == plano.id and assinatura.ativa %}
-                            <button class="btn btn-outline-success" disabled>
-                                Plano ativo
+                            <button class="btn btn-success btn-assinar" disabled>
+                                <i class="bi bi-check-circle"></i> Plano Ativo
                             </button>
                         {% else %}
                             <button
-                                class="btn btn-primary iniciar-checkout"
+                                type="button"
+                                class="btn btn-assinar {% if forloop.first %}featured{% endif %} iniciar-checkout"
                                 data-plano="{{ plano.slug }}"
-                                {% if not publishable_key %}disabled{% endif %}
+                                style="cursor: pointer;"
                             >
-                                Assinar agora
+                                <i class="bi bi-credit-card"></i> Assinar Agora
                             </button>
                         {% endif %}
                     </div>
                 </div>
-            </div>
-        {% empty %}
-            <div class="col-12">
-                <div class="alert alert-info">
-                    Nenhum plano cadastrado até o momento. Cadastre planos no painel administrativo.
+            {% empty %}
+                <div class="col-12">
+                    <div class="alert alert-info text-center">
+                        <i class="bi bi-info-circle"></i>
+                        Nenhum plano disponível no momento. Entre em contato conosco para mais informações.
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Benefícios -->
+        <div class="benefits-section">
+            <h2 class="benefits-title">Por que escolher o MONPEC?</h2>
+            <div class="row">
+                <div class="col-lg-3 col-md-6 col-sm-6 benefit-item">
+                    <div class="benefit-icon">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
+                    <h5 class="benefit-title">Segurança Total</h5>
+                    <p class="benefit-description">Seus dados protegidos com criptografia de ponta</p>
+                </div>
+                <div class="col-lg-3 col-md-6 col-sm-6 benefit-item">
+                    <div class="benefit-icon">
+                        <i class="bi bi-cloud-check"></i>
+                    </div>
+                    <h5 class="benefit-title">Na Nuvem</h5>
+                    <p class="benefit-description">Acesse de qualquer lugar, a qualquer hora</p>
+                </div>
+                <div class="col-lg-3 col-md-6 col-sm-6 benefit-item">
+                    <div class="benefit-icon">
+                        <i class="bi bi-headset"></i>
+                    </div>
+                    <h5 class="benefit-title">Suporte Dedicado</h5>
+                    <p class="benefit-description">Equipe especializada pronta para ajudar</p>
+                </div>
+                <div class="col-lg-3 col-md-6 col-sm-6 benefit-item">
+                    <div class="benefit-icon">
+                        <i class="bi bi-graph-up-arrow"></i>
+                    </div>
+                    <h5 class="benefit-title">Resultados Comprovados</h5>
+                    <p class="benefit-description">Sistema usado por centenas de produtores</p>
                 </div>
             </div>
-        {% endfor %}
+        </div>
     </div>
-</div>
 
-<script>
-    (function () {
-        const buttons = document.querySelectorAll('.iniciar-checkout');
-        if (!buttons.length) {
-            return;
-        }
+    <!-- Footer -->
+    <footer class="footer" style="background: #1a1a1a; color: white; padding: 50px 0 30px; margin-top: 4rem; width: 100%;">
+        <div style="max-width: 100%; margin: 0 auto; padding: 0 2rem;">
+            <div class="footer-content" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 40px; margin-bottom: 40px;">
+                <div class="footer-section" style="flex: 1; min-width: 200px;">
+                    <h4 style="font-size: 20px; font-weight: 600; margin-bottom: 20px; color: #81D4FA;">MONPEC</h4>
+                    <p style="color: rgba(255,255,255,0.8); font-size: 14px; line-height: 1.8; margin: 0;">Sistema completo de gestão pecuária.</p>
+                </div>
+                <div class="footer-section" style="flex: 1; min-width: 200px;">
+                    <h4 style="font-size: 20px; font-weight: 600; margin-bottom: 20px; color: #81D4FA;">Contato</h4>
+                    <p style="color: rgba(255,255,255,0.8); font-size: 14px; line-height: 1.8; margin: 0 0 8px 0;">Email: comercial@monpec.com.br</p>
+                    <p style="color: rgba(255,255,255,0.8); font-size: 14px; line-height: 1.8; margin: 0 0 8px 0;">Telefone: (67) 9 9968-8561</p>
+                    <p style="color: rgba(255,255,255,0.8); font-size: 14px; line-height: 1.8; margin: 0;">Campo Grande - MS - Brasil</p>
+                </div>
+                <div class="footer-section" style="flex: 1; min-width: 200px;">
+                    <h4 style="font-size: 20px; font-weight: 600; margin-bottom: 20px; color: #81D4FA;">Redes Sociais</h4>
+                    <div class="social-icons" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                        <a href="https://www.instagram.com/monpec_software/" target="_blank" aria-label="Instagram" style="width: 45px; height: 45px; border-radius: 50%; background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%); color: white !important; display: flex; align-items: center; justify-content: center; text-decoration: none; transition: all 0.3s; font-size: 20px;">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                        <a href="#" aria-label="Facebook" style="width: 45px; height: 45px; border-radius: 50%; background: #1877f2; color: white !important; display: flex; align-items: center; justify-content: center; text-decoration: none; transition: all 0.3s; font-size: 20px;">
+                            <i class="fab fa-facebook-f"></i>
+                        </a>
+                        <a href="#" aria-label="LinkedIn" style="width: 45px; height: 45px; border-radius: 50%; background: #0077b5; color: white !important; display: flex; align-items: center; justify-content: center; text-decoration: none; transition: all 0.3s; font-size: 20px;">
+                            <i class="fab fa-linkedin-in"></i>
+                        </a>
+                        <a href="#" aria-label="YouTube" style="width: 45px; height: 45px; border-radius: 50%; background: #ff0000; color: white !important; display: flex; align-items: center; justify-content: center; text-decoration: none; transition: all 0.3s; font-size: 20px;">
+                            <i class="fab fa-youtube"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom" style="text-align: center; padding-top: 30px; border-top: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.6);">
+                <p style="margin: 0; font-size: 14px;">&copy; 2025 MONPEC. Todos os direitos reservados.</p>
+            </div>
+        </div>
+    </footer>
 
-        function getCookie(name) {
-            const value = `; ${document.cookie}`;
-            const parts = value.split(`; ${name}=`);
-            if (parts.length === 2) {
-                return parts.pop().split(';').shift();
-            }
-            return null;
-        }
+    <!-- WhatsApp Float -->
+    <a href="https://wa.me/5567999688561?text=Olá,%20gostaria%20de%20saber%20mais%20sobre%20o%20MONPEC" class="whatsapp-float" target="_blank" aria-label="Entre em contato via WhatsApp" style="position: fixed; bottom: 30px; right: 30px; background: linear-gradient(135deg, #25d366 0%, #20ba5a 100%); color: white; width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 30px; box-shadow: 0 8px 24px rgba(37, 211, 102, 0.5), 0 4px 8px rgba(0,0,0,0.2); z-index: 999; text-decoration: none; transition: all 0.4s;">
+        <i class="fab fa-whatsapp" style="font-size: 32px !important; color: white !important;"></i>
+    </a>
 
-        const csrftoken = getCookie('csrftoken');
+    <!-- Font Awesome para ícones das redes sociais -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer">
 
-        buttons.forEach((btn) => {
-            btn.addEventListener('click', async () => {
-                const planoSlug = btn.dataset.plano;
-                btn.disabled = true;
-                btn.innerText = 'Redirecionando...';
-
-                try {
-                    const response = await fetch(`/assinaturas/plano/${planoSlug}/checkout/`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': csrftoken || ''
-                        },
-                        body: JSON.stringify({})
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('=== INICIANDO SCRIPT DE CHECKOUT ===');
+            
+            // Aguardar um pouco para garantir que o DOM está totalmente carregado
+            setTimeout(function() {
+                const buttons = document.querySelectorAll('.iniciar-checkout');
+                console.log('Botões encontrados:', buttons.length);
+                
+                if (!buttons.length) {
+                    console.error('❌ Nenhum botão com classe "iniciar-checkout" encontrado!');
+                    console.log('Procurando por botões...');
+                    const allButtons = document.querySelectorAll('button');
+                    console.log('Total de botões na página:', allButtons.length);
+                    allButtons.forEach((btn, idx) => {
+                        console.log(`Botão ${idx}:`, btn.className, btn.textContent.trim());
                     });
-
-                    if (!response.ok) {
-                        const errorData = await response.json().catch(() => ({ detail: 'Erro ao iniciar pagamento.' }));
-                        throw new Error(errorData.detail || 'Erro desconhecido.');
-                    }
-
-                    const data = await response.json();
-                    if (data.checkout_url) {
-                        window.location.href = data.checkout_url;
-                    } else {
-                        throw new Error('Resposta inesperada da Stripe.');
-                    }
-                } catch (error) {
-                    alert(error.message);
-                    btn.disabled = false;
-                    btn.innerText = 'Assinar agora';
+                    return;
                 }
-            });
-        });
-    })();
-</script>
-{% endblock %}
 
+                function getCookie(name) {
+                    const value = `; ${document.cookie}`;
+                    const parts = value.split(`; ${name}=`);
+                    if (parts.length === 2) {
+                        return parts.pop().split(';').shift();
+                    }
+                    return null;
+                }
+
+                const csrftoken = getCookie('csrftoken');
+                console.log('CSRF Token:', csrftoken ? '✅ Encontrado' : '❌ Não encontrado');
+
+                buttons.forEach((btn, index) => {
+                    console.log(`\n--- Configurando botão ${index + 1} ---`);
+                    console.log('Elemento:', btn);
+                    console.log('Plano slug:', btn.dataset.plano);
+                    console.log('Botão desabilitado?', btn.disabled);
+                    console.log('Classes:', btn.className);
+                    
+                    // Remover event listeners anteriores se houver
+                    const newBtn = btn.cloneNode(true);
+                    btn.parentNode.replaceChild(newBtn, btn);
+                    const currentBtn = newBtn;
+                    
+                    // Garantir que o botão não está desabilitado (exceto se já tiver assinatura ativa)
+                    if (currentBtn.disabled && !currentBtn.classList.contains('btn-success')) {
+                        console.warn(`⚠️ Botão ${index + 1} estava desabilitado. Habilitando...`);
+                        currentBtn.disabled = false;
+                    }
+                    
+                    // Adicionar cursor pointer se não tiver
+                    if (!currentBtn.style.cursor) {
+                        currentBtn.style.cursor = 'pointer';
+                    }
+                    
+                    currentBtn.addEventListener('click', async function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        e.stopImmediatePropagation();
+                        
+                        console.log('\n🎯 BOTÃO CLICADO!');
+                        console.log('Botão:', currentBtn);
+                        
+                        const planoSlug = currentBtn.dataset.plano;
+                        console.log('Plano slug:', planoSlug);
+                        
+                        if (!planoSlug) {
+                            const errorMsg = 'Erro: Plano não identificado. Por favor, recarregue a página e tente novamente.';
+                            console.error('❌', errorMsg);
+                            alert(errorMsg);
+                            return;
+                        }
+                        
+                        const originalHTML = currentBtn.innerHTML;
+                        currentBtn.disabled = true;
+                        currentBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processando...';
+
+                        try {
+                            // Construir URL de checkout
+                            const baseUrl = window.location.origin;
+                            const checkoutUrl = `${baseUrl}/assinaturas/plano/${planoSlug}/checkout/`;
+                            console.log('📤 URL de checkout:', checkoutUrl);
+                            
+                            const formData = new FormData();
+                            formData.append('gateway', 'mercadopago');
+                            
+                            console.log('📤 Enviando requisição POST...');
+                            const response = await fetch(checkoutUrl, {
+                                method: 'POST',
+                                headers: {
+                                    'X-CSRFToken': csrftoken || '',
+                                    'X-Requested-With': 'XMLHttpRequest'
+                                },
+                                body: formData
+                            });
+
+                            console.log('📥 Resposta recebida:', response.status, response.statusText);
+
+                            if (!response.ok) {
+                                let errorData;
+                                try {
+                                    errorData = await response.json();
+                                } catch {
+                                    errorData = { detail: `Erro HTTP ${response.status}: ${response.statusText}` };
+                                }
+                                console.error('❌ Erro na resposta:', errorData);
+                                throw new Error(errorData.detail || 'Erro desconhecido.');
+                            }
+
+                            const data = await response.json();
+                            console.log('✅ Dados recebidos:', data);
+                            
+                            if (data.checkout_url) {
+                                console.log('🔄 Redirecionando para:', data.checkout_url);
+                                // Redirecionar para o link de pagamento do Mercado Pago
+                                window.location.href = data.checkout_url;
+                            } else if (data.detail) {
+                                throw new Error(data.detail);
+                            } else {
+                                throw new Error('URL de checkout não recebida do servidor.');
+                            }
+                        } catch (error) {
+                            console.error('❌ Erro ao iniciar checkout:', error);
+                            let errorMessage = error.message;
+                            
+                            // Tratamento específico para "Failed to fetch"
+                            if (errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError')) {
+                                errorMessage = 'Erro de conexão: Não foi possível conectar ao servidor.\n\nVerifique:\n1. Se o servidor Django está rodando\n2. Se a URL está correta\n3. Se há problemas de firewall ou proxy';
+                            }
+                            
+                            alert('Erro ao iniciar o pagamento:\n\n' + errorMessage + '\n\nPor favor, verifique:\n1. Se MERCADOPAGO_ACCESS_TOKEN está configurado\n2. Se há planos ativos no banco de dados\n3. Sua conexão com a internet\n4. Se o servidor Django está rodando\n\nAbra o console (F12) para mais detalhes.');
+                            currentBtn.disabled = false;
+                            currentBtn.innerHTML = originalHTML;
+                        }
+                    });
+                    
+                    console.log(`✅ Botão ${index + 1} configurado com sucesso!`);
+                });
+                
+                console.log('\n✅ Script de checkout inicializado com sucesso!');
+                console.log(`Total de ${buttons.length} botão(ões) configurado(s).`);
+            }, 100);
+        });
+    </script>
+</body>
+</html>

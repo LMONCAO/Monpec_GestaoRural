@@ -1,0 +1,410 @@
+{% extends "base_modulos_unificado.html" %}
+{% load formatacao_br %}
+
+{% block title %}Módulos - {{ propriedade.nome_propriedade }} - Monpec Rural{% endblock %}
+
+{% block header_info_propriedade %}
+{% comment %}
+Informações removidas conforme solicitado:
+- Ciclos Pecuários
+- Área Total
+- Localização
+- Animais
+{% endcomment %}
+{% endblock %}
+
+{% block breadcrumb_extra %}
+<li class="breadcrumb-separator">›</li>
+<li class="breadcrumb-item active">Módulos</li>
+{% endblock %}
+
+{% block content %}
+<style>
+    .card-hover {
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .card-hover:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.15) !important;
+    }
+    
+    .card-hover:hover h5 {
+        color: var(--navy) !important;
+    }
+    
+    /* Ícones coloridos e modernos para os cards - EXATAMENTE como no menu lateral */
+    .card-modulo-icon {
+        font-size: 2rem !important;
+        padding: 10px 14px;
+        border-radius: 10px;
+        display: inline-block;
+        margin-bottom: 0.75rem;
+        transition: all 0.3s ease;
+    }
+    
+    /* Tela Curral - vermelho (dentro de Pecuária no menu) */
+    .icon-curral {
+        color: #ef4444 !important;
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(239, 68, 68, 0.05));
+    }
+    
+    /* Pecuária - verde esmeralda #10b981 */
+    .icon-pecuaria {
+        color: #10b981 !important;
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(16, 185, 129, 0.05));
+    }
+    
+    /* Agricultura - marrom terra #8b6f47 */
+    .icon-agricultura {
+        color: #8b6f47 !important;
+        background: linear-gradient(135deg, rgba(139, 111, 71, 0.15), rgba(139, 111, 71, 0.05));
+    }
+    
+    /* Bens e Patrimônio - índigo #6366f1 */
+    .icon-patrimonio {
+        color: #6366f1 !important;
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(99, 102, 241, 0.05));
+    }
+    
+    /* Operações - azul #3b82f6 */
+    .icon-operacoes {
+        color: #3b82f6 !important;
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(59, 130, 246, 0.05));
+    }
+    
+    /* Compras - rosa #ec4899 */
+    .icon-compras {
+        color: #ec4899 !important;
+        background: linear-gradient(135deg, rgba(236, 72, 153, 0.15), rgba(236, 72, 153, 0.05));
+    }
+    
+    /* Financeiro - âmbar #f59e0b */
+    .icon-financeiro {
+        color: #f59e0b !important;
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(245, 158, 11, 0.05));
+    }
+    
+    /* Projetos Bancários - ciano #14b8a6 */
+    .icon-projetos {
+        color: #14b8a6 !important;
+        background: linear-gradient(135deg, rgba(20, 184, 166, 0.15), rgba(20, 184, 166, 0.05));
+    }
+    
+    /* Relatórios - roxo #8b5cf6 */
+    .icon-relatorios {
+        color: #8b5cf6 !important;
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(139, 92, 246, 0.05));
+    }
+    
+    /* Categorias - ciano claro #06b6d4 */
+    .icon-categorias {
+        color: #06b6d4 !important;
+        background: linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(6, 182, 212, 0.05));
+    }
+    
+    /* Configurações - cinza #64748b */
+    .icon-configuracoes {
+        color: #64748b !important;
+        background: linear-gradient(135deg, rgba(100, 116, 139, 0.15), rgba(100, 116, 139, 0.05));
+    }
+    
+    /* Planejamento - roxo #a855f7 */
+    .icon-planejamento {
+        color: #a855f7 !important;
+        background: linear-gradient(135deg, rgba(168, 85, 247, 0.15), rgba(168, 85, 247, 0.05));
+    }
+    
+    /* Nutrição - verde #10b981 */
+    .icon-nutricao {
+        color: #10b981 !important;
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(16, 185, 129, 0.05));
+    }
+    
+    .card-hover:hover .card-modulo-icon {
+        transform: scale(1.1);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    /* Títulos centralizados e melhorados */
+    .card-title {
+        font-size: 1.1rem !important;
+        font-weight: 700 !important;
+        text-align: center !important;
+        margin-bottom: 0.5rem !important;
+    }
+    
+    .card-body-moderno {
+        padding: 1.25rem !important;
+    }
+    
+    .card-body-moderno p {
+        font-size: 0.85rem !important;
+        line-height: 1.4;
+    }
+    
+    .page-header-modulos {
+        text-align: center;
+        margin-bottom: 1rem;
+        margin-top: 0.5rem;
+    }
+    
+    .page-header-modulos h1 {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #1a1a1a;
+        margin-bottom: 0;
+        display: inline;
+    }
+    
+    .page-header-modulos p {
+        font-size: 1.1rem;
+        color: #64748b;
+        font-weight: 500;
+        display: inline;
+        margin-left: 0.5rem;
+    }
+    
+</style>
+
+<!-- Page Header - Centralizado -->
+<div class="page-header-modulos">
+    <h1>Módulos de Gestão</h1>
+    <p>{{ propriedade.nome_propriedade }} - {{ propriedade.municipio|default:"N/A" }}/{{ propriedade.uf|default:"N/A" }}</p>
+</div>
+
+<!-- Módulos Disponíveis -->
+<div class="container-fluid px-4" style="padding-top: 0.5rem !important;">
+    <div class="row g-3 justify-content-center" style="max-width: 1600px; margin: 0 auto;">
+    <!-- Tela Curral -->
+    {% if propriedade.tipo_operacao == 'PECUARIA' %}
+    <div class="col-lg-3 col-md-6 col-sm-6">
+        <a href="{% url 'curral_dashboard_v4' propriedade.id %}" class="text-decoration-none" target="_blank" id="linkTelaCurral">
+            <div class="card-moderno h-100 card-hover">
+                <div class="card-body-moderno text-center d-flex flex-column">
+                    <div class="mb-2">
+                        <i class="bi bi-cpu card-modulo-icon icon-curral"></i>
+                    </div>
+                    <h5 class="card-title text-dark">Tela Curral</h5>
+                    <p class="text-muted mb-auto small">Super tela operacional para identificação, pesagem, apartação, sanidade e reprodução em tempo real</p>
+                </div>
+            </div>
+        </a>
+    </div>
+    {% endif %}
+    
+    <!-- Planejamento -->
+    {% if propriedade.tipo_operacao == 'PECUARIA' %}
+    <div class="col-lg-3 col-md-6 col-sm-6">
+        <a href="{% url 'pecuaria_planejamento_dashboard' propriedade.id %}" class="text-decoration-none">
+            <div class="card-moderno h-100 card-hover">
+                <div class="card-body-moderno text-center d-flex flex-column">
+                    <div class="mb-2">
+                        <i class="bi bi-calendar3-range card-modulo-icon icon-planejamento"></i>
+                    </div>
+                    <h5 class="card-title text-dark">Planejamento</h5>
+                    <p class="text-muted mb-auto small">Planejamento estratégico, projeções, indicadores financeiros e metas do rebanho</p>
+                </div>
+            </div>
+        </a>
+    </div>
+    {% endif %}
+    
+    <!-- Pecuária -->
+    {% if propriedade.tipo_operacao == 'PECUARIA' %}
+    <div class="col-lg-3 col-md-6 col-sm-6">
+        <a href="{% url 'pecuaria_dashboard' propriedade.id %}" class="text-decoration-none">
+            <div class="card-moderno h-100 card-hover">
+                <div class="card-body-moderno text-center d-flex flex-column">
+                    <div class="mb-2">
+                        <i class="bi bi-graph-up-arrow card-modulo-icon icon-pecuaria"></i>
+                    </div>
+                    <h5 class="card-title text-dark">Pecuária</h5>
+                    <p class="text-muted mb-auto small">Gestão completa do rebanho, inventário, projeções e movimentações de animais</p>
+                </div>
+            </div>
+        </a>
+    </div>
+    {% endif %}
+    
+    <!-- Nutrição -->
+    {% if propriedade.tipo_operacao == 'PECUARIA' %}
+    <div class="col-lg-3 col-md-6 col-sm-6">
+        <a href="{% url 'nutricao_dashboard' propriedade.id %}" class="text-decoration-none">
+            <div class="card-moderno h-100 card-hover">
+                <div class="card-body-moderno text-center d-flex flex-column">
+                    <div class="mb-2">
+                        <i class="bi bi-cup-straw card-modulo-icon icon-nutricao"></i>
+                    </div>
+                    <h5 class="card-title text-dark">Nutrição</h5>
+                    <p class="text-muted mb-auto small">Gestão de suplementação, estoques, cochos e distribuição de ração</p>
+                </div>
+            </div>
+        </a>
+    </div>
+    {% endif %}
+    
+    <!-- Bens e Patrimônio -->
+    <div class="col-lg-3 col-md-6 col-sm-6">
+        <a href="{% url 'imobilizado_dashboard' propriedade.id %}" class="text-decoration-none">
+            <div class="card-moderno h-100 card-hover">
+                <div class="card-body-moderno text-center d-flex flex-column">
+                    <div class="mb-2">
+                        <i class="bi bi-box-seam card-modulo-icon icon-patrimonio"></i>
+                    </div>
+                    <h5 class="card-title text-dark">Bens e Patrimônio</h5>
+                    <p class="text-muted mb-auto small">Controle de máquinas, veículos, instalações e depreciação</p>
+                </div>
+            </div>
+        </a>
+    </div>
+    
+    <!-- Compras -->
+    <div class="col-lg-3 col-md-6 col-sm-6">
+        <a href="{% url 'compras_dashboard' propriedade.id %}" class="text-decoration-none">
+            <div class="card-moderno h-100 card-hover">
+                <div class="card-body-moderno text-center d-flex flex-column">
+                    <div class="mb-2">
+                        <i class="bi bi-bag-check card-modulo-icon icon-compras"></i>
+                    </div>
+                    <h5 class="card-title text-dark">Compras</h5>
+                    <p class="text-muted mb-auto small">Fornecedores, ordens de compra, NF-es e gestão de compras</p>
+                </div>
+            </div>
+        </a>
+    </div>
+    
+    <!-- Financeiro -->
+    <div class="col-lg-3 col-md-6 col-sm-6">
+        <a href="{% url 'financeiro_dashboard' propriedade.id %}" class="text-decoration-none">
+            <div class="card-moderno h-100 card-hover">
+                <div class="card-body-moderno text-center d-flex flex-column">
+                    <div class="mb-2">
+                        <i class="bi bi-wallet2 card-modulo-icon icon-financeiro"></i>
+                    </div>
+                    <h5 class="card-title text-dark">Financeiro</h5>
+                    <p class="text-muted mb-auto small">Contas a pagar/receber, custos, fluxo de caixa e relatórios financeiros</p>
+                </div>
+            </div>
+        </a>
+    </div>
+    
+    <!-- Operações -->
+    <div class="col-lg-3 col-md-6 col-sm-6">
+        <a href="{% url 'operacoes_dashboard' propriedade.id %}" class="text-decoration-none">
+            <div class="card-moderno h-100 card-hover">
+                <div class="card-body-moderno text-center d-flex flex-column">
+                    <div class="mb-2">
+                        <i class="bi bi-tools card-modulo-icon icon-operacoes"></i>
+                    </div>
+                    <h5 class="card-title text-dark">Operações</h5>
+                    <p class="text-muted mb-auto small">Combustível, manutenção, equipamentos e gestão de funcionários</p>
+                </div>
+            </div>
+        </a>
+    </div>
+    
+    <!-- Projetos Bancários -->
+    <div class="col-lg-3 col-md-6 col-sm-6">
+        <a href="{% url 'projeto_bancario_dashboard' propriedade.id %}" class="text-decoration-none">
+            <div class="card-moderno h-100 card-hover">
+                <div class="card-body-moderno text-center d-flex flex-column">
+                    <div class="mb-2">
+                        <i class="bi bi-briefcase card-modulo-icon icon-projetos"></i>
+                    </div>
+                    <h5 class="card-title text-dark">Projetos Bancários</h5>
+                    <p class="text-muted mb-auto small">Projetos de crédito rural, análise de viabilidade e documentação bancária</p>
+                </div>
+            </div>
+        </a>
+    </div>
+    
+    <!-- Relatórios -->
+    <div class="col-lg-3 col-md-6 col-sm-6">
+        <a href="{% url 'relatorio_final' propriedade.id %}" class="text-decoration-none">
+            <div class="card-moderno h-100 card-hover">
+                <div class="card-body-moderno text-center d-flex flex-column">
+                    <div class="mb-2">
+                        <i class="bi bi-file-text card-modulo-icon icon-relatorios"></i>
+                    </div>
+                    <h5 class="card-title text-dark">Relatórios</h5>
+                    <p class="text-muted mb-auto small">Gere relatórios completos em PDF com todas as informações da propriedade</p>
+                </div>
+            </div>
+        </a>
+    </div>
+    
+    <!-- Categorias -->
+    {% if propriedade.tipo_operacao == 'PECUARIA' %}
+    <div class="col-lg-3 col-md-6 col-sm-6">
+        <a href="{% url 'categorias_lista' %}" class="text-decoration-none">
+            <div class="card-moderno h-100 card-hover">
+                <div class="card-body-moderno text-center d-flex flex-column">
+                    <div class="mb-2">
+                        <i class="bi bi-bookmark-star card-modulo-icon icon-categorias"></i>
+                    </div>
+                    <h5 class="card-title text-dark">Categorias de Animais</h5>
+                    <p class="text-muted mb-auto small">Gerencie as categorias de animais utilizadas no sistema</p>
+                </div>
+            </div>
+        </a>
+    </div>
+    {% endif %}
+    
+    <!-- Configurações -->
+    <div class="col-lg-3 col-md-6 col-sm-6">
+        <a href="{% url 'propriedade_editar' propriedade.id %}" class="text-decoration-none">
+            <div class="card-moderno h-100 card-hover">
+                <div class="card-body-moderno text-center d-flex flex-column">
+                    <div class="mb-2">
+                        <i class="bi bi-sliders card-modulo-icon icon-configuracoes"></i>
+                    </div>
+                    <h5 class="card-title text-dark">Configurações</h5>
+                    <p class="text-muted mb-auto small">Edite informações, área, localização e dados cadastrais da propriedade</p>
+                </div>
+            </div>
+        </a>
+    </div>
+</div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Marcar item "Tela Curral" como ativo quando o card é clicado
+    const linkTelaCurral = document.getElementById('linkTelaCurral');
+    if (linkTelaCurral) {
+        linkTelaCurral.addEventListener('click', function() {
+            // Marcar como ativo no menu lateral
+            const navItemCurral = document.querySelector('.nav-link-curral');
+            const navItemParent = navItemCurral?.closest('.nav-item');
+            
+            if (navItemCurral && navItemParent) {
+                // Adicionar classe active
+                navItemCurral.classList.add('active');
+                navItemParent.classList.add('active');
+                
+                // Salvar no localStorage para manter o estado
+                localStorage.setItem('curral_active', 'true');
+            }
+        });
+    }
+    
+    // Verificar se deve manter ativo ao carregar a página
+    if (localStorage.getItem('curral_active') === 'true') {
+        const navItemCurral = document.querySelector('.nav-link-curral');
+        const navItemParent = navItemCurral?.closest('.nav-item');
+        
+        if (navItemCurral && navItemParent) {
+            navItemCurral.classList.add('active');
+            navItemParent.classList.add('active');
+        }
+    }
+    
+    // Limpar o estado ativo quando sair da página de módulos
+    window.addEventListener('beforeunload', function() {
+        // Não limpar aqui, deixar para quando realmente sair do curral
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,253 @@
+{% extends "base_navegacao.html" %}
+
+{% block title %}Bens e Patrimônio - Sistema Monpec{% endblock %}
+
+{% block breadcrumbs %}
+<li><a href="{% url 'dashboard' %}">Início</a></li>
+<li class="breadcrumb-separator">›</li>
+<li><a href="{% url 'propriedades_lista' propriedade.produtor_id %}">Propriedades</a></li>
+<li class="breadcrumb-separator">›</li>
+<li><a href="{% url 'propriedade_modulos' propriedade.id %}">{{ propriedade.nome }}</a></li>
+<li class="breadcrumb-separator">›</li>
+<li class="active">Bens e Patrimônio</li>
+{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div class="d-flex justify-content-between align-items-start">
+        <div>
+            <h1 class="page-title">Bens e Patrimônio</h1>
+            <p class="page-subtitle">{{ propriedade.nome }} - Gestão completa do patrimônio rural</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'propriedade_modulos' propriedade.id %}" class="btn-outline">Voltar</a>
+            <button type="button" class="btn-navy" onclick="mostrarFormulario()">Adicionar Bem</button>
+        </div>
+    </div>
+</div>
+
+<!-- Estatísticas -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card-clean text-center">
+            <div class="card-valor-destaque" style="font-size: 2rem;">{{ total_bens|default:"0" }}</div>
+            <div style="font-size: 12px; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.05em;">
+                Total de Bens
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card-clean text-center">
+            <div class="card-valor-destaque">R$ {{ valor_total|default:"0,00" }}</div>
+            <div style="font-size: 12px; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.05em;">
+                Valor Total
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card-clean text-center">
+            <div class="card-valor-destaque">R$ {{ depreciacao_total|default:"0,00" }}</div>
+            <div style="font-size: 12px; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.05em;">
+                Depreciação Acumulada
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card-clean text-center">
+            <div class="card-valor-destaque">R$ {{ valor_atual|default:"0,00" }}</div>
+            <div style="font-size: 12px; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.05em;">
+                Valor Atual
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Formulário de Cadastro (Oculto inicialmente) -->
+<div id="formularioBem" class="page-header mb-4" style="display: none;">
+    <h2 style="font-size: 1.5rem; margin-bottom: 1.5rem;">Cadastrar Novo Bem</h2>
+    
+    <form method="post" action="">
+        {% csrf_token %}
+        
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label class="form-label">Categoria do Bem</label>
+                <select name="categoria" class="form-control" required>
+                    <option value="">Selecione...</option>
+                    <option value="TERRA">Terras e Benfeitorias</option>
+                    <option value="MAQUINA">Máquinas e Equipamentos</option>
+                    <option value="VEICULO">Veículos</option>
+                    <option value="INSTALACAO">Instalações e Construções</option>
+                    <option value="ANIMAL">Animais de Trabalho</option>
+                    <option value="OUTRO">Outros Bens</option>
+                </select>
+            </div>
+            
+            <div class="col-md-6">
+                <label class="form-label">Descrição do Bem</label>
+                <input type="text" name="descricao" class="form-control" placeholder="Ex: Trator New Holland TL85" required>
+            </div>
+        </div>
+        
+        <div class="row mb-3">
+            <div class="col-md-3">
+                <label class="form-label">Data de Aquisição</label>
+                <input type="date" name="data_aquisicao" class="form-control" required>
+            </div>
+            
+            <div class="col-md-3">
+                <label class="form-label">Valor de Aquisição (R$)</label>
+                <input type="number" name="valor_aquisicao" class="form-control" step="0.01" min="0" placeholder="0,00" required>
+            </div>
+            
+            <div class="col-md-3">
+                <label class="form-label">Quantidade</label>
+                <input type="number" name="quantidade" class="form-control" min="1" value="1" required>
+            </div>
+            
+            <div class="col-md-3">
+                <label class="form-label">Estado</label>
+                <select name="estado" class="form-control">
+                    <option value="NOVO">Novo</option>
+                    <option value="OTIMO">Ótimo</option>
+                    <option value="BOM" selected>Bom</option>
+                    <option value="REGULAR">Regular</option>
+                    <option value="RUIM">Ruim</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label class="form-label">Vida Útil (anos)</label>
+                <input type="number" name="vida_util" class="form-control" min="1" value="10">
+            </div>
+            
+            <div class="col-md-6">
+                <label class="form-label">Taxa de Depreciação Anual (%)</label>
+                <input type="number" name="taxa_depreciacao" class="form-control" step="0.01" value="10.00">
+            </div>
+        </div>
+        
+        <div class="d-flex justify-content-end gap-3">
+            <button type="button" class="btn-outline" onclick="ocultarFormulario()">
+                Cancelar
+            </button>
+            <button type="submit" class="btn-navy">
+                Cadastrar Bem
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Categorias de Bens -->
+<div class="cards-grid">
+    <div class="card-clean">
+        <h3 class="card-title">Terras e Benfeitorias</h3>
+        <p style="color: var(--text-light); font-size: 14px; margin-bottom: 1rem;">Propriedades rurais, cercas, currais</p>
+        <div class="destaque-valor" style="font-size: 1.25rem; margin-bottom: 1rem;">R$ {{ terras_valor|default:"0,00" }}</div>
+        <button class="btn-outline" style="padding: 0.5rem 1rem; font-size: 13px; width: 100%;">
+            Ver Detalhes
+        </button>
+    </div>
+    
+    <div class="card-clean">
+        <h3 class="card-title">Máquinas e Equipamentos</h3>
+        <p style="color: var(--text-light); font-size: 14px; margin-bottom: 1rem;">Tratores, implementos, ordenhadeiras</p>
+        <div class="destaque-valor" style="font-size: 1.25rem; margin-bottom: 1rem;">R$ {{ maquinas_valor|default:"0,00" }}</div>
+        <button class="btn-outline" style="padding: 0.5rem 1rem; font-size: 13px; width: 100%;">
+            Ver Detalhes
+        </button>
+    </div>
+    
+    <div class="card-clean">
+        <h3 class="card-title">Veículos</h3>
+        <p style="color: var(--text-light); font-size: 14px; margin-bottom: 1rem;">Caminhões, caminhonetes, carros</p>
+        <div class="destaque-valor" style="font-size: 1.25rem; margin-bottom: 1rem;">R$ {{ veiculos_valor|default:"0,00" }}</div>
+        <button class="btn-outline" style="padding: 0.5rem 1rem; font-size: 13px; width: 100%;">
+            Ver Detalhes
+        </button>
+    </div>
+    
+    <div class="card-clean">
+        <h3 class="card-title">Instalações</h3>
+        <p style="color: var(--text-light); font-size: 14px; margin-bottom: 1rem;">Galpões, silos, armazéns</p>
+        <div class="destaque-valor" style="font-size: 1.25rem; margin-bottom: 1rem;">R$ {{ instalacoes_valor|default:"0,00" }}</div>
+        <button class="btn-outline" style="padding: 0.5rem 1rem; font-size: 13px; width: 100%;">
+            Ver Detalhes
+        </button>
+    </div>
+    
+    <div class="card-clean">
+        <h3 class="card-title">Relatório de Depreciação</h3>
+        <p style="color: var(--text-light); font-size: 14px; margin-bottom: 1rem;">Análise completa de depreciação</p>
+        <div class="destaque-valor" style="font-size: 1.25rem; margin-bottom: 1rem;">{{ percentual_depreciacao|default:"0" }}%</div>
+        <button class="btn-navy" style="padding: 0.5rem 1rem; font-size: 13px; width: 100%;">
+            Gerar Relatório
+        </button>
+    </div>
+</div>
+
+<!-- Lista de Bens -->
+{% if bens %}
+<div class="page-header mt-4">
+    <h2 style="font-size: 1.5rem; margin-bottom: 1.5rem;">Bens Cadastrados</h2>
+    
+    <div class="table-clean">
+        <table class="table mb-0">
+            <thead>
+                <tr>
+                    <th>Descrição</th>
+                    <th>Categoria</th>
+                    <th>Aquisição</th>
+                    <th>Valor Original</th>
+                    <th>Valor Atual</th>
+                    <th>Estado</th>
+                    <th class="text-end">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for bem in bens %}
+                <tr>
+                    <td><strong>{{ bem.descricao }}</strong></td>
+                    <td>{{ bem.tipo_bem.nome }}</td>
+                    <td>{{ bem.data_aquisicao|date:"d/m/Y" }}</td>
+                    <td>R$ {{ bem.valor_aquisicao }}</td>
+                    <td class="destaque-valor">R$ {{ bem.valor_atual }}</td>
+                    <td><span class="badge-destaque">{{ bem.get_estado_conservacao_display }}</span></td>
+                    <td class="text-end">
+                        <a href="#" class="btn-outline" style="padding: 0.4rem 0.8rem; font-size: 13px;">Editar</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="card-empty">
+    <h3 style="color: var(--text-light); font-weight: 400; margin-bottom: 1rem;">
+        Nenhum bem cadastrado
+    </h3>
+    <p style="color: var(--text-light); margin-bottom: 2rem;">
+        Comece adicionando os bens patrimoniais da propriedade
+    </p>
+    <button type="button" class="btn-navy" onclick="mostrarFormulario()">Adicionar Primeiro Bem</button>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function mostrarFormulario() {
+    document.getElementById('formularioBem').style.display = 'block';
+    document.getElementById('formularioBem').scrollIntoView({ behavior: 'smooth' });
+}
+
+function ocultarFormulario() {
+    document.getElementById('formularioBem').style.display = 'none';
+}
+</script>
+{% endblock %}
+

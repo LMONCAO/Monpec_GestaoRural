@@ -1,0 +1,311 @@
+{% extends "base_modulos_unificado.html" %}
+{% load formatacao_br %}
+
+{% block title %}Reprodução - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item active">Reprodução</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h2 class="mb-1"><i class="bi bi-bull text-success me-2"></i>Reprodução</h2>
+            <p class="text-muted mb-0">{{ propriedade.nome_propriedade }}</p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{% url 'touros_lista' propriedade.id %}" class="btn btn-outline-success btn-sm">
+                <i class="bi bi-list-ul me-1"></i>Touros
+            </a>
+            <a href="{% url 'touro_novo' propriedade.id %}" class="btn btn-success btn-sm">
+                <i class="bi bi-plus-circle me-1"></i>Novo Touro
+            </a>
+            <a href="{% url 'estacao_monta_nova' propriedade.id %}" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-calendar-event me-1"></i>Nova Estação de Monta
+            </a>
+            <a href="{% url 'iatf_nova' propriedade.id %}" class="btn btn-outline-warning btn-sm">
+                <i class="bi bi-calendar-plus me-1"></i>Novo Registro IATF
+            </a>
+        </div>
+    </div>
+
+    <div class="row mb-4 g-3">
+        <div class="col-sm-6 col-lg-3">
+            <div class="card border h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Touros Cadastrados</h6>
+                            <h3 class="mb-0">{{ touros|length|numero_br }}</h3>
+                        </div>
+                        <div class="text-success">
+                            <i class="bi bi-bull fs-1"></i>
+                        </div>
+                    </div>
+                    <p class="text-muted small mb-0 mt-2">Controle de reprodutores</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-lg-3">
+            <div class="card border h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Touros Aptos</h6>
+                            <h3 class="mb-0">{{ touros_aptos|length|numero_br }}</h3>
+                        </div>
+                        <div class="text-primary">
+                            <i class="bi bi-check-circle fs-1"></i>
+                        </div>
+                    </div>
+                    <p class="text-muted small mb-0 mt-2">Disponíveis para estação</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-lg-3">
+            <div class="card border h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Touros Inaptos</h6>
+                            <h3 class="mb-0">{{ touros_inaptos|length|numero_br }}</h3>
+                        </div>
+                        <div class="text-danger">
+                            <i class="bi bi-exclamation-octagon fs-1"></i>
+                        </div>
+                    </div>
+                    <p class="text-muted small mb-0 mt-2">Necessitam atenção</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-lg-3">
+            <div class="card border h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Registros Recentes</h6>
+                            <h3 class="mb-0">{{ iatfs_recentes|length|numero_br }}</h3>
+                        </div>
+                        <div class="text-warning">
+                            <i class="bi bi-calendar-week fs-1"></i>
+                        </div>
+                    </div>
+                    <p class="text-muted small mb-0 mt-2">IATFs registradas (últimas)</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-bull me-2"></i>Touros</h5>
+                    <span class="badge bg-light text-success">{{ touros|length }} cadastrados</span>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Brinco</th>
+                                    <th>Nome</th>
+                                    <th>Raça</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Serviços</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for touro in touros %}
+                                <tr>
+                                    <td>{{ touro.numero_brinco }}</td>
+                                    <td>{{ touro.nome|default:"-" }}</td>
+                                    <td>{{ touro.raca|default:"-" }}</td>
+                                    <td>
+                                        {% if touro.status == "APTO" %}
+                                            <span class="badge bg-success">{{ touro.get_status_display }}</span>
+                                        {% elif touro.status == "INAPTO" %}
+                                            <span class="badge bg-danger">{{ touro.get_status_display }}</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ touro.get_status_display }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">{{ touro.numero_servicos|numero_br }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-4">
+                                        Nenhum touro cadastrado até o momento.
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-calendar-range me-2"></i>Estações de Monta Recentes</h5>
+                    <span class="badge bg-light text-primary">{{ estacoes_monta|length }} registradas</span>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Período</th>
+                                    <th class="text-end">Taxa Prenhez</th>
+                                    <th class="text-center">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for estacao in estacoes_monta %}
+                                <tr>
+                                    <td>{{ estacao.nome }}</td>
+                                    <td>
+                                        {{ estacao.data_inicio|date:"d/m/Y" }} -
+                                        {{ estacao.data_fim|date:"d/m/Y" }}
+                                    </td>
+                                    <td class="text-end">
+                                        {% if estacao.taxa_prenhez_real %}
+                                            {{ estacao.taxa_prenhez_real|percentual_br:1 }}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        {% if estacao.ativa %}
+                                            <span class="badge bg-success">Ativa</span>
+                                        {% elif estacao.finalizada %}
+                                            <span class="badge bg-secondary">Finalizada</span>
+                                        {% else %}
+                                            <span class="badge bg-warning text-dark">Inativa</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted py-4">
+                                        Nenhuma estação de monta registrada.
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mt-1">
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header bg-warning text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-calendar-check me-2"></i>IATFs Recentes</h5>
+                    <span class="badge bg-light text-warning">{{ iatfs_recentes|length }} registros</span>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Matriz</th>
+                                    <th>Data</th>
+                                    <th>Estação</th>
+                                    <th class="text-center">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for iatf in iatfs_recentes %}
+                                <tr>
+                                    <td>{{ iatf.animal_individual.numero_brinco }}</td>
+                                    <td>{{ iatf.data_programada|date:"d/m/Y" }}</td>
+                                    <td>{{ iatf.estacao_monta.nome|default:"-" }}</td>
+                                    <td class="text-center">
+                                        {% if iatf.status == "REALIZADA" %}
+                                            <span class="badge bg-success">{{ iatf.get_status_display }}</span>
+                                        {% elif iatf.status == "PROGRAMADA" %}
+                                            <span class="badge bg-warning text-dark">{{ iatf.get_status_display }}</span>
+                                        {% elif iatf.status == "CANCELADA" %}
+                                            <span class="badge bg-secondary">{{ iatf.get_status_display }}</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">{{ iatf.get_status_display }}</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted py-4">
+                                        Nenhuma IATF registrada recentemente.
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-gender-ambiguous me-2"></i>Nascimentos Recentes</h5>
+                    <span class="badge bg-light text-info">{{ nascimentos_recentes|length }} registros</span>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Matriz</th>
+                                    <th>Sexo</th>
+                                    <th>Brinco Bezerro</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for nascimento in nascimentos_recentes %}
+                                <tr>
+                                    <td>{{ nascimento.data_nascimento|date:"d/m/Y" }}</td>
+                                    <td>{{ nascimento.mae.numero_brinco }}</td>
+                                    <td>
+                                        {% if nascimento.sexo == "M" %}
+                                            <span class="badge bg-primary">{{ nascimento.get_sexo_display }}</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">{{ nascimento.get_sexo_display }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ nascimento.numero_brinco_bezerro|default:"-" }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted py-4">
+                                        Nenhum nascimento registrado recentemente.
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

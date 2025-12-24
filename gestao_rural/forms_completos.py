@@ -924,14 +924,16 @@ class ItemNotaFiscalForm(forms.ModelForm):
     class Meta:
         model = ItemNotaFiscal
         fields = [
-            'produto', 'codigo_produto', 'descricao', 'ncm', 'cfop',
-            'unidade_medida', 'quantidade', 'valor_unitario'
+            'produto', 'codigo_produto', 'descricao', 'ncm', 'origem_mercadoria',
+            'cest', 'gtin', 'ex_tipi', 'cfop', 'unidade_medida', 
+            'quantidade', 'valor_unitario'
         ]
         widgets = {
             'produto': forms.Select(attrs={
                 'class': 'form-select produto-select',
                 'data-busca': 'produto',
-                'required': False
+                'required': False,
+                'onchange': 'preencherDadosProduto(this)'
             }),
             'codigo_produto': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -944,7 +946,25 @@ class ItemNotaFiscalForm(forms.ModelForm):
             }),
             'ncm': forms.TextInput(attrs={
                 'class': 'form-control',
+                'required': True,
                 'placeholder': 'NCM (ex: 0102.29.00)'
+            }),
+            'origem_mercadoria': forms.Select(attrs={
+                'class': 'form-select',
+                'required': True
+            }),
+            'cest': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'CEST (ex: 01.001.00)'
+            }),
+            'gtin': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'GTIN/EAN (código de barras)'
+            }),
+            'ex_tipi': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Exceção da TIPI',
+                'maxlength': '3'
             }),
             'cfop': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -959,13 +979,15 @@ class ItemNotaFiscalForm(forms.ModelForm):
                 'class': 'form-control',
                 'step': '0.001',
                 'min': '0.001',
-                'required': True
+                'required': True,
+                'onchange': 'calcularValorTotal(this)'
             }),
             'valor_unitario': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'step': '0.01',
                 'min': '0.01',
-                'required': True
+                'required': True,
+                'onchange': 'calcularValorTotal(this)'
             }),
         }
 
@@ -1004,11 +1026,11 @@ class ProdutoForm(forms.ModelForm):
         model = Produto
         fields = [
             'codigo', 'descricao', 'descricao_completa', 'categoria',
-            'unidade_medida', 'ncm', 'cfop_entrada', 'cfop_saida_estadual',
-            'cfop_saida_interestadual', 'cst_icms', 'aliquota_icms',
-            'cst_ipi', 'aliquota_ipi', 'cst_pis', 'aliquota_pis',
-            'cst_cofins', 'aliquota_cofins', 'preco_venda', 'preco_custo',
-            'ativo', 'observacoes'
+            'unidade_medida', 'ncm', 'origem_mercadoria', 'cest', 'gtin', 'ex_tipi',
+            'cfop_entrada', 'cfop_saida_estadual', 'cfop_saida_interestadual',
+            'cst_icms', 'aliquota_icms', 'cst_ipi', 'aliquota_ipi',
+            'cst_pis', 'aliquota_pis', 'cst_cofins', 'aliquota_cofins',
+            'preco_venda', 'preco_custo', 'ativo', 'observacoes'
         ]
         widgets = {
             'codigo': forms.TextInput(attrs={
@@ -1037,6 +1059,25 @@ class ProdutoForm(forms.ModelForm):
                 'required': True,
                 'placeholder': 'NCM (ex: 0102.29.00)',
                 'data-validar': 'ncm'
+            }),
+            'origem_mercadoria': forms.Select(attrs={
+                'class': 'form-select',
+                'required': True
+            }),
+            'cest': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'CEST (ex: 01.001.00)',
+                'maxlength': '7'
+            }),
+            'gtin': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'GTIN/EAN (código de barras)',
+                'maxlength': '14'
+            }),
+            'ex_tipi': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Exceção da TIPI',
+                'maxlength': '3'
             }),
             'cfop_entrada': forms.TextInput(attrs={
                 'class': 'form-control',

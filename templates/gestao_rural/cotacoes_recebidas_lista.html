@@ -1,0 +1,149 @@
+{% extends "base_modulos_unificado.html" %}
+{% load formatacao_br %}
+
+{% block title %}Cotações Recebidas - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'compras_dashboard' propriedade.id %}">Compras</a></li>
+            <li class="breadcrumb-item active">Cotações Recebidas</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="h4 mb-1">
+                <i class="bi bi-check2-square me-2"></i>Cotações Recebidas
+            </h2>
+            <p class="text-muted mb-0">
+                {{ total_requisicoes }} requisição{{ total_requisicoes|pluralize:"ões" }} com {{ total_cotacoes }} cotação{{ total_cotacoes|pluralize:"ões" }} para analisar
+            </p>
+        </div>
+        <a href="{% url 'compras_dashboard' propriedade.id %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Voltar ao Dashboard
+        </a>
+    </div>
+
+    {% if cotacoes_por_requisicao %}
+        {% for req_id, dados in cotacoes_por_requisicao.items %}
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-1">
+                            <i class="bi bi-file-text me-2"></i>
+                            <a href="{% url 'requisicao_compra_detalhes' propriedade.id dados.requisicao.id %}" class="text-white text-decoration-none">
+                                {{ dados.requisicao.numero }} - {{ dados.requisicao.titulo }}
+                            </a>
+                        </h5>
+                        <small class="text-white-50">
+                            <i class="bi bi-calendar me-1"></i>
+                            Criada em {{ dados.requisicao.criado_em|date:"d/m/Y H:i" }}
+                            {% if dados.requisicao.setor %}
+                            • <i class="bi bi-building me-1"></i>{{ dados.requisicao.setor.nome }}
+                            {% endif %}
+                        </small>
+                    </div>
+                    <div class="text-end">
+                        <span class="badge bg-light text-primary fs-6">
+                            {{ dados.total_cotacoes }} cotação{{ dados.total_cotacoes|pluralize:"ões" }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Fornecedor</th>
+                                <th>Status</th>
+                                <th class="text-end">Valor Total</th>
+                                <th class="text-end">Frete</th>
+                                <th>Prazo de Entrega</th>
+                                <th>Condições de Pagamento</th>
+                                <th class="text-center">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for cotacao in dados.cotacoes %}
+                            <tr class="{% if cotacao.status == 'SELECIONADA' %}table-success{% elif cotacao.fornecedor.nome == dados.fornecedor_menor %}table-info{% endif %}">
+                                <td>
+                                    <strong>{{ cotacao.fornecedor.nome }}</strong>
+                                    {% if cotacao.fornecedor.nome == dados.fornecedor_menor %}
+                                    <span class="badge bg-success ms-2">Menor Valor</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-{% if cotacao.status == 'SELECIONADA' %}success{% elif cotacao.status == 'RECEBIDA' %}primary{% else %}secondary{% endif %}">
+                                        {{ cotacao.get_status_display }}
+                                    </span>
+                                </td>
+                                <td class="text-end">
+                                    <strong>{{ cotacao.valor_total|moeda_br }}</strong>
+                                </td>
+                                <td class="text-end">{{ cotacao.valor_frete|moeda_br }}</td>
+                                <td>{{ cotacao.prazo_entrega_estimado|default:"-" }}</td>
+                                <td>{{ cotacao.condicoes_pagamento|default:"-" }}</td>
+                                <td class="text-center">
+                                    <a href="{% url 'requisicao_compra_detalhes' propriedade.id dados.requisicao.id %}" class="btn btn-sm btn-primary">
+                                        <i class="bi bi-eye me-1"></i>Ver Detalhes
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer bg-light">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        {% if dados.menor_valor %}
+                        <small class="text-muted">
+                            <i class="bi bi-tag-fill text-success me-1"></i>
+                            Menor valor: <strong>{{ dados.menor_valor|moeda_br }}</strong> - {{ dados.fornecedor_menor }}
+                        </small>
+                        {% endif %}
+                    </div>
+                    <a href="{% url 'requisicao_compra_detalhes' propriedade.id dados.requisicao.id %}" class="btn btn-primary btn-sm">
+                        <i class="bi bi-arrow-right-circle me-1"></i>Analisar Todas as Cotações
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-inbox" style="font-size: 4rem; color: #dee2e6;"></i>
+                <h4 class="mt-3 mb-2">Nenhuma cotação recebida</h4>
+                <p class="text-muted mb-4">Ainda não há cotações para analisar.</p>
+                <a href="{% url 'compras_dashboard' propriedade.id %}" class="btn btn-primary">
+                    <i class="bi bi-arrow-left me-1"></i>Voltar ao Dashboard
+                </a>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

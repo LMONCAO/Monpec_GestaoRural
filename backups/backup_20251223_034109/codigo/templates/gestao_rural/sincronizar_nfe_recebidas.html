@@ -1,0 +1,115 @@
+{% extends "base_modulos_unificado.html" %}
+{% load formatacao_br %}
+
+{% block title %}Sincronizar NF-e Recebidas - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'compras_dashboard' propriedade.id %}">Compras</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'notas_fiscais_lista' propriedade.id %}">Notas Fiscais</a></li>
+            <li class="breadcrumb-item active">Sincronizar NF-e Recebidas</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+        <div>
+            <h2 class="mb-0"><i class="bi bi-cloud-download text-primary me-2"></i>Sincronizar NF-e Recebidas</h2>
+            <small class="text-muted">Importe automaticamente notas fiscais recebidas da SEFAZ</small>
+        </div>
+        <a href="{% url 'notas_fiscais_lista' propriedade.id %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Voltar
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-xl-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-gear me-2"></i>Configuração da Sincronização</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Período (dias) *</label>
+                                <select name="dias" class="form-select" required>
+                                    <option value="7">Últimos 7 dias</option>
+                                    <option value="15">Últimos 15 dias</option>
+                                    <option value="30" selected>Últimos 30 dias</option>
+                                    <option value="60">Últimos 60 dias</option>
+                                    <option value="90">Últimos 90 dias</option>
+                                </select>
+                                <small class="text-muted">Período para buscar notas fiscais recebidas</small>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label class="form-label">Limite de Notas *</label>
+                                <input type="number" name="limite" class="form-control" value="100" min="1" max="500" required>
+                                <small class="text-muted">Número máximo de notas a importar por vez</small>
+                            </div>
+                            
+                            <div class="col-md-12">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="baixar_pdf" id="baixar_pdf" checked>
+                                    <label class="form-check-label" for="baixar_pdf">
+                                        Baixar PDF (DANFE) automaticamente
+                                    </label>
+                                </div>
+                                <small class="text-muted">Se marcado, o PDF da nota fiscal será baixado junto com o XML</small>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4 d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-cloud-download me-1"></i>Iniciar Sincronização
+                            </button>
+                            <a href="{% url 'notas_fiscais_lista' propriedade.id %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle me-1"></i>Cancelar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-4">
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Informações</h6>
+                </div>
+                <div class="card-body small text-muted">
+                    <p><strong>CPF/CNPJ:</strong> {{ cpf_cnpj|default:"Não configurado" }}</p>
+                    <p><strong>NF-e do mês:</strong> {{ nfes_mes }} nota(s)</p>
+                    <hr>
+                    <ul class="mb-0">
+                        <li>As notas fiscais serão importadas automaticamente da SEFAZ</li>
+                        <li>Fornecedores serão criados/atualizados automaticamente</li>
+                        <li>Notas duplicadas serão ignoradas</li>
+                        <li>O sistema tentará vincular automaticamente a ordens de compra</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Requisitos</h6>
+                </div>
+                <div class="card-body small">
+                    <ul class="mb-0">
+                        <li>✅ API de NF-e configurada (Focus NFe ou NFe.io)</li>
+                        <li>✅ CPF/CNPJ da propriedade cadastrado</li>
+                        <li>✅ Credenciais da API válidas</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 from pathlib import Path
 import os
+from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,12 +21,26 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-# SECRET_KEY gerado automaticamente para desenvolvimento
-SECRET_KEY = os.getenv('SECRET_KEY', 'YrJOs823th_HB2BP6Uz9A0NVvzL0Fif-t-Rfub5BXgVtE0LxXIWEPQIFqYvI8UNiZKE')
-
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
+
+# SECURITY WARNING: keep the secret key used in production secret!
+# ✅ SEGURANÇA: SECRET_KEY deve sempre vir de variável de ambiente
+SECRET_KEY = os.getenv('SECRET_KEY')
+if not SECRET_KEY:
+    if DEBUG:
+        # Em desenvolvimento, usar chave temporária (NUNCA em produção)
+        import warnings
+        warnings.warn(
+            "SECRET_KEY não configurada! Usando chave temporária apenas para desenvolvimento. "
+            "Configure a variável de ambiente SECRET_KEY para produção.",
+            UserWarning
+        )
+        SECRET_KEY = 'YrJOs823th_HB2BP6Uz9A0NVvzL0Fif-t-Rfub5BXgVtE0LxXIWEPQIFqYvI8UNiZKE'
+    else:
+        raise ValueError(
+            "SECRET_KEY não configurada! Configure a variável de ambiente SECRET_KEY antes de executar em produção."
+        )
 
 ALLOWED_HOSTS = [
        'localhost',
@@ -43,19 +58,18 @@ CSRF_TRUSTED_ORIGINS = [
     'http://192.168.100.91:8000',
 ]
 
-STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY', '')
-STRIPE_PUBLISHABLE_KEY = os.getenv('STRIPE_PUBLISHABLE_KEY', '')
-STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET', '')
-STRIPE_SUCCESS_URL = os.getenv('STRIPE_SUCCESS_URL', 'http://localhost:8000/assinaturas/sucesso/')
-STRIPE_CANCEL_URL = os.getenv('STRIPE_CANCEL_URL', 'http://localhost:8000/assinaturas/cancelado/')
+# Configurações Mercado Pago
+MERCADOPAGO_ACCESS_TOKEN = config('MERCADOPAGO_ACCESS_TOKEN', default='')
+MERCADOPAGO_PUBLIC_KEY = config('MERCADOPAGO_PUBLIC_KEY', default='')
+MERCADOPAGO_WEBHOOK_SECRET = config('MERCADOPAGO_WEBHOOK_SECRET', default='')
+MERCADOPAGO_SUCCESS_URL = config('MERCADOPAGO_SUCCESS_URL', default='http://localhost:8000/assinaturas/sucesso/')
+MERCADOPAGO_CANCEL_URL = config('MERCADOPAGO_CANCEL_URL', default='http://localhost:8000/assinaturas/cancelado/')
+
+# Gateway de pagamento padrão (stripe, mercadopago, asaas, etc.)
+PAYMENT_GATEWAY_DEFAULT = config('PAYMENT_GATEWAY_DEFAULT', default='mercadopago')
 
 TENANT_DATABASE_DIR = Path(os.getenv('TENANT_DATABASE_DIR', str(BASE_DIR / 'tenants')))
 TENANT_DATABASE_DIR.mkdir(parents=True, exist_ok=True)
-STRIPE_ALERT_EMAILS = [
-    email.strip()
-    for email in os.getenv('STRIPE_ALERT_EMAILS', '').split(',')
-    if email.strip()
-]
 
 
 # Application definition
@@ -80,8 +94,9 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',  # Deve vir ANTES dos middlewares que usam messages
+    'gestao_rural.middleware_liberacao_acesso.LiberacaoAcessoMiddleware',  # Controle de liberação de acesso
     'gestao_rural.middleware_seguranca_avancada.SegurancaAvancadaMiddleware',  # Segurança avançada
-    'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'gestao_rural.middleware_security.SecurityHeadersMiddleware',  # Headers de segurança
     'gestao_rural.middleware_demo.DemoRestrictionMiddleware',  # Restrição de demo (deve ser o último)
@@ -102,6 +117,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'django.template.context_processors.static',
                 'gestao_rural.context_processors.demo_mode',  # Adiciona DEMO_MODE ao contexto
+                'gestao_rural.context_processors.assinatura_info',  # Adiciona informações de assinatura
             ],
         },
     },
@@ -177,14 +193,14 @@ LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'dashboard'
 LOGOUT_REDIRECT_URL = 'landing_page'
 
-# Configuração de E-mail (para recuperação de senha)
-EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
-EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
-EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
-EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() == 'true'
-EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
-EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
-DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@monpec.com.br')
+# Configuração de E-mail (para recuperação de senha e convites de cotação)
+EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
+EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
+EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
+EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@monpec.com.br')
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
 # Configuração de Backup
@@ -192,7 +208,7 @@ BACKUP_DIR = Path(os.getenv('BACKUP_DIR', str(BASE_DIR / 'backups')))
 BACKUP_DIR.mkdir(parents=True, exist_ok=True)
 
 # URL do site (para links em e-mails)
-SITE_URL = os.getenv('SITE_URL', 'http://localhost:8000')
+SITE_URL = config('SITE_URL', default='http://localhost:8000')
 
 # ========================================
 # CONFIGURAÇÕES DE DEMONSTRAÇÃO
@@ -212,12 +228,11 @@ GOOGLE_ANALYTICS_ID = os.getenv('GOOGLE_ANALYTICS_ID', '')
 # ========================================
 # CONFIGURAÇÕES DE PAGAMENTO
 # ========================================
-# URL da Hotmart para pagamento
-HOTMART_CHECKOUT_URL = os.getenv('HOTMART_CHECKOUT_URL', 'https://pay.hotmart.com/O102944551F')
-
-# ========================================
 # CONFIGURAÇÕES DE SEGURANÇA
 # ========================================
+# Token para validação de webhooks WhatsApp
+WHATSAPP_WEBHOOK_TOKEN = os.getenv('WHATSAPP_WEBHOOK_TOKEN', '')
+
 # Configurações de segurança HTTPS/SSL (apenas em produção)
 # Em desenvolvimento, deixar False para facilitar testes locais
 if not DEBUG:

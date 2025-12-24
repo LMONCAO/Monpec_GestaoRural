@@ -71,7 +71,9 @@ def _calcular_metricas(ultima_pesagem, pesagem_anterior, peso_alvo, hoje):
 
 @login_required
 def pesagem_dashboard(request, propriedade_id):
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    # ✅ SEGURANÇA: Verificar permissão de acesso à propriedade
+    from .decorators import obter_propriedade_com_permissao
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     hoje = timezone.localdate()
     peso_alvo = PESO_ALVO_PADRAO
 
@@ -183,7 +185,9 @@ def pesagem_dashboard(request, propriedade_id):
 @login_required
 @transaction.atomic
 def pesagem_nova(request, propriedade_id):
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    # ✅ SEGURANÇA: Verificar permissão de acesso à propriedade
+    from .decorators import obter_propriedade_com_permissao
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
 
     if request.method == 'POST':
         form = AnimalPesagemForm(request.POST, propriedade=propriedade)

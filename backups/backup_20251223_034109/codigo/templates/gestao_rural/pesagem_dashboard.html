@@ -1,0 +1,226 @@
+{% extends "base_modulos_unificado.html" %}
+{% load formatacao_br %}
+
+{% block title %}Pesagens - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'pecuaria_completa_dashboard' propriedade.id %}">Pecuária</a></li>
+            <li class="breadcrumb-item active">Pesagem</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
+        <div>
+            <h2 class="mb-1">
+                <i class="bi bi-speedometer2 text-primary me-2"></i>Gestão de Pesagens
+            </h2>
+            <p class="text-muted mb-0">{{ propriedade.nome_propriedade }}</p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{% url 'pesagem_nova' propriedade.id %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle me-1"></i> Registrar Pesagem
+            </a>
+            <a href="{% url 'curral_dashboard_v4' propriedade.id %}" class="btn btn-outline-primary">
+                <i class="bi bi-cpu me-1"></i> Abrir Curral Inteligente
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border h-100">
+                <div class="card-body">
+                    <p class="text-muted mb-1 small">Animais com pesagem registrada</p>
+                    <h3 class="mb-0">{{ total_animais|numero_br }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border h-100">
+                <div class="card-body">
+                    <p class="text-muted mb-1 small">Pesagens (últimos 30 dias)</p>
+                    <h3 class="mb-0">{{ pesagens_30_dias|numero_br }}</h3>
+                    <small class="text-muted">Total acumulado: {{ total_pesagens|numero_br }}</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border h-100">
+                <div class="card-body">
+                    <p class="text-muted mb-1 small">Ganho diário médio (kg/dia)</p>
+                    <h3 class="mb-0">
+                        {% if ganho_diario_medio %}
+                            {{ ganho_diario_medio|numero_br:2 }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border h-100">
+                <div class="card-body">
+                    <p class="text-muted mb-1 small">Peso médio atual (kg)</p>
+                    <h3 class="mb-0">
+                        {% if peso_medio_geral %}
+                            {{ peso_medio_geral|numero_br:2 }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </h3>
+                    <small class="text-muted">Meta de abate: {{ peso_alvo|numero_br:0 }} kg</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-clipboard-data me-2"></i>Últimas pesagens</h5>
+            <span class="text-muted small">Acompanhe o ganho de peso e o status para abate</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Animal</th>
+                            <th>Lote</th>
+                            <th class="text-end">Data</th>
+                            <th class="text-end">Peso (kg)</th>
+                            <th class="text-end">Ganho (kg)</th>
+                            <th class="text-end">Ganho diário</th>
+                            <th class="text-end">Dias desde</th>
+                            <th class="text-end">Dias p/ abate</th>
+                            <th>Ração</th>
+                            <th class="text-end">Consumo (kg/dia)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for registro in registros %}
+                            <tr>
+                                <td>
+                                    <strong>{{ registro.animal.numero_brinco }}</strong>
+                                    {% if registro.animal.apelido %}
+                                        <div class="text-muted small">{{ registro.animal.apelido }}</div>
+                                    {% endif %}
+                                </td>
+                                <td>{{ registro.lote_nome|default:"Sem lote" }}</td>
+                                <td class="text-end">
+                                    {{ registro.ultima_pesagem.data_pesagem|date:"d/m/Y" }}
+                                </td>
+                                <td class="text-end">
+                                    {% if registro.metricas.peso_atual %}
+                                        {{ registro.metricas.peso_atual|numero_br:2 }}
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    {% if registro.metricas.ganho_peso %}
+                                        {{ registro.metricas.ganho_peso|numero_br:2 }}
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    {% if registro.metricas.ganho_diario %}
+                                        {{ registro.metricas.ganho_diario|numero_br:2 }}
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    {{ registro.metricas.dias_desde|default:"—" }}
+                                </td>
+                                <td class="text-end">
+                                    {% if registro.metricas.dias_para_abate is not None %}
+                                        {{ registro.metricas.dias_para_abate|numero_br }}
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {{ registro.tipo_racao|default:"—" }}
+                                </td>
+                                <td class="text-end">
+                                    {% if registro.consumo_racao_kg_dia %}
+                                        {{ registro.consumo_racao_kg_dia|numero_br:2 }}
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="10" class="text-center text-muted py-4">
+                                    Nenhuma pesagem registrada até o momento.
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header bg-light">
+            <h5 class="mb-0"><i class="bi bi-diagram-3 me-2"></i>Resumo por lote</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Lote</th>
+                            <th class="text-end">Animais pesados</th>
+                            <th class="text-end">Peso médio (kg)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for lote in lotes_resumo %}
+                            <tr>
+                                <td>{{ lote.nome|default:"Sem lote" }}</td>
+                                <td class="text-end">{{ lote.total|numero_br }}</td>
+                                <td class="text-end">
+                                    {% if lote.peso_medio %}
+                                        {{ lote.peso_medio|numero_br:2 }}
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="3" class="text-center text-muted py-3">
+                                    Ainda não há pesagens para calcular o resumo por lote.
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+
+
+
+
+
+
+
+
+
+

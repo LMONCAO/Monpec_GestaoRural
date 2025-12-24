@@ -103,6 +103,13 @@ except ImportError as e:
     Fornecedor = None
     modulos_indisponiveis.append('compras')
 
+try:
+    from .models_patrimonio import BemPatrimonial
+except ImportError as e:
+    logger.warning(f'Módulo de patrimônio não disponível: {e}')
+    BemPatrimonial = None
+    modulos_indisponiveis.append('patrimonio')
+
 
 @login_required
 def pecuaria_completa_dashboard(request, propriedade_id):
@@ -148,8 +155,9 @@ def pecuaria_completa_dashboard(request, propriedade_id):
     else:
         inventario = InventarioRebanho.objects.none()
     
-        total_animais_inventario = sum(item.quantidade or 0 for item in inventario)
-        valor_total_rebanho = sum(item.valor_total or Decimal('0') for item in inventario)
+    # Calcular totais sempre (independente de ter inventário ou não)
+    total_animais_inventario = sum(item.quantidade or 0 for item in inventario)
+    valor_total_rebanho = sum(item.valor_total or Decimal('0') for item in inventario)
     
     # Inventário por categoria para gráfico
     inventario_por_categoria = inventario.values('categoria__nome').annotate(
@@ -362,6 +370,42 @@ def pecuaria_completa_dashboard(request, propriedade_id):
         contas_ativas = ContaFinanceira.objects.filter(propriedade=propriedade, ativa=True).count()
     else:
         contas_ativas = 0
+    
+    # ========== BENS E PATRIMÔNIO ==========
+    if BemPatrimonial:
+        bens = BemPatrimonial.objects.filter(propriedade=propriedade, ativo=True)
+        total_bens = bens.count()
+        valor_total_bens = sum(b.valor_aquisicao or Decimal('0') for b in bens)
+        valor_depreciado_bens = sum(
+            (b.valor_aquisicao or Decimal('0')) - (b.valor_residual or Decimal('0'))
+            for b in bens
+        )
+    else:
+        total_bens = 0
+        valor_total_bens = Decimal('0')
+        valor_depreciado_bens = Decimal('0')
+    
+    # ========== PLANEJAMENTO ==========
+    if PlanejamentoAnual:
+        planejamentos_ativos = PlanejamentoAnual.objects.filter(
+            propriedade=propriedade,
+            status__in=['ATIVO', 'EM_ANDAMENTO']
+        ).count()
+        
+        # Buscar total de metas
+        planejamentos = PlanejamentoAnual.objects.filter(propriedade=propriedade)
+        total_metas_comerciais = sum(
+            p.metas_comerciais.count() if hasattr(p, 'metas_comerciais') else 0
+            for p in planejamentos
+        )
+        total_metas_financeiras = sum(
+            p.metas_financeiras.count() if hasattr(p, 'metas_financeiras') else 0
+            for p in planejamentos
+        )
+    else:
+        planejamentos_ativos = 0
+        total_metas_comerciais = 0
+        total_metas_financeiras = 0
     
     # ========== COMPRAS ==========
     if RequisicaoCompra and (not modulo_filtro or modulo_filtro == 'COMPRAS'):
@@ -900,6 +944,14 @@ def pecuaria_completa_dashboard(request, propriedade_id):
         'ordens_pendentes': ordens_pendentes,
         'valor_ordens_pendentes': valor_ordens_pendentes,
         'total_fornecedores': total_fornecedores,
+        # Bens e Patrimônio
+        'total_bens': total_bens,
+        'valor_total_bens': valor_total_bens,
+        'valor_depreciado_bens': valor_depreciado_bens,
+        # Planejamento
+        'planejamentos_ativos': planejamentos_ativos,
+        'total_metas_comerciais': total_metas_comerciais,
+        'total_metas_financeiras': total_metas_financeiras,
         # Métricas consolidadas
         'total_custos_operacionais': total_custos_operacionais,
         'margem_lucro': margem_lucro,

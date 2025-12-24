@@ -1,0 +1,76 @@
+{% extends 'base_moderno.html' %}
+
+{% block title %}Excluir Produtor - Sistema Rural{% endblock %}
+
+{% block content_authenticated %}
+<div class="fade-in-up">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card-moderno">
+                <div class="card-header-moderno" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white;">
+                    <h5 class="mb-0 text-white">
+                        <i class="bi bi-exclamation-triangle me-2"></i> Confirmar Exclusão
+                    </h5>
+                </div>
+                <div class="card-body-moderno">
+                    <div class="alert-moderno alert-warning">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        <strong>Atenção!</strong> Esta ação não pode ser desfeita.
+                    </div>
+                    
+                    <p class="mb-4">Tem certeza que deseja excluir o produtor <strong>{{ produtor.nome }}</strong>?</p>
+                    
+                    <div class="card-moderno mb-4" style="background-color: #f8fafc;">
+                        <div class="card-body-moderno">
+                            <h6 class="mb-3" style="color: var(--primary); font-weight: 600;">
+                                <i class="bi bi-person-circle me-2"></i>Dados do Produtor
+                            </h6>
+                            <div class="row">
+                                <div class="col-md-6 mb-2">
+                                    <p class="mb-1"><strong>Nome:</strong> {{ produtor.nome }}</p>
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <p class="mb-1"><strong>CPF/CNPJ:</strong> {{ produtor.cpf_cnpj }}</p>
+                                </div>
+                                {% if produtor.documento_identidade %}
+                                <div class="col-md-6 mb-2">
+                                    <p class="mb-1"><strong>RG:</strong> {{ produtor.documento_identidade }}</p>
+                                </div>
+                                {% endif %}
+                                {% if produtor.data_nascimento %}
+                                <div class="col-md-6 mb-2">
+                                    <p class="mb-1"><strong>Idade:</strong> {{ produtor.idade }} anos</p>
+                                </div>
+                                {% endif %}
+                                {% if produtor.anos_experiencia %}
+                                <div class="col-md-6 mb-2">
+                                    <p class="mb-1"><strong>Experiência:</strong> {{ produtor.anos_experiencia }} anos</p>
+                                </div>
+                                {% endif %}
+                                <div class="col-md-6 mb-2">
+                                    <p class="mb-1"><strong>Telefone:</strong> {{ produtor.telefone|default:"Não informado" }}</p>
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <p class="mb-0"><strong>E-mail:</strong> {{ produtor.email|default:"Não informado" }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <form method="post" class="mt-3">
+                        {% csrf_token %}
+                        <div class="d-flex gap-2 justify-content-end">
+                            <a href="{% url 'dashboard' %}" class="btn btn-moderno btn-outline">
+                                <i class="bi bi-arrow-left me-2"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; transition: all 0.2s ease;">
+                                <i class="bi bi-trash me-2"></i> Sim, Excluir
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

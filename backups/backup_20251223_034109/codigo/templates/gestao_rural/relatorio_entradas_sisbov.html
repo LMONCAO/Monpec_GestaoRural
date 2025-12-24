@@ -1,0 +1,121 @@
+{% extends "base_modulos_unificado.html" %}
+
+{% block title %}Entradas SISBOV - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'rastreabilidade_dashboard' propriedade.id %}">Rastreabilidade</a></li>
+            <li class="breadcrumb-item active">
+                {% if tipo_movimentacao == 'NASCIMENTO' %}
+                    Nascimentos PNIB
+                {% elif tipo_movimentacao == 'TRANSFERENCIA_ENTRADA' %}
+                    Transferências (Entradas)
+                {% elif tipo_movimentacao == 'COMPRA' %}
+                    Compras do Rebanho
+                {% else %}
+                    Entradas / Nascimentos
+                {% endif %}
+            </li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+        <div>
+            {% if tipo_movimentacao == 'NASCIMENTO' %}
+                <h2 class="mb-0"><i class="bi bi-arrow-down-square text-success me-2"></i>Nascimentos Oficiais</h2>
+                <small class="text-muted">Registros de bezerros nascidos na propriedade</small>
+            {% elif tipo_movimentacao == 'TRANSFERENCIA_ENTRADA' %}
+                <h2 class="mb-0"><i class="bi bi-arrow-down-square text-success me-2"></i>Transferências de Entrada</h2>
+                <small class="text-muted">Animais recebidos de outras propriedades com SISBOV</small>
+            {% elif tipo_movimentacao == 'COMPRA' %}
+                <h2 class="mb-0"><i class="bi bi-arrow-down-square text-success me-2"></i>Compras Oficializadas</h2>
+                <small class="text-muted">Animais adquiridos com documentação MAPA/SISBOV</small>
+            {% else %}
+                <h2 class="mb-0"><i class="bi bi-arrow-down-square text-success me-2"></i>Entradas Oficiais do Rebanho</h2>
+                <small class="text-muted">Nascimentos, compras e transferências de entrada</small>
+            {% endif %}
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            {% if tipo_movimentacao %}
+                <span class="badge bg-success-subtle text-success fw-semibold text-uppercase">{{ tipo_movimentacao|title }}</span>
+            {% endif %}
+            <button class="btn btn-outline-secondary" onclick="window.print()"><i class="bi bi-printer me-1"></i>Imprimir / PDF</button>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label">Data inicial</label>
+                    <input type="date" name="data_inicio" value="{{ data_inicio|date:'Y-m-d' }}" class="form-control">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Data final</label>
+                    <input type="date" name="data_fim" value="{{ data_fim|date:'Y-m-d' }}" class="form-control">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Brinco</label>
+                    <input type="text" name="busca" value="{{ busca }}" class="form-control" placeholder="Número do brinco">
+                </div>
+                {% if tipo_movimentacao %}
+                <input type="hidden" name="tipo_movimentacao" value="{{ tipo_movimentacao }}">
+                {% endif %}
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-success w-100"><i class="bi bi-search me-1"></i>Filtrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header bg-light">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Registros encontrados</h5>
+                <span class="badge bg-success">{{ total_entradas }} registros</span>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Data</th>
+                            <th>Brinco</th>
+                            <th>Tipo</th>
+                            <th>Categoria</th>
+                            <th>Origem</th>
+                            <th>Peso (kg)</th>
+                            <th>Documento</th>
+                            <th>Observações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for mov in entradas %}
+                        <tr>
+                            <td>{{ mov.data_movimentacao|date:"d/m/Y" }}</td>
+                            <td><strong>{{ mov.animal.numero_brinco }}</strong></td>
+                            <td>{{ mov.get_tipo_movimentacao_display }}</td>
+                            <td>{{ mov.animal.categoria.nome }}</td>
+                            <td>{{ mov.propriedade_origem.nome_propriedade|default:"Nascimento local" }}</td>
+                            <td>{{ mov.peso_kg|default:"-" }}</td>
+                            <td>{{ mov.numero_documento|default:"-" }}</td>
+                            <td>{{ mov.observacoes|default:"-" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-4">Nenhuma entrada registrada para os filtros informados.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

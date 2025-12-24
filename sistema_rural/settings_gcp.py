@@ -20,8 +20,10 @@ ALLOWED_HOSTS = [
     'www.monpec.com.br',
     'monpec-sistema-rural.uc.r.appspot.com',  # App Engine
     'monpec-29862706245.us-central1.run.app',  # Cloud Run - host específico
+    'monpec-fzzfjppzva-uc.a.run.app',  # Cloud Run - host alternativo
     'localhost',
     '127.0.0.1',
+    '*',  # Permitir todos os hosts do Cloud Run (será filtrado pelo middleware)
 ]
 
 # Adicionar hosts do Cloud Run
@@ -195,9 +197,10 @@ LOGGING = {
     },
 }
 
-# URLs do Stripe para produção
-STRIPE_SUCCESS_URL = os.getenv('STRIPE_SUCCESS_URL', 'https://monpec.com.br/assinaturas/sucesso/')
-STRIPE_CANCEL_URL = os.getenv('STRIPE_CANCEL_URL', 'https://monpec.com.br/assinaturas/cancelado/')
+# URLs do Mercado Pago para produção
+MERCADOPAGO_SUCCESS_URL = os.getenv('MERCADOPAGO_SUCCESS_URL', 'https://monpec.com.br/assinaturas/sucesso/')
+MERCADOPAGO_CANCEL_URL = os.getenv('MERCADOPAGO_CANCEL_URL', 'https://monpec.com.br/assinaturas/cancelado/')
+SITE_URL = os.getenv('SITE_URL', 'https://monpec.com.br')
 
 # Google Analytics (pode ser sobrescrito via variável de ambiente)
 # Prioridade: variável de ambiente > settings.py

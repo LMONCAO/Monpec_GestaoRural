@@ -36,6 +36,15 @@ try:
 except ImportError:
     RELATORIOS_CUSTOMIZADOS_DISPONIVEL = False
 
+# Importar modelos de marketing
+try:
+    from .models_marketing import (
+        TemplatePost, PostGerado, LeadInteressado, CampanhaMarketing, ConfiguracaoMarketing
+    )
+    MARKETING_DISPONIVEL = True
+except ImportError:
+    MARKETING_DISPONIVEL = False
+
 
 @admin.register(ProdutorRural)
 class ProdutorRuralAdmin(admin.ModelAdmin):
@@ -242,17 +251,18 @@ class CurralLoteAdmin(admin.ModelAdmin):
 
 @admin.register(PlanoAssinatura)
 class PlanoAssinaturaAdmin(admin.ModelAdmin):
-    list_display = ['nome', 'slug', 'stripe_price_id', 'preco_mensal_referencia', 'max_usuarios', 'ativo', 'atualizado_em']
+    list_display = ['nome', 'slug', 'mercadopago_preapproval_id', 'preco_mensal_referencia', 'max_usuarios', 'ativo', 'atualizado_em']
     list_filter = ['ativo', 'max_usuarios']
-    search_fields = ['nome', 'slug', 'stripe_price_id']
+    search_fields = ['nome', 'slug', 'mercadopago_preapproval_id']
     prepopulated_fields = {'slug': ('nome',)}
     readonly_fields = ['criado_em', 'atualizado_em']
     fieldsets = (
         ('Informações Básicas', {
             'fields': ('nome', 'slug', 'descricao', 'ativo')
         }),
-        ('Stripe', {
-            'fields': ('stripe_price_id', 'preco_mensal_referencia')
+        ('Mercado Pago', {
+            'fields': ('mercadopago_preapproval_id', 'preco_mensal_referencia'),
+            'description': 'O preapproval_id será criado automaticamente na primeira compra se não estiver configurado.'
         }),
         ('Limites', {
             'fields': ('max_usuarios', 'modulos_disponiveis')
@@ -267,11 +277,11 @@ class PlanoAssinaturaAdmin(admin.ModelAdmin):
 @admin.register(AssinaturaCliente)
 class AssinaturaClienteAdmin(admin.ModelAdmin):
     list_display = [
-        'usuario', 'plano', 'status', 'stripe_customer_id',
-        'stripe_subscription_id', 'current_period_end', 'cancelamento_agendado'
+        'usuario', 'plano', 'status', 'gateway_pagamento',
+        'mercadopago_subscription_id', 'current_period_end', 'cancelamento_agendado'
     ]
-    list_filter = ['status', 'cancelamento_agendado', 'plano']
-    search_fields = ['usuario__username', 'usuario__email', 'stripe_customer_id', 'stripe_subscription_id']
+    list_filter = ['status', 'cancelamento_agendado', 'plano', 'gateway_pagamento']
+    search_fields = ['usuario__username', 'usuario__email', 'mercadopago_customer_id', 'mercadopago_subscription_id']
     autocomplete_fields = ['usuario', 'produtor', 'plano']
     readonly_fields = ['criado_em', 'atualizado_em']
 
@@ -354,16 +364,19 @@ class CategoriaProdutoAdmin(admin.ModelAdmin):
 
 @admin.register(Produto)
 class ProdutoAdmin(admin.ModelAdmin):
-    list_display = ['codigo', 'descricao', 'categoria', 'ncm', 'ncm_validado', 'sincronizado_receita', 'ativo']
-    list_filter = ['categoria', 'ativo', 'ncm_validado', 'sincronizado_receita', 'unidade_medida']
-    search_fields = ['codigo', 'descricao', 'ncm', 'cfop_entrada', 'cfop_saida_estadual', 'cfop_saida_interestadual']
+    list_display = ['codigo', 'descricao', 'categoria', 'ncm', 'origem_mercadoria', 'cest', 'ncm_validado', 'sincronizado_receita', 'ativo']
+    list_filter = ['categoria', 'ativo', 'ncm_validado', 'sincronizado_receita', 'unidade_medida', 'origem_mercadoria']
+    search_fields = ['codigo', 'descricao', 'ncm', 'cest', 'gtin', 'cfop_entrada', 'cfop_saida_estadual', 'cfop_saida_interestadual']
     readonly_fields = ['data_cadastro', 'data_atualizacao', 'ncm_data_validacao', 'data_sincronizacao']
     fieldsets = (
         ('Dados Básicos', {
             'fields': ('codigo', 'descricao', 'descricao_completa', 'categoria', 'unidade_medida', 'ativo')
         }),
-        ('Dados Fiscais - NCM', {
-            'fields': ('ncm', 'ncm_descricao', 'ncm_validado', 'ncm_data_validacao')
+        ('Dados Fiscais - NCM e Origem', {
+            'fields': ('ncm', 'ncm_descricao', 'ncm_validado', 'ncm_data_validacao', 'origem_mercadoria')
+        }),
+        ('Dados Fiscais - CEST e Códigos', {
+            'fields': ('cest', 'gtin', 'ex_tipi')
         }),
         ('Dados Fiscais - CFOP', {
             'fields': ('cfop_entrada', 'cfop_saida_estadual', 'cfop_saida_interestadual')
@@ -512,4 +525,44 @@ class SessaoSeguraAdmin(admin.ModelAdmin):
     list_filter = ['ativo', 'ultima_atividade', 'criado_em']
     search_fields = ['usuario__username', 'ip_address']
     readonly_fields = ['session_key', 'criado_em', 'ultima_atividade']
+
+
+# ========== MARKETING ==========
+if MARKETING_DISPONIVEL:
+    @admin.register(TemplatePost)
+    class TemplatePostAdmin(admin.ModelAdmin):
+        list_display = ['nome', 'tipo_post', 'rede_social', 'ativo', 'criado_em']
+        list_filter = ['tipo_post', 'rede_social', 'ativo', 'criado_em']
+        search_fields = ['nome', 'conteudo']
+        readonly_fields = ['criado_em', 'atualizado_em']
+    
+    @admin.register(PostGerado)
+    class PostGeradoAdmin(admin.ModelAdmin):
+        list_display = ['titulo', 'tipo_post', 'rede_social', 'status', 'criado_por', 'criado_em']
+        list_filter = ['tipo_post', 'rede_social', 'status', 'criado_em']
+        search_fields = ['titulo', 'conteudo_final']
+        readonly_fields = ['criado_em', 'atualizado_em', 'publicado_em']
+    
+    @admin.register(LeadInteressado)
+    class LeadInteressadoAdmin(admin.ModelAdmin):
+        list_display = ['nome', 'email', 'telefone', 'status', 'credenciais_enviadas', 'criado_em']
+        list_filter = ['status', 'origem', 'credenciais_enviadas', 'criado_em', 'tipo_atividade']
+        search_fields = ['nome', 'email', 'telefone', 'propriedade_nome']
+        readonly_fields = ['criado_em', 'atualizado_em', 'ip_address', 'user_agent']
+    
+    @admin.register(CampanhaMarketing)
+    class CampanhaMarketingAdmin(admin.ModelAdmin):
+        list_display = ['nome', 'data_inicio', 'data_fim', 'ativa', 'criado_por', 'criado_em']
+        list_filter = ['ativa', 'data_inicio', 'criado_em']
+        search_fields = ['nome', 'descricao']
+        readonly_fields = ['criado_em', 'atualizado_em']
+    
+    @admin.register(ConfiguracaoMarketing)
+    class ConfiguracaoMarketingAdmin(admin.ModelAdmin):
+        def has_add_permission(self, request):
+            # Permite apenas uma instância
+            return not ConfiguracaoMarketing.objects.exists()
+        
+        def has_delete_permission(self, request, obj=None):
+            return False
 

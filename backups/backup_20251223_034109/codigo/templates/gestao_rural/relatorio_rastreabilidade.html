@@ -1,0 +1,645 @@
+{% extends "base_modulos_unificado.html" %}
+{% load formatacao_br %}
+
+{% block title %}Relatório SISBOV - IN 51/MAPA - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .anexo-section {
+        margin-bottom: 40px;
+        page-break-inside: avoid;
+    }
+    
+    .anexo-header {
+        background: linear-gradient(135deg, #1e88e5 0%, #1565c0 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 8px 8px 0 0;
+        margin-bottom: 0;
+    }
+    
+    .anexo-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0;
+    }
+    
+    .anexo-subtitle {
+        font-size: 0.9rem;
+        opacity: 0.9;
+        margin: 5px 0 0 0;
+    }
+    
+    .anexo-card {
+        border: 1px solid #e0e0e0;
+        border-top: none;
+        border-radius: 0 0 8px 8px;
+        background: white;
+    }
+    
+    .table-anexo {
+        margin-bottom: 0;
+    }
+    
+    .table-anexo thead th {
+        background: #f5f5f5;
+        color: #37474f;
+        font-weight: 600;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 12px;
+        border-bottom: 2px solid #e0e0e0;
+    }
+    
+    .table-anexo tbody td {
+        padding: 10px 12px;
+        vertical-align: middle;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .table-anexo tbody tr:hover {
+        background: #f9f9f9;
+    }
+    
+    .badge-anexo {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+    
+    .nav-anexos {
+        background: #fff;
+        border-bottom: 2px solid #e0e0e0;
+        margin-bottom: 30px;
+        border-radius: 8px;
+        padding: 10px;
+    }
+    
+    .nav-anexos .nav-link {
+        color: #455a64;
+        font-weight: 600;
+        padding: 10px 20px;
+        border-radius: 6px;
+        margin: 0 5px;
+        transition: all 0.3s;
+    }
+    
+    .nav-anexos .nav-link:hover {
+        background: #e3f2fd;
+        color: #1565c0;
+    }
+    
+    .nav-anexos .nav-link.active {
+        background: #1e88e5;
+        color: white;
+    }
+    
+    @media print {
+        .nav-anexos, .btn, .filtros-card {
+            display: none !important;
+        }
+        .anexo-section {
+            page-break-after: always;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'rastreabilidade_dashboard' propriedade.id %}">Rastreabilidade</a></li>
+            <li class="breadcrumb-item active">Relatório SISBOV - IN 51/MAPA</li>
+        </ol>
+    </nav>
+
+    <!-- Cabeçalho do Relatório -->
+    <div class="card mb-4">
+        <div class="card-body text-center">
+            <h2 class="mb-2">
+                <i class="bi bi-file-earmark-text text-primary"></i>
+                Relatório de Rastreabilidade Bovina - SISBOV
+            </h2>
+            <p class="text-muted mb-3">
+                Conforme Instrução Normativa Nº 51/MAPA - Programa Nacional de Identificação e Rastreabilidade de Bovinos e Bubalinos
+            </p>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <strong>Propriedade:</strong> {{ propriedade.nome_propriedade }}
+                </div>
+                <div class="col-md-4">
+                    <strong>Data de Emissão:</strong> {{ data_emissao|date:"d/m/Y" }}
+                </div>
+                <div class="col-md-4">
+                    <strong>Período:</strong> 
+                    {% if data_inicio and data_fim %}
+                        {{ data_inicio|date:"d/m/Y" }} a {{ data_fim|date:"d/m/Y" }}
+                    {% elif data_inicio %}
+                        A partir de {{ data_inicio|date:"d/m/Y" }}
+                    {% elif data_fim %}
+                        Até {{ data_fim|date:"d/m/Y" }}
+                    {% else %}
+                        Todos os registros
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4 filtros-card">
+        <div class="card-body">
+            <form id="filtro-relatorio" method="get">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label">Data Inicial</label>
+                        <input type="date" name="data_inicio" value="{{ data_inicio }}" class="form-control">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Data Final</label>
+                        <input type="date" name="data_fim" value="{{ data_fim }}" class="form-control">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Tipo de Movimentação</label>
+                        <select class="form-select" name="tipo_movimentacao">
+                            <option value="">Todas</option>
+                            <option value="NASCIMENTO" {% if tipo_movimentacao == 'NASCIMENTO' %}selected{% endif %}>Nascimento</option>
+                            <option value="COMPRA" {% if tipo_movimentacao == 'COMPRA' %}selected{% endif %}>Compra</option>
+                            <option value="VENDA" {% if tipo_movimentacao == 'VENDA' %}selected{% endif %}>Venda</option>
+                            <option value="TRANSFERENCIA_ENTRADA" {% if tipo_movimentacao == 'TRANSFERENCIA_ENTRADA' %}selected{% endif %}>Transferência Entrada</option>
+                            <option value="TRANSFERENCIA_SAIDA" {% if tipo_movimentacao == 'TRANSFERENCIA_SAIDA' %}selected{% endif %}>Transferência Saída</option>
+                            <option value="MORTE" {% if tipo_movimentacao == 'MORTE' %}selected{% endif %}>Morte</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-search me-1"></i>Filtrar
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Estatísticas Resumidas -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #1e88e5 0%, #1565c0 100%);">
+                <div class="card-body text-white text-center">
+                    <i class="bi bi-cow fs-1 mb-2 opacity-75"></i>
+                    <div class="fs-6 fw-light mb-1">Total de Animais</div>
+                    <h2 class="mb-0 fw-bold">{{ total_animais }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%);">
+                <div class="card-body text-white text-center">
+                    <i class="bi bi-check-circle fs-1 mb-2 opacity-75"></i>
+                    <div class="fs-6 fw-light mb-1">Animais Ativos</div>
+                    <h2 class="mb-0 fw-bold">{{ animais_ativos }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #00acc1 0%, #0097a7 100%);">
+                <div class="card-body text-white text-center">
+                    <i class="bi bi-arrow-left-right fs-1 mb-2 opacity-75"></i>
+                    <div class="fs-6 fw-light mb-1">Movimentações</div>
+                    <h2 class="mb-0 fw-bold">{{ movimentacoes|length }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);">
+                <div class="card-body text-white text-center">
+                    <i class="bi bi-syringe fs-1 mb-2 opacity-75"></i>
+                    <div class="fs-6 fw-light mb-1">Vacinações</div>
+                    <h2 class="mb-0 fw-bold">{{ vacinacoes|length }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navegação entre Anexos -->
+    <ul class="nav nav-pills nav-anexos justify-content-center" role="tablist">
+        <li class="nav-item">
+            <a class="nav-link {% if not anexo or anexo == 'I' %}active{% endif %}" 
+               href="?anexo=I{% if data_inicio %}&data_inicio={{ data_inicio }}{% endif %}{% if data_fim %}&data_fim={{ data_fim }}{% endif %}">
+                Anexo I - Identificação
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if anexo == 'II' %}active{% endif %}" 
+               href="?anexo=II{% if data_inicio %}&data_inicio={{ data_inicio }}{% endif %}{% if data_fim %}&data_fim={{ data_fim }}{% endif %}">
+                Anexo II - Movimentação
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if anexo == 'III' %}active{% endif %}" 
+               href="?anexo=III{% if data_inicio %}&data_inicio={{ data_inicio }}{% endif %}{% if data_fim %}&data_fim={{ data_fim }}{% endif %}">
+                Anexo III - Sanidade
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if anexo == 'IV' %}active{% endif %}" 
+               href="?anexo=IV{% if data_inicio %}&data_inicio={{ data_inicio }}{% endif %}{% if data_fim %}&data_fim={{ data_fim }}{% endif %}">
+                Anexo IV - Inventário
+            </a>
+        </li>
+    </ul>
+
+    <!-- ANEXO I - Identificação Individual dos Animais -->
+    {% if not anexo or anexo == 'I' %}
+    <div class="anexo-section">
+        <div class="anexo-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h3 class="anexo-title">ANEXO I - Identificação Individual dos Animais</h3>
+                    <p class="anexo-subtitle">Relatório de identificação individual conforme IN 51/MAPA</p>
+                </div>
+                <div class="btn-group">
+                    <a href="{% url 'exportar_anexo_i_pdf' propriedade.id %}?{% if data_inicio %}data_inicio={{ data_inicio }}&{% endif %}{% if data_fim %}data_fim={{ data_fim }}{% endif %}" 
+                       class="btn btn-light btn-sm">
+                        <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+                    </a>
+                    <a href="{% url 'exportar_anexo_i_excel' propriedade.id %}?{% if data_inicio %}data_inicio={{ data_inicio }}&{% endif %}{% if data_fim %}data_fim={{ data_fim }}{% endif %}" 
+                       class="btn btn-light btn-sm">
+                        <i class="bi bi-file-earmark-spreadsheet me-1"></i>Excel
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="anexo-card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-anexo">
+                        <thead>
+                            <tr>
+                                <th>Brinco / SISBOV</th>
+                                <th>Categoria</th>
+                                <th>Sexo</th>
+                                <th>Data Nascimento</th>
+                                <th>Data Identificação</th>
+                                <th>Raça</th>
+                                <th>Status</th>
+                                <th>Lote</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for animal in animais %}
+                            <tr>
+                                <td>
+                                    <strong>{{ animal.numero_brinco }}</strong>
+                                    {% if animal.codigo_sisbov %}
+                                        <div class="small text-muted">SISBOV: {{ animal.codigo_sisbov }}</div>
+                                    {% endif %}
+                                </td>
+                                <td>{{ animal.categoria.nome|default:"-" }}</td>
+                                <td>{{ animal.get_sexo_display|default:"-" }}</td>
+                                <td>{{ animal.data_nascimento|date:"d/m/Y"|default:"-" }}</td>
+                                <td>{{ animal.data_identificacao|date:"d/m/Y"|default:"-" }}</td>
+                                <td>{{ animal.raca|default:"-" }}</td>
+                                <td>
+                                    {% if animal.status == 'ATIVO' %}
+                                        <span class="badge bg-success badge-anexo">Ativo</span>
+                                    {% elif animal.status == 'VENDIDO' %}
+                                        <span class="badge bg-warning badge-anexo">Vendido</span>
+                                    {% elif animal.status == 'MORTO' %}
+                                        <span class="badge bg-danger badge-anexo">Morto</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary badge-anexo">{{ animal.get_status_display }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ animal.lote_atual.nome|default:"-" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="8" class="text-center text-muted py-4">Nenhum animal encontrado.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ANEXO II - Movimentação de Animais -->
+    {% if anexo == 'II' or not anexo %}
+    <div class="anexo-section">
+        <div class="anexo-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h3 class="anexo-title">ANEXO II - Movimentação de Animais</h3>
+                    <p class="anexo-subtitle">Registro de todas as movimentações conforme IN 51/MAPA</p>
+                </div>
+                <div class="btn-group">
+                    <a href="{% url 'exportar_anexo_ii_pdf' propriedade.id %}?{% if data_inicio %}data_inicio={{ data_inicio }}&{% endif %}{% if data_fim %}data_fim={{ data_fim }}&{% endif %}{% if tipo_movimentacao %}tipo_movimentacao={{ tipo_movimentacao }}{% endif %}" 
+                       class="btn btn-light btn-sm">
+                        <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+                    </a>
+                    <a href="{% url 'exportar_anexo_ii_excel' propriedade.id %}?{% if data_inicio %}data_inicio={{ data_inicio }}&{% endif %}{% if data_fim %}data_fim={{ data_fim }}&{% endif %}{% if tipo_movimentacao %}tipo_movimentacao={{ tipo_movimentacao }}{% endif %}" 
+                       class="btn btn-light btn-sm">
+                        <i class="bi bi-file-earmark-spreadsheet me-1"></i>Excel
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="anexo-card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-anexo">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Animal / SISBOV</th>
+                                <th>Tipo</th>
+                                <th>Origem</th>
+                                <th>Destino</th>
+                                <th>Documento</th>
+                                <th>Peso (kg)</th>
+                                <th>Responsável</th>
+                                <th>Observações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for mov in movimentacoes %}
+                            <tr>
+                                <td>{{ mov.data_movimentacao|date:"d/m/Y" }}</td>
+                                <td>
+                                    <strong>{{ mov.animal.numero_brinco }}</strong>
+                                    {% if mov.animal.codigo_sisbov %}
+                                        <div class="small text-muted">SISBOV: {{ mov.animal.codigo_sisbov }}</div>
+                                    {% endif %}
+                                    <div class="small text-muted">{{ mov.animal.categoria.nome }}</div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-info badge-anexo">{{ mov.get_tipo_movimentacao_display }}</span>
+                                </td>
+                                <td>{{ mov.propriedade_origem.nome_propriedade|default:"-" }}</td>
+                                <td>{{ mov.propriedade_destino.nome_propriedade|default:"-" }}</td>
+                                <td>
+                                    {% if mov.numero_documento %}
+                                        <div><strong>Nº:</strong> {{ mov.numero_documento }}</div>
+                                        {% if mov.documento_emissor %}
+                                            <div class="small"><strong>Emissor:</strong> {{ mov.documento_emissor }}</div>
+                                        {% endif %}
+                                        {% if mov.data_documento %}
+                                            <div class="small"><strong>Data:</strong> {{ mov.data_documento|date:"d/m/Y" }}</div>
+                                        {% endif %}
+                                    {% else %}
+                                        <em class="text-muted">-</em>
+                                    {% endif %}
+                                </td>
+                                <td>{{ mov.peso_kg|numero_br:1|default:"-" }}</td>
+                                <td>
+                                    {% if mov.responsavel %}
+                                        {{ mov.responsavel.get_full_name|default:mov.responsavel.username }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td class="small">{{ mov.observacoes|truncatewords:10|default:"-" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="9" class="text-center text-muted py-4">Nenhuma movimentação encontrada.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ANEXO III - Sanidade (Vacinações e Tratamentos) -->
+    {% if anexo == 'III' or not anexo %}
+    <div class="anexo-section">
+        <div class="anexo-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h3 class="anexo-title">ANEXO III - Registros Sanitários</h3>
+                    <p class="anexo-subtitle">Vacinações e tratamentos sanitários conforme IN 51/MAPA</p>
+                </div>
+                <div class="btn-group">
+                    <a href="{% url 'exportar_anexo_iii_pdf' propriedade.id %}?{% if data_inicio %}data_inicio={{ data_inicio }}&{% endif %}{% if data_fim %}data_fim={{ data_fim }}{% endif %}" 
+                       class="btn btn-light btn-sm">
+                        <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+                    </a>
+                    <a href="{% url 'exportar_anexo_iii_excel' propriedade.id %}?{% if data_inicio %}data_inicio={{ data_inicio }}&{% endif %}{% if data_fim %}data_fim={{ data_fim }}{% endif %}" 
+                       class="btn btn-light btn-sm">
+                        <i class="bi bi-file-earmark-spreadsheet me-1"></i>Excel
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="anexo-card">
+            <div class="card-body">
+                <h5 class="mb-3"><i class="bi bi-syringe text-success"></i> Vacinações ({{ vacinacoes|length }})</h5>
+                <div class="table-responsive mb-4">
+                    <table class="table table-anexo">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Animal</th>
+                                <th>Categoria</th>
+                                <th>Tipo de Vacina</th>
+                                <th>Lote</th>
+                                <th>Responsável</th>
+                                <th>Observações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for vac in vacinacoes %}
+                            <tr>
+                                <td>{{ vac.data_movimentacao|date:"d/m/Y" }}</td>
+                                <td><strong>{{ vac.animal.numero_brinco }}</strong></td>
+                                <td>{{ vac.animal.categoria.nome|default:"-" }}</td>
+                                <td>{{ vac.motivo_detalhado|default:"Vacinação" }}</td>
+                                <td>{{ vac.numero_documento|default:"-" }}</td>
+                                <td>
+                                    {% if vac.responsavel %}
+                                        {{ vac.responsavel.get_full_name|default:vac.responsavel.username }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td class="small">{{ vac.observacoes|default:"-" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-3">Nenhuma vacinação registrada.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <h5 class="mb-3"><i class="bi bi-heart-pulse text-danger"></i> Tratamentos ({{ tratamentos|length }})</h5>
+                <div class="table-responsive">
+                    <table class="table table-anexo">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Animal</th>
+                                <th>Categoria</th>
+                                <th>Tipo de Tratamento</th>
+                                <th>Medicamento</th>
+                                <th>Responsável</th>
+                                <th>Observações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for trat in tratamentos %}
+                            <tr>
+                                <td>{{ trat.data_movimentacao|date:"d/m/Y" }}</td>
+                                <td><strong>{{ trat.animal.numero_brinco }}</strong></td>
+                                <td>{{ trat.animal.categoria.nome|default:"-" }}</td>
+                                <td>{{ trat.motivo_detalhado|default:"Tratamento" }}</td>
+                                <td>{{ trat.numero_documento|default:"-" }}</td>
+                                <td>
+                                    {% if trat.responsavel %}
+                                        {{ trat.responsavel.get_full_name|default:trat.responsavel.username }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td class="small">{{ trat.observacoes|default:"-" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-3">Nenhum tratamento registrado.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ANEXO IV - Inventário de Animais -->
+    {% if anexo == 'IV' or not anexo %}
+    <div class="anexo-section">
+        <div class="anexo-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h3 class="anexo-title">ANEXO IV - Inventário de Animais</h3>
+                    <p class="anexo-subtitle">Resumo por categoria e status conforme IN 51/MAPA</p>
+                </div>
+                <div class="btn-group">
+                    <a href="{% url 'exportar_anexo_iv_pdf' propriedade.id %}" 
+                       class="btn btn-light btn-sm">
+                        <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+                    </a>
+                    <a href="{% url 'exportar_anexo_iv_excel' propriedade.id %}" 
+                       class="btn btn-light btn-sm">
+                        <i class="bi bi-file-earmark-spreadsheet me-1"></i>Excel
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="anexo-card">
+            <div class="card-body">
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h5 class="mb-3">Animais por Categoria</h5>
+                        <div class="table-responsive">
+                            <table class="table table-anexo">
+                                <thead>
+                                    <tr>
+                                        <th>Categoria</th>
+                                        <th class="text-end">Quantidade</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in animais_por_categoria %}
+                                    <tr>
+                                        <td>{{ item.categoria__nome }}</td>
+                                        <td class="text-end">
+                                            <span class="badge bg-primary badge-anexo">{{ item.total }}</span>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="2" class="text-center text-muted py-3">Nenhum dado disponível.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h5 class="mb-3">Animais por Status</h5>
+                        <div class="table-responsive">
+                            <table class="table table-anexo">
+                                <thead>
+                                    <tr>
+                                        <th>Status</th>
+                                        <th class="text-end">Quantidade</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in animais_por_status %}
+                                    <tr>
+                                        <td>
+                                            {% if item.status == 'ATIVO' %}
+                                                <span class="badge bg-success badge-anexo">{{ status_labels|dict_get:item.status }}</span>
+                                            {% elif item.status == 'VENDIDO' %}
+                                                <span class="badge bg-warning badge-anexo">{{ status_labels|dict_get:item.status }}</span>
+                                            {% elif item.status == 'MORTO' %}
+                                                <span class="badge bg-danger badge-anexo">{{ status_labels|dict_get:item.status }}</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary badge-anexo">{{ status_labels|dict_get:item.status|default:item.status }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end">{{ item.total }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="2" class="text-center text-muted py-3">Nenhum dado disponível.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Rodapé do Relatório -->
+    <div class="card mt-4">
+        <div class="card-body text-center">
+                <p class="text-muted mb-0">
+                    <small>
+                        Relatório gerado em {{ data_emissao|date:"d/m/Y" }} | 
+                        Conforme Instrução Normativa Nº 51/MAPA - SISBOV
+                    </small>
+                </p>
+        </div>
+    </div>
+
+    <!-- Botões de Ação -->
+    <div class="text-center mt-4 mb-4">
+        <button class="btn btn-primary btn-lg me-2" onclick="window.print()">
+            <i class="bi bi-printer me-2"></i>Imprimir / Salvar PDF
+        </button>
+        <a href="{% url 'rastreabilidade_dashboard' propriedade.id %}" class="btn btn-outline-secondary btn-lg">
+            <i class="bi bi-arrow-left me-2"></i>Voltar ao Dashboard
+        </a>
+    </div>
+</div>
+{% endblock %}

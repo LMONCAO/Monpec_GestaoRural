@@ -1,0 +1,456 @@
+{% extends 'base_modulos_unificado.html' %}
+{% load formatacao_br %}
+{% load static %}
+
+{% block title %}Balanço e DRE - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block breadcrumb_extra %}
+    <li class="breadcrumb-item"><a href="{% url 'financeiro_dashboard' propriedade.id %}">Financeiro</a></li>
+    <li class="breadcrumb-item active">Balanço e DRE</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2 class="mb-0">
+                    <i class="bi bi-file-earmark-text me-2"></i>
+                    Demonstração do Resultado do Exercício (DRE) - {{ ano }}
+                </h2>
+                <div class="d-flex gap-2 align-items-center">
+                    <select class="form-select" style="width: auto;" onchange="window.location.href='?ano=' + this.value">
+                        {% for a in anos_disponiveis %}
+                            <option value="{{ a }}" {% if a == ano %}selected{% endif %}>{{ a }}</option>
+                        {% endfor %}
+                    </select>
+                    <a href="{% url 'financeiro_exportar_dre_pdf' propriedade.id %}?ano={{ ano }}" 
+                       class="btn btn-danger" 
+                       target="_blank">
+                        <i class="bi bi-file-pdf me-2"></i>
+                        Exportar PDF
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cabeçalho Contábil -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <h3 class="mb-1" style="font-weight: bold; color: #1a5490;">DEMONSTRAÇÃO DO RESULTADO DO EXERCÍCIO</h3>
+                        <h4 class="mb-3" style="font-weight: 600; color: #495057;">{{ propriedade.nome_propriedade|upper }}</h4>
+                        {% if propriedade.produtor_rural %}
+                        <p class="mb-1 text-muted">
+                            <strong>CPF/CNPJ:</strong> {{ propriedade.produtor_rural.cpf_cnpj }}
+                            {% if propriedade.produtor_rural.endereco %} | <strong>Endereço:</strong> {{ propriedade.produtor_rural.endereco }}{% endif %}
+                        </p>
+                        {% endif %}
+                        <p class="mb-0 text-muted"><strong>Exercício Social:</strong> {{ ano }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DRE Completo (formato contábil) -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-bordered mb-0" style="font-size: 0.9rem;">
+                            <thead style="background-color: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+                                <tr>
+                                    <th style="width: 12%; text-align: left; padding: 12px; font-weight: 600; border-right: 1px solid #dee2e6;">CÓDIGO</th>
+                                    <th style="width: 58%; text-align: left; padding: 12px; font-weight: 600; border-right: 1px solid #dee2e6;">DESCRIÇÃO</th>
+                                    <th style="width: 30%; text-align: right; padding: 12px; font-weight: 600;">VALOR (R$)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- 1. RECEITA BRUTA DE VENDAS -->
+                                <tr style="background-color: #e3f2fd; border-top: 2px solid #1976d2;">
+                                    <td style="padding: 10px; font-weight: 600; border-right: 1px solid #dee2e6;">3.01.01.01.01</td>
+                                    <td style="padding: 10px; font-weight: 600; border-right: 1px solid #dee2e6;">RECEITA BRUTA DE VENDAS</td>
+                                    <td style="padding: 10px; text-align: right; font-weight: 600;">{{ receita_bruta|moeda_br }}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 8px 10px 8px 30px; border-right: 1px solid #dee2e6;">3.01.01.01.01.0001</td>
+                                    <td style="padding: 8px 10px; border-right: 1px solid #dee2e6;">Vendas Mercadorias Produção Própria</td>
+                                    <td style="padding: 8px 10px; text-align: right;">{{ receita_bruta|moeda_br }}</td>
+                                </tr>
+                                
+                                <!-- 2. DEDUÇÕES DA RECEITA BRUTA -->
+                                {% if total_deducoes > 0 %}
+                                <tr style="background-color: #f8f9fa; border-top: 1px solid #dee2e6;">
+                                    <td colspan="3" style="padding: 10px; font-weight: 600; border-right: 1px solid #dee2e6;">3.01.01.01.02 DEDUÇÕES DA RECEITA BRUTA</td>
+                                </tr>
+                                {% if funviral_vendas > 0 %}
+                                <tr>
+                                    <td style="padding: 6px 10px 6px 30px; border-right: 1px solid #dee2e6;">3.01.01.01.02.0004</td>
+                                    <td style="padding: 6px 10px; border-right: 1px solid #dee2e6;">Funrural s/Vendas</td>
+                                    <td style="padding: 6px 10px; text-align: right; color: #dc3545;">({{ funviral_vendas|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                {% if icms_vendas > 0 %}
+                                <tr>
+                                    <td style="padding: 6px 10px 6px 30px; border-right: 1px solid #dee2e6;">3.01.01.01.02.0005</td>
+                                    <td style="padding: 6px 10px; border-right: 1px solid #dee2e6;">ICMS s/Vendas</td>
+                                    <td style="padding: 6px 10px; text-align: right; color: #dc3545;">({{ icms_vendas|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                {% if outros_impostos_vendas > 0 %}
+                                <tr>
+                                    <td style="padding: 6px 10px 6px 30px; border-right: 1px solid #dee2e6;">3.01.01.01.02.0006</td>
+                                    <td style="padding: 6px 10px; border-right: 1px solid #dee2e6;">Outros Impostos s/Vendas</td>
+                                    <td style="padding: 6px 10px; text-align: right; color: #dc3545;">({{ outros_impostos_vendas|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                {% if devolucoes_vendas > 0 %}
+                                <tr>
+                                    <td style="padding: 6px 10px 6px 30px; border-right: 1px solid #dee2e6;">3.01.01.01.02.0007</td>
+                                    <td style="padding: 6px 10px; border-right: 1px solid #dee2e6;">Devoluções de Vendas</td>
+                                    <td style="padding: 6px 10px; text-align: right; color: #dc3545;">({{ devolucoes_vendas|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                {% if abatimentos_vendas > 0 %}
+                                <tr>
+                                    <td style="padding: 6px 10px 6px 30px; border-right: 1px solid #dee2e6;">3.01.01.01.02.0008</td>
+                                    <td style="padding: 6px 10px; border-right: 1px solid #dee2e6;">Abatimentos sobre Vendas</td>
+                                    <td style="padding: 6px 10px; text-align: right; color: #dc3545;">({{ abatimentos_vendas|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                <tr style="background-color: #f8f9fa;">
+                                    <td style="padding: 8px 10px; font-weight: 600; border-right: 1px solid #dee2e6;">3.01.01.01.02</td>
+                                    <td style="padding: 8px 10px; font-weight: 600; border-right: 1px solid #dee2e6;">Total Deduções</td>
+                                    <td style="padding: 8px 10px; text-align: right; font-weight: 600; color: #dc3545;">({{ total_deducoes|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                
+                                <!-- 3. RECEITA LÍQUIDA -->
+                                <tr style="background-color: #c8e6c9; border-top: 2px solid #4caf50;">
+                                    <td style="padding: 10px; font-weight: 600; border-right: 1px solid #dee2e6;">3.01.01.01.03</td>
+                                    <td style="padding: 10px; font-weight: 600; border-right: 1px solid #dee2e6;">RECEITA LÍQUIDA</td>
+                                    <td style="padding: 10px; text-align: right; font-weight: 600;">{{ receita_liquida|moeda_br }}</td>
+                                </tr>
+                                
+                                <!-- 4. CUSTO DOS PRODUTOS VENDIDOS -->
+                                {% if cpv > 0 %}
+                                <tr style="background-color: #f8f9fa; border-top: 1px solid #dee2e6;">
+                                    <td colspan="3" style="padding: 10px; font-weight: 600; border-right: 1px solid #dee2e6;">3.01.01.01.03. CUSTOS MERCADORIAS VENDIDAS</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 6px 10px 6px 30px; border-right: 1px solid #dee2e6;">3.01.01.01.03.0001</td>
+                                    <td style="padding: 6px 10px; border-right: 1px solid #dee2e6;">Custos Mercadorias Produção Própria Vendidas</td>
+                                    <td style="padding: 6px 10px; text-align: right; font-weight: 600; color: #dc3545;">({{ cpv|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                
+                                <!-- 5. LUCRO BRUTO -->
+                                <tr style="background-color: #c8e6c9; border-top: 2px solid #4caf50;">
+                                    <td style="padding: 10px; font-weight: 600; border-right: 1px solid #dee2e6;">3.01.01.01.04</td>
+                                    <td style="padding: 10px; font-weight: 600; border-right: 1px solid #dee2e6;">LUCRO BRUTO</td>
+                                    <td style="padding: 10px; text-align: right; font-weight: 600;">{{ lucro_bruto|moeda_br }}</td>
+                                </tr>
+                                
+                                <!-- 6. DESPESAS OPERACIONAIS -->
+                                <tr style="background-color: #f8f9fa; border-top: 2px solid #dee2e6;">
+                                    <td colspan="3" style="padding: 10px; font-weight: 600; border-right: 1px solid #dee2e6;">3.01.01.07. DESPESAS OPERACIONAIS</td>
+                                </tr>
+                                
+                                <!-- Despesas Detalhadas (conforme DRE contábil) -->
+                                {% if despesas_detalhadas > 0 %}
+                                <tr style="background-color: #f1f3f5;">
+                                    <td colspan="3" style="padding: 8px 10px 8px 30px; font-weight: 600; border-right: 1px solid #dee2e6;">3.01.01.07.01. DESPESAS DIVERSAS</td>
+                                </tr>
+                                {% if retirada_labore > 0 %}
+                                <tr>
+                                    <td style="padding: 6px 10px 6px 50px; border-right: 1px solid #dee2e6;">3.01.01.07.01.0001</td>
+                                    <td style="padding: 6px 10px; border-right: 1px solid #dee2e6;">Retirada Labore</td>
+                                    <td style="padding: 6px 10px; text-align: right; color: #dc3545;">({{ retirada_labore|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                {% if assistencia_contabil > 0 %}
+                                <tr>
+                                    <td style="padding: 6px 10px 6px 50px; border-right: 1px solid #dee2e6;">3.01.01.07.01.0002</td>
+                                    <td style="padding: 6px 10px; border-right: 1px solid #dee2e6;">Assistência Contábil</td>
+                                    <td style="padding: 6px 10px; text-align: right; color: #dc3545;">({{ assistencia_contabil|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                {% if encargos_inss > 0 %}
+                                <tr>
+                                    <td style="padding: 6px 10px 6px 50px; border-right: 1px solid #dee2e6;">3.01.01.07.01.0003</td>
+                                    <td style="padding: 6px 10px; border-right: 1px solid #dee2e6;">Encargos INSS</td>
+                                    <td style="padding: 6px 10px; text-align: right; color: #dc3545;">({{ encargos_inss|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                {% if taxas_diversas > 0 %}
+                                <tr>
+                                    <td style="padding: 6px 10px 6px 50px; border-right: 1px solid #dee2e6;">3.01.01.07.01.0004</td>
+                                    <td style="padding: 6px 10px; border-right: 1px solid #dee2e6;">Taxas Diversas</td>
+                                    <td style="padding: 6px 10px; text-align: right; color: #dc3545;">({{ taxas_diversas|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                {% if despesas_administrativas > 0 %}
+                                <tr>
+                                    <td style="padding: 6px 10px 6px 50px; border-right: 1px solid #dee2e6;">3.01.01.07.01.0005</td>
+                                    <td style="padding: 6px 10px; border-right: 1px solid #dee2e6;">Despesas Administrativas</td>
+                                    <td style="padding: 6px 10px; text-align: right; color: #dc3545;">({{ despesas_administrativas|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                {% if material_uso_consumo > 0 %}
+                                <tr>
+                                    <td style="padding: 6px 10px 6px 50px; border-right: 1px solid #dee2e6;">3.01.01.07.01.0006</td>
+                                    <td style="padding: 6px 10px; border-right: 1px solid #dee2e6;">Material de Uso e Consumo</td>
+                                    <td style="padding: 6px 10px; text-align: right; color: #dc3545;">({{ material_uso_consumo|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                {% if despesas_comunicacao > 0 %}
+                                <tr>
+                                    <td style="padding: 6px 10px 6px 50px; border-right: 1px solid #dee2e6;">3.01.01.07.01.0007</td>
+                                    <td style="padding: 6px 10px; border-right: 1px solid #dee2e6;">Despesas Comunicação</td>
+                                    <td style="padding: 6px 10px; text-align: right; color: #dc3545;">({{ despesas_comunicacao|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                {% if despesas_viagens > 0 %}
+                                <tr>
+                                    <td style="padding: 6px 10px 6px 50px; border-right: 1px solid #dee2e6;">3.01.01.07.01.0008</td>
+                                    <td style="padding: 6px 10px; border-right: 1px solid #dee2e6;">Despesas Viagens</td>
+                                    <td style="padding: 6px 10px; text-align: right; color: #dc3545;">({{ despesas_viagens|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                {% if despesas_energia_eletrica > 0 %}
+                                <tr>
+                                    <td style="padding: 6px 10px 6px 50px; border-right: 1px solid #dee2e6;">3.01.01.07.01.0009</td>
+                                    <td style="padding: 6px 10px; border-right: 1px solid #dee2e6;">Despesas Energia Elétrica</td>
+                                    <td style="padding: 6px 10px; text-align: right; color: #dc3545;">({{ despesas_energia_eletrica|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                {% if despesas_transportes > 0 %}
+                                <tr>
+                                    <td style="padding: 6px 10px 6px 50px; border-right: 1px solid #dee2e6;">3.01.01.07.01.0010</td>
+                                    <td style="padding: 6px 10px; border-right: 1px solid #dee2e6;">Despesas Transportes</td>
+                                    <td style="padding: 6px 10px; text-align: right; color: #dc3545;">({{ despesas_transportes|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                {% if despesas_combustivel > 0 %}
+                                <tr>
+                                    <td style="padding: 6px 10px 6px 50px; border-right: 1px solid #dee2e6;">3.01.01.07.01.0011</td>
+                                    <td style="padding: 6px 10px; border-right: 1px solid #dee2e6;">Despesas Combustível</td>
+                                    <td style="padding: 6px 10px; text-align: right; color: #dc3545;">({{ despesas_combustivel|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                {% if despesas_manutencao > 0 %}
+                                <tr>
+                                    <td style="padding: 6px 10px 6px 50px; border-right: 1px solid #dee2e6;">3.01.01.07.01.0012</td>
+                                    <td style="padding: 6px 10px; border-right: 1px solid #dee2e6;">Despesas Manutenção</td>
+                                    <td style="padding: 6px 10px; text-align: right; color: #dc3545;">({{ despesas_manutencao|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                {% if depreciacao > 0 %}
+                                <tr>
+                                    <td style="padding: 6px 10px 6px 50px; border-right: 1px solid #dee2e6;">3.01.01.07.01.0013</td>
+                                    <td style="padding: 6px 10px; border-right: 1px solid #dee2e6;">Despesas Encargos Depreciação</td>
+                                    <td style="padding: 6px 10px; text-align: right; color: #dc3545;">({{ depreciacao|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                {% if despesas_detalhadas > 0 %}
+                                <tr style="background-color: #f8f9fa;">
+                                    <td style="padding: 8px 10px 8px 30px; font-weight: 600; border-right: 1px solid #dee2e6;">3.01.01.07.01</td>
+                                    <td style="padding: 8px 10px; font-weight: 600; border-right: 1px solid #dee2e6;">Total Despesas Diversas</td>
+                                    <td style="padding: 8px 10px; text-align: right; font-weight: 600; color: #dc3545;">({{ despesas_detalhadas|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                {% endif %}
+                                
+                                <!-- Despesas Variáveis -->
+                                {% if total_despesas_variaveis > 0 %}
+                                <tr style="background-color: #f1f3f5;">
+                                    <td colspan="3" style="padding: 8px 10px 8px 30px; font-weight: 600; border-right: 1px solid #dee2e6;">3.01.01.07.02. Despesas Variáveis</td>
+                                </tr>
+                                {% for grupo, dados in despesas_por_grupo.items %}
+                                    {% if dados.variaveis > 0 %}
+                                    <tr>
+                                        <td style="padding: 6px 10px 6px 50px; border-right: 1px solid #dee2e6;">3.01.01.07.02.{{ forloop.counter|stringformat:"04d" }}</td>
+                                        <td style="padding: 6px 10px; border-right: 1px solid #dee2e6;">{{ grupo }}</td>
+                                        <td style="padding: 6px 10px; text-align: right; color: #dc3545;">({{ dados.variaveis|moeda_br }})</td>
+                                    </tr>
+                                    {% endif %}
+                                {% endfor %}
+                                <tr style="background-color: #f8f9fa;">
+                                    <td style="padding: 8px 10px 8px 30px; font-weight: 600; border-right: 1px solid #dee2e6;">3.01.01.07.02</td>
+                                    <td style="padding: 8px 10px; font-weight: 600; border-right: 1px solid #dee2e6;">Total Despesas Variáveis</td>
+                                    <td style="padding: 8px 10px; text-align: right; font-weight: 600; color: #dc3545;">({{ total_despesas_variaveis|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                
+                                <!-- Despesas Fixas -->
+                                {% if total_despesas_fixas > 0 %}
+                                <tr style="background-color: #f1f3f5;">
+                                    <td colspan="3" style="padding: 8px 10px 8px 30px; font-weight: 600; border-right: 1px solid #dee2e6;">3.01.01.07.03. Despesas Fixas</td>
+                                </tr>
+                                {% for grupo, dados in despesas_por_grupo.items %}
+                                    {% if dados.fixas > 0 %}
+                                    <tr>
+                                        <td style="padding: 6px 10px 6px 50px; border-right: 1px solid #dee2e6;">3.01.01.07.03.{{ forloop.counter|stringformat:"04d" }}</td>
+                                        <td style="padding: 6px 10px; border-right: 1px solid #dee2e6;">{{ grupo }}</td>
+                                        <td style="padding: 6px 10px; text-align: right; color: #dc3545;">({{ dados.fixas|moeda_br }})</td>
+                                    </tr>
+                                    {% endif %}
+                                {% endfor %}
+                                <tr style="background-color: #f8f9fa;">
+                                    <td style="padding: 8px 10px 8px 30px; font-weight: 600; border-right: 1px solid #dee2e6;">3.01.01.07.03</td>
+                                    <td style="padding: 8px 10px; font-weight: 600; border-right: 1px solid #dee2e6;">Total Despesas Fixas</td>
+                                    <td style="padding: 8px 10px; text-align: right; font-weight: 600; color: #dc3545;">({{ total_despesas_fixas|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                
+                                <tr style="background-color: #f8f9fa; border-top: 1px solid #dee2e6;">
+                                    <td style="padding: 10px; font-weight: 600; border-right: 1px solid #dee2e6;">3.01.01.07</td>
+                                    <td style="padding: 10px; font-weight: 600; border-right: 1px solid #dee2e6;">Total Despesas Operacionais</td>
+                                    <td style="padding: 10px; text-align: right; font-weight: 600; color: #dc3545;">({{ total_despesas_operacionais|moeda_br }})</td>
+                                </tr>
+                                
+                                <!-- 7. RESULTADO OPERACIONAL (após despesas) -->
+                                <tr style="background-color: {% if resultado_operacional >= 0 %}#c8e6c9{% else %}#ffcdd2{% endif %}; border-top: 2px solid {% if resultado_operacional >= 0 %}#4caf50{% else %}#f44336{% endif %};">
+                                    <td style="padding: 10px; font-weight: 600; border-right: 1px solid #dee2e6;">3.01.01.01.01</td>
+                                    <td style="padding: 10px; font-weight: 600; border-right: 1px solid #dee2e6;">RESULTADO OPERACIONAL</td>
+                                    <td style="padding: 10px; text-align: right; font-weight: 600;">{{ resultado_operacional|moeda_br }}</td>
+                                </tr>
+                                
+                                <!-- 8. DESPESAS E RECEITAS NÃO OPERACIONAIS -->
+                                {% if despesas_financeiras > 0 or receitas_financeiras > 0 %}
+                                <tr style="background-color: #f8f9fa; border-top: 1px solid #dee2e6;">
+                                    <td colspan="3" style="padding: 10px; font-weight: 600; border-right: 1px solid #dee2e6;">3.01.01.08. DESPESAS E RECEITAS NÃO OPERACIONAIS</td>
+                                </tr>
+                                {% if despesas_financeiras > 0 %}
+                                <tr>
+                                    <td style="padding: 6px 10px 6px 30px; border-right: 1px solid #dee2e6;">3.01.01.08.0001</td>
+                                    <td style="padding: 6px 10px; border-right: 1px solid #dee2e6;">Despesas Juros e Multas</td>
+                                    <td style="padding: 6px 10px; text-align: right; color: #dc3545;">({{ despesas_financeiras|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                {% if receitas_financeiras > 0 %}
+                                <tr>
+                                    <td style="padding: 6px 10px 6px 30px; border-right: 1px solid #dee2e6;">3.01.01.08.0002</td>
+                                    <td style="padding: 6px 10px; border-right: 1px solid #dee2e6;">Receitas Rendimentos Financeiros</td>
+                                    <td style="padding: 6px 10px; text-align: right; color: #28a745;">{{ receitas_financeiras|moeda_br }}</td>
+                                </tr>
+                                {% endif %}
+                                <tr style="background-color: #f8f9fa;">
+                                    <td style="padding: 8px 10px; font-weight: 600; border-right: 1px solid #dee2e6;">3.01.01.08</td>
+                                    <td style="padding: 8px 10px; font-weight: 600; border-right: 1px solid #dee2e6;">Resultado Não Operacional</td>
+                                    <td style="padding: 8px 10px; text-align: right; font-weight: 600; color: {% if resultado_nao_operacional >= 0 %}#28a745{% else %}#dc3545{% endif %};">{{ resultado_nao_operacional|moeda_br }}</td>
+                                </tr>
+                                {% endif %}
+                                
+                                <!-- 9. RESULTADO ANTES DO IR -->
+                                <tr style="background-color: {% if resultado_antes_ir >= 0 %}#c8e6c9{% else %}#ffcdd2{% endif %}; border-top: 2px solid {% if resultado_antes_ir >= 0 %}#4caf50{% else %}#f44336{% endif %};">
+                                    <td style="padding: 10px; font-weight: 600; border-right: 1px solid #dee2e6;">3.01.01.09</td>
+                                    <td style="padding: 10px; font-weight: 600; border-right: 1px solid #dee2e6;">RESULTADO ANTES DO IMPOSTO DE RENDA</td>
+                                    <td style="padding: 10px; text-align: right; font-weight: 600;">{{ resultado_antes_ir|moeda_br }}</td>
+                                </tr>
+                                
+                                <!-- 10. PROVISÃO DE IMPOSTOS -->
+                                {% if total_impostos_renda > 0 %}
+                                <tr style="background-color: #f8f9fa; border-top: 1px solid #dee2e6;">
+                                    <td colspan="3" style="padding: 10px; font-weight: 600; border-right: 1px solid #dee2e6;">3.01.01.10. PROVISÃO DE IMPOSTOS</td>
+                                </tr>
+                                {% if csll > 0 %}
+                                <tr>
+                                    <td style="padding: 6px 10px 6px 30px; border-right: 1px solid #dee2e6;">3.01.01.10.0001</td>
+                                    <td style="padding: 6px 10px; border-right: 1px solid #dee2e6;">CSLL</td>
+                                    <td style="padding: 6px 10px; text-align: right; color: #dc3545;">({{ csll|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                {% if irpj > 0 %}
+                                <tr>
+                                    <td style="padding: 6px 10px 6px 30px; border-right: 1px solid #dee2e6;">3.01.01.10.0002</td>
+                                    <td style="padding: 6px 10px; border-right: 1px solid #dee2e6;">IRPJ</td>
+                                    <td style="padding: 6px 10px; text-align: right; color: #dc3545;">({{ irpj|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                <tr style="background-color: #f8f9fa;">
+                                    <td style="padding: 8px 10px; font-weight: 600; border-right: 1px solid #dee2e6;">3.01.01.10</td>
+                                    <td style="padding: 8px 10px; font-weight: 600; border-right: 1px solid #dee2e6;">Total Provisão de Impostos</td>
+                                    <td style="padding: 8px 10px; text-align: right; font-weight: 600; color: #dc3545;">({{ total_impostos_renda|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                
+                                <!-- 11. RESULTADO LÍQUIDO -->
+                                <tr style="background-color: {% if resultado_liquido >= 0 %}#c8e6c9{% else %}#ffcdd2{% endif %}; border-top: 3px solid {% if resultado_liquido >= 0 %}#4caf50{% else %}#f44336{% endif %};">
+                                    <td style="padding: 12px; font-weight: 700; font-size: 1.05rem; border-right: 1px solid #dee2e6;">3.01</td>
+                                    <td style="padding: 12px; font-weight: 700; font-size: 1.05rem; border-right: 1px solid #dee2e6;">RESULTADO LÍQUIDO DO EXERCÍCIO</td>
+                                    <td style="padding: 12px; text-align: right; font-weight: 700; font-size: 1.05rem;">{{ resultado_liquido|moeda_br }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Indicadores e Margens -->
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5>Margem Bruta</h5>
+                    <h3 class="text-success">{{ margem_bruta_pct|numero_br:2 }}%</h3>
+                    <small class="text-muted">{{ lucro_bruto|moeda_br }}</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5>Margem Operacional</h5>
+                    <h3 class="{% if margem_operacional_pct >= 0 %}text-success{% else %}text-danger{% endif %}">
+                        {{ margem_operacional_pct|numero_br:2 }}%
+                    </h3>
+                    <small class="text-muted">{{ resultado_operacional|moeda_br }}</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5>Margem Líquida</h5>
+                    <h3 class="{% if margem_liquida_pct >= 0 %}text-success{% else %}text-danger{% endif %}">
+                        {{ margem_liquida_pct|numero_br:2 }}%
+                    </h3>
+                    <small class="text-muted">{{ resultado_liquido|moeda_br }}</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5>Resultado Antes IR</h5>
+                    <h3 class="{% if resultado_antes_ir >= 0 %}text-success{% else %}text-danger{% endif %}">
+                        {{ resultado_antes_ir|moeda_br }}
+                    </h3>
+                    <small class="text-muted">Antes dos impostos</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Link para editar receita anual -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle me-2"></i>
+                <strong>Nota:</strong> Para editar os valores de deduções, CPV, depreciação, despesas/receitas financeiras e impostos, 
+                <a href="{% url 'financeiro_receita_anual_editar' propriedade.id receita_anual_obj.id %}" class="alert-link">
+                    edite a receita anual de {{ ano }}
+                </a>.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

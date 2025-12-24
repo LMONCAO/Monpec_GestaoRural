@@ -1,0 +1,342 @@
+{% extends "base_modulos_unificado.html" %}
+
+{% block title %}{% if produto %}Editar{% else %}Novo{% endif %} Produto - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'compras_dashboard' propriedade.id %}">Compras</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'produtos_lista' propriedade.id %}">Produtos</a></li>
+            <li class="breadcrumb-item active">{% if produto %}Editar{% else %}Novo{% endif %}</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+        <div>
+            <h2 class="mb-0">
+                <i class="bi bi-box-seam text-success me-2"></i>
+                {% if produto %}Editar Produto{% else %}Novo Produto{% endif %}
+            </h2>
+            <small class="text-muted">Cadastro sincronizado com a Receita Federal</small>
+        </div>
+        <a href="{% url 'produtos_lista' propriedade.id %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Voltar
+        </a>
+    </div>
+
+    <form method="post" id="form-produto">
+        {% csrf_token %}
+        
+        <div class="row">
+            <div class="col-xl-8">
+                <!-- Dados Básicos -->
+                <div class="card mb-3">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Dados Básicos</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Código do Produto *</label>
+                                {{ form.codigo }}
+                                {% if form.codigo.errors %}
+                                    <div class="text-danger small">{{ form.codigo.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-8">
+                                <label class="form-label">Descrição *</label>
+                                {{ form.descricao }}
+                                {% if form.descricao.errors %}
+                                    <div class="text-danger small">{{ form.descricao.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Categoria</label>
+                                {{ form.categoria }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Unidade de Medida *</label>
+                                {{ form.unidade_medida }}
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label">Descrição Completa</label>
+                                {{ form.descricao_completa }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dados Fiscais - NCM -->
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-file-earmark-text me-2"></i>Dados Fiscais - NCM</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                <label class="form-label">NCM *</label>
+                                <div class="input-group">
+                                    {{ form.ncm }}
+                                    <button type="button" class="btn btn-outline-info" onclick="consultarNCM()">
+                                        <i class="bi bi-search"></i> Consultar Receita
+                                    </button>
+                                </div>
+                                {% if form.ncm.errors %}
+                                    <div class="text-danger small">{{ form.ncm.errors }}</div>
+                                {% endif %}
+                                <small class="text-muted">Nomenclatura Comum do Mercosul (ex: 0102.29.00)</small>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Status Validação</label>
+                                <div class="form-control-plaintext">
+                                    {% if produto and produto.ncm_validado %}
+                                    <span class="badge bg-success">Validado</span>
+                                    {% else %}
+                                    <span class="badge bg-warning">Não validado</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label">Descrição do NCM</label>
+                                <input type="text" class="form-control" id="ncm-descricao" value="{{ produto.ncm_descricao|default:'' }}" readonly>
+                                <small class="text-muted">Preenchido automaticamente após consulta à Receita Federal</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dados Fiscais - CFOP -->
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-arrow-left-right me-2"></i>Dados Fiscais - CFOP</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label">CFOP Entrada</label>
+                                <div class="input-group">
+                                    {{ form.cfop_entrada }}
+                                    <button type="button" class="btn btn-outline-info btn-sm" onclick="validarCFOP('ENTRADA')">
+                                        <i class="bi bi-check"></i>
+                                    </button>
+                                </div>
+                                <small class="text-muted">Para compras (ex: 1102)</small>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">CFOP Saída Estadual</label>
+                                <div class="input-group">
+                                    {{ form.cfop_saida_estadual }}
+                                    <button type="button" class="btn btn-outline-info btn-sm" onclick="validarCFOP('SAIDA')">
+                                        <i class="bi bi-check"></i>
+                                    </button>
+                                </div>
+                                <small class="text-muted">Vendas dentro do estado (ex: 5102)</small>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">CFOP Saída Interestadual</label>
+                                <div class="input-group">
+                                    {{ form.cfop_saida_interestadual }}
+                                    <button type="button" class="btn btn-outline-info btn-sm" onclick="validarCFOP('SAIDA')">
+                                        <i class="bi bi-check"></i>
+                                    </button>
+                                </div>
+                                <small class="text-muted">Vendas fora do estado (ex: 6102)</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dados Fiscais - Impostos -->
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-calculator me-2"></i>Dados Fiscais - Impostos</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">CST ICMS</label>
+                                {{ form.cst_icms }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Alíquota ICMS (%)</label>
+                                {{ form.aliquota_icms }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">CST IPI</label>
+                                {{ form.cst_ipi }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Alíquota IPI (%)</label>
+                                {{ form.aliquota_ipi }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">CST PIS</label>
+                                {{ form.cst_pis }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Alíquota PIS (%)</label>
+                                {{ form.aliquota_pis }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">CST COFINS</label>
+                                {{ form.cst_cofins }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Alíquota COFINS (%)</label>
+                                {{ form.aliquota_cofins }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dados Comerciais -->
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-currency-dollar me-2"></i>Dados Comerciais</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Preço de Venda (R$)</label>
+                                {{ form.preco_venda }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Preço de Custo (R$)</label>
+                                {{ form.preco_custo }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Observações -->
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-card-text me-2"></i>Observações</h5>
+                    </div>
+                    <div class="card-body">
+                        {{ form.observacoes }}
+                        <div class="form-check mt-3">
+                            {{ form.ativo }}
+                            <label class="form-check-label" for="{{ form.ativo.id_for_label }}">
+                                Produto ativo
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2 mb-4">
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-circle me-1"></i>Salvar Produto
+                    </button>
+                    <a href="{% url 'produtos_lista' propriedade.id %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle me-1"></i>Cancelar
+                    </a>
+                </div>
+            </div>
+
+            <div class="col-xl-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Informações</h6>
+                    </div>
+                    <div class="card-body small text-muted">
+                        <ul class="mb-3">
+                            <li>O produto será sincronizado automaticamente com a Receita Federal ao salvar.</li>
+                            <li>NCM e CFOP são validados contra as tabelas oficiais.</li>
+                            <li>Os dados fiscais serão preenchidos automaticamente ao usar o produto em notas fiscais.</li>
+                            <li>Você pode sincronizar novamente a qualquer momento.</li>
+                        </ul>
+                        {% if produto %}
+                        <hr>
+                        <p class="mb-1"><strong>Cadastrado em:</strong></p>
+                        <p class="mb-1">{{ produto.data_cadastro|date:"d/m/Y H:i" }}</p>
+                        {% if produto.usuario_cadastro %}
+                        <p class="mb-1">por {{ produto.usuario_cadastro.get_full_name|default:produto.usuario_cadastro.username }}</p>
+                        {% endif %}
+                        {% if produto.data_sincronizacao %}
+                        <p class="mb-0 mt-2"><strong>Última sincronização:</strong></p>
+                        <p class="mb-0">{{ produto.data_sincronizacao|date:"d/m/Y H:i" }}</p>
+                        {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+function consultarNCM() {
+    const ncm = document.querySelector('#id_ncm').value;
+    if (!ncm) {
+        alert('Informe o NCM para consultar');
+        return;
+    }
+    
+    fetch(`/ajax/consultar-ncm/?ncm=${encodeURIComponent(ncm)}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.sucesso) {
+                if (data.descricao) {
+                    document.querySelector('#ncm-descricao').value = data.descricao;
+                    alert(`NCM válido!\n\nDescrição: ${data.descricao}`);
+                } else {
+                    alert(`NCM validado localmente.\n\n${data.aviso || ''}`);
+                }
+            } else {
+                alert(`Erro: ${data.erro}`);
+            }
+        })
+        .catch(error => {
+            alert('Erro ao consultar NCM');
+            console.error(error);
+        });
+}
+
+function validarCFOP(tipo) {
+    let cfop;
+    if (tipo === 'ENTRADA') {
+        cfop = document.querySelector('#id_cfop_entrada').value;
+    } else {
+        // Validar ambos os CFOPs de saída
+        const cfopEstadual = document.querySelector('#id_cfop_saida_estadual').value;
+        const cfopInterestadual = document.querySelector('#id_cfop_saida_interestadual').value;
+        
+        if (cfopEstadual) {
+            validarCFOPIndividual(cfopEstadual, tipo);
+        }
+        if (cfopInterestadual) {
+            validarCFOPIndividual(cfopInterestadual, tipo);
+        }
+        return;
+    }
+    
+    if (!cfop) {
+        alert('Informe o CFOP para validar');
+        return;
+    }
+    
+    validarCFOPIndividual(cfop, tipo);
+}
+
+function validarCFOPIndividual(cfop, tipo) {
+    fetch(`/ajax/validar-cfop/?cfop=${encodeURIComponent(cfop)}&tipo=${tipo}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.sucesso) {
+                alert(`CFOP válido!\n\n${data.descricao}\n\n${data.aviso || ''}`);
+            } else {
+                alert(`Erro: ${data.erro}`);
+            }
+        })
+        .catch(error => {
+            alert('Erro ao validar CFOP');
+            console.error(error);
+        });
+}
+</script>
+{% endblock %}
+

@@ -1588,9 +1588,21 @@ def relatorio_balanco_dre(request, propriedade_id):
     # 9. RESULTADO ANTES DO IMPOSTO DE RENDA (LAIR)
     resultado_antes_ir = resultado_operacional + resultado_nao_operacional
     
+    # Verificar se é pessoa física (CPF) ou jurídica (CNPJ)
+    cpf_cnpj = propriedade.produtor.cpf_cnpj if propriedade.produtor else ""
+    cpf_cnpj_limpo = cpf_cnpj.replace(".", "").replace("-", "").replace("/", "")
+    is_pessoa_fisica = len(cpf_cnpj_limpo) == 11
+    
     # 10. PROVISÃO DE IMPOSTOS (separados conforme PDF)
-    csll = receita_anual_obj.csll or Decimal("0.00")
-    irpj = receita_anual_obj.irpj or Decimal("0.00")
+    # Para pessoa física: apenas IR (CSLL não se aplica)
+    # Para pessoa jurídica: CSLL + IRPJ
+    if is_pessoa_fisica:
+        csll = Decimal("0.00")  # CSLL não se aplica a pessoa física
+        irpj = receita_anual_obj.irpj or Decimal("0.00")
+    else:
+        csll = receita_anual_obj.csll or Decimal("0.00")
+        irpj = receita_anual_obj.irpj or Decimal("0.00")
+    
     total_impostos_renda = csll + irpj
     
     # 11. RESULTADO LÍQUIDO DO EXERCÍCIO
@@ -1662,9 +1674,16 @@ def relatorio_balanco_dre(request, propriedade_id):
         "margem_bruta_pct": margem_bruta_pct,
         "margem_operacional_pct": margem_operacional_pct,
         "margem_liquida_pct": margem_liquida_pct,
+        "is_pessoa_fisica": is_pessoa_fisica,
     }
     
-    return render(request, "gestao_rural/financeiro/relatorio_balanco_dre.html", context)
+    # Usar template específico para pessoa física ou jurídica
+    if is_pessoa_fisica:
+        template = "gestao_rural/financeiro/relatorio_balanco_dre_pf.html"
+    else:
+        template = "gestao_rural/financeiro/relatorio_balanco_dre.html"
+    
+    return render(request, template, context)
 
 
 @login_required

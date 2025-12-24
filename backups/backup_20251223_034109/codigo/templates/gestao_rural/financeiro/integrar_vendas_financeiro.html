@@ -1,0 +1,148 @@
+{% extends 'base_modulos_unificado.html' %}
+{% load static %}
+
+{% block title %}Integrar Vendas com Financeiro - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block breadcrumb_extra %}
+    <li class="breadcrumb-item"><a href="{% url 'financeiro_dashboard' propriedade.id %}">Financeiro</a></li>
+    <li class="breadcrumb-item active">Integrar Vendas</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>
+            <i class="bi bi-link-45deg me-2"></i>
+            Integrar Vendas Projetadas com Financeiro
+        </h2>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-gear me-2"></i>
+                        Ações de Integração
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>
+                        <strong>Como funciona:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li><strong>Sincronizar Receitas:</strong> Consolida as vendas projetadas por ano e cria/atualiza receitas anuais</li>
+                            <li><strong>Criar Lançamentos:</strong> Gera lançamentos financeiros baseados nas vendas projetadas</li>
+                        </ul>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="card border-success">
+                                <div class="card-body">
+                                    <h6 class="card-title text-success">
+                                        <i class="bi bi-arrow-repeat me-2"></i>
+                                        Sincronizar Receitas Anuais
+                                    </h6>
+                                    <p class="card-text small">
+                                        Consolida vendas projetadas e cria/atualiza receitas anuais automaticamente
+                                    </p>
+                                    <form method="get" class="d-inline">
+                                        <input type="hidden" name="acao" value="sincronizar">
+                                        <select name="ano" class="form-select form-select-sm mb-2">
+                                            <option value="">Todos os anos</option>
+                                            {% for ano in anos_com_vendas %}
+                                                <option value="{{ ano }}" {% if ano_selecionado == ano|stringformat:"s" %}selected{% endif %}>{{ ano }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <button type="submit" class="btn btn-success btn-sm w-100">
+                                            <i class="bi bi-arrow-repeat me-1"></i>
+                                            Sincronizar Receitas
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card border-primary">
+                                <div class="card-body">
+                                    <h6 class="card-title text-primary">
+                                        <i class="bi bi-file-earmark-plus me-2"></i>
+                                        Criar Lançamentos Financeiros
+                                    </h6>
+                                    <p class="card-text small">
+                                        Gera lançamentos financeiros baseados nas vendas projetadas
+                                    </p>
+                                    <form method="get" class="d-inline">
+                                        <input type="hidden" name="acao" value="criar_lancamentos">
+                                        <select name="ano" class="form-select form-select-sm mb-2" required>
+                                            <option value="">Selecione um ano</option>
+                                            {% for ano in anos_com_vendas %}
+                                                <option value="{{ ano }}" {% if ano_selecionado == ano|stringformat:"s" %}selected{% endif %}>{{ ano }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <button type="submit" class="btn btn-primary btn-sm w-100">
+                                            <i class="bi bi-file-earmark-plus me-1"></i>
+                                            Criar Lançamentos
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if resultado %}
+                        <div class="alert alert-success mt-3">
+                            <h6><i class="bi bi-check-circle me-2"></i>Resultado da Operação</h6>
+                            {% if resultado.receitas_criadas is not None %}
+                                <p class="mb-1"><strong>Receitas criadas:</strong> {{ resultado.receitas_criadas }}</p>
+                                <p class="mb-1"><strong>Receitas atualizadas:</strong> {{ resultado.receitas_atualizadas }}</p>
+                                <p class="mb-0"><strong>Total consolidado:</strong> R$ {{ resultado.total_receitas|floatformat:2 }}</p>
+                            {% elif resultado.lancamentos_criados is not None %}
+                                <p class="mb-1"><strong>Lançamentos criados:</strong> {{ resultado.lancamentos_criados }}</p>
+                                <p class="mb-1"><strong>Lançamentos duplicados (ignorados):</strong> {{ resultado.lancamentos_duplicados }}</p>
+                                <p class="mb-1"><strong>Conta destino:</strong> {{ resultado.conta_destino }}</p>
+                                <p class="mb-0"><strong>Categoria:</strong> {{ resultado.categoria_receita }}</p>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-info-circle me-2"></i>
+                        Informações
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="small">
+                        <strong>Anos com vendas:</strong> {{ anos_com_vendas|length }}
+                    </p>
+                    <p class="small">
+                        <strong>Propriedade:</strong> {{ propriedade.nome_propriedade }}
+                    </p>
+                    <hr>
+                    <a href="{% url 'financeiro_saldos_consolidados' propriedade.id %}" class="btn btn-outline-primary btn-sm w-100 mb-2">
+                        <i class="bi bi-bar-chart-line me-1"></i>
+                        Ver Saldos Consolidados
+                    </a>
+                    <a href="{% url 'financeiro_receitas_anuais' propriedade.id %}" class="btn btn-outline-success btn-sm w-100 mb-2">
+                        <i class="bi bi-cash-stack me-1"></i>
+                        Gerenciar Receitas
+                    </a>
+                    <a href="{% url 'financeiro_dashboard' propriedade.id %}" class="btn btn-outline-secondary btn-sm w-100">
+                        <i class="bi bi-arrow-left me-1"></i>
+                        Voltar ao Financeiro
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

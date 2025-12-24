@@ -25,6 +25,8 @@ def whatsapp_webhook(request):
     """
     Webhook para receber mensagens do WhatsApp
     
+    ✅ SEGURANÇA: Valida token de autenticação antes de processar
+    
     Formato esperado (exemplo usando Twilio, Evolution API, ou similar):
     {
         "from": "5511999999999",
@@ -32,7 +34,21 @@ def whatsapp_webhook(request):
         "mediaUrl": "https://...",
         "body": "texto transcrito (opcional)"
     }
+    
+    Headers esperados:
+    - X-Webhook-Token: Token de autenticação (opcional se configurado)
     """
+    # ✅ SEGURANÇA: Validar token de webhook se configurado
+    from django.conf import settings
+    if settings.WHATSAPP_WEBHOOK_TOKEN:
+        token = request.headers.get('X-Webhook-Token') or request.GET.get('token')
+        if not token or token != settings.WHATSAPP_WEBHOOK_TOKEN:
+            logger.warning(f'Tentativa de acesso ao webhook WhatsApp sem token válido. IP: {request.META.get("REMOTE_ADDR")}')
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Token de autenticação inválido'
+            }, status=401)
+    
     try:
         data = json.loads(request.body) if request.body else {}
         
@@ -93,7 +109,27 @@ def whatsapp_processar_audio(request):
     """
     Endpoint para processar áudio transcrito manualmente
     Útil quando o áudio é enviado separadamente
+    
+    ✅ SEGURANÇA: Requer autenticação de usuário (login_required não funciona com csrf_exempt,
+    então validamos token ou requeremos login via outro mecanismo)
     """
+    # ✅ SEGURANÇA: Este endpoint deve ser protegido por autenticação
+    # Por enquanto, requer login (pode ser melhorado para usar tokens de API)
+    if not request.user.is_authenticated:
+        from django.conf import settings
+        if settings.WHATSAPP_WEBHOOK_TOKEN:
+            token = request.headers.get('X-Webhook-Token') or request.GET.get('token')
+            if not token or token != settings.WHATSAPP_WEBHOOK_TOKEN:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Autenticação necessária'
+                }, status=401)
+        else:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Autenticação necessária'
+            }, status=401)
+    
     try:
         data = json.loads(request.body) if request.body else {}
         
@@ -215,7 +251,9 @@ def processar_mensagem(mensagem_id: int) -> dict:
 @login_required
 def whatsapp_mensagens_lista(request, propriedade_id):
     """Lista mensagens de WhatsApp recebidas para uma propriedade"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    # ✅ SEGURANÇA: Verificar permissão de acesso à propriedade
+    from .decorators import obter_propriedade_com_permissao
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     mensagens = MensagemWhatsApp.objects.filter(
         propriedade=propriedade

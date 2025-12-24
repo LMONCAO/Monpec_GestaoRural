@@ -1,0 +1,690 @@
+{% extends 'base.html' %}
+
+{% block title %}Inventário - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Cores dos badges de sexo - azul marinho para todos */
+.bg-pink {
+    background-color: #1e3a8a !important;
+    color: white !important;
+    border: 1px solid #1e40af !important;
+}
+.bg-blue {
+    background-color: #1e3a8a !important;
+    color: white !important;
+    border: 1px solid #1e40af !important;
+}
+.bg-secondary {
+    background-color: #1e3a8a !important;
+    color: white !important;
+    border: 1px solid #1e40af !important;
+}
+
+/* Badge de raça - fundo escuro com texto branco */
+.bg-info {
+    background-color: #004d40 !important;
+    color: white !important;
+    border: 1px solid #00251a !important;
+}
+
+/* Ajustar tamanho dos campos */
+.form-control {
+    width: 100%;
+}
+/* Campo quantidade - aumentado */
+input[name*="quantidade_"] {
+    width: 100px !important;
+    min-width: 100px;
+}
+/* Campo valor por cabeça - aumentado */
+input[name*="valor_por_cabeca_"] {
+    width: 120px !important;
+    min-width: 120px;
+}
+/* Coluna valor total maior */
+#valor_total_ {
+    min-width: 120px;
+    display: inline-block;
+}
+
+/* Forçar cores dos badges */
+.badge {
+    font-weight: 500;
+    padding: 0.5em 0.75em;
+    border-radius: 0.375rem;
+}
+
+/* Ajustes de responsividade para telas pequenas */
+@media (max-width: 768px) {
+    /* Cabeçalho: empilhar título e botões */
+    .d-flex.justify-content-between.align-items-center.mb-4 {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    /* Inputs ocupando a largura disponível na tabela em mobile */
+    input[name*="quantidade_"],
+    input[name*="valor_por_cabeca_"] {
+        width: 100% !important;
+        min-width: 0;
+    }
+
+    /* Tabela mais legível em celular */
+    .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .table thead th,
+    .table tbody td {
+        white-space: nowrap;
+    }
+}
+</style>
+{% endblock %}
+
+{% block page_title %}Inventário Inicial do Rebanho{% endblock %}
+
+{% block content %}
+{% if inventario_ja_existe %}
+<div class="alert alert-warning alert-dismissible fade show" role="alert">
+    <i class="fas fa-exclamation-triangle me-2"></i>
+    <strong>Atenção!</strong> Já existe um inventário cadastrado para esta propriedade. 
+    Você pode modificar os valores existentes ou excluir o inventário atual.
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2><i class="bi bi-clipboard-data"></i> Inventário Inicial</h2>
+                <p class="text-muted">Propriedade: {{ propriedade.nome_propriedade }}</p>
+            </div>
+            <div>
+                <a href="{% url 'categorias_lista' %}" class="btn btn-outline-primary me-2">
+                    <i class="bi bi-tags"></i> Gerenciar Categorias
+                </a>
+                <a href="{% url 'pecuaria_dashboard' propriedade.id %}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Voltar
+                </a>
+            </div>
+        </div>
+        
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i>
+            <strong>Instruções:</strong> Preencha a quantidade e valor por cabeça de cada categoria na data especificada. 
+            Este será o ponto de partida para todas as projeções futuras.
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Cadastrar Inventário</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" id="inventario-form">
+                    {% csrf_token %}
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label for="data_inventario" class="form-label">Data do Inventário</label>
+                            <input type="date" class="form-control" id="data_inventario" name="data_inventario" 
+                                   value="{% now 'Y-m-d' %}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Teste de Cálculo</label>
+                            <button type="button" class="btn btn-warning btn-sm" onclick="testarCalculoSimples()">
+                                <i class="bi bi-calculator"></i> Testar Cálculo
+                            </button>
+                            <button type="button" class="btn btn-danger btn-sm ms-2" onclick="testarVisualAgressivo()">
+                                <i class="bi bi-eye"></i> Teste Visual
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-primary">
+                                <tr>
+                                    <th style="width: 20%;">Categoria</th>
+                                    <th class="text-center" style="width: 12%;">Raça</th>
+                                    <th class="text-center" style="width: 8%;">Sexo</th>
+                                    <th class="text-center" style="width: 10%;">Idade (meses)</th>
+                                    <th class="text-center" style="width: 10%;">Quantidade</th>
+                                    <th class="text-center" style="width: 15%;">Valor por Cabeça (R$)</th>
+                                    <th class="text-center" style="width: 15%;">Valor Total (R$)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in categorias_com_inventario %}
+                                <tr>
+                                    <td class="fw-bold">{{ item.categoria.nome }}</td>
+                                    <td class="text-center">
+                                        <span class="badge bg-info" style="color: white !important; font-weight: 700; text-shadow: 0 2px 4px rgba(0,0,0,0.5); background-color: #004d40 !important; border: 1px solid #00251a !important;">{{ item.categoria.get_raca_display }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge {% if item.categoria.sexo == 'F' %}bg-pink{% elif item.categoria.sexo == 'M' %}bg-blue{% else %}bg-secondary{% endif %}" style="color: white !important; font-weight: 700; text-shadow: 0 2px 4px rgba(0,0,0,0.5); background-color: #1e3a8a !important; border: 1px solid #1e40af !important;">
+                                            {% if item.categoria.sexo == 'F' %}Fêmea
+                                            {% elif item.categoria.sexo == 'M' %}Macho
+                                            {% else %}Indefinido
+                                            {% endif %}
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        {% if item.categoria.idade_minima_meses is not None and item.categoria.idade_maxima_meses is not None %}
+                                            {{ item.categoria.idade_minima_meses }}-{{ item.categoria.idade_maxima_meses }}m
+                                        {% elif item.categoria.idade_minima_meses is not None %}
+                                            {{ item.categoria.idade_minima_meses }}+m
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        <input type="number" 
+                                               class="form-control text-center" 
+                                               name="quantidade_{{ item.categoria.id }}" 
+                                               id="quantidade_{{ item.categoria.id }}"
+                                               value="{{ item.quantidade }}"
+                                               min="0" 
+                                               step="1"
+                                               style="width: 100px; margin: 0 auto;"
+                                               onchange="calcularTotal({{ item.categoria.id }})"
+                                               oninput="calcularTotal({{ item.categoria.id }})"
+                                               onkeyup="calcularTotal({{ item.categoria.id }})"
+                                               onblur="calcularTotal({{ item.categoria.id }})">
+                                    </td>
+                                    <td class="text-center">
+                                        <input type="number" 
+                                               class="form-control text-center" 
+                                               name="valor_por_cabeca_{{ item.categoria.id }}" 
+                                               id="valor_por_cabeca_{{ item.categoria.id }}"
+                                               value="{{ item.valor_por_cabeca|floatformat:2 }}"
+                                               min="0" 
+                                               step="0.01"
+                                               style="width: 120px; margin: 0 auto;"
+                                               onchange="calcularTotal({{ item.categoria.id }})"
+                                               oninput="calcularTotal({{ item.categoria.id }})"
+                                               onkeyup="calcularTotal({{ item.categoria.id }})"
+                                               onblur="calcularTotal({{ item.categoria.id }})">
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="fw-bold text-success" id="valor_total_{{ item.categoria.id }}" style="min-width: 120px; display: inline-block;">R$ 0,00</span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot class="table-info">
+                                <tr>
+                                    <td class="fw-bold">TOTAIS</td>
+                                    <td class="text-center">-</td>
+                                    <td class="text-center">-</td>
+                                    <td class="text-center">-</td>
+                                    <td class="text-center">
+                                        <span class="fw-bold" id="total_quantidade">0</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="fw-bold" id="valor_medio_por_cabeca">R$ 0,00</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="fw-bold text-success" id="valor_total_geral" style="min-width: 120px; display: inline-block;">R$ 0,00</span>
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    
+                    <div class="d-flex gap-2 mt-4">
+                        {% if inventario_ja_existe %}
+                            <button type="submit" class="btn btn-warning">
+                                <i class="bi bi-pencil-square"></i> Atualizar Inventário
+                            </button>
+                            <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#modalExcluir">
+                                <i class="bi bi-trash"></i> Excluir Inventário
+                            </button>
+                        {% else %}
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check"></i> Salvar Inventário
+                            </button>
+                        {% endif %}
+                        <a href="{% url 'pecuaria_dashboard' propriedade.id %}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Cancelar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Relatório do Inventário -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">
+                            <i class="bi bi-graph-up"></i> Relatório do Inventário
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <!-- Resumo Geral -->
+                            <div class="col-md-6">
+                                <h6 class="text-primary mb-3">
+                                    <i class="bi bi-clipboard-data"></i> Resumo Geral
+                                </h6>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-bordered">
+                                        <tbody>
+                                            <tr>
+                                                <td class="fw-bold">Total de Animais:</td>
+                                                <td class="text-end" id="relatorio_total_animais">0</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="fw-bold">Valor Total do Rebanho:</td>
+                                                <td class="text-end text-success fw-bold" id="relatorio_valor_total">R$ 0,00</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="fw-bold">Valor Médio por Cabeça:</td>
+                                                <td class="text-end" id="relatorio_valor_medio">R$ 0,00</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <!-- Resumo por Sexo -->
+                            <div class="col-md-6">
+                                <h6 class="text-primary mb-3">
+                                    <i class="bi bi-gender-ambiguous"></i> Resumo por Sexo
+                                </h6>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-bordered">
+                                        <tbody>
+                                            <tr>
+                                                <td class="fw-bold">Fêmeas:</td>
+                                                <td class="text-end" id="relatorio_femeas_qtd">0</td>
+                                                <td class="text-end" id="relatorio_femeas_valor">R$ 0,00</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="fw-bold">Machos:</td>
+                                                <td class="text-end" id="relatorio_machos_qtd">0</td>
+                                                <td class="text-end" id="relatorio_machos_valor">R$ 0,00</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Resumo por Raça -->
+                        <!-- Resumo por Categoria -->
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <h6 class="text-primary mb-3">
+                                    <i class="bi bi-list-ul"></i> Resumo por Categoria
+                                </h6>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-striped" id="relatorio_categorias">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Categoria</th>
+                                                <th class="text-center">Quantidade</th>
+                                                <th class="text-center">Valor por Cabeça</th>
+                                                <th class="text-center">Valor Total</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="relatorio_categorias_body">
+                                            <!-- Será preenchido via JavaScript -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Resumo por Raça -->
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <h6 class="text-primary mb-3">
+                                    <i class="bi bi-tags"></i> Resumo por Raça
+                                </h6>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-striped" id="relatorio_racas">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Raça</th>
+                                                <th class="text-center">Quantidade</th>
+                                                <th class="text-center">Valor Total</th>
+                                                <th class="text-center">% do Rebanho</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="relatorio_racas_body">
+                                            <!-- Será preenchido via JavaScript -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+<script>
+function calcularTotal(categoriaId) {
+    // Obter os valores dos campos
+    var quantidade = parseFloat(document.getElementById('quantidade_' + categoriaId).value) || 0;
+    var valorPorCabeca = parseFloat(document.getElementById('valor_por_cabeca_' + categoriaId).value) || 0;
+    var valorTotalElement = document.getElementById('valor_total_' + categoriaId);
+    
+    // Calcular o total: Quantidade × Valor por Cabeça
+    var total = quantidade * valorPorCabeca;
+    
+    // Atualizar o elemento visual
+    if (total > 0) {
+        valorTotalElement.innerHTML = 'R$ ' + total.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        valorTotalElement.style.color = '#28a745';
+        valorTotalElement.style.fontWeight = 'bold';
+        valorTotalElement.style.backgroundColor = '#d4edda';
+        valorTotalElement.style.padding = '5px 10px';
+        valorTotalElement.style.borderRadius = '4px';
+        valorTotalElement.style.border = '1px solid #c3e6cb';
+    } else {
+        valorTotalElement.innerHTML = 'R$ 0,00';
+        valorTotalElement.style.color = '#6c757d';
+        valorTotalElement.style.fontWeight = 'normal';
+        valorTotalElement.style.backgroundColor = '#f8f9fa';
+        valorTotalElement.style.padding = '5px 10px';
+        valorTotalElement.style.borderRadius = '4px';
+        valorTotalElement.style.border = '1px solid #dee2e6';
+    }
+    
+    // Recalcular totais gerais
+    calcularTotaisGerais();
+}
+
+function calcularTotaisGerais() {
+    let totalQuantidade = 0;
+    let valorTotalGeral = 0;
+    let categoriasComValor = 0;
+    let somaValoresPorCabeca = 0;
+    
+    {% for item in categorias_com_inventario %}
+    const quantidade{{ item.categoria.id }} = parseFloat(document.getElementById('quantidade_{{ item.categoria.id }}').value) || 0;
+    const valorPorCabeca{{ item.categoria.id }} = parseFloat(document.getElementById('valor_por_cabeca_{{ item.categoria.id }}').value) || 0;
+    
+    totalQuantidade += quantidade{{ item.categoria.id }};
+    valorTotalGeral += quantidade{{ item.categoria.id }} * valorPorCabeca{{ item.categoria.id }};
+    
+    if (quantidade{{ item.categoria.id }} > 0) {
+        categoriasComValor++;
+        somaValoresPorCabeca += valorPorCabeca{{ item.categoria.id }};
+    }
+    {% endfor %}
+    
+    // Atualizar totais
+    document.getElementById('total_quantidade').textContent = totalQuantidade;
+    document.getElementById('valor_total_geral').textContent = 'R$ ' + valorTotalGeral.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    
+    // Calcular valor médio por cabeça
+    const valorMedioPorCabeca = categoriasComValor > 0 ? somaValoresPorCabeca / categoriasComValor : 0;
+    document.getElementById('valor_medio_por_cabeca').textContent = 'R$ ' + valorMedioPorCabeca.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    
+    // Atualizar relatório
+    gerarRelatorio();
+}
+
+// Calcular totais ao carregar a página
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 DOM carregado, iniciando cálculos...');
+    
+    // Aguardar um pouco para garantir que todos os elementos estejam carregados
+    setTimeout(function() {
+        console.log('⏰ Iniciando cálculos após timeout...');
+        
+        {% for item in categorias_com_inventario %}
+        console.log(`🔄 Processando categoria {{ item.categoria.id }}...`);
+        
+        // Verificar se há valores iniciais
+        const quantidadeInicial = {{ item.quantidade }};
+        const valorInicial = {{ item.valor_por_cabeca }};
+        
+        console.log(`   Valores iniciais: Qtd=${quantidadeInicial}, Valor=${valorInicial}`);
+        
+        // Se há valores iniciais, forçar o cálculo
+        if (quantidadeInicial > 0 || valorInicial > 0) {
+            console.log(`   Forçando cálculo para categoria {{ item.categoria.id }}`);
+            calcularTotal({{ item.categoria.id }});
+        } else {
+            // Mesmo sem valores iniciais, forçar o cálculo para garantir que funcione
+            console.log(`   Forçando cálculo para categoria {{ item.categoria.id }} (sem valores iniciais)`);
+            calcularTotal({{ item.categoria.id }});
+        }
+        {% endfor %}
+        
+        // Calcular totais gerais uma única vez
+        calcularTotaisGerais();
+        
+        // Gerar relatório
+        gerarRelatorio();
+        
+        console.log('✅ Cálculos iniciais concluídos');
+    }, 1000); // Aumentado para 1000ms
+});
+
+// Função para gerar o relatório
+function gerarRelatorio() {
+    console.log('📊 Iniciando geração do relatório...');
+    
+    let totalAnimais = 0;
+    let valorTotalRebanho = 0;
+    let femeasQtd = 0;
+    let femeasValor = 0;
+    let machosQtd = 0;
+    let machosValor = 0;
+    let racas = {};
+    
+    {% for item in categorias_com_inventario %}
+    const quantidade{{ item.categoria.id }} = parseFloat(document.getElementById('quantidade_{{ item.categoria.id }}').value) || 0;
+    const valorPorCabeca{{ item.categoria.id }} = parseFloat(document.getElementById('valor_por_cabeca_{{ item.categoria.id }}').value) || 0;
+    const valorTotal{{ item.categoria.id }} = quantidade{{ item.categoria.id }} * valorPorCabeca{{ item.categoria.id }};
+    
+    console.log(`📋 Categoria {{ item.categoria.nome }}: Qtd=${quantidade{{ item.categoria.id }}}, Valor=${valorPorCabeca{{ item.categoria.id }}}, Total=${valorTotal{{ item.categoria.id }}}`);
+    
+    totalAnimais += quantidade{{ item.categoria.id }};
+    valorTotalRebanho += valorTotal{{ item.categoria.id }};
+    
+    // Contar por sexo
+    {% if item.categoria.sexo == 'F' %}
+    femeasQtd += quantidade{{ item.categoria.id }};
+    femeasValor += valorTotal{{ item.categoria.id }};
+    {% elif item.categoria.sexo == 'M' %}
+    machosQtd += quantidade{{ item.categoria.id }};
+    machosValor += valorTotal{{ item.categoria.id }};
+    {% endif %}
+    
+    // Agrupar por raça
+    const raca{{ item.categoria.id }} = '{{ item.categoria.get_raca_display }}';
+    if (!racas[raca{{ item.categoria.id }}]) {
+        racas[raca{{ item.categoria.id }}] = { qtd: 0, valor: 0 };
+    }
+    racas[raca{{ item.categoria.id }}].qtd += quantidade{{ item.categoria.id }};
+    racas[raca{{ item.categoria.id }}].valor += valorTotal{{ item.categoria.id }};
+    {% endfor %}
+    
+    console.log(`📊 Totais calculados: Animais=${totalAnimais}, Valor=${valorTotalRebanho}`);
+    console.log(`👥 Por sexo: Fêmeas=${femeasQtd}, Machos=${machosQtd}`);
+    console.log(`🏷️ Raças:`, racas);
+    
+    // Atualizar resumo geral
+    document.getElementById('relatorio_total_animais').textContent = totalAnimais;
+    document.getElementById('relatorio_valor_total').textContent = 'R$ ' + valorTotalRebanho.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    
+    const valorMedio = totalAnimais > 0 ? valorTotalRebanho / totalAnimais : 0;
+    document.getElementById('relatorio_valor_medio').textContent = 'R$ ' + valorMedio.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    
+    // Atualizar resumo por sexo
+    document.getElementById('relatorio_femeas_qtd').textContent = femeasQtd;
+    document.getElementById('relatorio_femeas_valor').textContent = 'R$ ' + femeasValor.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    document.getElementById('relatorio_machos_qtd').textContent = machosQtd;
+    document.getElementById('relatorio_machos_valor').textContent = 'R$ ' + machosValor.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    
+    // Atualizar resumo por categoria
+    const categoriasBody = document.getElementById('relatorio_categorias_body');
+    categoriasBody.innerHTML = '';
+    
+    console.log('📋 Atualizando resumo por categoria...');
+    
+    {% for item in categorias_com_inventario %}
+    const quantidade{{ item.categoria.id }} = parseFloat(document.getElementById('quantidade_{{ item.categoria.id }}').value) || 0;
+    const valorPorCabeca{{ item.categoria.id }} = parseFloat(document.getElementById('valor_por_cabeca_{{ item.categoria.id }}').value) || 0;
+    const valorTotal{{ item.categoria.id }} = quantidade{{ item.categoria.id }} * valorPorCabeca{{ item.categoria.id }};
+    
+    console.log(`📋 Categoria {{ item.categoria.nome }}: Qtd=${quantidade{{ item.categoria.id }}}, Valor=${valorPorCabeca{{ item.categoria.id }}}, Total=${valorTotal{{ item.categoria.id }}}`);
+    
+    if (quantidade{{ item.categoria.id }} > 0) {
+        console.log(`   ✅ Adicionando categoria {{ item.categoria.nome }} ao resumo`);
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td class="fw-bold">{{ item.categoria.nome }}</td>
+            <td class="text-center">${quantidade{{ item.categoria.id }}}</td>
+            <td class="text-center text-info fw-bold">R$ ${valorPorCabeca{{ item.categoria.id }}.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+            <td class="text-center text-success fw-bold">R$ ${valorTotal{{ item.categoria.id }}.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+        `;
+        categoriasBody.appendChild(row);
+    } else {
+        console.log(`   ⚠️ Categoria {{ item.categoria.nome }} sem quantidade, não adicionando ao resumo`);
+    }
+    {% endfor %}
+    
+    console.log(`📋 Resumo por categoria atualizado. Linhas: ${categoriasBody.children.length}`);
+    
+    // Atualizar resumo por raça
+    const racasBody = document.getElementById('relatorio_racas_body');
+    racasBody.innerHTML = '';
+    
+    console.log('🏷️ Atualizando resumo por raça...');
+    console.log('🏷️ Raças encontradas:', racas);
+    
+    for (const [raca, dados] of Object.entries(racas)) {
+        console.log(`🏷️ Processando raça ${raca}: Qtd=${dados.qtd}, Valor=${dados.valor}`);
+        
+        if (dados.qtd > 0) {
+            const percentual = totalAnimais > 0 ? (dados.qtd / totalAnimais * 100) : 0;
+            console.log(`   ✅ Adicionando raça ${raca} ao resumo (${percentual.toFixed(1)}%)`);
+            
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td class="fw-bold">${raca}</td>
+                <td class="text-center">${dados.qtd}</td>
+                <td class="text-center text-success fw-bold">R$ ${dados.valor.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                <td class="text-center">${percentual.toFixed(1)}%</td>
+            `;
+            racasBody.appendChild(row);
+        } else {
+            console.log(`   ⚠️ Raça ${raca} sem quantidade, não adicionando ao resumo`);
+        }
+    }
+    
+    console.log(`🏷️ Resumo por raça atualizado. Linhas: ${racasBody.children.length}`);
+}
+
+// Função de teste simples
+function testarCalculoSimples() {
+    console.log('🧮 TESTE DE CÁLCULO SIMPLES INICIADO');
+    
+    // Testar com a primeira categoria
+    var quantidade = document.getElementById('quantidade_1');
+    var valorPorCabeca = document.getElementById('valor_por_cabeca_1');
+    var valorTotal = document.getElementById('valor_total_1');
+    
+    if (quantidade && valorPorCabeca && valorTotal) {
+        console.log('✅ Elementos encontrados');
+        
+        // Definir valores de teste: 150 × 1500 = 225.000
+        quantidade.value = 150;
+        valorPorCabeca.value = 1500;
+        
+        // Forçar o cálculo
+        calcularTotal(1);
+        
+        console.log('✅ Cálculo forçado para categoria 1');
+        console.log('✅ Valores: 150 × 1500 = 225.000');
+    } else {
+        console.error('❌ Elementos não encontrados');
+        console.log('Quantidade:', quantidade);
+        console.log('Valor por cabeça:', valorPorCabeca);
+        console.log('Valor total:', valorTotal);
+    }
+    
+    console.log('🧮 TESTE DE CÁLCULO SIMPLES CONCLUÍDO');
+}
+
+// Função de teste visual agressivo
+function testarVisualAgressivo() {
+    console.log('👁️ TESTE VISUAL AGRESSIVO INICIADO');
+    
+    // Encontrar todos os elementos valor_total
+    var todosElementos = document.querySelectorAll('[id^="valor_total_"]');
+    console.log('Elementos encontrados: ' + todosElementos.length);
+    
+    for (var i = 0; i < todosElementos.length; i++) {
+        var elemento = todosElementos[i];
+        console.log('Aplicando estilo visual ao elemento: ' + elemento.id);
+        
+        // Aplicar estilo visual muito agressivo
+        elemento.innerHTML = 'R$ 888.888,88';
+        elemento.style.color = '#ffffff';
+        elemento.style.fontWeight = 'bold';
+        elemento.style.fontSize = '24px';
+        elemento.style.backgroundColor = '#dc3545';
+        elemento.style.padding = '15px';
+        elemento.style.borderRadius = '10px';
+        elemento.style.border = '3px solid #000000';
+        elemento.style.display = 'inline-block';
+        elemento.style.minWidth = '200px';
+        elemento.style.textAlign = 'center';
+        elemento.style.boxShadow = '0 6px 12px rgba(0,0,0,0.5)';
+        elemento.style.textShadow = '2px 2px 4px rgba(0,0,0,0.8)';
+        elemento.style.animation = 'pulse 1s infinite';
+    }
+    
+    console.log('👁️ TESTE VISUAL AGRESSIVO CONCLUÍDO');
+}
+
+</script>
+
+<!-- Modal de Confirmação para Exclusão -->
+<div class="modal fade" id="modalExcluir" tabindex="-1" aria-labelledby="modalExcluirLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="modalExcluirLabel">
+                    <i class="bi bi-exclamation-triangle"></i> Confirmar Exclusão
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p><strong>Atenção!</strong> Esta ação irá excluir permanentemente todo o inventário cadastrado para esta propriedade.</p>
+                <p class="text-danger"><strong>Esta ação não pode ser desfeita!</strong></p>
+                <p>Tem certeza que deseja continuar?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </button>
+                <form method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="excluir_inventario" value="1">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> Sim, Excluir Inventário
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

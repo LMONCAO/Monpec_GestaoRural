@@ -1,0 +1,31 @@
+========================================
+COMANDOS CORRETOS PARA EXECUTAR
+========================================
+
+1. CONFIGURAR DOMÍNIO (use alpha ou beta):
+   gcloud alpha run domain-mappings create --service monpec --domain monpec.com.br --region us-central1
+   gcloud alpha run domain-mappings create --service monpec --domain www.monpec.com.br --region us-central1
+
+   OU com beta:
+   gcloud beta run domain-mappings create --service monpec --domain monpec.com.br --region us-central1
+   gcloud beta run domain-mappings create --service monpec --domain www.monpec.com.br --region us-central1
+
+2. EXECUTAR MIGRAÇÕES (job já existe):
+   gcloud run jobs execute migrate-monpec --region us-central1 --wait
+
+3. CONFIGURAR VARIÁVEIS DE AMBIENTE:
+   gcloud run services update monpec --region us-central1 \
+     --update-env-vars "MERCADOPAGO_ACCESS_TOKEN=APP_USR-7331944463149248-122310-414426720444c3c1d60cf733585d7821-2581972940,MERCADOPAGO_PUBLIC_KEY=APP_USR-49fe9640-f5b1-4fac-a280-2e28fbd0fea3,SECRET_KEY=SUA_SECRET_KEY,DB_NAME=monpec_db,DB_USER=monpec_user,DB_PASSWORD=SUA_SENHA,DB_HOST=/cloudsql/SEU_CONNECTION_NAME"
+
+4. VERIFICAR STATUS:
+   gcloud run services describe monpec --region us-central1 --format="value(status.url)"
+   gcloud run services logs read monpec --region us-central1
+
+========================================
+ERROS CORRIGIDOS:
+- us-centrall → us-central1 ✅
+- domain-mappings → usar alpha/beta ✅
+- Job já existe → apenas executar ✅
+========================================
+
+

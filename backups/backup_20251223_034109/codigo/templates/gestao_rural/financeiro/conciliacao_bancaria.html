@@ -1,0 +1,202 @@
+{% extends 'base_modulos_unificado.html' %}
+{% load formatacao_br %}
+
+{% block title %}Conciliação Bancária - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block breadcrumb_extra %}
+    <li class="breadcrumb-item">
+        <a href="{% url 'financeiro_dashboard' propriedade.id %}">
+            <i class="bi bi-cash-coin me-1"></i>Financeiro
+        </a>
+    </li>
+    <li class="breadcrumb-item active">Conciliação Bancária</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="submenu-page-header">
+        <div class="d-flex align-items-start gap-4">
+            <div class="submenu-page-icon bg-primary bg-opacity-10 text-primary">
+                <i class="bi bi-bank"></i>
+            </div>
+            <div class="flex-grow-1">
+                <h1 class="submenu-page-title mb-1">Conciliação Bancária</h1>
+                <p class="submenu-page-description mb-0">
+                    Concilie os movimentos bancários da propriedade {{ propriedade.nome_propriedade }}.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card-moderno">
+        <div class="card-body-moderno">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Conta</label>
+                    <select name="conta" class="form-select">
+                        <option value="">Todas as contas</option>
+                        {% for conta_item in contas %}
+                            <option value="{{ conta_item.id }}" {% if conta.id == conta_item.id %}selected{% endif %}>
+                                {{ conta_item.nome }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Data Início</label>
+                    <input type="date" name="data_inicio" class="form-control" 
+                           value="{{ data_inicio|date:'Y-m-d' }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Data Fim</label>
+                    <input type="date" name="data_fim" class="form-control" 
+                           value="{{ data_fim|date:'Y-m-d' }}">
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-funnel me-1"></i> Filtrar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if conta %}
+    <div class="row g-3 mt-3">
+        <!-- Movimentos Financeiros -->
+        <div class="col-md-6">
+            <div class="card-moderno">
+                <div class="card-header-moderno">
+                    <h5 class="mb-0">
+                        <i class="bi bi-list-ul me-2"></i>
+                        Movimentos Não Conciliados
+                    </h5>
+                </div>
+                <div class="card-body-moderno">
+                    <form method="post" action="{% url 'financeiro_conciliacao_marcar' propriedade.id %}">
+                        {% csrf_token %}
+                        <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                            <table class="table table-sm table-hover">
+                                <thead class="sticky-top bg-light">
+                                    <tr>
+                                        <th><input type="checkbox" id="select-all-movimentos"></th>
+                                        <th>Data</th>
+                                        <th>Descrição</th>
+                                        <th class="text-end">Valor</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% if movimentos_nao_conciliados %}
+                                        {% for movimento in movimentos_nao_conciliados %}
+                                            <tr>
+                                                <td>
+                                                    <input type="checkbox" name="movimentos" value="{{ movimento.id }}">
+                                                </td>
+                                                <td>{{ movimento.data_movimento|data_br }}</td>
+                                                <td>{{ movimento.descricao }}</td>
+                                                <td class="text-end">
+                                                    <span class="{% if movimento.tipo == 'ENTRADA' %}text-success{% else %}text-danger{% endif %}">
+                                                        {{ movimento.valor_liquido|moeda_br }}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    {% else %}
+                                        <tr>
+                                            <td colspan="4" class="text-center text-muted py-3">
+                                                Nenhum movimento não conciliado
+                                            </td>
+                                        </tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% if movimentos_nao_conciliados %}
+                        <div class="mt-3">
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-check-circle me-1"></i> Marcar Selecionados como Conciliados
+                            </button>
+                        </div>
+                        {% endif %}
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lançamentos Financeiros -->
+        <div class="col-md-6">
+            <div class="card-moderno">
+                <div class="card-header-moderno">
+                    <h5 class="mb-0">
+                        <i class="bi bi-receipt me-2"></i>
+                        Lançamentos Não Conciliados
+                    </h5>
+                </div>
+                <div class="card-body-moderno">
+                    <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                        <table class="table table-sm table-hover">
+                            <thead class="sticky-top bg-light">
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Descrição</th>
+                                    <th>Tipo</th>
+                                    <th class="text-end">Valor</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if lancamentos_nao_conciliados %}
+                                    {% for lancamento in lancamentos_nao_conciliados %}
+                                        <tr>
+                                            <td>{{ lancamento.data_quitacao|data_br }}</td>
+                                            <td>{{ lancamento.descricao }}</td>
+                                            <td>
+                                                <span class="badge bg-light text-dark">
+                                                    {{ lancamento.get_tipo_display }}
+                                                </span>
+                                            </td>
+                                            <td class="text-end">
+                                                <span class="{% if lancamento.tipo == 'RECEITA' %}text-success{% else %}text-danger{% endif %}">
+                                                    {{ lancamento.valor|moeda_br }}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted py-3">
+                                            Nenhum lançamento não conciliado
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="card-moderno mt-3">
+        <div class="card-body-moderno text-center py-5">
+            <i class="bi bi-bank display-6 text-muted d-block mb-3"></i>
+            <p class="text-muted">Selecione uma conta para visualizar a conciliação.</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+document.getElementById('select-all-movimentos')?.addEventListener('change', function() {
+    const checkboxes = document.querySelectorAll('input[name="movimentos"]');
+    checkboxes.forEach(cb => cb.checked = this.checked);
+});
+</script>
+{% endblock %}
+
+
+
+
+
+
+

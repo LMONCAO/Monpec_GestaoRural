@@ -10,7 +10,9 @@ from .models import Propriedade, InventarioRebanho, CustoFixo, CustoVariavel, Fi
 @login_required
 def projetos_bancarios_dashboard(request, propriedade_id):
     """Dashboard centralizado de projetos bancários"""
-    propriedade = get_object_or_404(Propriedade, id=propriedade_id)
+    # ✅ SEGURANÇA: Verificar permissão de acesso à propriedade
+    from .decorators import obter_propriedade_com_permissao
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
     # Busca dados de todos os módulos
     dados_consolidados = consolidar_dados_propriedade(propriedade)

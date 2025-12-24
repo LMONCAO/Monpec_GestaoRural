@@ -1,0 +1,30 @@
+# Google App Engine Configuration
+# Para usar App Engine (alternativa ao Cloud Run)
+
+runtime: python39
+
+env_variables:
+  DJANGO_SETTINGS_MODULE: 'sistema_rural.settings_gcp'
+  PYTHONUNBUFFERED: '1'
+
+automatic_scaling:
+  min_instances: 1
+  max_instances: 10
+  target_cpu_utilization: 0.6
+
+handlers:
+- url: /static
+  static_dir: staticfiles/
+
+- url: /media
+  static_dir: media/
+
+- url: /.*
+  script: auto
+
+
+
+
+
+
+

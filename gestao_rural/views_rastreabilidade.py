@@ -1543,6 +1543,8 @@ def animal_individual_editar(request, propriedade_id, animal_id):
             lote_atual_id = request.POST.get('lote_atual') or None
             codigo_sisbov = request.POST.get('codigo_sisbov', '').strip()
             codigo_eletronico = request.POST.get('codigo_eletronico', '').strip()
+            numero_manejo = request.POST.get('numero_manejo', '').strip()
+            status_bnd = request.POST.get('status_bnd', '').strip() or None
             data_saida = _parse_date_field(request.POST.get('data_saida'))
             motivo_saida = request.POST.get('motivo_saida', '').strip()
 
@@ -1601,6 +1603,8 @@ def animal_individual_editar(request, propriedade_id, animal_id):
             animal.lote_atual_id = lote_atual_id if lote_atual_id else None
             animal.codigo_sisbov = codigo_sisbov or animal.codigo_sisbov or animal.numero_brinco
             animal.codigo_eletronico = codigo_eletronico or None
+            animal.numero_manejo = numero_manejo or None
+            animal.status_bnd = status_bnd
             animal.data_saida = data_saida
             animal.motivo_saida = motivo_saida or None
             animal.apelido = apelido or None

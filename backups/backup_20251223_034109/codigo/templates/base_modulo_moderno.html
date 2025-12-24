@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Monpec Rural{% endblock %}</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Google Fonts - Padrão Unificado MONPEC -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Tipografia Unificada -->
+    <link rel="stylesheet" href="{% static 'css/tipografia_unificada.css' %}">
+    
+    <style>
+        :root {
+            --primary: #6495ed;
+            --navy: #6495ed;
+            --text-dark: #1f2937;
+            --text-light: #6b7280;
+            --bg-light: #f8fafc;
+            --border-light: #e5e7eb;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-light);
+            color: var(--text-dark);
+            line-height: 1.6;
+        }
+
+        /* Header */
+        .header-moderno {
+            background: linear-gradient(135deg, var(--navy) 0%, #8cb5ff 100%);
+            color: white;
+            padding: 1rem 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .logo-img {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            object-fit: contain;
+        }
+
+        .logo-text {
+            font-family: 'Poppins', 'Inter', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: white;
+        }
+
+        /* Sidebar */
+        .sidebar-moderno {
+            background: linear-gradient(180deg, var(--navy) 0%, #8cb5ff 100%);
+            min-height: 100vh;
+            width: 280px;
+            position: fixed;
+            left: 0;
+            top: 0;
+            padding: 2rem 0;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+
+        .sidebar-header {
+            padding: 0 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .sidebar-nav {
+            list-style: none;
+            padding: 0 1rem;
+        }
+
+        .sidebar-nav li {
+            margin-bottom: 0.5rem;
+        }
+
+        .sidebar-nav a {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .sidebar-nav a:hover {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            transform: translateX(4px);
+        }
+
+        .sidebar-nav a.active {
+            background: rgba(255,255,255,0.15);
+            color: white;
+            border-left: 3px solid #60a5fa;
+        }
+
+        .sidebar-nav i {
+            font-size: 1.1rem;
+            width: 20px;
+            text-align: center;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 280px;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        /* Cards */
+        .card-moderno {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid var(--border-light);
+            transition: all 0.3s ease;
+        }
+
+        .card-moderno:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transform: translateY(-2px);
+        }
+
+        .card-header-moderno {
+            background: linear-gradient(135deg, var(--primary) 0%, #8cb5ff 100%);
+            color: white;
+            border-radius: 12px 12px 0 0;
+            padding: 1.5rem;
+        }
+
+        .card-body-moderno {
+            padding: 1.5rem;
+        }
+
+        /* Botões */
+        .btn-moderno {
+            background: linear-gradient(135deg, var(--primary) 0%, #8cb5ff 100%);
+            border: none;
+            border-radius: 8px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 500;
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        .btn-moderno:hover {
+            background: linear-gradient(135deg, #3d6fd8 0%, var(--primary) 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(100, 149, 237, 0.3);
+            color: white;
+        }
+
+        .btn-outline-moderno {
+            background: transparent;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+            border-radius: 8px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-outline-moderno:hover {
+            background: var(--primary);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        /* Tabelas */
+        .table-moderno {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .table-moderno thead {
+            background: linear-gradient(135deg, var(--navy) 0%, #2c5282 100%);
+            color: white;
+        }
+
+        .table-moderno th {
+            border: none;
+            padding: 1rem;
+            font-weight: 600;
+        }
+
+        .table-moderno td {
+            border: none;
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .table-moderno tbody tr:hover {
+            background: rgba(37, 99, 235, 0.05);
+        }
+
+        /* Formulários */
+        .form-control-moderno {
+            border: 2px solid var(--border-light);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-control-moderno:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        /* Badges */
+        .badge-moderno {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 500;
+            font-size: 0.85rem;
+        }
+
+        /* Responsividade */
+        @media (max-width: 768px) {
+            .sidebar-moderno {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+            
+            .sidebar-moderno.show {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-left: 0;
+                padding: 1rem;
+            }
+        }
+
+        /* Animações */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in-up {
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        /* Breadcrumb */
+        .breadcrumb-moderno {
+            background: transparent;
+            padding: 0;
+            margin-bottom: 1.5rem;
+        }
+
+        .breadcrumb-moderno .breadcrumb-item {
+            color: var(--text-light);
+        }
+
+        .breadcrumb-moderno .breadcrumb-item a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .breadcrumb-moderno .breadcrumb-item.active {
+            color: var(--text-dark);
+            font-weight: 500;
+        }
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Header -->
+    <div class="header-moderno">
+        <div class="container-fluid">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <div class="logo-container">
+                        <img src="{% block logo_url %}{% static 'img/logo-monpec.png' %}{% endblock %}" alt="Monpec Rural" class="logo-img">
+                        <span class="logo-text">Monpec</span>
+                    </div>
+                </div>
+                <div class="col-md-6 text-end">
+                    {% if user.is_authenticated %}
+                        <span class="text-white-50">Olá, {{ user.first_name|default:user.username }}!</span>
+                        <a href="{% url 'logout' %}" class="btn btn-outline-light btn-sm ms-3">
+                            <i class="bi bi-box-arrow-right"></i> Sair
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <nav class="sidebar-moderno">
+        <div class="sidebar-header">
+            <h5 class="text-white-50 mb-0">Navegação</h5>
+        </div>
+        <ul class="sidebar-nav">
+            <li>
+                <a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                    <i class="bi bi-house"></i>
+                    Dashboard
+                </a>
+            </li>
+            {% if propriedade %}
+            <li>
+                <a href="{% url 'pecuaria_dashboard' propriedade.id %}" class="{% if 'pecuaria' in request.resolver_match.url_name %}active{% endif %}">
+                    <i class="bi bi-cow"></i>
+                    Pecuária
+                </a>
+            </li>
+            <li>
+                <a href="{% url 'agricultura_dashboard' propriedade.id %}" class="{% if 'agricultura' in request.resolver_match.url_name %}active{% endif %}">
+                    <i class="bi bi-tree"></i>
+                    Agricultura
+                </a>
+            </li>
+            <li>
+                <a href="{% url 'imobilizado_dashboard' propriedade.id %}" class="{% if 'imobilizado' in request.resolver_match.url_name %}active{% endif %}">
+                    <i class="bi bi-building"></i>
+                    Bens e Patrimônio
+                </a>
+            </li>
+            <li>
+                <a href="{% url 'custos_dashboard' propriedade.id %}" class="{% if 'custos' in request.resolver_match.url_name %}active{% endif %}">
+                    <i class="bi bi-cash-coin"></i>
+                    Financeiro
+                </a>
+            </li>
+            <li>
+                <a href="{% url 'projetos_bancarios_dashboard' propriedade.id %}" class="{% if 'projetos_bancarios' in request.resolver_match.url_name %}active{% endif %}">
+                    <i class="bi bi-clipboard-data"></i>
+                    Projetos
+                </a>
+            </li>
+            {% endif %}
+            <li>
+                <a href="{% url 'categorias_lista' %}" class="{% if 'categorias' in request.resolver_match.url_name %}active{% endif %}">
+                    <i class="bi bi-tags"></i>
+                    Categorias
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        {% block breadcrumb %}
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb breadcrumb-moderno">
+                <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+                {% block breadcrumb_extra %}{% endblock %}
+            </ol>
+        </nav>
+        {% endblock %}
+
+        {% block content %}
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-12">
+                    <div class="card-moderno fade-in-up">
+                        <div class="card-header-moderno">
+                            <h3 class="mb-0">
+                                <i class="bi bi-grid-3x3-gap-fill"></i>
+                                {% block page_title %}Página{% endblock %}
+                            </h3>
+                        </div>
+                        <div class="card-body-moderno">
+                            {% block page_content %}
+                            <p>Conteúdo da página aqui.</p>
+                            {% endblock %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endblock %}
+    </main>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
+

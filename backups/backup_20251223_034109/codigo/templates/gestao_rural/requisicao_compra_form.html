@@ -1,0 +1,333 @@
+{% extends "base_modulos_unificado.html" %}
+
+{% block title %}Nova Requisição de Compra - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'compras_dashboard' propriedade.id %}">Compras</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'requisicoes_compra_lista' propriedade.id %}">Requisições</a></li>
+            <li class="breadcrumb-item active">Nova Requisição</li>
+        </ol>
+    </nav>
+
+    <form method="post" novalidate>
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+        <div class="alert alert-danger mb-4">
+            {{ form.non_field_errors }}
+        </div>
+        {% endif %}
+
+        <div class="row g-3 align-items-center mb-3">
+            <div class="col-auto">
+                <span class="badge text-bg-primary"><i class="bi bi-hash me-1"></i>{{ numero_preview }}</span>
+            </div>
+            <div class="col-auto">
+                <span class="badge text-bg-light border"><i class="bi bi-calendar me-1"></i>{{ data_requisicao|date:"d/m/Y" }}</span>
+            </div>
+            <div class="col-auto">
+                <span class="badge text-bg-light border"><i class="bi bi-geo-alt me-1"></i>{{ propriedade.nome_propriedade }}</span>
+            </div>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-xl-8">
+                <div class="card shadow-sm mb-3">
+                    <div class="card-header bg-white border-0 pb-0">
+                        <h2 class="h5 mb-0"><i class="bi bi-clipboard-check text-primary me-2"></i>Informações principais</h2>
+                        <p class="text-muted small mb-0">Preencha dados essenciais para quem irá aprovar e cotar a solicitação.</p>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">{{ form.titulo.label }} *</label>
+                                {{ form.titulo }}
+                                {% for error in form.titulo.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">{{ form.prioridade.label }} *</label>
+                                {{ form.prioridade }}
+                                {% for error in form.prioridade.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">{{ form.data_necessidade.label }}</label>
+                                {{ form.data_necessidade }}
+                                {% for error in form.data_necessidade.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label d-flex justify-content-between">{{ form.justificativa.label }} * <small class="text-muted" id="justificativa-contagem">0/600</small></label>
+                                {{ form.justificativa }}
+                                {% for error in form.justificativa.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm mb-3">
+                    <div class="card-header bg-white border-0 pb-0 d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 class="h5 mb-0"><i class="bi bi-diagram-3 text-primary me-2"></i>Responsáveis e centros</h2>
+                            <p class="text-muted small mb-0">Direciona a aprovação e análise contábil.</p>
+                        </div>
+                        <button class="btn btn-link text-decoration-none" type="button" data-bs-toggle="collapse" data-bs-target="#responsaveis-opcionais" aria-expanded="true">
+                            Ajustes adicionais
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">{{ form.setor.label }}</label>
+                                <span class="ms-1 text-muted" data-bs-toggle="tooltip" title="Quem receberá a notificação de aprovação inicial."><i class="bi bi-question-circle"></i></span>
+                                {{ form.setor }}
+                                {% for error in form.setor.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">{{ form.equipamento.label }}</label>
+                                {{ form.equipamento }}
+                                {% for error in form.equipamento.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">{{ form.centro_custo.label }}</label>
+                                {{ form.centro_custo }}
+                                {% for error in form.centro_custo.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">{{ form.plano_conta.label }}</label>
+                                {{ form.plano_conta }}
+                                {% for error in form.plano_conta.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                            </div>
+                        </div>
+                        <div id="responsaveis-opcionais" class="collapse mt-3">
+                            <label class="form-label">{{ form.centro_custo_descricao.label }}</label>
+                            {{ form.centro_custo_descricao }}
+                            {% for error in form.centro_custo_descricao.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm mb-3">
+                    <div class="card-header bg-white border-0 pb-0 d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 class="h5 mb-0"><i class="bi bi-list-check text-primary me-2"></i>Itens solicitados</h2>
+                            <p class="text-muted small mb-0">Preencha os itens necessários. Adicione quantos forem preciso.</p>
+                        </div>
+                        <button type="button" id="add-item-btn" class="btn btn-outline-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Adicionar item</button>
+                    </div>
+                    <div class="card-body">
+                        {{ formset.management_form }}
+                        <div class="table-responsive">
+                            <table class="table align-middle" id="itens-table">
+                                <thead>
+                                    <tr class="small text-muted">
+                                        <th style="width: 26%">Descrição</th>
+                                        <th style="width: 10%">Unidade</th>
+                                        <th style="width: 10%" class="text-end">Qtd</th>
+                                        <th style="width: 14%" class="text-end">Valor estimado</th>
+                                        <th style="width: 18%">Fornecedor sugerido</th>
+                                        <th>Observações</th>
+                                        <th style="width: 52px"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="itens-tbody">
+                                    {% for form_item in formset %}
+                                    <tr class="item-row" data-index="{{ forloop.counter0 }}">
+                                        {% for hidden in form_item.hidden_fields %}{{ hidden }}{% endfor %}
+                                        <td>{{ form_item.descricao }}{% for error in form_item.descricao.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}</td>
+                                        <td>{{ form_item.unidade_medida }}{% for error in form_item.unidade_medida.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}</td>
+                                        <td>{{ form_item.quantidade }}{% for error in form_item.quantidade.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}</td>
+                                        <td>{{ form_item.valor_estimado_unitario }}{% for error in form_item.valor_estimado_unitario.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}</td>
+                                        <td>{{ form_item.fornecedor_preferencial }}{% for error in form_item.fornecedor_preferencial.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}</td>
+                                        <td>{{ form_item.observacoes }}{% for error in form_item.observacoes.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}</td>
+                                        <td class="text-end">
+                                            <button type="button" class="btn btn-outline-danger btn-sm remove-item" title="Remover item"><i class="bi bi-trash"></i></button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="alert alert-light border mt-3 mb-0">
+                            <strong>Dica:</strong> use o botão "Adicionar item" quantas vezes precisar. Você pode salvar como rascunho e completar depois.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-4">
+                <div class="card shadow-sm mb-3">
+                    <div class="card-header bg-white border-0 pb-0">
+                        <h2 class="h6 mb-0"><i class="bi bi-chat-text text-primary me-2"></i>Observações</h2>
+                        <p class="text-muted small mb-0">Instruções adicionais (visíveis para aprovadores e comprador).</p>
+                    </div>
+                    <div class="card-body">
+                        {{ form.observacoes }}
+                        {% for error in form.observacoes.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        <p class="small text-muted mt-2">Campos opcionais, use para complementar descrição de itens ou condições.</p>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm mb-3">
+                    <div class="card-body">
+                        <h2 class="h6 mb-2">Resumo rápido</h2>
+                        <ul class="list-unstyled small mb-0">
+                            <li class="mb-2"><i class="bi bi-hash text-primary me-2"></i>Número: <strong>{{ numero_preview }}</strong></li>
+                            <li class="mb-2"><i class="bi bi-calendar2 text-primary me-2"></i>Data da requisição: <strong>{{ data_requisicao|date:"d/m/Y" }}</strong></li>
+                            <li class="mb-2"><i class="bi bi-info-circle text-primary me-2"></i>Prioridade atual: <strong><span id="prioridade-preview" data-inicial="{{ form.prioridade.value|default:'' }}">--</span></strong></li>
+                            <li class="mb-2"><i class="bi bi-calendar text-primary me-2"></i>Necessidade: <strong><span id="data-preview">{{ form.data_necessidade.value|default:'a definir' }}</span></strong></li>
+                            <li class="mb-2"><i class="bi bi-currency-dollar text-primary me-2"></i>Total estimado: <strong id="total-estimado-preview">R$ 0,00</strong></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mt-4">
+            <div class="card-body d-flex flex-wrap gap-2 justify-content-between align-items-center">
+                <div class="small text-muted d-flex align-items-center gap-2">
+                    <i class="bi bi-exclamation-circle text-primary"></i>
+                    <span>Campos marcados com * são obrigatórios. Revise os itens antes de enviar.</span>
+                </div>
+                <div class="btn-group">
+                    <a href="{% url 'requisicoes_compra_lista' propriedade.id %}" class="btn btn-light">Cancelar</a>
+                    <button type="submit" name="acao" value="rascunho" class="btn btn-outline-secondary">Salvar como rascunho</button>
+                    <button type="submit" name="acao" value="enviar" class="btn btn-primary">Enviar para aprovação</button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<template id="item-empty-row">
+<tr class="item-row" data-index="__prefix__">
+    {% for hidden in formset.empty_form.hidden_fields %}{{ hidden }}{% endfor %}
+    <td>{{ formset.empty_form.descricao }}</td>
+    <td>{{ formset.empty_form.unidade_medida }}</td>
+    <td>{{ formset.empty_form.quantidade }}</td>
+    <td>{{ formset.empty_form.valor_estimado_unitario }}</td>
+    <td>{{ formset.empty_form.fornecedor_preferencial }}</td>
+    <td>{{ formset.empty_form.observacoes }}</td>
+    <td class="text-end"><button type="button" class="btn btn-outline-danger btn-sm remove-item" title="Remover item"><i class="bi bi-trash"></i></button></td>
+</tr>
+</template>
+
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+(function() {
+    const totalFormsInput = document.querySelector('input[name="{{ formset.prefix }}-TOTAL_FORMS"]');
+    const tbody = document.getElementById('itens-tbody');
+    const addItemBtn = document.getElementById('add-item-btn');
+    const emptyTemplate = document.getElementById('item-empty-row');
+
+    function reindexRows() {
+        const rows = Array.from(tbody.querySelectorAll('.item-row'));
+        rows.forEach((row, index) => {
+            row.dataset.index = index;
+            row.querySelectorAll('[name]').forEach((el) => {
+                el.name = el.name.replace(/-(\d+)-/, `-${index}-`);
+            });
+            row.querySelectorAll('[id]').forEach((el) => {
+                el.id = el.id.replace(/-(\d+)-/, `-${index}-`);
+            });
+        });
+        totalFormsInput.value = rows.length;
+    }
+
+    function recalcResumo() {
+        const valorCampos = tbody.querySelectorAll('input[name$="-valor_estimado_unitario"]');
+        let total = 0;
+        valorCampos.forEach((input) => {
+            const qtdInput = input.closest('tr').querySelector('input[name$="-quantidade"]');
+            const valor = parseFloat((input.value || '').replace(',', '.')) || 0;
+            const quantidade = parseFloat((qtdInput.value || '').replace(',', '.')) || 0;
+            total += valor * quantidade;
+        });
+        document.getElementById('total-estimado-preview').innerText = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(total);
+    }
+
+    function bindRowEvents(row) {
+        row.querySelectorAll('input').forEach((input) => {
+            input.addEventListener('input', recalcResumo);
+        });
+        const removeBtn = row.querySelector('.remove-item');
+        if (removeBtn) {
+            removeBtn.addEventListener('click', function() {
+                const hiddenDelete = row.querySelector('input[name$="-DELETE"]');
+                if (hiddenDelete) {
+                    hiddenDelete.value = 'on';
+                    row.style.display = 'none';
+                } else {
+                    row.remove();
+                    reindexRows();
+                }
+                recalcResumo();
+            });
+        }
+    }
+
+    addItemBtn.addEventListener('click', function() {
+        const newIndex = parseInt(totalFormsInput.value, 10);
+        const temp = document.createElement('tbody');
+        temp.innerHTML = emptyTemplate.innerHTML.replace(/__prefix__/g, newIndex);
+        const newRow = temp.querySelector('tr');
+        tbody.appendChild(newRow);
+        bindRowEvents(newRow);
+        reindexRows();
+        recalcResumo();
+    });
+
+    tbody.querySelectorAll('.item-row').forEach(bindRowEvents);
+    reindexRows();
+    recalcResumo();
+
+    const prioridadeInput = document.getElementById('{{ form.prioridade.id_for_label }}');
+    if (prioridadeInput) {
+        const prioridadePreview = document.getElementById('prioridade-preview');
+        const updatePrioridade = () => {
+            prioridadePreview.innerText = prioridadeInput.value ? prioridadeInput.options[prioridadeInput.selectedIndex].text : 'Não definida';
+        };
+        prioridadeInput.addEventListener('change', updatePrioridade);
+        if (prioridadePreview.dataset.inicial) {
+            prioridadeInput.value = prioridadePreview.dataset.inicial;
+        }
+        updatePrioridade();
+    }
+
+    const dataInput = document.getElementById('{{ form.data_necessidade.id_for_label }}');
+    if (dataInput) dataInput.addEventListener('change', () => {
+        document.getElementById('data-preview').innerText = dataInput.value || 'a definir';
+    });
+
+    const justificativaField = document.getElementById('{{ form.justificativa.id_for_label }}');
+    if (justificativaField) {
+        justificativaField.setAttribute('maxlength', '600');
+        const contador = document.getElementById('justificativa-contagem');
+        const updateContagem = () => {
+            contador.innerText = `${justificativaField.value.length}/600`;
+        };
+        justificativaField.addEventListener('input', updateContagem);
+        updateContagem();
+    }
+})();
+</script>
+<style>
+    .action-bar {
+        position: sticky;
+        bottom: 0;
+        z-index: 1020;
+    }
+    #itens-table .form-control {
+        min-width: 0;
+    }
+    #itens-table .item-row td {
+        vertical-align: middle;
+    }
+</style>
+{% endblock %}
+
