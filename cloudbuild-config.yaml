@@ -10,7 +10,7 @@ steps:
       - '-t'
       - 'gcr.io/${_PROJECT_ID}/monpec:${_COMMIT_SHA}'
       - '-t'
-      - 'gcr.io/${PROJECT_ID}/monpec:latest'
+      - 'gcr.io/${_PROJECT_ID}/monpec:latest'
       - '-f'
       - 'Dockerfile.prod'
       - '.'
@@ -26,7 +26,7 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'push'
-      - 'gcr.io/${PROJECT_ID}/monpec:latest'
+      - 'gcr.io/${_PROJECT_ID}/monpec:latest'
     timeout: '300s'
 
 # Opções de build
@@ -40,11 +40,11 @@ timeout: '600s'
 
 # Imagens a serem criadas
 images:
-      - 'gcr.io/${_PROJECT_ID}/monpec:${_COMMIT_SHA}'
-      - 'gcr.io/${_PROJECT_ID}/monpec:latest'
+  - 'gcr.io/${_PROJECT_ID}/monpec:${_COMMIT_SHA}'
+  - 'gcr.io/${_PROJECT_ID}/monpec:latest'
 
 # Nota: O deploy no Cloud Run deve ser feito separadamente usando:
-# gcloud run deploy monpec --image gcr.io/${PROJECT_ID}/monpec:latest --region us-central1
+# gcloud run deploy monpec --image gcr.io/${_PROJECT_ID}/monpec:latest --region us-central1
 # 
 # Isso permite configurar variáveis de ambiente e recursos corretamente
 # através dos scripts INSTALAR_DO_ZERO.sh ou INSTALAR_DO_ZERO.ps1
