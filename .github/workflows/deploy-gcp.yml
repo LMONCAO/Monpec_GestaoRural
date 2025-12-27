@@ -58,12 +58,17 @@ jobs:
             exit 1
           fi
           
-          # Criar arquivo cloudbuild.yaml temporário com valores diretos
-          PROJECT_ID="${{ env.PROJECT_ID }}"
-          COMMIT_SHA="${{ github.sha }}"
-          
-          # Criar arquivo usando cat com heredoc e substituição de variáveis
-          cat > /tmp/cloudbuild.yaml << CLOUDBUILD_EOF
+          # Usar o arquivo cloudbuild-config.yaml existente se disponível, senão criar um temporário
+          if [ -f cloudbuild-config.yaml ]; then
+            echo "📄 Usando cloudbuild-config.yaml existente..."
+            # Substituir variáveis no arquivo existente
+            sed "s/\${PROJECT_ID}/${{ env.PROJECT_ID }}/g; s/\${COMMIT_SHA}/${{ github.sha }}/g" cloudbuild-config.yaml > /tmp/cloudbuild.yaml
+          else
+            echo "📄 Criando cloudbuild.yaml temporário..."
+            PROJECT_ID="${{ env.PROJECT_ID }}"
+            COMMIT_SHA="${{ github.sha }}"
+            
+            cat > /tmp/cloudbuild.yaml << CLOUDBUILD_EOF
           steps:
           - name: 'gcr.io/cloud-builders/docker'
             args:
@@ -81,76 +86,32 @@ jobs:
           - 'gcr.io/${PROJECT_ID}/monpec:${COMMIT_SHA}'
           - 'gcr.io/${PROJECT_ID}/monpec:latest'
           CLOUDBUILD_EOF
+            
+            # Expandir variáveis
+            sed -i "s/\${PROJECT_ID}/$PROJECT_ID/g" /tmp/cloudbuild.yaml
+            sed -i "s/\${COMMIT_SHA}/$COMMIT_SHA/g" /tmp/cloudbuild.yaml
+          fi
           
-          # Expandir variáveis no arquivo criado
-          sed -i "s/\${PROJECT_ID}/$PROJECT_ID/g" /tmp/cloudbuild.yaml
-          sed -i "s/\${COMMIT_SHA}/$COMMIT_SHA/g" /tmp/cloudbuild.yaml
-          
-          echo "📄 Arquivo cloudbuild.yaml criado:"
+          echo "📄 Conteúdo do cloudbuild.yaml:"
           cat /tmp/cloudbuild.yaml
           
-          # Fazer build usando Cloud Build com polling menos frequente
+          # Fazer build usando Cloud Build (método simples e direto)
           echo "🚀 Iniciando Cloud Build..."
           echo "⏳ Aguarde... O build pode levar alguns minutos..."
           
-          # Usar --async para evitar polling excessivo e depois verificar status
-          BUILD_ID=$(gcloud builds submit \
+          # Usar método síncrono com timeout maior para evitar rate limits
+          gcloud builds submit \
             --config=/tmp/cloudbuild.yaml \
-            --async \
-            --format="value(id)" 2>&1 | grep -oP 'builds/\K[^/]+' || echo "")
-          
-          if [ -z "$BUILD_ID" ]; then
-            echo "❌ Erro ao iniciar o build. Tentando método alternativo..."
-            # Método alternativo: usar timeout maior e sem async
-            gcloud builds submit \
-              --config=/tmp/cloudbuild.yaml \
-              --timeout=1200s \
-              --quiet || {
-              echo "❌ Build falhou. Verifique os logs:"
-              echo "https://console.cloud.google.com/cloud-build/builds?project=${{ env.PROJECT_ID }}"
-              exit 1
-            }
-          else
-            echo "📋 Build ID: $BUILD_ID"
-            echo "⏳ Aguardando conclusão do build (pode levar alguns minutos)..."
-            
-            # Aguardar build com polling menos frequente (a cada 10 segundos)
-            for i in {1..60}; do
-              sleep 10
-              STATUS=$(gcloud builds describe $BUILD_ID --format="value(status)" 2>/dev/null || echo "UNKNOWN")
-              
-              if [ "$STATUS" = "SUCCESS" ]; then
-                echo "✅ Build concluído com sucesso!"
-                break
-              elif [ "$STATUS" = "FAILURE" ] || [ "$STATUS" = "CANCELLED" ] || [ "$STATUS" = "TIMEOUT" ]; then
-                echo "❌ Build falhou com status: $STATUS"
-                echo "📋 Verifique os logs:"
-                echo "https://console.cloud.google.com/cloud-build/builds/$BUILD_ID?project=${{ env.PROJECT_ID }}"
-                exit 1
-              elif [ "$STATUS" = "WORKING" ] || [ "$STATUS" = "QUEUED" ]; then
-                echo "⏳ Build em andamento... ($i/60)"
-              else
-                echo "⏳ Status: $STATUS... ($i/60)"
-              fi
-              
-              if [ $i -eq 60 ]; then
-                echo "⏰ Timeout aguardando build. Verifique manualmente:"
-                echo "https://console.cloud.google.com/cloud-build/builds/$BUILD_ID?project=${{ env.PROJECT_ID }}"
-                exit 1
-              fi
-            done
-          fi
-          
-          if [ $? -eq 0 ]; then
-            echo "✅ Build concluído com sucesso!"
-            echo "📦 Imagem: gcr.io/${{ env.PROJECT_ID }}/monpec:${{ github.sha }}"
-            echo "📦 Imagem latest: gcr.io/${{ env.PROJECT_ID }}/monpec:latest"
-          else
-            echo "❌ ERRO no build!"
+            --timeout=1200s || {
+            echo "❌ Build falhou!"
             echo "📋 Verifique os logs no Cloud Build Console:"
             echo "https://console.cloud.google.com/cloud-build/builds?project=${{ env.PROJECT_ID }}"
             exit 1
-          fi
+          }
+          
+          echo "✅ Build concluído com sucesso!"
+          echo "📦 Imagem: gcr.io/${{ env.PROJECT_ID }}/monpec:${{ github.sha }}"
+          echo "📦 Imagem latest: gcr.io/${{ env.PROJECT_ID }}/monpec:latest"
 
       - name: 🚀 Deploy para Cloud Run
         id: deploy
