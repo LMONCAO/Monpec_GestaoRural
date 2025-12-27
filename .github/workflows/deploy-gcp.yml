@@ -45,13 +45,26 @@ jobs:
           echo "🔨 Iniciando build da imagem Docker..."
           echo "📄 Usando Dockerfile.prod..."
           
+          # Criar arquivo cloudbuild.yaml temporário
+          cat > cloudbuild-temp.yaml << EOF
+          steps:
+          - name: 'gcr.io/cloud-builders/docker'
+            args:
+              - 'build'
+              - '-t'
+              - 'gcr.io/${{ env.PROJECT_ID }}/monpec:${{ github.sha }}'
+              - '-t'
+              - 'gcr.io/${{ env.PROJECT_ID }}/monpec:latest'
+              - '-f'
+              - 'Dockerfile.prod'
+              - '.'
+          timeout: '600s'
+          EOF
+          
           gcloud builds submit \
-            --tag gcr.io/${{ env.PROJECT_ID }}/monpec:${{ github.sha }} \
-            --tag gcr.io/${{ env.PROJECT_ID }}/monpec:latest \
+            --config=cloudbuild-temp.yaml \
             --timeout=600s \
-            --quiet \
-            --dockerfile=Dockerfile.prod \
-            .
+            --quiet
           
           echo "✅ Build concluído com sucesso!"
           echo "📦 Imagem: gcr.io/${{ env.PROJECT_ID }}/monpec:${{ github.sha }}"
