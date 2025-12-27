@@ -48,9 +48,10 @@ jobs:
           gcloud builds submit \
             --tag gcr.io/${{ env.PROJECT_ID }}/monpec:${{ github.sha }} \
             --tag gcr.io/${{ env.PROJECT_ID }}/monpec:latest \
-            --file Dockerfile.prod \
             --timeout=600s \
-            --quiet
+            --quiet \
+            --dockerfile=Dockerfile.prod \
+            .
           
           echo "✅ Build concluído com sucesso!"
           echo "📦 Imagem: gcr.io/${{ env.PROJECT_ID }}/monpec:${{ github.sha }}"
