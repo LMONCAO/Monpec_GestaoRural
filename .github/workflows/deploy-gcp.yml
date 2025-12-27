@@ -84,11 +84,57 @@ jobs:
           echo "📄 Arquivo cloudbuild.yaml criado:"
           cat /tmp/cloudbuild.yaml
           
-          # Fazer build usando Cloud Build
+          # Fazer build usando Cloud Build com polling menos frequente
           echo "🚀 Iniciando Cloud Build..."
-          gcloud builds submit \
+          echo "⏳ Aguarde... O build pode levar alguns minutos..."
+          
+          # Usar --async para evitar polling excessivo e depois verificar status
+          BUILD_ID=$(gcloud builds submit \
             --config=/tmp/cloudbuild.yaml \
-            --timeout=600s
+            --async \
+            --format="value(id)" 2>&1 | grep -oP 'builds/\K[^/]+' || echo "")
+          
+          if [ -z "$BUILD_ID" ]; then
+            echo "❌ Erro ao iniciar o build. Tentando método alternativo..."
+            # Método alternativo: usar timeout maior e sem async
+            gcloud builds submit \
+              --config=/tmp/cloudbuild.yaml \
+              --timeout=1200s \
+              --quiet || {
+              echo "❌ Build falhou. Verifique os logs:"
+              echo "https://console.cloud.google.com/cloud-build/builds?project=${{ env.PROJECT_ID }}"
+              exit 1
+            }
+          else
+            echo "📋 Build ID: $BUILD_ID"
+            echo "⏳ Aguardando conclusão do build (pode levar alguns minutos)..."
+            
+            # Aguardar build com polling menos frequente (a cada 10 segundos)
+            for i in {1..60}; do
+              sleep 10
+              STATUS=$(gcloud builds describe $BUILD_ID --format="value(status)" 2>/dev/null || echo "UNKNOWN")
+              
+              if [ "$STATUS" = "SUCCESS" ]; then
+                echo "✅ Build concluído com sucesso!"
+                break
+              elif [ "$STATUS" = "FAILURE" ] || [ "$STATUS" = "CANCELLED" ] || [ "$STATUS" = "TIMEOUT" ]; then
+                echo "❌ Build falhou com status: $STATUS"
+                echo "📋 Verifique os logs:"
+                echo "https://console.cloud.google.com/cloud-build/builds/$BUILD_ID?project=${{ env.PROJECT_ID }}"
+                exit 1
+              elif [ "$STATUS" = "WORKING" ] || [ "$STATUS" = "QUEUED" ]; then
+                echo "⏳ Build em andamento... ($i/60)"
+              else
+                echo "⏳ Status: $STATUS... ($i/60)"
+              fi
+              
+              if [ $i -eq 60 ]; then
+                echo "⏰ Timeout aguardando build. Verifique manualmente:"
+                echo "https://console.cloud.google.com/cloud-build/builds/$BUILD_ID?project=${{ env.PROJECT_ID }}"
+                exit 1
+              fi
+            done
+          fi
           
           if [ $? -eq 0 ]; then
             echo "✅ Build concluído com sucesso!"
