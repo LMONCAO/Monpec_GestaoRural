@@ -39,30 +39,35 @@ jobs:
           gcloud config set project ${{ env.PROJECT_ID }}
           gcloud config set run/region ${{ env.REGION }}
 
-      - name: 🐳 Build da imagem Docker
+      - name: 🐳 Build da imagem Docker usando Cloud Build
         id: build
         run: |
           echo "🔨 Iniciando build da imagem Docker..."
           echo "📄 Usando Dockerfile.prod..."
           
-          # Criar arquivo cloudbuild.yaml temporário
-          cat > cloudbuild-temp.yaml << EOF
+          # Criar arquivo cloudbuild.yaml temporário com substituições corretas
+          cat > /tmp/cloudbuild.yaml << 'EOF'
           steps:
           - name: 'gcr.io/cloud-builders/docker'
             args:
               - 'build'
               - '-t'
-              - 'gcr.io/${{ env.PROJECT_ID }}/monpec:${{ github.sha }}'
+              - 'gcr.io/${_PROJECT_ID}/monpec:${_COMMIT_SHA}'
               - '-t'
-              - 'gcr.io/${{ env.PROJECT_ID }}/monpec:latest'
+              - 'gcr.io/${_PROJECT_ID}/monpec:latest'
               - '-f'
               - 'Dockerfile.prod'
               - '.'
           timeout: '600s'
+          images:
+          - 'gcr.io/${_PROJECT_ID}/monpec:${_COMMIT_SHA}'
+          - 'gcr.io/${_PROJECT_ID}/monpec:latest'
           EOF
           
+          # Fazer build usando Cloud Build com substituições
           gcloud builds submit \
-            --config=cloudbuild-temp.yaml \
+            --config=/tmp/cloudbuild.yaml \
+            --substitutions=_PROJECT_ID=${{ env.PROJECT_ID }},_COMMIT_SHA=${{ github.sha }} \
             --timeout=600s \
             --quiet
           
