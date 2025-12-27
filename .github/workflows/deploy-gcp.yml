@@ -39,13 +39,6 @@ jobs:
           gcloud config set project ${{ env.PROJECT_ID }}
           gcloud config set run/region ${{ env.REGION }}
 
-      - name: 🔨 Habilitar APIs necessárias
-        run: |
-          gcloud services enable cloudbuild.googleapis.com --quiet || true
-          gcloud services enable run.googleapis.com --quiet || true
-          gcloud services enable sqladmin.googleapis.com --quiet || true
-          gcloud services enable containerregistry.googleapis.com --quiet || true
-
       - name: 🐳 Build da imagem Docker
         id: build
         run: |

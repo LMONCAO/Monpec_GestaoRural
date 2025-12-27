@@ -111,11 +111,12 @@ Write-Host ""
 # 6. Atribuir permissões
 Write-Info "6/7 - Atribuindo permissões..."
 $roles = @(
-    "roles/run.admin",              # Cloud Run Admin
-    "roles/iam.serviceAccountUser", # Service Account User
-    "roles/cloudbuild.builds.editor", # Cloud Build Editor
-    "roles/storage.admin",          # Storage Admin
-    "roles/cloudsql.client"         # Cloud SQL Client
+    "roles/run.admin",                    # Cloud Run Admin
+    "roles/iam.serviceAccountUser",       # Service Account User
+    "roles/cloudbuild.builds.editor",     # Cloud Build Editor
+    "roles/storage.admin",                # Storage Admin
+    "roles/cloudsql.client",              # Cloud SQL Client
+    "roles/serviceusage.serviceUsageAdmin" # Service Usage Admin (para habilitar APIs se necessário)
 )
 
 $saEmail = "$SA_NAME@$PROJECT_ID.iam.gserviceaccount.com"
