@@ -27,7 +27,7 @@ Após executar o script, você terá um arquivo `github-actions-deploy-key.json`
 
 1. **Abra o arquivo** `github-actions-deploy-key.json` no bloco de notas
 2. **Copie TODO o conteúdo** (desde o `{` inicial até o `}` final)
-3. **Acesse**: https://github.com/LMONCAO/monpec/settings/secrets/actions
+3. **Acesse**: https://github.com/LMONCAO/Monpec_GestaoRural/settings/secrets/actions
 4. **Clique em**: "New repository secret"
 5. **Preencha**:
    - Name: `GCP_SA_KEY`
@@ -48,7 +48,7 @@ git push origin main
 
 ### 5️⃣ Verificar Deploy:
 
-1. **Acesse**: https://github.com/LMONCAO/monpec/actions
+1. **Acesse**: https://github.com/LMONCAO/Monpec_GestaoRural/actions
 2. **Você verá** o workflow executando automaticamente
 3. **Clique no workflow** para ver o progresso em tempo real
 
