@@ -62,24 +62,24 @@ jobs:
           PROJECT_ID="${{ env.PROJECT_ID }}"
           COMMIT_SHA="${{ github.sha }}"
           
-          cat > /tmp/cloudbuild.yaml << EOF
-          steps:
-          - name: 'gcr.io/cloud-builders/docker'
-            args:
-              - 'build'
-              - '-t'
-              - 'gcr.io/${PROJECT_ID}/monpec:${COMMIT_SHA}'
-              - '-t'
-              - 'gcr.io/${PROJECT_ID}/monpec:latest'
-              - '-f'
-              - 'Dockerfile.prod'
-              - '.'
-            timeout: '600s'
-          timeout: '600s'
-          images:
-          - 'gcr.io/${PROJECT_ID}/monpec:${COMMIT_SHA}'
-          - 'gcr.io/${PROJECT_ID}/monpec:latest'
-          EOF
+          # Criar arquivo usando printf para garantir expansão das variáveis
+          printf 'steps:
+- name: '\''gcr.io/cloud-builders/docker'\''
+  args:
+    - '\''build'\''
+    - '\''-t'\''
+    - '\''gcr.io/%s/monpec:%s'\''
+    - '\''-t'\''
+    - '\''gcr.io/%s/monpec:latest'\''
+    - '\''-f'\''
+    - '\''Dockerfile.prod'\''
+    - '\''.'\''
+  timeout: '\''600s'\''
+timeout: '\''600s'\''
+images:
+- '\''gcr.io/%s/monpec:%s'\''
+- '\''gcr.io/%s/monpec:latest'\''
+' "$PROJECT_ID" "$COMMIT_SHA" "$PROJECT_ID" "$PROJECT_ID" "$COMMIT_SHA" "$PROJECT_ID" > /tmp/cloudbuild.yaml
           
           echo "📄 Arquivo cloudbuild.yaml criado:"
           cat /tmp/cloudbuild.yaml
