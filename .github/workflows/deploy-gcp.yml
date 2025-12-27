@@ -47,69 +47,30 @@ jobs:
         id: build
         run: |
           echo "🔨 Iniciando build da imagem Docker..."
-          echo "📄 Usando Dockerfile.prod..."
+          echo "📄 Usando cloudbuild-config.yaml existente..."
           echo "📦 Projeto: ${{ env.PROJECT_ID }}"
           echo "📝 Commit SHA: ${{ github.sha }}"
           
-          # Verificar se Dockerfile.prod existe
+          # Verificar se os arquivos necessários existem
           if [ ! -f Dockerfile.prod ]; then
             echo "❌ ERRO: Dockerfile.prod não encontrado!"
-            ls -la | grep -i dockerfile
             exit 1
           fi
           
-          # Usar o arquivo cloudbuild-config.yaml existente se disponível, senão criar um temporário
-          if [ -f cloudbuild-config.yaml ]; then
-            echo "📄 Usando cloudbuild-config.yaml existente..."
-            # Substituir variáveis no arquivo existente
-            sed "s/\${PROJECT_ID}/${{ env.PROJECT_ID }}/g; s/\${COMMIT_SHA}/${{ github.sha }}/g" cloudbuild-config.yaml > /tmp/cloudbuild.yaml
-          else
-            echo "📄 Criando cloudbuild.yaml temporário..."
-            PROJECT_ID="${{ env.PROJECT_ID }}"
-            COMMIT_SHA="${{ github.sha }}"
-            
-            cat > /tmp/cloudbuild.yaml << CLOUDBUILD_EOF
-          steps:
-          - name: 'gcr.io/cloud-builders/docker'
-            args:
-              - 'build'
-              - '-t'
-              - 'gcr.io/${PROJECT_ID}/monpec:${COMMIT_SHA}'
-              - '-t'
-              - 'gcr.io/${PROJECT_ID}/monpec:latest'
-              - '-f'
-              - 'Dockerfile.prod'
-              - '.'
-            timeout: '600s'
-          timeout: '600s'
-          images:
-          - 'gcr.io/${PROJECT_ID}/monpec:${COMMIT_SHA}'
-          - 'gcr.io/${PROJECT_ID}/monpec:latest'
-          CLOUDBUILD_EOF
-            
-            # Expandir variáveis
-            sed -i "s/\${PROJECT_ID}/$PROJECT_ID/g" /tmp/cloudbuild.yaml
-            sed -i "s/\${COMMIT_SHA}/$COMMIT_SHA/g" /tmp/cloudbuild.yaml
+          if [ ! -f cloudbuild-config.yaml ]; then
+            echo "❌ ERRO: cloudbuild-config.yaml não encontrado!"
+            exit 1
           fi
           
-          echo "📄 Conteúdo do cloudbuild.yaml:"
-          cat /tmp/cloudbuild.yaml
-          
-          # Fazer build usando Cloud Build (método simples e direto)
-          echo "🚀 Iniciando Cloud Build..."
-          echo "⏳ Aguarde... O build pode levar alguns minutos..."
-          
-          # Usar método síncrono com timeout maior para evitar rate limits
+          # Usar o arquivo cloudbuild-config.yaml com substituições do gcloud
+          # Isso é a forma CORRETA e TESTADA
+          echo "🚀 Iniciando Cloud Build com substituições..."
           gcloud builds submit \
-            --config=/tmp/cloudbuild.yaml \
-            --timeout=1200s || {
-            echo "❌ Build falhou!"
-            echo "📋 Verifique os logs no Cloud Build Console:"
-            echo "https://console.cloud.google.com/cloud-build/builds?project=${{ env.PROJECT_ID }}"
-            exit 1
-          }
+            --config=cloudbuild-config.yaml \
+            --substitutions=PROJECT_ID=${{ env.PROJECT_ID }},COMMIT_SHA=${{ github.sha }} \
+            --timeout=1200s
           
-          echo "✅ Build concluído com sucesso!"
+          echo "✅ Build concluído!"
           echo "📦 Imagem: gcr.io/${{ env.PROJECT_ID }}/monpec:${{ github.sha }}"
           echo "📦 Imagem latest: gcr.io/${{ env.PROJECT_ID }}/monpec:latest"
 
