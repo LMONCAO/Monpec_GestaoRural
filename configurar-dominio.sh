@@ -43,3 +43,21 @@ echo "3. Verifique o status: gcloud run domain-mappings describe ${DOMAIN} --reg
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

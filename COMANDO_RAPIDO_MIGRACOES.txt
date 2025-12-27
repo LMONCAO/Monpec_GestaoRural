@@ -1,0 +1,47 @@
+========================================
+COMANDO RÁPIDO - CORRIGIR MIGRAÇÕES
+========================================
+
+Execute no Cloud Shell:
+
+--------------------------------------------------
+
+# Configurar projeto primeiro
+gcloud config set project monpec-sistema-rural
+
+# Deletar job antigo
+gcloud run jobs delete migrate-monpec --region us-central1 --project monpec-sistema-rural --quiet
+
+# Criar job CORRIGIDO (note: --set-cloudsql-instances, não --add)
+gcloud run jobs create migrate-monpec \
+    --image gcr.io/monpec-sistema-rural/monpec:latest \
+    --region us-central1 \
+    --project monpec-sistema-rural \
+    --set-env-vars "DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,DEBUG=False,SECRET_KEY=0d0)yw=u#u=owx#=qo(&%-b+a_@_u3=1wt242v2fx_\$1ap4+4t,DB_NAME=monpec_db,DB_USER=monpec_user,DB_PASSWORD=Django2025@,CLOUD_SQL_CONNECTION_NAME=monpec-sistema-rural:us-central1:monpec-db,PYTHONUNBUFFERED=1" \
+    --command python \
+    --args manage.py,migrate,--noinput \
+    --max-retries 3 \
+    --task-timeout 600 \
+    --memory=2Gi \
+    --cpu=2 \
+    --set-cloudsql-instances=monpec-sistema-rural:us-central1:monpec-db
+
+# Executar migrações
+gcloud run jobs execute migrate-monpec --region us-central1 --project monpec-sistema-rural --wait
+
+--------------------------------------------------
+
+OU execute o script completo (RECOMENDADO):
+
+chmod +x DIAGNOSTICAR_E_CORRIGIR_MIGRACOES.sh && ./DIAGNOSTICAR_E_CORRIGIR_MIGRACOES.sh
+
+--------------------------------------------------
+
+CORREÇÕES APLICADAS:
+✅ --add-cloudsql-instances → --set-cloudsql-instances
+✅ Adicionado --project em todos os comandos
+✅ Corrigido comando de logs (usa alpha/beta)
+
+========================================
+
+

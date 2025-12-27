@@ -27,6 +27,16 @@ def usuario_tem_acesso_propriedade(usuario, propriedade):
     if usuario.is_superuser:
         return True
     
+    # Permitir acesso de usuários demo à propriedade Monpec1
+    try:
+        from .models_auditoria import UsuarioAtivo
+        UsuarioAtivo.objects.get(usuario=usuario)
+        # Se for usuário demo, permitir acesso apenas à Monpec1
+        if 'Monpec1' in propriedade.nome_propriedade:
+            return True
+    except:
+        pass
+    
     if not propriedade.produtor:
         return False
     
@@ -138,7 +148,19 @@ def bloquear_demo_cadastro(view_func):
             return redirect_to_login(request.get_full_path())
         
         # Verificar se é usuário demo
+        is_demo_user = False
         if request.user.username in ['demo_monpec', 'demo']:
+            is_demo_user = True
+        else:
+            # Verificar se tem UsuarioAtivo (usuário criado pelo popup)
+            try:
+                from .models_auditoria import UsuarioAtivo
+                UsuarioAtivo.objects.get(usuario=request.user)
+                is_demo_user = True
+            except:
+                pass
+        
+        if is_demo_user:
             # Bloquear qualquer acesso (GET, POST, PUT, PATCH, DELETE) para páginas de cadastro/edição
             messages.warning(
                 request,

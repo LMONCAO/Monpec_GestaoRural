@@ -219,3 +219,21 @@ Write-Host "Tudo pronto! Seu sistema está no ar! 🚀" -ForegroundColor Green
 Write-Host ""
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

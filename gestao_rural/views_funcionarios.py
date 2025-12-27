@@ -14,7 +14,7 @@ from django.db.models import Q, Sum
 from decimal import Decimal
 from datetime import date, datetime
 from .models import Propriedade
-from .decorators import obter_propriedade_com_permissao
+from .decorators import obter_propriedade_com_permissao, bloquear_demo_cadastro
 from .models_funcionarios import (
     Funcionario, FolhaPagamento, Holerite, PontoFuncionario,
     DescontoFuncionario, CalculadoraImpostos
@@ -66,6 +66,7 @@ def funcionarios_lista(request, propriedade_id):
 
 
 @login_required
+@bloquear_demo_cadastro
 def funcionario_novo(request, propriedade_id):
     """Cadastrar novo funcionário"""
     propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)

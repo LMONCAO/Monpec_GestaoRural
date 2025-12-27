@@ -147,3 +147,21 @@ gcloud run services update-traffic monpec --region us-central1 --to-revisions RE
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

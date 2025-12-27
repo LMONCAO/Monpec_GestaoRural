@@ -355,3 +355,21 @@ E) 📈 Falta de projeções e planejamento
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

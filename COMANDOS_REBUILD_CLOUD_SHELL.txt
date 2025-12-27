@@ -1,0 +1,43 @@
+# Comandos para executar no Cloud Shell para fazer rebuild completo
+
+# 1. Fazer rebuild da imagem Docker
+gcloud config set project monpec-sistema-rural
+gcloud builds submit --tag gcr.io/monpec-sistema-rural/monpec:latest --timeout=20m
+
+# 2. Fazer deploy do serviço
+gcloud run deploy monpec \
+    --image gcr.io/monpec-sistema-rural/monpec:latest \
+    --platform managed \
+    --region us-central1 \
+    --allow-unauthenticated \
+    --set-env-vars "DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,DEBUG=False,SECRET_KEY=0d0)yw=u#u=owx#=qo(&%-b+a_@_u3=1wt242v2fx_\$1ap4+4t,DB_NAME=monpec_db,DB_USER=monpec_user,DB_PASSWORD=Django2025@,CLOUD_SQL_CONNECTION_NAME=monpec-sistema-rural:us-central1:monpec-db,PYTHONUNBUFFERED=1" \
+    --add-cloudsql-instances "monpec-sistema-rural:us-central1:monpec-db" \
+    --memory 2Gi \
+    --cpu 2 \
+    --timeout 300 \
+    --max-instances 10 \
+    --min-instances 1 \
+    --port 8080 \
+    --quiet
+
+# 3. Atualizar o job de migração com a nova imagem
+gcloud run jobs update migrate-monpec \
+    --image gcr.io/monpec-sistema-rural/monpec:latest \
+    --region us-central1 \
+    --set-env-vars "DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,DEBUG=False,SECRET_KEY=0d0)yw=u#u=owx#=qo(&%-b+a_@_u3=1wt242v2fx_\$1ap4+4t,DB_NAME=monpec_db,DB_USER=monpec_user,DB_PASSWORD=Django2025@,CLOUD_SQL_CONNECTION_NAME=monpec-sistema-rural:us-central1:monpec-db,PYTHONUNBUFFERED=1" \
+    --set-cloudsql-instances "monpec-sistema-rural:us-central1:monpec-db" \
+    --memory 2Gi \
+    --cpu 1 \
+    --max-retries 3 \
+    --task-timeout 600 \
+    --quiet
+
+# 4. Executar as migrações
+gcloud run jobs execute migrate-monpec --region us-central1 --wait
+
+# Verificar logs se houver erro
+# gcloud run jobs executions describe migrate-monpec-XXXXX --region us-central1
+
+
+
+

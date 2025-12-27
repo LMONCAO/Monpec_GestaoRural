@@ -372,7 +372,7 @@
             <!-- Link para Voltar aos Módulos -->
             <div class="nav-item">
                 <a href="{% url 'propriedade_modulos' propriedade.id %}" class="nav-link {% if 'modulos' in request.path and 'pecuaria' not in request.path and 'agricultura' not in request.path %}active{% endif %}">
-                    <i class="bi bi-grid-3x3"></i> Voltar aos Módulos
+                    Monpec-Pagina Inicial
                 </a>
             </div>
             
@@ -514,7 +514,7 @@
                                 data-bs-toggle="collapse" data-bs-target="#submenu-nutricao" 
                                 aria-expanded="{% if 'nutricao' in request.path %}true{% else %}false{% endif %}" 
                                 aria-controls="submenu-nutricao">
-                            <i class="bi bi-bucket"></i>
+                            <i class="bi bi-bag"></i>
                             <span style="flex: 1; margin-left: 0.5rem;">Nutrição</span>
                             <i class="bi bi-chevron-right chevron-icon"></i>
                         </button>
@@ -618,13 +618,29 @@
                                    class="nav-link nav-link-submenu {% if 'requisicoes' in request.path %}active{% endif %}">
                                     <i class="bi bi-clipboard-check"></i> Requisições
                                 </a>
-                                <a href="{% url 'ordens_compra_lista' propriedade.id %}" 
-                                   class="nav-link nav-link-submenu {% if 'ordens' in request.path %}active{% endif %}">
-                                    <i class="bi bi-file-earmark-text"></i> Ordens de Compra
+                                <a href="{% url 'requisicao_compra_nova' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'requisicao_compra_nova' %}active{% endif %}">
+                                    <i class="bi bi-journal-plus"></i> Nova Requisição
+                                </a>
+                                <a href="{% url 'setores_compra_lista' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'setores' in request.path and 'compras' in request.path %}active{% endif %}">
+                                    <i class="bi bi-diagram-3"></i> Setores
                                 </a>
                                 <a href="{% url 'fornecedores_lista' propriedade.id %}" 
-                                   class="nav-link nav-link-submenu {% if 'fornecedores' in request.path %}active{% endif %}">
+                                   class="nav-link nav-link-submenu {% if 'fornecedores' in request.path and 'compras' in request.path %}active{% endif %}">
                                     <i class="bi bi-building"></i> Fornecedores
+                                </a>
+                                <a href="{% url 'fornecedor_novo' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'fornecedor_novo' %}active{% endif %}">
+                                    <i class="bi bi-person-plus"></i> Novo Fornecedor
+                                </a>
+                                <a href="{% url 'ordens_compra_lista' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'ordens' in request.path and 'compras' in request.path %}active{% endif %}">
+                                    <i class="bi bi-file-earmark-text"></i> Ordens de Compra
+                                </a>
+                                <a href="{% url 'notas_fiscais_lista' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'notas-fiscais' in request.path %}active{% endif %}">
+                                    <i class="bi bi-receipt-cutoff"></i> Notas Fiscais
                                 </a>
                                 
                                 <div class="text-muted text-uppercase small px-3 mt-3 mb-1">Relatórios</div>

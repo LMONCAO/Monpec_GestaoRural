@@ -62,3 +62,21 @@ echo ""
 echo -e "${GREEN}Variáveis configuradas com sucesso!${NC}"
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

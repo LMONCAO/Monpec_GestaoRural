@@ -23,11 +23,22 @@ from . import views_whatsapp
 from . import views_relatorios_consolidados
 from . import views_justificativa_endividamento
 from . import views_marketing
+from . import views_demo_setup, views_demo_loading
+from . import views_planejamento_ia
+from . import views_admin
 
 urlpatterns = [
     # Autenticação
     path('login/', views.login_view, name='login'),
     # Logout está definido no urls.py principal para garantir redirecionamento correto
+    
+    # Administração
+    path('admin/limpar-usuarios/', views_admin.limpar_usuarios_admin, name='admin_limpar_usuarios'),
+    
+    # Demonstração
+    path('criar-usuario-demonstracao/', views.criar_usuario_demonstracao, name='criar_usuario_demonstracao'),
+    path('demo/loading/', views_demo_loading.demo_loading, name='demo_loading'),
+    path('demo/setup/', views_demo_setup.demo_setup, name='demo_setup'),
     
     # Dashboard principal
     path('dashboard/', views.dashboard, name='dashboard'),
@@ -76,10 +87,14 @@ urlpatterns = [
     path('api/saldo-fazenda/<int:fazenda_id>/<int:categoria_id>/', views.obter_saldo_fazenda_ajax, name='obter_saldo_fazenda_ajax'),
     path('propriedade/<int:propriedade_id>/inventario/saldo/<int:categoria_id>/', views.buscar_saldo_inventario, name='buscar_saldo_inventario'),
     path('propriedade/<int:propriedade_id>/pecuaria/projecao/', views.pecuaria_projecao, name='pecuaria_projecao'),
+    path('propriedade/<int:propriedade_id>/pecuaria/projecao/planilha/', views.pecuaria_projecao_planilha, name='pecuaria_projecao_planilha'),
     path('propriedade/<int:propriedade_id>/pecuaria/projecao/demo/planilha/', views.pecuaria_projecao_demo_planilha, name='pecuaria_projecao_demo_planilha'),
     path('propriedade/<int:propriedade_id>/pecuaria/planejamento/', views_pecuaria_completa.pecuaria_planejamento_dashboard, name='pecuaria_planejamento_dashboard'),
     path('propriedade/<int:propriedade_id>/pecuaria/planejamento/api/', views_pecuaria_completa.pecuaria_planejamentos_api, name='pecuaria_planejamentos_api'),
     path('propriedade/<int:propriedade_id>/pecuaria/planejamento/<int:planejamento_id>/resumo/', views_pecuaria_completa.pecuaria_planejamento_resumo_api, name='pecuaria_planejamento_resumo_api'),
+    # IA de Planejamento
+    path('propriedade/<int:propriedade_id>/planejamento/ia/', views_planejamento_ia.planejamento_ia_chat, name='planejamento_ia_chat'),
+    path('propriedade/<int:propriedade_id>/planejamento/ia/api/', views_planejamento_ia.planejamento_ia_api, name='planejamento_ia_api'),
     path('propriedade/<int:propriedade_id>/pecuaria/cenarios/', views_cenarios.analise_cenarios, name='analise_cenarios'),
     path('propriedade/<int:propriedade_id>/pecuaria/cenarios/criar/', views_cenarios.criar_cenario, name='criar_cenario'),
     path('propriedade/<int:propriedade_id>/pecuaria/cenarios/<int:cenario_id>/editar/', views_cenarios.editar_cenario, name='editar_cenario'),
@@ -194,6 +209,11 @@ urlpatterns = [
     path('propriedade/<int:propriedade_id>/compras/requisicoes/', views_compras.requisicoes_compra_lista, name='requisicoes_compra_lista'),
     path('propriedade/<int:propriedade_id>/compras/requisicao/nova/', views_compras.requisicao_compra_nova, name='requisicao_compra_nova'),
     path('propriedade/<int:propriedade_id>/compras/requisicao/<int:requisicao_id>/', views_compras.requisicao_compra_detalhes, name='requisicao_compra_detalhes'),
+    # Cadastros rápidos via AJAX
+    path('propriedade/<int:propriedade_id>/compras/cadastro-rapido/setor/', views_compras.cadastro_rapido_setor, name='cadastro_rapido_setor'),
+    path('propriedade/<int:propriedade_id>/compras/cadastro-rapido/equipamento/', views_compras.cadastro_rapido_equipamento, name='cadastro_rapido_equipamento'),
+    path('propriedade/<int:propriedade_id>/compras/cadastro-rapido/centro-custo/', views_compras.cadastro_rapido_centro_custo, name='cadastro_rapido_centro_custo'),
+    path('propriedade/<int:propriedade_id>/compras/cadastro-rapido/plano-conta/', views_compras.cadastro_rapido_plano_conta, name='cadastro_rapido_plano_conta'),
     path('propriedade/<int:propriedade_id>/compras/requisicao/<int:requisicao_id>/cotacao/nova/', views_compras.cotacao_fornecedor_nova, name='cotacao_fornecedor_nova'),
     path('propriedade/<int:propriedade_id>/compras/orcamentos/', views_compras.orcamentos_compra_lista, name='orcamentos_compra_lista'),
     path('propriedade/<int:propriedade_id>/compras/fornecedores/', views_compras.fornecedores_lista, name='fornecedores_lista'),

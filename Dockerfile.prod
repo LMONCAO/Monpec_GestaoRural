@@ -6,7 +6,8 @@ FROM python:3.11-slim
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PORT=8080
 
 # Instalar dependências do sistema
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -18,26 +19,27 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Criar diretório de trabalho
 WORKDIR /app
 
-# Copiar requirements e instalar dependências Python
-COPY requirements.txt .
-RUN pip install --upgrade pip && \
-    pip install -r requirements.txt
+# Copiar requirements e instalar dependências Python primeiro (para cache de layers)
+# Usar requirements_producao.txt para produção, mas garantir que requirements.txt também esteja disponível
+COPY requirements_producao.txt requirements.txt ./
+RUN pip install --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir -r requirements_producao.txt && \
+    pip list | grep -i openpyxl || echo "ERRO: openpyxl não foi instalado!"
 
-# Copiar código da aplicação
+# Copiar código da aplicação (após instalar dependências para aproveitar cache)
 COPY . .
 
-# Criar diretórios necessários
-RUN mkdir -p /app/staticfiles /app/media /app/logs
+# Criar diretórios necessários com permissões corretas
+RUN mkdir -p /app/staticfiles /app/media /app/logs && \
+    chmod -R 755 /app/staticfiles /app/media /app/logs
 
-# Coletar arquivos estáticos (será executado no build)
-# RUN python manage.py collectstatic --noinput || true
+# Verificar se openpyxl está instalado antes de finalizar
+RUN python -c "import openpyxl; print('✓ openpyxl instalado com sucesso:', openpyxl.__version__)" || \
+    (echo "ERRO CRÍTICO: openpyxl não pode ser importado!" && exit 1)
 
 # Expor porta (Cloud Run usa a variável PORT)
-ENV PORT=8080
 EXPOSE 8080
 
 # Comando para iniciar a aplicação
-# Cloud Run injeta a variável PORT automaticamente
-CMD exec gunicorn --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 300 --access-logfile - --error-logfile - sistema_rural.wsgi:application
-
-
+# Executa migrações, cria superusuário e inicia o servidor
+CMD sh -c "python manage.py migrate --noinput && python manage.py collectstatic --noinput || true && (python manage.py shell -c \"from django.contrib.auth.models import User; import os; admin_user, created = User.objects.get_or_create(username='admin', defaults={'email': 'admin@monpec.com.br', 'is_staff': True, 'is_superuser': True, 'is_active': True}); admin_user.set_password(os.environ.get('DJANGO_SUPERUSER_PASSWORD', 'L6171r12@@')); admin_user.save()\" || true) && exec gunicorn --bind 0.0.0.0:\${PORT:-8080} --workers 2 --threads 4 --timeout 300 --access-logfile - --error-logfile - sistema_rural.wsgi:application"

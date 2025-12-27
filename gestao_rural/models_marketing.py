@@ -258,3 +258,21 @@ class ConfiguracaoMarketing(models.Model):
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

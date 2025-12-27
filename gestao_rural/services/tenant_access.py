@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import secrets
 import string
+import random
 from dataclasses import dataclass
 from typing import Iterable, Optional, Sequence, Tuple
 
@@ -29,8 +30,24 @@ def _gerar_username_base(nome: str) -> str:
 
 
 def _gerar_senha_temporaria() -> str:
+    """
+    Gera senha temporária que atende aos requisitos:
+    - Mínimo 8 caracteres
+    - Pelo menos 1 letra maiúscula
+    - Pelo menos 1 letra minúscula
+    """
+    import random
+    # Garantir pelo menos 1 maiúscula e 1 minúscula
+    senha = [
+        secrets.choice(string.ascii_uppercase),  # 1 maiúscula
+        secrets.choice(string.ascii_lowercase),  # 1 minúscula
+    ]
+    # Adicionar mais 6 caracteres aleatórios (letras e números)
     alfabeto = string.ascii_letters + string.digits
-    return "".join(secrets.choice(alfabeto) for _ in range(12))
+    senha.extend(secrets.choice(alfabeto) for _ in range(6))
+    # Embaralhar para não ter padrão previsível
+    random.shuffle(senha)
+    return "".join(senha)
 
 
 def obter_assinatura_do_usuario(usuario: User) -> Optional[AssinaturaCliente]:
@@ -101,7 +118,45 @@ def criar_ou_atualizar_usuario(
                 username_final = f"{username_base[:15]}{sufixo}"
                 sufixo += 1
         
-        senha_temporaria = senha_definida or _gerar_senha_temporaria()
+        # Para assinantes, a senha padrão é o email (se não fornecida)
+        # Mas precisa atender aos requisitos (8 chars, 1 maiúscula, 1 minúscula)
+        if senha_definida:
+            senha_temporaria = senha_definida
+            # Validar usando o validador de assinantes
+            from ..validators import SenhaAssinanteValidator
+            validator = SenhaAssinanteValidator()
+            try:
+                validator.validate(senha_temporaria)
+            except Exception as e:
+                from .exceptions import TenantAccessError
+                raise TenantAccessError(f"Senha inválida: {str(e)}")
+        else:
+            # Se não foi fornecida senha, usar o email como senha
+            # Ajustar para atender aos requisitos (8 chars, 1 maiúscula, 1 minúscula)
+            senha_base = email_normalizado.split('@')[0]  # Parte antes do @
+            
+            # Garantir que tenha pelo menos 8 caracteres
+            if len(senha_base) < 8:
+                # Adicionar caracteres para completar 8
+                falta = 8 - len(senha_base)
+                senha_base = senha_base + "12345678"[:falta]
+            
+            # Garantir pelo menos 1 maiúscula
+            if not any(c.isupper() for c in senha_base):
+                if senha_base:
+                    senha_base = senha_base[0].upper() + senha_base[1:]
+                else:
+                    senha_base = "A" + senha_base
+            
+            # Garantir pelo menos 1 minúscula
+            if not any(c.islower() for c in senha_base):
+                if len(senha_base) > 1:
+                    senha_base = senha_base[0] + senha_base[1].lower() + senha_base[2:]
+                else:
+                    senha_base = senha_base + "a"
+            
+            senha_temporaria = senha_base[:20]  # Limitar tamanho máximo
+        
         usuario = User.objects.create_user(
             username=username_final,
             email=email_normalizado,
@@ -113,6 +168,15 @@ def criar_ou_atualizar_usuario(
     else:
         # Usuário existe, mas ainda não possui perfil de tenant
         if senha_definida:
+            # Validar senha se foi definida
+            from ..validators import SenhaAssinanteValidator
+            validator = SenhaAssinanteValidator()
+            try:
+                validator.validate(senha_definida)
+            except Exception as e:
+                from .exceptions import TenantAccessError
+                raise TenantAccessError(f"Senha inválida: {str(e)}")
+            
             usuario.set_password(senha_definida)
             usuario.save(update_fields=["password"])
 

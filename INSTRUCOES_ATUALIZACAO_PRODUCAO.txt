@@ -1,0 +1,144 @@
+================================================================================
+INSTRUÇÕES PARA ATUALIZAR O SITE MONPEC.COM.BR EM PRODUÇÃO
+================================================================================
+
+PROBLEMAS CORRIGIDOS:
+=====================
+✅ Menu mobile estilo Gerbov (hamburger menu funcional)
+✅ Carregamento de imagens no slideshow
+✅ Formulário de demonstração com mensagens de erro melhoradas
+✅ Script para criar/corrigir usuário admin
+
+ARQUIVOS MODIFICADOS:
+=====================
+1. templates/site/landing_page.html - Menu mobile e melhorias visuais
+2. gestao_rural/views.py - Tratamento de erros melhorado
+3. sistema_rural/settings_producao.py - Configuração de static files
+4. criar_admin_fix.py - NOVO: Script para criar admin
+
+PASSOS PARA ATUALIZAR NO SERVIDOR:
+===================================
+
+1. FAZER UPLOAD DOS ARQUIVOS
+   --------------------------
+   Faça upload dos arquivos modificados para o servidor:
+   - templates/site/landing_page.html
+   - gestao_rural/views.py
+   - sistema_rural/settings_producao.py
+   - criar_admin_fix.py (novo arquivo)
+
+2. COLETAR ARQUIVOS ESTÁTICOS
+   ---------------------------
+   No servidor de produção, execute:
+   
+   cd /var/www/monpec.com.br  # ou caminho do seu projeto
+   source venv/bin/activate   # se usar virtualenv
+   python manage.py collectstatic --noinput
+   
+   Isso vai copiar todas as imagens de static/ para staticfiles/
+
+3. CRIAR/CORRIGIR USUÁRIO ADMIN
+   ------------------------------
+   Execute no servidor:
+   
+   python criar_admin_fix.py
+   
+   Isso criará o usuário admin com:
+   - Usuário: admin
+   - Senha: L6171r12@@
+   - Email: admin@monpec.com.br
+
+4. VERIFICAR PERMISSÕES
+   ---------------------
+   Garanta que o servidor web tem acesso aos arquivos:
+   
+   sudo chown -R www-data:www-data /var/www/monpec.com.br/static
+   sudo chmod -R 755 /var/www/monpec.com.br/static
+   
+   Verificar se as imagens existem:
+   ls -la /var/www/monpec.com.br/static/site/foto*.jpeg
+
+5. REINICIAR O SERVIDOR
+   ---------------------
+   Dependendo da sua configuração:
+   
+   # Se usar systemd:
+   sudo systemctl restart gunicorn
+   # ou
+   sudo systemctl restart monpec
+   
+   # Se usar supervisor:
+   sudo supervisorctl restart monpec
+   
+   # Se usar manualmente:
+   # Pare o processo atual e inicie novamente
+
+6. VERIFICAR CONFIGURAÇÃO DO NGINX/APACHE
+   ----------------------------------------
+   
+   NGINX - Verificar se tem:
+   location /static/ {
+       alias /var/www/monpec.com.br/static/;
+       expires 30d;
+   }
+   
+   APACHE - Verificar se tem:
+   Alias /static /var/www/monpec.com.br/static
+   <Directory /var/www/monpec.com.br/static>
+       Require all granted
+   </Directory>
+
+7. TESTAR O SITE
+   --------------
+   Acesse https://monpec.com.br e verifique:
+   - [ ] Menu mobile funciona no celular
+   - [ ] Imagens aparecem no slideshow
+   - [ ] Formulário de demonstração funciona
+   - [ ] Login com admin funciona (senha: L6171r12@@)
+
+TROUBLESHOOTING:
+================
+
+Se as imagens não aparecerem:
+1. Verificar se os arquivos existem:
+   ls -la static/site/foto*.jpeg
+   
+2. Verificar se o collectstatic foi executado:
+   ls -la /var/www/monpec.com.br/static/site/
+   
+3. Verificar permissões:
+   chmod 644 static/site/foto*.jpeg
+   
+4. Verificar logs:
+   tail -f /var/log/nginx/error.log
+   # ou
+   tail -f /var/log/apache2/error.log
+
+Se o menu mobile não funcionar:
+1. Limpar cache do navegador (Ctrl+Shift+Delete)
+2. Verificar console do navegador (F12) para erros JavaScript
+3. Verificar se o Font Awesome está carregando
+
+Se o formulário de demonstração der erro:
+1. Verificar logs do Django:
+   tail -f /var/log/monpec/django.log
+   
+2. Verificar se o banco de dados está acessível
+3. Verificar se as migrações estão aplicadas:
+   python manage.py migrate
+
+COMANDOS RÁPIDOS (copiar e colar):
+===================================
+
+cd /var/www/monpec.com.br
+source venv/bin/activate
+python manage.py collectstatic --noinput
+python criar_admin_fix.py
+sudo systemctl restart gunicorn
+
+================================================================================
+IMPORTANTE: Após atualizar, teste tudo no celular e no desktop!
+================================================================================
+
+
+

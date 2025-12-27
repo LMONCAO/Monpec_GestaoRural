@@ -128,8 +128,29 @@ class SessaoSegura(models.Model):
         return f"{self.usuario.username} - {self.ip_address} - {self.ultima_atividade}"
 
 
-
-
-
-
+class UsuarioAtivo(models.Model):
+    """Usuários ativos do sistema de demonstração"""
+    
+    usuario = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name='usuario_ativo',
+        verbose_name="Usuário"
+    )
+    nome_completo = models.CharField(max_length=255, verbose_name="Nome Completo")
+    email = models.EmailField(verbose_name="E-mail")
+    telefone = models.CharField(max_length=20, blank=True, verbose_name="Telefone")
+    primeiro_acesso = models.DateTimeField(auto_now_add=True, verbose_name="Primeiro Acesso")
+    ultimo_acesso = models.DateTimeField(auto_now=True, verbose_name="Último Acesso")
+    total_acessos = models.PositiveIntegerField(default=0, verbose_name="Total de Acessos")
+    ativo = models.BooleanField(default=True, verbose_name="Ativo")
+    criado_em = models.DateTimeField(auto_now_add=True, verbose_name="Criado em")
+    
+    class Meta:
+        verbose_name = "Usuário Ativo"
+        verbose_name_plural = "Usuários Ativos"
+        ordering = ['-ultimo_acesso']
+    
+    def __str__(self):
+        return f"{self.nome_completo} ({self.usuario.username})"
 

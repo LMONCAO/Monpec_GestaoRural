@@ -44,28 +44,62 @@ class LiberacaoAcessoMiddleware(MiddlewareMixin):
         if not request.user.is_authenticated:
             return None
         
-        # Superusuários e staff sempre têm acesso
-        if request.user.is_superuser or request.user.is_staff:
+        # Importar função helper para verificar se é assinante
+        from .helpers_acesso import is_usuario_assinante
+        
+        # Verificar se é admin ou assinante - se for, liberar acesso completo
+        if is_usuario_assinante(request.user):
+            # Admin ou assinante com acesso liberado - permitir acesso completo
+            try:
+                assinatura = AssinaturaCliente.objects.select_related('plano').filter(usuario=request.user).first()
+                request.assinatura = assinatura
+                request.acesso_liberado = True
+            except:
+                request.assinatura = None
+                request.acesso_liberado = True  # Admin sempre tem acesso
+            return None  # Permitir acesso completo
+        
+        # Verificar se é usuário demo PRIMEIRO (antes de verificar assinatura)
+        # Usuários criados pelo botão demonstração (com UsuarioAtivo) devem ser tratados como demo padrão
+        is_demo_user = False
+        if request.user.username in ['demo', 'demo_monpec']:
+            is_demo_user = True
+        else:
+            try:
+                from .models_auditoria import UsuarioAtivo
+                UsuarioAtivo.objects.get(usuario=request.user)
+                is_demo_user = True  # Usuário criado pelo botão demonstração = mesmo comportamento que demo padrão
+            except:
+                pass
+        
+        # Se for usuário demo, tratar como pré-lançamento (bloquear módulos)
+        if is_demo_user:
+            request.assinatura = None
+            request.acesso_liberado = False  # Usuários demo têm acesso restrito
+            # Permitir acesso apenas a algumas rotas específicas
+            if not any(request.path.startswith(path) for path in [
+                '/propriedade/', '/dashboard/', '/demo/setup/', 
+                '/login/', '/logout/', '/static/', '/media/'
+            ]):
+                return None  # Continuar normalmente, mas acesso_liberado será False
             return None
         
-        # Verificar se o usuário tem assinatura
+        # Verificar se o usuário tem assinatura (mas não é assinante ativo)
         try:
             assinatura = AssinaturaCliente.objects.select_related('plano').get(usuario=request.user)
             request.assinatura = assinatura
             
-            # SEMPRE redirecionar assinantes para a página de pré-lançamento
-            # Mesmo que tenham assinatura ativa, o sistema está em pré-lançamento
-            if assinatura.status == AssinaturaCliente.Status.ATIVA:
-                # Redirecionar para página de pré-lançamento
-                from django.contrib import messages
-                messages.info(
-                    request,
-                    f"Bem-vindo, {request.user.get_full_name() or request.user.username}! "
-                    "Aguarde o lançamento em 01/02/2026. Um consultor entrará em contato em breve."
-                )
-                return redirect('pre_lancamento')
-            
-            request.acesso_liberado = False
+            # Se tiver assinatura ativa mas não passou na verificação de is_usuario_assinante,
+            # significa que não tem acesso_liberado = True
+            if assinatura.status == AssinaturaCliente.Status.ATIVA and not assinatura.acesso_liberado:
+                # Assinatura ativa mas sem acesso liberado ainda - pode estar aguardando data de liberação
+                request.acesso_liberado = False
+            elif assinatura.status == AssinaturaCliente.Status.ATIVA and assinatura.acesso_liberado:
+                # Se chegou aqui e tem acesso_liberado, deveria ter passado na verificação acima
+                # Mas por segurança, permitir acesso
+                request.acesso_liberado = True
+            else:
+                request.acesso_liberado = False
         except AssinaturaCliente.DoesNotExist:
             # Usuário sem assinatura - marcar no request
             request.assinatura = None

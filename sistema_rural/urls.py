@@ -24,6 +24,7 @@ from django.conf.urls.static import static
 from gestao_rural import views as gestao_views
 from gestao_rural import views_curral
 from gestao_rural import views_sitemap
+from gestao_rural import views_password_reset
 
 urlpatterns = [
     # LANDING PAGE COM VÍDEO - DEVE VIR PRIMEIRO (página inicial)
@@ -44,8 +45,8 @@ urlpatterns = [
     # Sitemap (view customizada para garantir acesso público)
     path('sitemap.xml', views_sitemap.sitemap_view, name='sitemap'),
     
-    # Recuperação de senha
-    path('recuperar-senha/', auth_views.PasswordResetView.as_view(
+    # Recuperação de senha (customizada para bloquear usuários demo)
+    path('recuperar-senha/', views_password_reset.CustomPasswordResetView.as_view(
         template_name='registration/password_reset_form.html',
         email_template_name='registration/password_reset_email.html',
         subject_template_name='registration/password_reset_subject.txt',
@@ -54,7 +55,7 @@ urlpatterns = [
     path('recuperar-senha/enviado/', auth_views.PasswordResetDoneView.as_view(
         template_name='registration/password_reset_done.html',
     ), name='password_reset_done'),
-    path('recuperar-senha/confirmar/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(
+    path('recuperar-senha/confirmar/<uidb64>/<token>/', views_password_reset.CustomPasswordResetConfirmView.as_view(
         template_name='registration/password_reset_confirm.html',
         success_url='/recuperar-senha/concluido/',
     ), name='password_reset_confirm'),

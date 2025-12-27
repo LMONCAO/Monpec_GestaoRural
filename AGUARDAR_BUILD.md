@@ -43,3 +43,21 @@ Vamos resolver isso juntos! 💪
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

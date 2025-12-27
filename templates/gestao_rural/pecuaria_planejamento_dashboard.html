@@ -12,7 +12,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid">
+<div class="container-fluid px-3 px-md-4 px-lg-5" style="max-width: 100%; width: 100%;">
     <div class="submenu-page-header">
         <div class="d-flex align-items-start gap-4">
             <div class="submenu-page-icon">
@@ -24,8 +24,11 @@
                     Acompanhe os indicadores estratégicos do rebanho, projeções de compras e vendas, métricas financeiras e produtividade por hectare.
                 </p>
             </div>
-            <div>
-                <a href="{% url 'pecuaria_projecao' propriedade.id %}" class="btn btn-primary btn-lg px-4 py-3 fw-bold" style="border-radius: 12px; font-size: 1.1rem; box-shadow: 0 8px 20px rgba(13, 110, 253, 0.3); transition: all 0.3s ease; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
+            <div class="d-flex gap-2">
+                <a href="{% url 'planejamento_ia_chat' propriedade.id %}?ano={% now 'Y' %}" class="btn btn-success btn-lg px-4 py-3 fw-bold" style="border-radius: 12px; font-size: 1.1rem; box-shadow: 0 8px 20px rgba(40, 167, 69, 0.3); transition: all 0.3s ease; border: none;">
+                    <i class="bi bi-robot me-2" style="font-size: 1.3rem;"></i>Criar com IA
+                </a>
+                <a href="{% url 'pecuaria_projecao' propriedade.id %}" id="btn-ver-projecoes" class="btn btn-primary btn-lg px-4 py-3 fw-bold {% if not inventario %}btn-pulsante{% endif %}" style="border-radius: 12px; font-size: 1.1rem; box-shadow: 0 8px 20px rgba(13, 110, 253, 0.3); transition: all 0.3s ease; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
                     <i class="bi bi-graph-up-arrow-fill me-2" style="font-size: 1.3rem;"></i>Ver Projeções
                 </a>
             </div>
@@ -33,9 +36,12 @@
     </div>
 
     {% if not inventario %}
-        <div class="alert alert-warning d-flex align-items-center" role="alert">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>
-            Nenhum inventário foi encontrado. Cadastre um inventário recente para visualizar os indicadores.
+        <div class="alert alert-info d-flex align-items-center" role="alert" style="background: linear-gradient(135deg, rgba(13, 110, 253, 0.1) 0%, rgba(102, 126, 234, 0.1) 100%); border: 2px solid rgba(102, 126, 234, 0.3); border-radius: 12px;">
+            <i class="bi bi-info-circle-fill me-3 fs-4" style="color: #667eea;"></i>
+            <div class="flex-grow-1">
+                <strong style="color: #667eea;">Clique no botão "Ver Projeções" acima para visualizar e gerar as projeções do rebanho.</strong>
+                <p class="mb-0 mt-1 text-muted">Gere as projeções para começar a planejar suas atividades pecuárias.</p>
+            </div>
         </div>
     {% endif %}
 
@@ -46,16 +52,21 @@
                     <i class="bi bi-info-circle-fill me-2 fs-4"></i>
                     <div class="flex-grow-1">
                         <strong>Nenhum planejamento encontrado!</strong>
-                        <p class="mb-0">Crie um planejamento automático baseado no seu inventário e projeções.</p>
+                        <p class="mb-0">Crie um planejamento automático baseado no seu inventário e projeções, ou use nossa IA para criar passo a passo.</p>
                     </div>
-                    <form method="POST" class="ms-3">
-                        {% csrf_token %}
-                        <input type="hidden" name="criar_planejamento" value="1">
-                        <input type="hidden" name="ano" value="{% now 'Y' %}">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-plus-circle me-1"></i>Criar Planejamento {% now 'Y' %}
-                        </button>
-                    </form>
+                    <div class="ms-3 d-flex gap-2">
+                        <a href="{% url 'planejamento_ia_chat' propriedade.id %}?ano={% now 'Y' %}" class="btn btn-success">
+                            <i class="bi bi-robot me-1"></i>Criar com IA
+                        </a>
+                        <form method="POST" class="d-inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="criar_planejamento" value="1">
+                            <input type="hidden" name="ano" value="{% now 'Y' %}">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-plus-circle me-1"></i>Criar Automático
+                            </button>
+                        </form>
+                    </div>
                 </div>
             {% elif status_atualizacao and status_atualizacao.desatualizado %}
                 <div class="alert alert-warning d-flex align-items-center mb-3" role="alert">
@@ -164,13 +175,13 @@
         
         <!-- Card: Atividades Planejadas -->
         <div class="col-xl-3 col-lg-4 col-md-6">
-            <div class="card card-dashboard border-0 shadow-sm h-100">
+            <div class="card card-dashboard h-100">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start mb-3">
-                        <div class="card-dashboard-icon bg-primary-subtle text-primary">
+                        <div class="card-dashboard-icon">
                             <i class="bi bi-kanban"></i>
                         </div>
-                        <span class="badge bg-primary-subtle text-primary" id="planejamento-contagem-atividades">
+                        <span class="badge bg-light text-dark border" id="planejamento-contagem-atividades">
                             {{ atividades_planejadas|length }}
                         </span>
                     </div>
@@ -192,13 +203,13 @@
 
         <!-- Card: Metas Comerciais -->
         <div class="col-xl-3 col-lg-4 col-md-6">
-            <div class="card card-dashboard border-0 shadow-sm h-100">
+            <div class="card card-dashboard h-100">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start mb-3">
-                        <div class="card-dashboard-icon bg-warning-subtle text-warning">
+                        <div class="card-dashboard-icon">
                             <i class="bi bi-currency-dollar"></i>
                         </div>
-                        <span class="badge bg-warning-subtle text-warning" id="planejamento-contagem-metas">
+                        <span class="badge bg-light text-dark border" id="planejamento-contagem-metas">
                             {{ metas_comerciais|length }}
                         </span>
                     </div>
@@ -220,13 +231,13 @@
 
         <!-- Card: Metas Financeiras -->
         <div class="col-xl-3 col-lg-4 col-md-6">
-            <div class="card card-dashboard border-0 shadow-sm h-100">
+            <div class="card card-dashboard h-100">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start mb-3">
-                        <div class="card-dashboard-icon bg-success-subtle text-success">
+                        <div class="card-dashboard-icon">
                             <i class="bi bi-cash-coin"></i>
                         </div>
-                        <span class="badge bg-success-subtle text-success" id="planejamento-contagem-financeiras">
+                        <span class="badge bg-light text-dark border" id="planejamento-contagem-financeiras">
                             {{ metas_financeiras|length }}
                         </span>
                     </div>
@@ -248,13 +259,13 @@
 
         <!-- Card: Indicadores -->
         <div class="col-xl-3 col-lg-4 col-md-6">
-            <div class="card card-dashboard border-0 shadow-sm h-100">
+            <div class="card card-dashboard h-100">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start mb-3">
-                        <div class="card-dashboard-icon bg-info-subtle text-info">
+                        <div class="card-dashboard-icon">
                             <i class="bi bi-flag"></i>
                         </div>
-                        <span class="badge bg-info-subtle text-info" id="planejamento-contagem-indicadores">
+                        <span class="badge bg-light text-dark border" id="planejamento-contagem-indicadores">
                             {{ indicadores_planejados_meta|length }}
                         </span>
                     </div>
@@ -284,9 +295,9 @@
         </div>
         
         <div class="col-xl-3 col-lg-4 col-md-6">
-            <div class="card card-metric border-0 shadow-sm h-100">
+            <div class="card card-metric h-100">
                 <div class="card-body">
-                    <div class="card-metric-icon bg-primary-subtle text-primary">
+                    <div class="card-metric-icon">
                         <i class="bi bi-people-fill"></i>
                     </div>
                     <span class="card-metric-label">Total de Animais</span>
@@ -298,9 +309,9 @@
             </div>
         </div>
         <div class="col-xl-3 col-lg-4 col-md-6">
-            <div class="card card-metric border-0 shadow-sm h-100">
+            <div class="card card-metric h-100">
                 <div class="card-body">
-                    <div class="card-metric-icon bg-danger-subtle text-danger">
+                    <div class="card-metric-icon">
                         <i class="bi bi-gender-female"></i>
                     </div>
                     <span class="card-metric-label">Matrizes Ativas</span>
@@ -310,9 +321,9 @@
             </div>
         </div>
         <div class="col-xl-3 col-lg-4 col-md-6">
-            <div class="card card-metric border-0 shadow-sm h-100">
+            <div class="card card-metric h-100">
                 <div class="card-body">
-                    <div class="card-metric-icon bg-success-subtle text-success">
+                    <div class="card-metric-icon">
                         <i class="bi bi-heart-pulse"></i>
                     </div>
                     <span class="card-metric-label">Taxa Reprodutiva</span>
@@ -332,9 +343,9 @@
             </div>
         </div>
         <div class="col-xl-3 col-lg-4 col-md-6">
-            <div class="card card-metric border-0 shadow-sm h-100">
+            <div class="card card-metric h-100">
                 <div class="card-body">
-                    <div class="card-metric-icon bg-info-subtle text-info">
+                    <div class="card-metric-icon">
                         <i class="bi bi-diagram-3"></i>
                     </div>
                     <span class="card-metric-label">Animais por Hectare</span>
@@ -354,9 +365,9 @@
         </div>
         
         <div class="col-xl-3 col-lg-4 col-md-6">
-            <div class="card card-metric border-0 shadow-sm h-100">
+            <div class="card card-metric h-100">
                 <div class="card-body">
-                    <div class="card-metric-icon bg-warning-subtle text-warning">
+                    <div class="card-metric-icon">
                         <i class="bi bi-cash-coin"></i>
                     </div>
                     <span class="card-metric-label">Investimento</span>
@@ -376,9 +387,9 @@
             </div>
         </div>
         <div class="col-xl-3 col-lg-4 col-md-6">
-            <div class="card card-metric border-0 shadow-sm h-100">
+            <div class="card card-metric h-100">
                 <div class="card-body">
-                    <div class="card-metric-icon bg-secondary-subtle text-secondary">
+                    <div class="card-metric-icon">
                         <i class="bi bi-box-arrow-in-right"></i>
                     </div>
                     <span class="card-metric-label">Vendas</span>
@@ -398,9 +409,9 @@
             </div>
         </div>
         <div class="col-xl-3 col-lg-4 col-md-6">
-            <div class="card card-metric border-0 shadow-sm h-100">
+            <div class="card card-metric h-100">
                 <div class="card-body">
-                    <div class="card-metric-icon bg-success-subtle text-success">
+                    <div class="card-metric-icon">
                         <i class="bi bi-piggy-bank"></i>
                     </div>
                     <span class="card-metric-label">Resultado Operacional</span>
@@ -420,9 +431,9 @@
             </div>
         </div>
         <div class="col-xl-3 col-lg-4 col-md-6">
-            <div class="card card-metric border-0 shadow-sm h-100">
+            <div class="card card-metric h-100">
                 <div class="card-body">
-                    <div class="card-metric-icon bg-primary-subtle text-primary">
+                    <div class="card-metric-icon">
                         <i class="bi bi-bullseye"></i>
                     </div>
                     <span class="card-metric-label">Produção de Arrobas</span>
@@ -582,7 +593,7 @@
     </div>
 
     <div class="row mt-4 g-4">
-        <div class="col-xl-7">
+        <div class="col-12">
             <div class="card shadow-sm h-100">
                 <div class="card-header bg-light border-0 d-flex justify-content-between align-items-center">
                     <h5 class="mb-0 fw-semibold">
@@ -714,7 +725,9 @@
                 </div>
             </div>
         </div>
-        <div class="col-lg-6">
+    </div>
+    <div class="row mt-4 g-4">
+        <div class="col-12">
             <div class="card shadow-sm h-100">
                 <div class="card-header bg-light border-0">
                     <h5 class="mb-0 fw-semibold">
@@ -1073,80 +1086,306 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 
 <style>
+/* Cards de Métricas - Estilo Profissional e Neutro */
 .card-metric {
-    border-radius: 16px;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    border: 1px solid rgba(0, 0, 0, 0.05);
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    border: 1px solid #e5e7eb;
+    background: #ffffff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 .card-metric:hover {
-    transform: translateY(-6px) scale(1.02);
-    box-shadow: 0 12px 30px rgba(31, 42, 68, 0.15);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    border-color: #d1d5db;
 }
 .card-metric-label {
     display: block;
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--texto-secundario);
+    letter-spacing: 0.05em;
+    color: #6b7280;
     margin-bottom: 0.5rem;
     font-weight: 600;
 }
 .card-metric-value {
     display: block;
     font-weight: 700;
-    font-size: 2rem;
-    color: var(--texto-principal);
+    font-size: 1.875rem;
+    color: #111827;
     margin-bottom: 0.25rem;
+    line-height: 1.2;
 }
 .card-metric-subtitle {
     display: block;
-    font-size: 0.85rem;
-    color: var(--texto-secundario);
+    font-size: 0.8125rem;
+    color: #6b7280;
+    margin-top: 0.25rem;
 }
 .card-metric-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+    background: #f9fafb;
+    color: #4b5563;
+    border: 1px solid #e5e7eb;
+}
+
+/* Cards de Dashboard - Estilo Profissional */
+.card-dashboard {
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    border: 1px solid #e5e7eb;
+    background: #ffffff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+.card-dashboard:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    border-color: #d1d5db;
+}
+.card-dashboard-icon {
     width: 56px;
     height: 56px;
-    border-radius: 14px;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 1.5rem;
-    margin-bottom: 1rem;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-/* Estilos para cards de dashboard de planejamento */
-.card-dashboard {
-    border-radius: 16px;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    border: 1px solid rgba(0, 0, 0, 0.05);
-    background: #ffffff;
-}
-.card-dashboard:hover {
-    transform: translateY(-6px) scale(1.02);
-    box-shadow: 0 12px 30px rgba(31, 42, 68, 0.15);
-}
-.card-dashboard-icon {
-    width: 64px;
-    height: 64px;
-    border-radius: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.75rem;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    background: #f9fafb;
+    color: #4b5563;
+    border: 1px solid #e5e7eb;
 }
 .card-dashboard-title {
-    font-size: 1.2rem;
-    font-weight: 700;
-    color: var(--texto-principal);
-    margin-bottom: 0.75rem;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #111827;
+    margin-bottom: 0.5rem;
+    line-height: 1.4;
 }
 .card-dashboard-description {
-    font-size: 0.9rem;
-    color: var(--texto-secundario);
-    line-height: 1.6;
+    font-size: 0.875rem;
+    color: #6b7280;
+    line-height: 1.5;
     margin-bottom: 0;
+}
+
+/* Badges - Estilo Neutro */
+.badge {
+    font-weight: 500;
+    padding: 0.375rem 0.75rem;
+    border-radius: 6px;
+}
+
+/* Cards Principais - Estilo Limpo */
+.card {
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+}
+.card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+.card-header {
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+    border-radius: 12px 12px 0 0;
+    padding: 1rem 1.25rem;
+}
+.card-header h5 {
+    color: #111827;
+    font-weight: 600;
+    font-size: 1rem;
+    margin: 0;
+}
+
+/* Tabelas - Estilo Profissional */
+.table {
+    font-size: 0.875rem;
+}
+.table thead th {
+    background: #f9fafb;
+    color: #374151;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    border-bottom: 2px solid #e5e7eb;
+    padding: 0.75rem;
+}
+.table tbody td {
+    color: #111827;
+    padding: 0.75rem;
+    border-bottom: 1px solid #f3f4f6;
+}
+.table tbody tr:hover {
+    background: #f9fafb;
+}
+
+/* Remover cores excessivas dos ícones */
+.bg-primary-subtle,
+.bg-success-subtle,
+.bg-warning-subtle,
+.bg-info-subtle,
+.bg-danger-subtle,
+.bg-secondary-subtle {
+    background: #f9fafb !important;
+    color: #4b5563 !important;
+    border: 1px solid #e5e7eb !important;
+}
+
+/* Botões - Estilo Profissional */
+.btn {
+    border-radius: 8px;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    transition: all 0.2s ease;
+}
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Alertas - Estilo Neutro */
+.alert {
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+}
+.alert-info {
+    background: #f0f9ff;
+    border-color: #bfdbfe;
+    color: #1e40af;
+}
+
+/* Lista de Indicadores */
+.list-group-item {
+    border: 1px solid #f3f4f6;
+    padding: 1rem;
+    margin-bottom: 0.5rem;
+    border-radius: 8px;
+    background: #ffffff;
+}
+.list-group-item:hover {
+    background: #f9fafb;
+    border-color: #e5e7eb;
+}
+
+/* Remover animação de pulsação */
+.btn-pulsante {
+    animation: none;
+}
+.btn-pulsante:hover {
+    transform: translateY(-1px);
+}
+
+/* Usar toda largura da página */
+.container-fluid {
+    max-width: 100% !important;
+    width: 100% !important;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+/* Garantir que o conteúdo principal use toda largura */
+body > .container-fluid,
+main .container-fluid,
+.content-wrapper .container-fluid,
+.main-content .container-fluid {
+    max-width: 100% !important;
+    width: 100% !important;
+}
+
+@media (min-width: 768px) {
+    .container-fluid {
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+    }
+}
+
+@media (min-width: 1200px) {
+    .container-fluid {
+        padding-left: 2rem;
+        padding-right: 2rem;
+    }
+}
+
+/* Ajustar margem quando há sidebar */
+body.sidebar-open .container-fluid,
+body:not(.sidebar-closed) .container-fluid {
+    margin-left: 0 !important;
+}
+
+/* Garantir que as tabelas usem toda largura */
+.table-responsive {
+    width: 100%;
+}
+
+/* Ajustar cards para usar melhor o espaço */
+.row {
+    margin-left: -0.5rem;
+    margin-right: -0.5rem;
+}
+
+.row > * {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+}
+
+/* Melhorar uso do espaço nas colunas */
+.col-xl-7,
+.col-xl-5 {
+    flex: 0 0 auto;
+    width: 100%;
+}
+
+/* Seções de largura total */
+.col-12 {
+    width: 100%;
+    flex: 0 0 100%;
+}
+
+@media (min-width: 1200px) {
+    .col-xl-7 {
+        width: 60%;
+    }
+    .col-xl-5 {
+        width: 40%;
+    }
+}
+
+/* Expandir tabelas para usar toda largura */
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.table {
+    width: 100%;
+    min-width: 100%;
+}
+
+/* Garantir que cards usem toda largura disponível */
+.card {
+    width: 100%;
+}
+
+/* Ajustar padding interno dos cards para melhor uso do espaço */
+.card-body {
+    padding: 1.25rem;
+}
+
+@media (min-width: 1200px) {
+    .card-body {
+        padding: 1.5rem;
+    }
 }
 </style>
 {% endblock %}

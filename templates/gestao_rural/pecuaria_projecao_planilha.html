@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planilha de Projeção - {{ propriedade.nome_propriedade }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    {% load static %}
+    {% load formatacao_br %}
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding: 20px;
+        }
+        .powerbi-card {
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            transition: box-shadow 0.2s;
+            background: white;
+            overflow: hidden;
+        }
+        .powerbi-card:hover {
+            box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+        }
+        .table th {
+            font-weight: 600;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .table td {
+            font-size: 0.9rem;
+            vertical-align: middle;
+        }
+        .badge {
+            font-weight: 500;
+        }
+        .projecao-ano-page {
+            margin-bottom: 4rem;
+            padding: 2rem 0;
+            border-top: 3px solid #e9ecef;
+        }
+        .projecao-ano-page:first-child {
+            border-top: none;
+            padding-top: 0;
+        }
+        .projecao-ano-page:last-child {
+            margin-bottom: 0;
+        }
+        @media print {
+            .projecao-ano-page {
+                page-break-after: always;
+                page-break-inside: avoid;
+            }
+            .projecao-ano-page:last-child {
+                page-break-after: auto;
+            }
+        }
+        .table-bordered {
+            border: 1px solid #dee2e6;
+        }
+        .table-bordered th,
+        .table-bordered td {
+            border: 1px solid #dee2e6;
+        }
+        .table thead th {
+            background-color: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid px-4 py-3">
+        <!-- Cabeçalho -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="h3 mb-1 fw-bold">
+                    <i class="bi bi-graph-up-arrow text-primary me-2"></i>
+                    Planilha de Projeção do Rebanho
+                </h1>
+                <p class="text-muted mb-0">
+                    {{ propriedade.nome_propriedade }}
+                    {% if propriedade.produtor %} - {{ propriedade.produtor.nome }}{% endif %}
+                </p>
+            </div>
+            <div class="btn-group">
+                <a href="{% url 'exportar_projecao_pdf' propriedade.id %}" class="btn btn-danger btn-sm" title="Gerar relatório PDF paginado ano por ano">
+                    <i class="bi bi-file-pdf me-1"></i>
+                    Exportar PDF
+                </a>
+                <a href="{% url 'exportar_projecao_excel' propriedade.id %}" class="btn btn-success btn-sm" title="Exportar para Excel">
+                    <i class="bi bi-file-excel me-1"></i>
+                    Exportar Excel
+                </a>
+            </div>
+        </div>
+
+        <!-- Tabelas de Projeção por Ano -->
+        {% if resumo_projecao_por_ano %}
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    {% for ano, dados in resumo_projecao_por_ano.items %}
+                    {% if dados.categorias and dados.categorias|length > 0 %}
+                    <!-- Página do Ano {{ ano }} -->
+                    <div class="projecao-ano-page" style="page-break-after: always; margin-bottom: 3rem; padding: 2rem 0;">
+                        <!-- Cabeçalho do Ano -->
+                        <div class="bg-primary text-white px-4 py-3 mb-3 rounded-top">
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <h4 class="mb-1 fw-bold">
+                                        <i class="bi bi-calendar-year me-2"></i>
+                                        {% if propriedade.produtor %}
+                                            <span>{{ propriedade.produtor.nome }} - {{ propriedade.nome_propriedade }}</span>
+                                            {% if propriedade.inscricao_estadual %}
+                                                <span class="badge bg-light text-dark ms-2">IE: {{ propriedade.inscricao_estadual }}</span>
+                                            {% elif propriedade.produtor.cpf_cnpj %}
+                                                <span class="badge bg-light text-dark ms-2">CPF/CNPJ: {{ propriedade.produtor.cpf_cnpj }}</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span>{{ propriedade.nome_propriedade }}</span>
+                                        {% endif %}
+                                        <span class="ms-2">- Projeção do Ano {{ ano }}</span>
+                                    </h4>
+                                    <p class="mb-0 small">
+                                        <i class="bi bi-info-circle me-1"></i>
+                                        {% if forloop.first %}
+                                            <strong>Saldo Inicial:</strong> Baseado no inventário cadastrado ({{ dados.totais.saldo_inicial_total|numero_br:0 }} cabeças)
+                                        {% else %}
+                                            <strong>Saldo Inicial:</strong> Baseado no saldo final do ano {{ dados.ano_anterior }} ({{ dados.saldo_final_ano_anterior|numero_br:0 }} cabeças)
+                                        {% endif %}
+                                    </p>
+                                </div>
+                                <div class="col-md-4 text-end">
+                                    {% if dados.totais %}
+                                    <div class="small">
+                                        <div class="mb-1">
+                                            <strong>Saldo Inicial Total:</strong> {{ dados.totais.saldo_inicial_total|numero_br:0 }} cabeças
+                                        </div>
+                                        <div>
+                                            <strong>Saldo Final Total:</strong> {{ dados.totais.saldo_final_total|numero_br:0 }} cabeças
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {% if dados.categorias and dados.categorias|length > 0 %}
+                        <table class="table table-hover table-bordered mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Categoria</th>
+                                    <th class="text-center">Saldo Inicial</th>
+                                    <th class="text-center">Nascimentos</th>
+                                    <th class="text-center">Compras</th>
+                                    <th class="text-center">Vendas</th>
+                                    <th class="text-center">Mortes</th>
+                                    <th class="text-center">Transferências</th>
+                                    <th class="text-center">Evolução</th>
+                                    <th class="text-center">Saldo Final</th>
+                                    <th class="text-end">Valor Unitário (R$)</th>
+                                    <th class="text-end">Valor Total (R$)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for categoria, info in dados.categorias.items %}
+                                <tr>
+                                    <td>
+                                        <span class="badge bg-light text-dark">
+                                            {{ categoria }}
+                                        </span>
+                                    </td>
+                                    <td class="text-center">{{ info.saldo_inicial|numero_br:0 }}</td>
+                                    <td class="text-center text-success">
+                                        {% if info.nascimentos > 0 %}+{{ info.nascimentos|numero_br:0 }}{% else %}-{% endif %}
+                                    </td>
+                                    <td class="text-center text-info">
+                                        {% if info.compras > 0 %}+{{ info.compras|numero_br:0 }}{% else %}-{% endif %}
+                                    </td>
+                                    <td class="text-center text-danger">
+                                        {% if info.vendas > 0 %}-{{ info.vendas|numero_br:0 }}{% else %}-{% endif %}
+                                    </td>
+                                    <td class="text-center text-muted">
+                                        {% if info.mortes > 0 %}-{{ info.mortes|numero_br:0 }}{% else %}-{% endif %}
+                                    </td>
+                                    <td class="text-center text-secondary">
+                                        {% if info.transferencias_entrada > 0 or info.transferencias_saida > 0 %}
+                                            <span class="d-block">
+                                                {% if info.transferencias_entrada > 0 %}
+                                                    <span class="text-success">+{{ info.transferencias_entrada|numero_br:0 }}</span>
+                                                {% endif %}
+                                                {% if info.transferencias_saida > 0 %}
+                                                    <span class="text-danger">-{{ info.transferencias_saida|numero_br:0 }}</span>
+                                                {% endif %}
+                                            </span>
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center text-warning">
+                                        {% if info.evolucao_categoria and info.evolucao_categoria != "-" %}
+                                            {{ info.evolucao_categoria }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center fw-bold">{{ info.saldo_final|numero_br:0 }}</td>
+                                    <td class="text-end">
+                                        <strong>{{ info.valor_unitario|moeda_br }}</strong>
+                                    </td>
+                                    <td class="text-end">
+                                        <strong>{{ info.valor_total|moeda_br }}</strong>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            {% if dados.totais %}
+                            <tfoot class="table-light">
+                                <tr>
+                                    <th>TOTAL</th>
+                                    <th class="text-center">{{ dados.totais.saldo_inicial_total|numero_br:0 }}</th>
+                                    <th class="text-center text-success">{{ dados.totais.nascimentos_total|numero_br:0 }}</th>
+                                    <th class="text-center text-info">{{ dados.totais.compras_total|numero_br:0 }}</th>
+                                    <th class="text-center text-danger">{{ dados.totais.vendas_total|numero_br:0 }}</th>
+                                    <th class="text-center text-muted">{{ dados.totais.mortes_total|numero_br:0 }}</th>
+                                    <th class="text-center text-secondary">
+                                        {% if dados.totais.transferencias_entrada_total > 0 or dados.totais.transferencias_saida_total > 0 %}
+                                            <span class="d-block">
+                                                {% if dados.totais.transferencias_entrada_total > 0 %}
+                                                    <span class="text-success">+{{ dados.totais.transferencias_entrada_total|numero_br:0 }}</span>
+                                                {% endif %}
+                                                {% if dados.totais.transferencias_saida_total > 0 %}
+                                                    <span class="text-danger">-{{ dados.totais.transferencias_saida_total|numero_br:0 }}</span>
+                                                {% endif %}
+                                            </span>
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </th>
+                                    <th class="text-center">-</th>
+                                    <th class="text-center">{{ dados.totais.saldo_final_total|numero_br:0 }}</th>
+                                    <th class="text-end">-</th>
+                                    <th class="text-end">
+                                        <strong>{{ dados.totais.valor_total_geral|moeda_br }}</strong>
+                                    </th>
+                                </tr>
+                            </tfoot>
+                            {% endif %}
+                        </table>
+                        {% endif %}
+                        
+                        <!-- Rodapé do Ano -->
+                        {% if dados.totais %}
+                        <div class="bg-light px-4 py-3 mt-3 rounded-bottom border-top">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <small class="text-muted">
+                                        <i class="bi bi-calculator me-1"></i>
+                                        <strong>Resumo Financeiro:</strong>
+                                        Receitas: {{ dados.totais.receitas_total|moeda_br }} | 
+                                        Custos: {{ dados.totais.custos_total|moeda_br }} | 
+                                        Lucro: {{ dados.totais.lucro_total|moeda_br }}
+                                    </small>
+                                </div>
+                                <div class="col-md-6 text-end">
+                                    <small class="text-muted">
+                                        <i class="bi bi-arrow-right-circle me-1"></i>
+                                        <strong>Próximo Ano:</strong> Saldo Final deste ano será o Saldo Inicial do ano {{ ano|add:"1" }}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <!-- Fim da Página do Ano {{ ano }} -->
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="alert alert-info border-0 shadow-sm">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-info-circle-fill me-3 fs-4"></i>
+                <div>
+                    <strong>Nenhuma projeção encontrada</strong>
+                    <p class="mb-0">Gere uma nova projeção usando o formulário acima para visualizar os dados.</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+

@@ -15,6 +15,33 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Configurações de produção
 DEBUG = False
 
+# Garantir SECRET_KEY para produção (sobrescrever se necessário)
+# Tentar ler do .env_producao primeiro
+env_file = BASE_DIR / '.env_producao'
+if env_file.exists():
+    try:
+        from decouple import Config, RepositoryEnv
+        env_config = Config(RepositoryEnv(str(env_file)))
+        env_secret_key = env_config('SECRET_KEY', default=None)
+        if env_secret_key:
+            SECRET_KEY = env_secret_key
+    except (ImportError, Exception):
+        pass
+
+# Se ainda não tiver SECRET_KEY válida, tentar variável de ambiente
+if not SECRET_KEY or SECRET_KEY == 'YrJOs823th_HB2BP6Uz9A0NVvzL0Fif-t-Rfub5BXgVtE0LxXIWEPQIFqYvI8UNiZKE':
+    env_secret_key = os.getenv('SECRET_KEY')
+    if env_secret_key:
+        SECRET_KEY = env_secret_key
+    else:
+        # Fallback: usar chave do .env_producao se existir
+        SECRET_KEY = 'django-insecure-sistema-rural-ia-2025-producao-segura-123456789'
+        import warnings
+        warnings.warn(
+            "SECRET_KEY não configurada! Usando chave padrão. Configure SECRET_KEY em variável de ambiente ou .env_producao.",
+            UserWarning
+        )
+
 ALLOWED_HOSTS = [
     'monpec.com.br',
     'www.monpec.com.br',
@@ -28,6 +55,8 @@ ALLOWED_HOSTS = [
 CSRF_TRUSTED_ORIGINS = [
     'https://monpec.com.br',
     'https://www.monpec.com.br',
+    'http://monpec.com.br',  # HTTP também (caso não tenha SSL configurado)
+    'http://www.monpec.com.br',  # HTTP também (caso não tenha SSL configurado)
     'http://10.1.1.234',
     'http://10.1.1.234:8000',  # IP com porta para acesso direto
     'http://localhost:8000',
@@ -68,6 +97,14 @@ X_FRAME_OPTIONS = 'DENY'
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Arquivos estáticos e mídia
+STATIC_URL = '/static/'
+MEDIA_URL = '/media/'
+
+# Diretórios de origem dos arquivos estáticos
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',
+]
+
 if IS_WINDOWS:
     # Windows: usar diretórios locais
     STATIC_ROOT = BASE_DIR / 'staticfiles'
@@ -79,6 +116,10 @@ else:
     # Linux: usar caminhos do servidor
     STATIC_ROOT = '/var/www/monpec.com.br/static'
     MEDIA_ROOT = '/var/www/monpec.com.br/media'
+    # Criar diretórios se não existirem
+    import os
+    os.makedirs(STATIC_ROOT, exist_ok=True)
+    os.makedirs(MEDIA_ROOT, exist_ok=True)
 
 # Configuração de logs
 if IS_WINDOWS:

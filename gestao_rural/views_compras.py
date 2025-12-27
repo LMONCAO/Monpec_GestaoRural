@@ -24,7 +24,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 from .models import Propriedade
-from .decorators import obter_propriedade_com_permissao
+from .decorators import obter_propriedade_com_permissao, bloquear_demo_cadastro
 from .models_compras_financeiro import (
     Fornecedor, NotaFiscal, ItemNotaFiscal,
     OrdemCompra, ItemOrdemCompra,
@@ -1271,6 +1271,7 @@ def fornecedores_lista(request, propriedade_id):
 
 
 @login_required
+@bloquear_demo_cadastro
 def fornecedor_novo(request, propriedade_id):
     """Cadastrar novo fornecedor"""
     propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
@@ -2719,4 +2720,159 @@ def buscar_produtos_ajax(request):
         })
     
     return JsonResponse({'produtos': resultados})
+
+
+@login_required
+def cadastro_rapido_setor(request, propriedade_id):
+    """Cadastro rápido de setor via AJAX"""
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
+    
+    if request.method == 'POST':
+        nome = request.POST.get('nome', '').strip()
+        codigo = request.POST.get('codigo', '').strip() or None
+        descricao = request.POST.get('descricao', '').strip() or None
+        
+        if not nome:
+            return JsonResponse({'success': False, 'error': 'Nome do setor é obrigatório'}, status=400)
+        
+        try:
+            setor = SetorPropriedade.objects.create(
+                propriedade=propriedade,
+                nome=nome,
+                codigo=codigo,
+                descricao=descricao,
+                ativo=True
+            )
+            return JsonResponse({
+                'success': True,
+                'id': setor.id,
+                'nome': setor.nome
+            })
+        except Exception as e:
+            logger.error(f'Erro ao criar setor: {e}')
+            return JsonResponse({'success': False, 'error': str(e)}, status=400)
+    
+    return JsonResponse({'success': False, 'error': 'Método não permitido'}, status=405)
+
+
+@login_required
+def cadastro_rapido_equipamento(request, propriedade_id):
+    """Cadastro rápido de equipamento via AJAX"""
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
+    
+    try:
+        from .models_operacional import Equipamento, TipoEquipamento
+    except ImportError:
+        return JsonResponse({'success': False, 'error': 'Módulo de equipamentos não disponível'}, status=400)
+    
+    if request.method == 'POST':
+        nome = request.POST.get('nome', '').strip()
+        descricao = request.POST.get('descricao', '').strip() or None
+        
+        if not nome:
+            return JsonResponse({'success': False, 'error': 'Nome do equipamento é obrigatório'}, status=400)
+        
+        try:
+            # Criar ou obter tipo padrão
+            tipo_default, _ = TipoEquipamento.objects.get_or_create(
+                nome='Diversos',
+                defaults={'descricao': 'Equipamentos diversos', 'ativo': True}
+            )
+            
+            equipamento = Equipamento.objects.create(
+                propriedade=propriedade,
+                nome=nome,
+                descricao=descricao,
+                tipo=tipo_default,
+                ativo=True
+            )
+            return JsonResponse({
+                'success': True,
+                'id': equipamento.id,
+                'nome': equipamento.nome
+            })
+        except Exception as e:
+            logger.error(f'Erro ao criar equipamento: {e}')
+            return JsonResponse({'success': False, 'error': str(e)}, status=400)
+    
+    return JsonResponse({'success': False, 'error': 'Método não permitido'}, status=405)
+
+
+@login_required
+def cadastro_rapido_centro_custo(request, propriedade_id):
+    """Cadastro rápido de centro de custo via AJAX"""
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
+    
+    try:
+        from .models_financeiro import CentroCusto
+    except ImportError:
+        return JsonResponse({'success': False, 'error': 'Módulo financeiro não disponível'}, status=400)
+    
+    if request.method == 'POST':
+        nome = request.POST.get('nome', '').strip()
+        tipo = request.POST.get('tipo', CentroCusto.TIPO_OPERACIONAL)
+        descricao = request.POST.get('descricao', '').strip() or None
+        
+        if not nome:
+            return JsonResponse({'success': False, 'error': 'Nome do centro de custo é obrigatório'}, status=400)
+        
+        try:
+            centro_custo = CentroCusto.objects.create(
+                propriedade=propriedade,
+                nome=nome,
+                tipo=tipo,
+                descricao=descricao,
+                ativo=True
+            )
+            return JsonResponse({
+                'success': True,
+                'id': centro_custo.id,
+                'nome': centro_custo.nome
+            })
+        except Exception as e:
+            logger.error(f'Erro ao criar centro de custo: {e}')
+            return JsonResponse({'success': False, 'error': str(e)}, status=400)
+    
+    return JsonResponse({'success': False, 'error': 'Método não permitido'}, status=405)
+
+
+@login_required
+def cadastro_rapido_plano_conta(request, propriedade_id):
+    """Cadastro rápido de plano de conta via AJAX"""
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
+    
+    try:
+        from .models_financeiro import PlanoConta
+    except ImportError:
+        return JsonResponse({'success': False, 'error': 'Módulo financeiro não disponível'}, status=400)
+    
+    if request.method == 'POST':
+        codigo = request.POST.get('codigo', '').strip()
+        nome = request.POST.get('nome', '').strip()
+        tipo = request.POST.get('tipo', PlanoConta.TIPO_DESPESA)
+        descricao = request.POST.get('descricao', '').strip() or None
+        
+        if not codigo or not nome:
+            return JsonResponse({'success': False, 'error': 'Código e nome são obrigatórios'}, status=400)
+        
+        try:
+            plano_conta = PlanoConta.objects.create(
+                propriedade=propriedade,
+                codigo=codigo,
+                nome=nome,
+                tipo=tipo,
+                descricao=descricao,
+                ativo=True
+            )
+            return JsonResponse({
+                'success': True,
+                'id': plano_conta.id,
+                'codigo': plano_conta.codigo,
+                'nome': plano_conta.nome
+            })
+        except Exception as e:
+            logger.error(f'Erro ao criar plano de conta: {e}')
+            return JsonResponse({'success': False, 'error': str(e)}, status=400)
+    
+    return JsonResponse({'success': False, 'error': 'Método não permitido'}, status=405)
 

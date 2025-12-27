@@ -39,10 +39,18 @@ def tenant_usuarios_dashboard(request):
                 pass
         return redirect("dashboard")
 
+    # Verificar se é admin ou assinante antes de exigir assinatura
+    from .helpers_acesso import is_usuario_assinante
     assinatura = tenant_access.obter_assinatura_do_usuario(request.user)
+    
     if not assinatura:
-        messages.error(request, "Nenhuma assinatura ativa vinculada ao usuário.")
-        return redirect("assinaturas_dashboard")
+        if is_usuario_assinante(request.user):
+            # Admin sem assinatura - esta funcionalidade requer assinatura
+            messages.info(request, "Esta funcionalidade requer uma assinatura ativa. Como administrador, você pode criar uma assinatura.")
+            return redirect("assinaturas_dashboard")
+        else:
+            messages.error(request, "Nenhuma assinatura ativa vinculada ao usuário.")
+            return redirect("assinaturas_dashboard")
 
     usuarios = assinatura.usuarios_tenant.select_related("usuario").order_by("nome_exibicao")
     
@@ -269,7 +277,15 @@ def tenant_usuario_editar(request, usuario_id: int):
                 # Atualizar senha se fornecida
                 senha = form.cleaned_data.get("senha")
                 if senha:
-                    tenant_usuario.usuario.set_password(senha)
+                    # Validar senha usando o validador de assinantes
+                    from .validators import SenhaAssinanteValidator
+                    validator = SenhaAssinanteValidator()
+                    try:
+                        validator.validate(senha)
+                        tenant_usuario.usuario.set_password(senha)
+                    except Exception as e:
+                        messages.error(request, f"Erro na senha: {str(e)}")
+                        return redirect("tenant_usuarios_dashboard")
                 
                 tenant_usuario.usuario.save()
                 

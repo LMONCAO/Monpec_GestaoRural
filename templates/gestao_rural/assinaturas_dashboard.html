@@ -607,36 +607,11 @@
             <p class="hero-subtitle">
                 Acesso completo ao sistema de gestão rural mais completo do mercado
             </p>
-            {% if assinatura %}
-                <span class="status-badge {% if assinatura.ativa %}status-ativa{% else %}status-pendente{% endif %}">
-                    Status: {{ assinatura.get_status_display }}
-                </span>
-            {% endif %}
         </div>
     </section>
 
     <!-- Container Principal -->
     <div class="main-container">
-
-        {% if assinatura and not assinatura.acesso_liberado %}
-            {% if assinatura.data_liberacao %}
-                <div class="alert-info-custom">
-                    <h5><i class="bi bi-calendar-check"></i> Acesso Agendado</h5>
-                    <p class="mb-0">
-                        Seu pagamento foi confirmado! Seu acesso será liberado em 
-                        <strong>{{ assinatura.data_liberacao|date:"d/m/Y" }}</strong>.
-                        Você receberá um e-mail quando o acesso estiver disponível.
-                    </p>
-                </div>
-            {% else %}
-                <div class="alert-config">
-                    <h5><i class="bi bi-clock-history"></i> Aguardando Confirmação</h5>
-                    <p class="mb-0">
-                        Estamos processando seu pagamento. Você receberá um e-mail assim que a confirmação for concluída.
-                    </p>
-                </div>
-            {% endif %}
-        {% endif %}
 
         <!-- Planos - Todos lado a lado com mesmo layout -->
         <div class="cards-container">
@@ -651,7 +626,7 @@
                     
                     <div class="pricing-price">
                         <div class="price-value">
-                            R$ 137,90
+                            R$ 99,90
                         </div>
                         <div class="price-period">primeira mensalidade</div>
                     </div>
@@ -704,7 +679,7 @@
                                 </div>
                             {% else %}
                                 <div class="price-value">
-                                    R$ 137,90
+                                    R$ 99,90
                                 </div>
                             {% endif %}
                             <div class="price-period">/mês</div>
@@ -958,7 +933,12 @@
                                 errorMessage = 'Erro de conexão: Não foi possível conectar ao servidor.\n\nVerifique:\n1. Se o servidor Django está rodando\n2. Se a URL está correta\n3. Se há problemas de firewall ou proxy';
                             }
                             
-                            alert('Erro ao iniciar o pagamento:\n\n' + errorMessage + '\n\nPor favor, verifique:\n1. Se MERCADOPAGO_ACCESS_TOKEN está configurado\n2. Se há planos ativos no banco de dados\n3. Sua conexão com a internet\n4. Se o servidor Django está rodando\n\nAbra o console (F12) para mais detalhes.');
+                            // Tratamento específico para token não configurado
+                            if (errorMessage.includes('MERCADOPAGO_ACCESS_TOKEN')) {
+                                errorMessage = '⚠️ CONFIGURAÇÃO NECESSÁRIA\n\nO token do Mercado Pago não está configurado.\n\nPara configurar:\n\n1. Crie um arquivo .env na raiz do projeto\n2. Adicione a linha:\n   MERCADOPAGO_ACCESS_TOKEN=seu_token_aqui\n\n3. Para obter o token:\n   - Acesse: https://www.mercadopago.com.br/developers/panel\n   - Faça login\n   - Crie uma aplicação\n   - Copie o Access Token\n\n4. Reinicie o servidor Django\n\nConsulte o arquivo .env.example para mais detalhes.';
+                            }
+                            
+                            alert('Erro ao iniciar o pagamento:\n\n' + errorMessage + '\n\nAbra o console (F12) para mais detalhes.');
                             currentBtn.disabled = false;
                             currentBtn.innerHTML = originalHTML;
                         }

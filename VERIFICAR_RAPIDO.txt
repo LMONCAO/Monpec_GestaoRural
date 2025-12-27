@@ -1,0 +1,70 @@
+========================================
+COMANDOS RÁPIDOS PARA VERIFICAR
+========================================
+
+Execute estes comandos no Cloud Shell, um de cada vez:
+
+--------------------------------------------------
+COMANDO 1: Verificar se o serviço existe
+--------------------------------------------------
+gcloud run services list --region us-central1
+
+--------------------------------------------------
+COMANDO 2: Obter URL do serviço
+--------------------------------------------------
+gcloud run services describe monpec --region us-central1 --format="value(status.url)"
+
+--------------------------------------------------
+COMANDO 3: Verificar status
+--------------------------------------------------
+gcloud run services describe monpec --region us-central1 --format="table(status.conditions[0].type,status.conditions[0].status)"
+
+--------------------------------------------------
+COMANDO 4: Ver últimos logs
+--------------------------------------------------
+gcloud run services logs read monpec --region us-central1 --limit=30
+
+--------------------------------------------------
+COMANDO 5: Testar acesso (se tiver curl)
+--------------------------------------------------
+# Primeiro obtenha a URL com o comando 2, depois:
+curl -I SUA_URL_AQUI
+
+--------------------------------------------------
+COMANDO ÚNICO: Executar verificação completa
+--------------------------------------------------
+chmod +x VERIFICAR_DEPLOY.sh && ./VERIFICAR_DEPLOY.sh
+
+========================================
+O QUE VERIFICAR:
+========================================
+
+✅ Se o serviço aparece na lista (comando 1)
+✅ Se a URL é retornada (comando 2)
+✅ Se o status é "True" (comando 3)
+✅ Se não há erros nos logs (comando 4)
+✅ Se o curl retorna 200 ou 302 (comando 5)
+
+========================================
+SE DER CERTO:
+========================================
+
+Você verá uma URL como:
+https://monpec-xxxxx-uc.a.run.app
+
+Abra essa URL no navegador e teste!
+
+========================================
+SE DER ERRADO:
+========================================
+
+Veja os logs (comando 4) para identificar o problema.
+
+
+
+
+
+
+
+
+

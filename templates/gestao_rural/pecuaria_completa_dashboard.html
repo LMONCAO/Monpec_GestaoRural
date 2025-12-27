@@ -636,7 +636,13 @@
                                         <i class="bi {{ alerta.icone }} text-{{ alerta.cor }} me-2 fs-5"></i>
                                         <div class="flex-grow-1">
                                             <strong class="d-block">{{ alerta.titulo }}</strong>
-                                            <small class="text-muted">{{ alerta.descricao }}</small>
+                                            <small class="text-muted">
+                                                {% if alerta.valor_saldo %}
+                                                    Saldo atual: {{ alerta.valor_saldo|moeda_br }}
+                                                {% else %}
+                                                    {{ alerta.descricao }}
+                                                {% endif %}
+                                            </small>
                                         </div>
                                         {% if alerta.url %}
                                         <a href="{{ alerta.url }}" class="btn btn-sm btn-{{ alerta.cor }} ms-2">
@@ -677,10 +683,10 @@
             </div>
         </div>
         
-        <!-- Receitas do Mês -->
+        <!-- Receitas do Período -->
         <div class="col-lg-3 col-md-6 col-sm-6">
             <div class="metric-card success">
-                <div class="metric-label">Receitas (Mês)</div>
+                <div class="metric-label">Receitas (Período)</div>
                 <div class="metric-value">{{ receitas_mes|moeda_br }}</div>
                 <div class="d-flex justify-content-between align-items-center mt-1">
                     <div class="small opacity-75" style="font-size: 0.7rem;">Saldo: {{ saldo_mes|moeda_br }}</div>
@@ -695,10 +701,10 @@
             </div>
         </div>
         
-        <!-- Despesas do Mês -->
+        <!-- Despesas do Período -->
         <div class="col-lg-3 col-md-6 col-sm-6">
             <div class="metric-card warning">
-                <div class="metric-label">Despesas (Mês)</div>
+                <div class="metric-label">Despesas (Período)</div>
                 <div class="metric-value">{{ despesas_mes|moeda_br }}</div>
                 <div class="d-flex justify-content-between align-items-center mt-1">
                     <div class="small opacity-75" style="font-size: 0.7rem;">Margem: {{ margem_lucro|floatformat:1 }}%</div>
@@ -890,6 +896,12 @@
                                 <strong style="font-size: 0.9rem;">{{ indicadores_rentabilidade.custo_por_animal.custos_detalhados.nutricao|floatformat:2|moeda_br }}</strong>
                             </div>
                         </div>
+                        <div class="col-lg-3 col-md-4 col-sm-6">
+                            <div class="text-center p-2 border rounded">
+                                <small class="text-muted d-block mb-1" style="font-size: 0.7rem;">Vet(Med e Vac)</small>
+                                <strong style="font-size: 0.9rem;">{{ indicadores_rentabilidade.custo_por_animal.custos_detalhados.veterinario|floatformat:2|moeda_br }}</strong>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -967,13 +979,13 @@
 
         <!-- Distribuição de Custos - Apenas se houver custos -->
         {% if total_custos_operacionais > 0 %}
-        <div class="col-lg-6">
+        <div class="col-12">
             <div class="powerbi-card print-page-break-after">
                 <div class="card-header bg-white border-bottom">
-                    <h5 class="mb-0"><i class="bi bi-pie-chart-fill me-2"></i>Distribuição de Custos Operacionais</h5>
+                    <h5 class="mb-0"><i class="bi bi-bar-chart-fill me-2"></i>Distribuição de Custos Operacionais</h5>
                 </div>
                 <div class="card-body">
-                    <div class="chart-container">
+                    <div class="chart-container-full-width" style="height: 300px;">
                         <canvas id="graficoDistribuicaoCustos"></canvas>
                     </div>
                 </div>
@@ -1001,8 +1013,8 @@
                     <div class="d-flex justify-content-between align-items-start mb-1">
                         <div>
                             <h6 class="text-muted mb-0" style="font-size: 0.7rem;">ROI Anual</h6>
-                            <h4 class="mb-0 {% if margem_lucro > 0 %}text-success{% else %}text-danger{% endif %}" style="font-size: 1.3rem;">
-                                {% if receitas_mes > 0 %}{{ margem_lucro|floatformat:1 }}%{% else %}0.0%{% endif %}
+                            <h4 class="mb-0 {% if roi_anual > 0 %}text-success{% else %}text-danger{% endif %}" style="font-size: 1.3rem;">
+                                {% if roi_anual != 0 %}{{ roi_anual|floatformat:1 }}%{% else %}0.0%{% endif %}
                             </h4>
                         </div>
                         <i class="bi bi-cash-stack text-muted" style="font-size: 1.2rem; opacity: 0.3;"></i>
@@ -1019,15 +1031,12 @@
                         <div>
                             <h6 class="text-muted mb-0" style="font-size: 0.7rem;">Receita/Animal</h6>
                             <h4 class="mb-0 text-primary" style="font-size: 1.3rem;">
-                                {% if total_animais_inventario > 0 %}
-                                    {% widthratio receitas_mes total_animais_inventario 1 as receita_por_animal %}
-                                    {{ receita_por_animal|floatformat:2|moeda_br }}
-                                {% else %}R$ 0,00{% endif %}
+                                {{ receita_por_animal|floatformat:2|moeda_br }}
                             </h4>
                         </div>
                         <i class="bi bi-graph-up text-muted" style="font-size: 1.2rem; opacity: 0.3;"></i>
                     </div>
-                    <small class="text-muted" style="font-size: 0.65rem;">Média anual</small>
+                    <small class="text-muted" style="font-size: 0.65rem;">Período pesquisado</small>
                 </div>
             </div>
         </div>
@@ -1039,15 +1048,12 @@
                         <div>
                             <h6 class="text-muted mb-0" style="font-size: 0.7rem;">Custo/Animal</h6>
                             <h4 class="mb-0 text-warning" style="font-size: 1.3rem;">
-                                {% if total_animais_inventario > 0 %}
-                                    {% widthratio total_custos_operacionais total_animais_inventario 1 as custo_por_animal %}
-                                    {{ custo_por_animal|floatformat:2|moeda_br }}
-                                {% else %}R$ 0,00{% endif %}
+                                {{ custo_por_animal_periodo|floatformat:2|moeda_br }}
                             </h4>
                         </div>
                         <i class="bi bi-calculator text-muted" style="font-size: 1.2rem; opacity: 0.3;"></i>
                     </div>
-                    <small class="text-muted" style="font-size: 0.65rem;">Média anual</small>
+                    <small class="text-muted" style="font-size: 0.65rem;">Período pesquisado</small>
                 </div>
             </div>
         </div>
@@ -1187,8 +1193,8 @@
                             <span class="metric-value">{{ iatfs_pendentes|numero_br }}</span>
                         </div>
                         <div class="module-metric-item">
-                            <span class="metric-label">Nascimentos (Mês)</span>
-                            <span class="metric-value">{{ nascimentos_mes|numero_br }}</span>
+                            <span class="metric-label">Nascimentos (Período)</span>
+                            <span class="metric-value">{{ nascimentos_periodo|numero_br }}</span>
                         </div>
                     </div>
                 </div>
@@ -1203,7 +1209,7 @@
             <div class="module-card-clean">
                 <div class="module-card-header">
                     <div class="module-card-icon bg-success">
-                        <i class="bi bi-bucket"></i>
+                        <i class="bi bi-bag"></i>
                     </div>
                     <h3 class="module-card-title">Nutrição</h3>
                 </div>
@@ -1214,7 +1220,7 @@
                             <span class="metric-value">{{ valor_total_estoque|moeda_br }}</span>
                         </div>
                         <div class="module-metric-item">
-                            <span class="metric-label">Distribuído (Mês)</span>
+                            <span class="metric-label">Distribuído (Período)</span>
                             <span class="metric-value">{{ total_distribuido_mes|numero_br:2 }}</span>
                         </div>
                         <div class="module-metric-item">
@@ -1288,15 +1294,15 @@
                 <div class="module-card-body">
                     <div class="module-metrics">
                         <div class="module-metric-item">
-                            <span class="metric-label">Receitas (Mês)</span>
+                            <span class="metric-label">Receitas (Período)</span>
                             <span class="metric-value text-success">{{ receitas_mes|moeda_br }}</span>
                         </div>
                         <div class="module-metric-item">
-                            <span class="metric-label">Despesas (Mês)</span>
+                            <span class="metric-label">Despesas (Período)</span>
                             <span class="metric-value text-danger">{{ despesas_mes|moeda_br }}</span>
                         </div>
                         <div class="module-metric-item">
-                            <span class="metric-label">Saldo (Mês)</span>
+                            <span class="metric-label">Saldo (Período)</span>
                             <span class="metric-value {% if saldo_mes >= 0 %}text-success{% else %}text-danger{% endif %}">{{ saldo_mes|moeda_br }}</span>
                         </div>
                         <div class="module-metric-item">
@@ -1401,16 +1407,16 @@
                         </div>
                         <div class="col-lg-3 col-md-6">
                             <div class="text-center p-3 border rounded">
-                                <div class="text-muted small mb-2">Receitas (Mês)</div>
+                                <div class="text-muted small mb-2">Receitas (Período)</div>
                                 <h3 class="mb-0 text-success">{{ receitas_mes|moeda_br }}</h3>
-                                <small class="text-muted">último mês</small>
+                                <small class="text-muted">{{ periodo_label|default:"período selecionado" }}</small>
                             </div>
                         </div>
                         <div class="col-lg-3 col-md-6">
                             <div class="text-center p-3 border rounded">
-                                <div class="text-muted small mb-2">Despesas (Mês)</div>
+                                <div class="text-muted small mb-2">Despesas (Período)</div>
                                 <h3 class="mb-0 text-danger">{{ despesas_mes|moeda_br }}</h3>
-                                <small class="text-muted">último mês</small>
+                                <small class="text-muted">{{ periodo_label|default:"período selecionado" }}</small>
                             </div>
                         </div>
                         <div class="col-lg-3 col-md-6">
@@ -1939,57 +1945,75 @@ function inicializarGraficos() {
             const combustivel = parseFloat({{ valor_consumo_mes|default:0 }}) || 0;
             const folha = parseFloat({{ folha_mensal|default:0 }}) || 0;
             const suplementacao = parseFloat({{ valor_distribuido_mes|default:0 }}) || 0;
+            const veterinario = parseFloat({{ indicadores_rentabilidade.custo_por_animal.custos_detalhados.veterinario|default:0 }}) || 0;
             
-            const totalCustos = combustivel + folha + suplementacao;
+            const totalCustos = combustivel + folha + suplementacao + veterinario;
             
             if (totalCustos > 0) {
                 const dadosCustos = {
-                    labels: ['Combustível', 'Folha de Pagamento', 'Suplementação'],
+                    labels: ['Combustível', 'Folha de Pagamento', 'Suplementação', 'Vet(Med e Vac)'],
                     datasets: [{
-                        data: [combustivel, folha, suplementacao],
+                        label: 'Custos Operacionais (R$)',
+                        data: [combustivel, folha, suplementacao, veterinario],
                         backgroundColor: [
-                            'rgba(74, 85, 104, 0.8)',   // Cinza escuro
-                            'rgba(113, 128, 150, 0.8)', // Cinza médio
-                            'rgba(148, 163, 184, 0.8)'  // Cinza claro
+                            'rgba(74, 85, 104, 0.8)',   // Cinza escuro - Combustível
+                            'rgba(113, 128, 150, 0.8)', // Cinza médio - Folha
+                            'rgba(148, 163, 184, 0.8)',  // Cinza claro - Suplementação
+                            'rgba(75, 192, 192, 0.8)'   // Verde água - Veterinário
                         ],
                         borderWidth: 2,
                         borderColor: '#fff'
                     }]
                 };
                 
-                if (!window.chartInstances.distribuicaoCustos) {
-                    window.chartInstances.distribuicaoCustos = new Chart(ctxDistribuicaoCustos, {
-                type: 'pie',
-                data: dadosCustos,
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                usePointStyle: true,
-                                padding: 15,
-                                font: {
-                                    size: 12
+                // Destruir gráfico anterior se existir
+                if (window.chartInstances && window.chartInstances.distribuicaoCustos) {
+                    window.chartInstances.distribuicaoCustos.destroy();
+                }
+                
+                window.chartInstances.distribuicaoCustos = new Chart(ctxDistribuicaoCustos, {
+                    type: 'bar',
+                    data: dadosCustos,
+                    options: {
+                        indexAxis: 'y',  // Barras horizontais
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const label = context.dataset.label || '';
+                                        const value = context.parsed.x || 0;
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                        return 'R$ ' + value.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' (' + percentage + '%)';
+                                    }
                                 }
                             }
                         },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const label = context.label || '';
-                                    const value = context.parsed || 0;
-                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                    const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-                                    return label + ': R$ ' + value.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' (' + percentage + '%)';
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return 'R$ ' + value.toLocaleString('pt-BR', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+                                    }
+                                },
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                }
+                            },
+                            y: {
+                                grid: {
+                                    display: false
                                 }
                             }
                         }
                     }
-                }
-                    });
-                }
+                });
             } else {
                 // Ocultar o card inteiro quando não há dados
                 const cardCustos = ctxDistribuicaoCustos.closest('.powerbi-card');

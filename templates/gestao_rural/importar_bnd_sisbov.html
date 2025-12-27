@@ -440,7 +440,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const inputArquivo = document.getElementById('arquivo');
     const btnDemonstracao = document.getElementById('btnDemonstracaoImportacao');
     const propriedadeId = {{ propriedade.id }};
-    const isDemo = {% if request.user.username == 'demo_monpec' or request.user.username == 'demo' %}true{% else %}false{% endif %};
+    const isDemo = {% if IS_DEMO_USER %}true{% else %}false{% endif %};
     
     // Criar modal dinamicamente
     const propriedadeNome = '{{ propriedade.nome_propriedade }}';
@@ -1281,7 +1281,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <form method="post" enctype="multipart/form-data" class="mt-4" id="formImportarBND">
             {% csrf_token %}
             <div class="mb-4">
-                {% if request.user.username == 'demo_monpec' or request.user.username == 'demo' %}
+                {% if IS_DEMO_USER %}
                 <label class="form-label fw-bold">Versão Demonstração</label>
                 <div class="alert alert-info d-flex align-items-center gap-2 mb-3">
                     <i class="bi bi-info-circle-fill fs-4"></i>
@@ -1307,7 +1307,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
             
             <div class="importar-bnd-actions">
-                {% if request.user.username != 'demo_monpec' and request.user.username != 'demo' %}
+                {% if not IS_DEMO_USER %}
                 <button class="btn-bnd-main" type="submit" id="btnImportar">
                     <i class="bi bi-cloud-arrow-up"></i>
                     Importar arquivo SISBOV

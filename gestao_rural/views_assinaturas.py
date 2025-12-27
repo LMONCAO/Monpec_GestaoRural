@@ -110,6 +110,21 @@ def iniciar_checkout(request: HttpRequest, plano_slug: str) -> JsonResponse:
     gateway_name = request.POST.get('gateway') or request.GET.get('gateway') or getattr(settings, 'PAYMENT_GATEWAY_DEFAULT', 'mercadopago')
     
     try:
+        # Verificar se o token está configurado antes de criar o gateway
+        from decouple import config as decouple_config
+        token_check = decouple_config('MERCADOPAGO_ACCESS_TOKEN', default='')
+        if not token_check:
+            # Tentar via settings também
+            token_check = getattr(settings, 'MERCADOPAGO_ACCESS_TOKEN', '')
+        
+        if not token_check:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error("MERCADOPAGO_ACCESS_TOKEN não encontrado em .env nem em settings")
+            return JsonResponse({
+                "detail": "MERCADOPAGO_ACCESS_TOKEN não configurado. Verifique se o arquivo .env está na raiz do projeto e reinicie o servidor Django."
+            }, status=500)
+        
         # Criar instância do gateway usando factory
         gateway = PaymentGatewayFactory.criar_gateway(gateway_name)
         
@@ -163,11 +178,32 @@ def iniciar_checkout(request: HttpRequest, plano_slug: str) -> JsonResponse:
 
 @login_required
 def checkout_sucesso(request: HttpRequest) -> HttpResponse:
-    messages.success(
-        request,
-        "Pagamento recebido! Estamos provisionando seu ambiente. Você receberá um e-mail quando estiver pronto.",
-    )
-    return redirect("assinaturas_dashboard")
+    """Página de confirmação de pagamento com dados de acesso."""
+    try:
+        assinatura = AssinaturaCliente.objects.select_related('plano').get(usuario=request.user)
+        
+        # Se a assinatura está ativa, mostrar dados de acesso
+        if assinatura.status == AssinaturaCliente.Status.ATIVA:
+            # Garantir que o usuário tenha a senha padrão
+            garantir_senha_padrao_usuario(request.user)
+            
+            contexto = {
+                'assinatura': assinatura,
+                'email': request.user.email,
+                'senha': 'Monpec2025@',
+                'data_liberacao': assinatura.data_liberacao or '01/02/2025',
+            }
+            return render(request, 'gestao_rural/assinaturas_confirmacao.html', contexto)
+        else:
+            # Se ainda está pendente, mostrar mensagem de aguardo
+            messages.info(
+                request,
+                "Seu pagamento está sendo processado. Você receberá um e-mail quando estiver confirmado.",
+            )
+            return redirect("assinaturas_dashboard")
+    except AssinaturaCliente.DoesNotExist:
+        messages.warning(request, "Assinatura não encontrada.")
+        return redirect("assinaturas_dashboard")
 
 
 @login_required
@@ -189,7 +225,14 @@ def stripe_webhook(request: HttpRequest) -> HttpResponse:
 def mercadopago_webhook(request: HttpRequest) -> HttpResponse:
     """Webhook para eventos do Mercado Pago."""
     if request.method != "POST":
-        return HttpResponseBadRequest("Método não permitido.")
+        return HttpResponse(
+            "✅ Webhook do Mercado Pago está funcionando!\n\n"
+            "Este endpoint aceita apenas requisições POST do Mercado Pago.\n"
+            "Acesse via navegador não é permitido por segurança.\n\n"
+            "URL configurada corretamente para: https://monpec.com.br/assinaturas/webhook/mercadopago/",
+            content_type="text/plain; charset=utf-8",
+            status=405
+        )
 
     payload = request.body
     
@@ -227,11 +270,17 @@ def mercadopago_webhook(request: HttpRequest) -> HttpResponse:
         assinatura.refresh_from_db()
         
         if assinatura.status == AssinaturaCliente.Status.ATIVA:
-            # Definir data de liberação como 01/02/2026 se não estiver definida
+            # Definir data de liberação como 01/02/2025 se não estiver definida
             if not assinatura.data_liberacao:
                 from datetime import date
-                assinatura.data_liberacao = date(2026, 2, 1)  # 01/02/2026
+                assinatura.data_liberacao = date(2025, 2, 1)  # 01/02/2025
                 assinatura.save(update_fields=['data_liberacao', 'atualizado_em'])
+            
+            # Garantir que o usuário tenha a senha padrão definida
+            garantir_senha_padrao_usuario(assinatura.usuario)
+            
+            # Confirmar email e telefone automaticamente quando pagamento é confirmado
+            confirmar_email_e_telefone_usuario(assinatura.usuario)
             
             resultado = provisionar_workspace(assinatura)
             
@@ -245,6 +294,83 @@ def mercadopago_webhook(request: HttpRequest) -> HttpResponse:
                 assinatura.save(update_fields=['metadata', 'atualizado_em'])
     
     return HttpResponse(status=200)
+
+
+def garantir_senha_padrao_usuario(usuario) -> None:
+    """Garante que o usuário tenha a senha padrão Monpec2025@ definida."""
+    from django.contrib.auth.hashers import check_password
+    
+    senha_padrao = "Monpec2025@"
+    
+    # Verificar se o usuário já tem senha definida
+    if usuario.password and len(usuario.password) > 0:
+        # Se já tem senha, verificar se é a padrão
+        if not check_password(senha_padrao, usuario.password):
+            # Se não for a padrão, definir a senha padrão
+            usuario.set_password(senha_padrao)
+            usuario.save(update_fields=['password'])
+    else:
+        # Se não tem senha, definir a padrão
+        usuario.set_password(senha_padrao)
+        usuario.save(update_fields=['password'])
+
+
+def confirmar_email_e_telefone_usuario(usuario) -> None:
+    """
+    Confirma automaticamente email e telefone do usuário quando o pagamento é confirmado.
+    Isso garante que usuários que pagaram não precisem verificar manualmente.
+    """
+    from django.utils import timezone
+    from datetime import timedelta
+    from .models_auditoria import VerificacaoEmail, UsuarioAtivo
+    
+    # Confirmar email
+    try:
+        verificacao_email, created = VerificacaoEmail.objects.get_or_create(
+            usuario=usuario,
+            defaults={
+                'token': 'auto-confirmed-payment',
+                'email_verificado': True,
+                'token_expira_em': timezone.now() + timedelta(days=365),  # Longo prazo
+                'verificado_em': timezone.now(),
+            }
+        )
+        
+        # Se já existe, apenas marcar como verificado
+        if not created and not verificacao_email.email_verificado:
+            verificacao_email.email_verificado = True
+            verificacao_email.verificado_em = timezone.now()
+            verificacao_email.save(update_fields=['email_verificado', 'verificado_em'])
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f"Erro ao confirmar email do usuário {usuario.id}: {e}")
+    
+    # Ativar usuário se ainda não estiver ativo
+    if not usuario.is_active:
+        usuario.is_active = True
+        usuario.save(update_fields=['is_active'])
+    
+    # Confirmar telefone (se houver registro em UsuarioAtivo)
+    try:
+        usuario_ativo, created = UsuarioAtivo.objects.get_or_create(
+            usuario=usuario,
+            defaults={
+                'nome_completo': usuario.get_full_name() or usuario.username,
+                'email': usuario.email or '',
+                'telefone': '',  # Será preenchido se disponível
+                'ativo': True,
+            }
+        )
+        
+        # Se já existe, apenas garantir que está ativo
+        if not created and not usuario_ativo.ativo:
+            usuario_ativo.ativo = True
+            usuario_ativo.save(update_fields=['ativo'])
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f"Erro ao confirmar telefone do usuário {usuario.id}: {e}")
 
 
 def enviar_email_confirmacao_assinatura(assinatura: AssinaturaCliente) -> bool:
@@ -261,15 +387,15 @@ Olá {usuario.get_full_name() or usuario.username},
 Sua assinatura foi confirmada com sucesso!
 
 ASSINATURA DE PRÉ-LANÇAMENTO
-O sistema MONPEC estará disponível a partir de 01/02/2026.
+O sistema MONPEC estará disponível a partir de 01/02/2025.
 
 SUAS CREDENCIAIS DE ACESSO:
 Email: {email_usuario}
-Senha: monpec01022026
+Senha: Monpec2025@
 
 IMPORTANTE:
 - Este é um sistema de pré-lançamento
-- O acesso será liberado em 01/02/2026
+- O acesso será liberado em 01/02/2025
 - Um de nossos consultores entrará em contato em breve para orientá-lo sobre o sistema
 - Guarde estas credenciais com segurança
 
@@ -346,20 +472,20 @@ Equipe MONPEC - Gestão Rural Inteligente
         
         <div class="credentials">
             <h3 style="color: #0d6efd; margin-top: 0;">📋 ASSINATURA DE PRÉ-LANÇAMENTO</h3>
-            <p>O sistema MONPEC estará disponível a partir de <strong>01/02/2026</strong>.</p>
+            <p>O sistema MONPEC estará disponível a partir de <strong>01/02/2025</strong>.</p>
         </div>
         
         <div class="credentials">
             <h3 style="color: #0d6efd; margin-top: 0;">🔐 SUAS CREDENCIAIS DE ACESSO</h3>
             <p><strong>Email:</strong> {email_usuario}</p>
-            <p><strong>Senha:</strong> monpec01022026</p>
+            <p><strong>Senha:</strong> Monpec2025@</p>
         </div>
         
         <div class="warning">
             <strong>⚠️ IMPORTANTE:</strong>
             <ul>
                 <li>Este é um sistema de pré-lançamento</li>
-                <li>O acesso será liberado em <strong>01/02/2026</strong></li>
+                <li>O acesso será liberado em <strong>01/02/2025</strong></li>
                 <li>Um de nossos consultores entrará em contato em breve para orientá-lo sobre o sistema</li>
                 <li>Guarde estas credenciais com segurança</li>
             </ul>

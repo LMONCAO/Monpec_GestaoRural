@@ -127,32 +127,33 @@ class SistemaMovimentacoesAutomaticas:
                 
                 # 6.1. VENDAS CONFIGURADAS (quantidade fixa, ex: 100 cabeças a cada 60 dias)
                 # Processar vendas configuradas com proteção contra saldo negativo
-                try:
-                    from gestao_rural.views import processar_vendas_configuradas
-                    # Calcular saldo atual após vendas automáticas
-                    saldo_apos_vendas_auto = self._calcular_saldo_final(saldo_pos_evolucao, [], [], vendas, [], [], [])
-                    # Converter saldo para formato esperado (Dict[CategoriaAnimal, int])
-                    saldo_para_vendas = {}
-                    for categoria_nome, quantidade in saldo_apos_vendas_auto.items():
-                        try:
-                            categoria_obj = CategoriaAnimal.objects.get(nome=categoria_nome)
-                            saldo_para_vendas[categoria_obj] = quantidade
-                        except CategoriaAnimal.DoesNotExist:
-                            pass
-                    # Processar vendas configuradas
-                    vendas_configuradas = processar_vendas_configuradas(propriedade, data_referencia, saldo_para_vendas)
-                    # As vendas já foram salvas no banco pela função, apenas adicionar à lista
-                    for venda_info in vendas_configuradas:
-                        venda_obj = MovimentacaoProjetada.objects.filter(
-                            propriedade=propriedade,
-                            data_movimentacao=data_referencia,
-                            tipo_movimentacao='VENDA',
-                            categoria=venda_info['categoria']
-                        ).order_by('-id').first()
-                        if venda_obj:
-                            movimentacoes.append(venda_obj)
-                except Exception as e:
-                    print(f"    [AVISO] Erro ao processar vendas configuradas: {e}")
+                # NOTA: Função processar_vendas_configuradas não está implementada ainda
+                # try:
+                #     from gestao_rural.views import processar_vendas_configuradas
+                #     # Calcular saldo atual após vendas automáticas
+                #     saldo_apos_vendas_auto = self._calcular_saldo_final(saldo_pos_evolucao, [], [], vendas, [], [], [])
+                #     # Converter saldo para formato esperado (Dict[CategoriaAnimal, int])
+                #     saldo_para_vendas = {}
+                #     for categoria_nome, quantidade in saldo_apos_vendas_auto.items():
+                #         try:
+                #             categoria_obj = CategoriaAnimal.objects.get(nome=categoria_nome)
+                #             saldo_para_vendas[categoria_obj] = quantidade
+                #         except CategoriaAnimal.DoesNotExist:
+                #             pass
+                #     # Processar vendas configuradas
+                #     vendas_configuradas = processar_vendas_configuradas(propriedade, data_referencia, saldo_para_vendas)
+                #     # As vendas já foram salvas no banco pela função, apenas adicionar à lista
+                #     for venda_info in vendas_configuradas:
+                #         venda_obj = MovimentacaoProjetada.objects.filter(
+                #             propriedade=propriedade,
+                #             data_movimentacao=data_referencia,
+                #             tipo_movimentacao='VENDA',
+                #             categoria=venda_info['categoria']
+                #         ).order_by('-id').first()
+                #         if venda_obj:
+                #             movimentacoes.append(venda_obj)
+                # except Exception as e:
+                #     print(f"    [AVISO] Erro ao processar vendas configuradas: {e}")
                 
                 # 7. COMPRAS (baseado no perfil)
                 compras = self._gerar_compras_automaticas(propriedade, data_referencia, saldo_pos_evolucao, perfil, identificacao['estrategias'])

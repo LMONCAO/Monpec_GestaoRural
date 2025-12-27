@@ -115,3 +115,21 @@ python manage.py popular_dados_pecuaria_realista --propriedade-id 1
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

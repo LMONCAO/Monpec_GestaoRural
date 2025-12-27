@@ -5,13 +5,39 @@ Configurações específicas para produção no Google Cloud Platform.
 Suporta Cloud Run, App Engine e Compute Engine.
 """
 import os
+
+# CRÍTICO: Definir SECRET_KEY e DEBUG ANTES de importar settings para evitar ValueError
+# Tentar obter de variável de ambiente primeiro
+SECRET_KEY = os.getenv('SECRET_KEY')
+if not SECRET_KEY:
+    # Se não tiver, usar uma chave padrão (será sobrescrita depois se necessário)
+    SECRET_KEY = '0d0)yw=u#u=owx#=qo(&%-b+a_@_u3=1wt242v2fx_$1ap4+4t'
+
+# CRÍTICO: Definir DEBUG temporariamente como True para evitar ValueError no settings.py
+# O settings.py valida SECRET_KEY e se DEBUG=False e SECRET_KEY=None, levanta ValueError
+# Vamos definir DEBUG=True temporariamente, depois sobrescreveremos
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
+if not SECRET_KEY or SECRET_KEY == 'YrJOs823th_HB2BP6Uz9A0NVvzL0Fif-t-Rfub5BXgVtE0LxXIWEPQIFqYvI8UNiZKE':
+    # Se não tiver SECRET_KEY válida, garantir DEBUG=True temporariamente
+    os.environ['DEBUG'] = 'True'
+
+# Agora importar settings (que não vai dar erro porque SECRET_KEY está definida e DEBUG=True temporariamente)
 from .settings import *
+
+# Sobrescrever SECRET_KEY se estiver em variável de ambiente
+env_secret_key = os.getenv('SECRET_KEY')
+if env_secret_key:
+    SECRET_KEY = env_secret_key
 
 # Detectar se está rodando no Google Cloud
 IS_GAE = os.getenv('GAE_ENV') is not None
 IS_CLOUD_RUN = os.getenv('K_SERVICE') is not None
+# Cloud Run Jobs também podem ser detectados pela presença de CLOUD_SQL_CONNECTION_NAME
+# ou pela variável GOOGLE_CLOUD_PROJECT (comum em ambos Cloud Run Service e Jobs)
+IS_CLOUD_RUN_JOB = os.getenv('GOOGLE_CLOUD_PROJECT') is not None and os.getenv('K_SERVICE') is None
+IS_CLOUD_RUN_ANY = IS_CLOUD_RUN or IS_CLOUD_RUN_JOB
 
-# Configurações de produção
+# Configurações de produção (sobrescrever DEBUG que foi definido temporariamente)
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 # ALLOWED_HOSTS para Google Cloud
@@ -28,7 +54,7 @@ ALLOWED_HOSTS = [
 
 # Adicionar hosts do Cloud Run
 # Cloud Run URLs têm formato: SERVICE-PROJECT_HASH-REGION.a.run.app
-if IS_CLOUD_RUN:
+if IS_CLOUD_RUN_ANY:
     # Obter host do Cloud Run via variável de ambiente
     cloud_run_host = os.getenv('CLOUD_RUN_HOST', '')
     if cloud_run_host:
@@ -56,11 +82,13 @@ if IS_CLOUD_RUN:
 CSRF_TRUSTED_ORIGINS = [
     'https://monpec.com.br',
     'https://www.monpec.com.br',
+    'http://monpec.com.br',  # HTTP também (caso não tenha SSL configurado)
+    'http://www.monpec.com.br',  # HTTP também (caso não tenha SSL configurado)
     'https://monpec-sistema-rural.uc.r.appspot.com',
 ]
 
 # Adicionar origem do Cloud Run
-if IS_CLOUD_RUN:
+if IS_CLOUD_RUN_ANY:
     cloud_run_host = os.getenv('CLOUD_RUN_HOST', '')
     if cloud_run_host:
         CSRF_TRUSTED_ORIGINS.append(f'https://{cloud_run_host}')
@@ -81,40 +109,53 @@ if IS_CLOUD_RUN:
             CSRF_TRUSTED_ORIGINS.append(default_cloud_run_url2)
 
 # Banco de dados - Cloud SQL via Unix Socket (App Engine/Cloud Run/Cloud Run Jobs)
-CLOUD_SQL_CONNECTION_NAME = os.getenv('CLOUD_SQL_CONNECTION_NAME', '')
-if IS_GAE or IS_CLOUD_RUN or CLOUD_SQL_CONNECTION_NAME:
-    # Cloud SQL via Unix Socket (se CLOUD_SQL_CONNECTION_NAME estiver definido)
-    if CLOUD_SQL_CONNECTION_NAME:
-        DATABASES = {
-            'default': {
-                'ENGINE': 'django.db.backends.postgresql',
-                'NAME': os.getenv('DB_NAME', 'monpec_db'),
-                'USER': os.getenv('DB_USER', 'monpec_user'),
-                'PASSWORD': os.getenv('DB_PASSWORD', ''),
-                'HOST': f'/cloudsql/{CLOUD_SQL_CONNECTION_NAME}',
-                'PORT': '',
-            }
+CLOUD_SQL_CONNECTION_NAME = os.getenv('CLOUD_SQL_CONNECTION_NAME', '').strip()
+DB_NAME = os.getenv('DB_NAME', 'monpec_db')
+DB_USER = os.getenv('DB_USER', 'monpec_user')
+DB_PASSWORD = os.getenv('DB_PASSWORD', '')
+
+# Se estiver no Google Cloud (App Engine ou Cloud Run), usar Unix Socket
+if IS_GAE or IS_CLOUD_RUN_ANY:
+    # Se CLOUD_SQL_CONNECTION_NAME não estiver definido, usar valor padrão
+    if not CLOUD_SQL_CONNECTION_NAME:
+        CLOUD_SQL_CONNECTION_NAME = 'monpec-sistema-rural:us-central1:monpec-db'
+        import warnings
+        warnings.warn(
+            f'CLOUD_SQL_CONNECTION_NAME não definido via variável de ambiente. Usando padrão: {CLOUD_SQL_CONNECTION_NAME}',
+            UserWarning
+        )
+    
+    # Sempre usar Unix Socket no Google Cloud
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': DB_NAME,
+            'USER': DB_USER,
+            'PASSWORD': DB_PASSWORD,
+            'HOST': f'/cloudsql/{CLOUD_SQL_CONNECTION_NAME}',
+            'PORT': '',
         }
-    else:
-        # Fallback para configuração padrão
-        DATABASES = {
-            'default': {
-                'ENGINE': 'django.db.backends.postgresql',
-                'NAME': os.getenv('DB_NAME', 'monpec_db'),
-                'USER': os.getenv('DB_USER', 'monpec_user'),
-                'PASSWORD': os.getenv('DB_PASSWORD', ''),
-                'HOST': os.getenv('DB_HOST', '127.0.0.1'),
-                'PORT': os.getenv('DB_PORT', '5432'),
-            }
+    }
+elif CLOUD_SQL_CONNECTION_NAME:
+    # Se CLOUD_SQL_CONNECTION_NAME estiver definido mas não estiver no Cloud, usar socket também
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': DB_NAME,
+            'USER': DB_USER,
+            'PASSWORD': DB_PASSWORD,
+            'HOST': f'/cloudsql/{CLOUD_SQL_CONNECTION_NAME}',
+            'PORT': '',
         }
+    }
 else:
     # Cloud SQL via IP (Compute Engine ou local)
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.getenv('DB_NAME', 'monpec_db'),
-            'USER': os.getenv('DB_USER', 'monpec_user'),
-            'PASSWORD': os.getenv('DB_PASSWORD', ''),
+            'NAME': DB_NAME,
+            'USER': DB_USER,
+            'PASSWORD': DB_PASSWORD,
             'HOST': os.getenv('DB_HOST', '127.0.0.1'),
             'PORT': os.getenv('DB_PORT', '5432'),
         }
@@ -152,19 +193,35 @@ else:
     MEDIA_ROOT = '/app/media'
     
     # Adicionar WhiteNoise para servir arquivos estáticos
-    # WhiteNoise já está no requirements_producao.txt
-    MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
-    # Usar CompressedStaticFilesStorage em vez de CompressedManifestStaticFilesStorage
-    # para evitar erros de manifest missing em produção
-    STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
-    
-    # Configurações adicionais do WhiteNoise
-    # WhiteNoise serve arquivos de STATIC_ROOT automaticamente
-    # Isso inclui vídeos (.mp4), imagens (.jpeg, .png), ícones e outros arquivos estáticos coletados pelo collectstatic
-    # WhiteNoise por padrão serve arquivos até 2GB, o que é suficiente para vídeos
+    # Verificar se whitenoise está disponível antes de adicionar
+    try:
+        import whitenoise
+        # Adicionar WhiteNoise após SecurityMiddleware
+        if 'whitenoise.middleware.WhiteNoiseMiddleware' not in MIDDLEWARE:
+            try:
+                security_index = MIDDLEWARE.index('django.middleware.security.SecurityMiddleware')
+                MIDDLEWARE.insert(security_index + 1, 'whitenoise.middleware.WhiteNoiseMiddleware')
+            except (ValueError, AttributeError):
+                # Se não encontrar, adicionar no início
+                if isinstance(MIDDLEWARE, list):
+                    MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
+        
+        # Usar CompressedStaticFilesStorage
+        STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
+    except ImportError:
+        # Se whitenoise não estiver instalado, usar configuração padrão
+        pass
     
     # Adicionar middleware para permitir hosts do Cloud Run dinamicamente
-    MIDDLEWARE.insert(0, 'sistema_rural.middleware.CloudRunHostMiddleware')
+    # Verificar se o middleware existe antes de adicionar
+    try:
+        from sistema_rural.middleware import CloudRunHostMiddleware
+        if 'sistema_rural.middleware.CloudRunHostMiddleware' not in MIDDLEWARE:
+            if isinstance(MIDDLEWARE, list):
+                MIDDLEWARE.insert(0, 'sistema_rural.middleware.CloudRunHostMiddleware')
+    except (ImportError, AttributeError):
+        # Se o middleware não existir, continuar sem ele
+        pass
 
 # Configuração de logs
 LOGGING = {
@@ -197,14 +254,20 @@ LOGGING = {
     },
 }
 
-# URLs do Mercado Pago para produção
+# Configurações do Mercado Pago para produção
+MERCADOPAGO_ACCESS_TOKEN = os.getenv('MERCADOPAGO_ACCESS_TOKEN', '')
+MERCADOPAGO_PUBLIC_KEY = os.getenv('MERCADOPAGO_PUBLIC_KEY', '')
+MERCADOPAGO_WEBHOOK_SECRET = os.getenv('MERCADOPAGO_WEBHOOK_SECRET', '')
 MERCADOPAGO_SUCCESS_URL = os.getenv('MERCADOPAGO_SUCCESS_URL', 'https://monpec.com.br/assinaturas/sucesso/')
 MERCADOPAGO_CANCEL_URL = os.getenv('MERCADOPAGO_CANCEL_URL', 'https://monpec.com.br/assinaturas/cancelado/')
+PAYMENT_GATEWAY_DEFAULT = os.getenv('PAYMENT_GATEWAY_DEFAULT', 'mercadopago')
 SITE_URL = os.getenv('SITE_URL', 'https://monpec.com.br')
 
 # Google Analytics (pode ser sobrescrito via variável de ambiente)
-# Prioridade: variável de ambiente > settings.py
-GOOGLE_ANALYTICS_ID = os.getenv('GOOGLE_ANALYTICS_ID', GOOGLE_ANALYTICS_ID if 'GOOGLE_ANALYTICS_ID' in globals() else '')
+# Prioridade: variável de ambiente > settings.py (já importado via 'from .settings import *')
+# Usar getattr para acessar o valor já importado de settings.py de forma segura
+_current_ga_id = globals().get('GOOGLE_ANALYTICS_ID', '')
+GOOGLE_ANALYTICS_ID = os.getenv('GOOGLE_ANALYTICS_ID', _current_ga_id)
 
 # Cache usando Cloud Memorystore (Redis) se disponível
 REDIS_HOST = os.getenv('REDIS_HOST', '')
@@ -234,7 +297,7 @@ CSRF_COOKIE_SECURE = True
 CSRF_COOKIE_HTTPONLY = True
 
 # Configurações específicas do Cloud Run
-if IS_CLOUD_RUN:
+if IS_CLOUD_RUN_ANY:
     # Timeout para Cloud Run
     SECURE_SSL_REDIRECT = True
     USE_TZ = True

@@ -105,3 +105,21 @@ O arquivo `.env` já está configurado. Reinicie o servidor Django e teste crian
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

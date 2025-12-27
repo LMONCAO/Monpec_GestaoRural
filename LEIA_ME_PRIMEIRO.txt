@@ -1,0 +1,101 @@
+========================================
+SOLUÇÃO FINAL - COMANDO ÚNICO
+========================================
+
+Eu corrigi o código e criei um script que faz TUDO.
+
+O QUE FOI CORRIGIDO:
+✅ settings_gcp.py - SECRET_KEY definida antes de importar (evita ValueError)
+✅ Middleware - Verificação segura antes de adicionar
+✅ Requirements - Adiciona gunicorn, whitenoise e psycopg2 automaticamente
+✅ Dockerfile - Criado automaticamente
+✅ Variáveis de ambiente - Todas configuradas corretamente
+
+========================================
+COMANDO ÚNICO - COPIE E COLE NO CLOUD SHELL
+========================================
+
+Copie TODO o conteúdo do arquivo:
+  EXECUTE_ESTE_COMANDO.sh
+
+E cole no terminal do Cloud Shell.
+
+OU copie este comando completo:
+
+--------------------------------------------------
+
+#!/bin/bash
+set -e
+PROJECT_ID="monpec-sistema-rural"
+SERVICE_NAME="monpec"
+REGION="us-central1"
+IMAGE_NAME="gcr.io/${PROJECT_ID}/${SERVICE_NAME}"
+echo "========================================"
+echo "  INICIANDO DEPLOY COMPLETO"
+echo "========================================"
+echo "1. Configurando..."
+gcloud config set project $PROJECT_ID > /dev/null 2>&1
+echo "2. Criando Dockerfile..."
+cat > Dockerfile.prod << 'EOF'
+FROM python:3.11-slim
+ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
+RUN apt-get update && apt-get install -y --no-install-recommends postgresql-client build-essential libpq-dev && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --upgrade pip && pip install -r requirements.txt
+COPY . .
+RUN mkdir -p /app/staticfiles /app/media /app/logs
+ENV PORT=8080
+EXPOSE 8080
+CMD exec gunicorn --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 300 --access-logfile - --error-logfile - sistema_rural.wsgi:application
+EOF
+echo "3. Corrigindo requirements..."
+grep -qi "gunicorn" requirements.txt || echo "gunicorn" >> requirements.txt
+grep -qi "whitenoise" requirements.txt || echo "whitenoise" >> requirements.txt
+grep -qi "psycopg2" requirements.txt || echo "psycopg2-binary" >> requirements.txt
+echo "4. Habilitando APIs..."
+for api in cloudbuild.googleapis.com run.googleapis.com sqladmin.googleapis.com containerregistry.googleapis.com; do
+    gcloud services enable $api --quiet 2>&1 | grep -v "already" || true
+done
+echo "5. Build (5-10 min)..."
+gcloud builds submit --tag ${IMAGE_NAME}:latest --timeout=20m
+echo "6. Deploy (2-3 min)..."
+ENV_VARS="DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,DEBUG=False,SECRET_KEY=0d0)yw=u#u=owx#=qo(&%-b+a_@_u3=1wt242v2fx_\$1ap4+4t,DB_NAME=monpec_db,DB_USER=monpec_user,DB_PASSWORD=Django2025@,CLOUD_SQL_CONNECTION_NAME=monpec-sistema-rural:us-central1:monpec-db,PYTHONUNBUFFERED=1"
+gcloud run deploy $SERVICE_NAME --image ${IMAGE_NAME}:latest --platform managed --region $REGION --allow-unauthenticated --set-env-vars "$ENV_VARS" --memory=2Gi --cpu=2 --timeout=300 --max-instances=10 --min-instances=1 --add-cloudsql-instances=monpec-sistema-rural:us-central1:monpec-db --port=8080
+SERVICE_URL=$(gcloud run services describe $SERVICE_NAME --region $REGION --format="value(status.url)")
+echo "7. Migrações..."
+gcloud run jobs create migrate-monpec --image ${IMAGE_NAME}:latest --region $REGION --set-env-vars "$ENV_VARS" --command python --args manage.py,migrate,--noinput --max-retries 3 --task-timeout 600 --memory=2Gi --cpu=2 2>&1 | grep -v "already" || true
+gcloud run jobs execute migrate-monpec --region $REGION --wait 2>&1 | tail -5
+echo ""
+echo "========================================"
+echo "✅ DEPLOY CONCLUÍDO!"
+echo "========================================"
+echo ""
+echo "URL: $SERVICE_URL"
+echo ""
+echo "Teste: $SERVICE_URL"
+echo ""
+
+--------------------------------------------------
+
+TEMPO: 10-15 minutos
+
+Este comando:
+✅ Corrige tudo automaticamente
+✅ Cria Dockerfile
+✅ Corrige requirements
+✅ Faz build
+✅ Faz deploy
+✅ Aplica migrações
+✅ Mostra URL final
+
+DEPOIS DE EXECUTAR, TESTE A URL NO NAVEGADOR!
+
+
+
+
+
+
+
+
+

@@ -35,7 +35,7 @@
         </div>
 
         <div class="row g-3">
-            <div class="col-xl-8">
+            <div class="col-12">
                 <div class="card shadow-sm mb-3">
                     <div class="card-header bg-white border-0 pb-0">
                         <h2 class="h5 mb-0"><i class="bi bi-clipboard-check text-primary me-2"></i>Informações principais</h2>
@@ -43,21 +43,32 @@
                     </div>
                     <div class="card-body">
                         <div class="row g-3">
-                            <div class="col-md-6">
-                                <label class="form-label">{{ form.titulo.label }} *</label>
+                            <!-- Labels na primeira linha -->
+                            <div class="col-md-4">
+                                <label class="form-label mb-0">{{ form.titulo.label }} *</label>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label mb-0">{{ form.prioridade.label }} *</label>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label mb-0">{{ form.data_necessidade.label }}</label>
+                            </div>
+                        </div>
+                        <div class="row g-3 mt-0">
+                            <!-- Campos na segunda linha -->
+                            <div class="col-md-4">
                                 {{ form.titulo }}
                                 {% for error in form.titulo.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                             </div>
-                            <div class="col-md-3">
-                                <label class="form-label">{{ form.prioridade.label }} *</label>
+                            <div class="col-md-4">
                                 {{ form.prioridade }}
                                 {% for error in form.prioridade.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                             </div>
-                            <div class="col-md-3">
-                                <label class="form-label">{{ form.data_necessidade.label }}</label>
+                            <div class="col-md-4">
                                 {{ form.data_necessidade }}
                                 {% for error in form.data_necessidade.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                             </div>
+                        </div>
                             <div class="col-12">
                                 <label class="form-label d-flex justify-content-between">{{ form.justificativa.label }} * <small class="text-muted" id="justificativa-contagem">0/600</small></label>
                                 {{ form.justificativa }}
@@ -82,22 +93,42 @@
                             <div class="col-md-6">
                                 <label class="form-label">{{ form.setor.label }}</label>
                                 <span class="ms-1 text-muted" data-bs-toggle="tooltip" title="Quem receberá a notificação de aprovação inicial."><i class="bi bi-question-circle"></i></span>
-                                {{ form.setor }}
+                                <div class="input-group">
+                                    {{ form.setor }}
+                                    <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalCadastroSetor" title="Cadastrar novo setor">
+                                        <i class="bi bi-plus-lg"></i>
+                                    </button>
+                                </div>
                                 {% for error in form.setor.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">{{ form.equipamento.label }}</label>
-                                {{ form.equipamento }}
+                                <div class="input-group">
+                                    {{ form.equipamento }}
+                                    <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalCadastroEquipamento" title="Cadastrar novo equipamento">
+                                        <i class="bi bi-plus-lg"></i>
+                                    </button>
+                                </div>
                                 {% for error in form.equipamento.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">{{ form.centro_custo.label }}</label>
-                                {{ form.centro_custo }}
+                                <div class="input-group">
+                                    {{ form.centro_custo }}
+                                    <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalCadastroCentroCusto" title="Cadastrar novo centro de custo">
+                                        <i class="bi bi-plus-lg"></i>
+                                    </button>
+                                </div>
                                 {% for error in form.centro_custo.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">{{ form.plano_conta.label }}</label>
-                                {{ form.plano_conta }}
+                                <div class="input-group">
+                                    {{ form.plano_conta }}
+                                    <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalCadastroPlanoConta" title="Cadastrar novo plano de contas">
+                                        <i class="bi bi-plus-lg"></i>
+                                    </button>
+                                </div>
                                 {% for error in form.plano_conta.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                             </div>
                         </div>
@@ -156,8 +187,10 @@
                     </div>
                 </div>
             </div>
+        </div>
 
-            <div class="col-xl-4">
+        <div class="row g-3 mt-3">
+            <div class="col-12">
                 <div class="card shadow-sm mb-3">
                     <div class="card-header bg-white border-0 pb-0">
                         <h2 class="h6 mb-0"><i class="bi bi-chat-text text-primary me-2"></i>Observações</h2>
@@ -169,17 +202,36 @@
                         <p class="small text-muted mt-2">Campos opcionais, use para complementar descrição de itens ou condições.</p>
                     </div>
                 </div>
+            </div>
+        </div>
 
+        <div class="row g-3">
+            <div class="col-12">
                 <div class="card shadow-sm mb-3">
                     <div class="card-body">
-                        <h2 class="h6 mb-2">Resumo rápido</h2>
-                        <ul class="list-unstyled small mb-0">
-                            <li class="mb-2"><i class="bi bi-hash text-primary me-2"></i>Número: <strong>{{ numero_preview }}</strong></li>
-                            <li class="mb-2"><i class="bi bi-calendar2 text-primary me-2"></i>Data da requisição: <strong>{{ data_requisicao|date:"d/m/Y" }}</strong></li>
-                            <li class="mb-2"><i class="bi bi-info-circle text-primary me-2"></i>Prioridade atual: <strong><span id="prioridade-preview" data-inicial="{{ form.prioridade.value|default:'' }}">--</span></strong></li>
-                            <li class="mb-2"><i class="bi bi-calendar text-primary me-2"></i>Necessidade: <strong><span id="data-preview">{{ form.data_necessidade.value|default:'a definir' }}</span></strong></li>
-                            <li class="mb-2"><i class="bi bi-currency-dollar text-primary me-2"></i>Total estimado: <strong id="total-estimado-preview">R$ 0,00</strong></li>
-                        </ul>
+                        <h2 class="h6 mb-3"><i class="bi bi-info-circle text-primary me-2"></i>Resumo rápido</h2>
+                        <div class="row g-3">
+                            <div class="col-md-2 col-sm-4 col-6">
+                                <small class="text-muted d-block mb-1">Número</small>
+                                <strong class="d-block">{{ numero_preview }}</strong>
+                            </div>
+                            <div class="col-md-2 col-sm-4 col-6">
+                                <small class="text-muted d-block mb-1">Data da requisição</small>
+                                <strong class="d-block">{{ data_requisicao|date:"d/m/Y" }}</strong>
+                            </div>
+                            <div class="col-md-2 col-sm-4 col-6">
+                                <small class="text-muted d-block mb-1">Prioridade atual</small>
+                                <strong class="d-block"><span id="prioridade-preview" data-inicial="{{ form.prioridade.value|default:'' }}">--</span></strong>
+                            </div>
+                            <div class="col-md-2 col-sm-4 col-6">
+                                <small class="text-muted d-block mb-1">Necessidade</small>
+                                <strong class="d-block"><span id="data-preview">{{ form.data_necessidade.value|default:'a definir' }}</span></strong>
+                            </div>
+                            <div class="col-md-2 col-sm-4 col-6">
+                                <small class="text-muted d-block mb-1">Total estimado</small>
+                                <strong class="d-block text-primary" id="total-estimado-preview">R$ 0,00</strong>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -199,6 +251,143 @@
             </div>
         </div>
     </form>
+</div>
+
+<!-- Modais de Cadastro Rápido -->
+<!-- Modal Cadastro Setor -->
+<div class="modal fade" id="modalCadastroSetor" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-plus-circle me-2"></i>Cadastrar Novo Setor</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formCadastroSetor">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Nome do Setor *</label>
+                        <input type="text" class="form-control" id="setor-nome" name="nome" required placeholder="Ex.: Oficina, Suprimentos">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Código (opcional)</label>
+                        <input type="text" class="form-control" id="setor-codigo" name="codigo" placeholder="Código curto">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Descrição (opcional)</label>
+                        <textarea class="form-control" id="setor-descricao" name="descricao" rows="3" placeholder="Resumo das responsabilidades"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Cadastro Equipamento -->
+<div class="modal fade" id="modalCadastroEquipamento" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-plus-circle me-2"></i>Cadastrar Novo Equipamento</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formCadastroEquipamento">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Nome do Equipamento *</label>
+                        <input type="text" class="form-control" id="equipamento-nome" name="nome" required placeholder="Ex.: Trator, Pulverizador">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Descrição (opcional)</label>
+                        <textarea class="form-control" id="equipamento-descricao" name="descricao" rows="3" placeholder="Informações adicionais"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Cadastro Centro de Custo -->
+<div class="modal fade" id="modalCadastroCentroCusto" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-plus-circle me-2"></i>Cadastrar Novo Centro de Custo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formCadastroCentroCusto">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Nome do Centro de Custo *</label>
+                        <input type="text" class="form-control" id="centro-custo-nome" name="nome" required placeholder="Ex.: Pecuária, Agricultura">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Tipo *</label>
+                        <select class="form-select" id="centro-custo-tipo" name="tipo" required>
+                            <option value="OPERACIONAL">Operacional</option>
+                            <option value="ADMINISTRATIVO">Administrativo</option>
+                            <option value="INVESTIMENTO">Investimento</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Descrição (opcional)</label>
+                        <textarea class="form-control" id="centro-custo-descricao" name="descricao" rows="3" placeholder="Informações adicionais"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Cadastro Plano de Conta -->
+<div class="modal fade" id="modalCadastroPlanoConta" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-plus-circle me-2"></i>Cadastrar Novo Plano de Conta</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formCadastroPlanoConta">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Código *</label>
+                        <input type="text" class="form-control" id="plano-conta-codigo" name="codigo" required placeholder="Ex.: 1.1.01">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Nome *</label>
+                        <input type="text" class="form-control" id="plano-conta-nome" name="nome" required placeholder="Ex.: Compras de Insumos">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Tipo *</label>
+                        <select class="form-select" id="plano-conta-tipo" name="tipo" required>
+                            <option value="DESPESA">Despesa</option>
+                            <option value="RECEITA">Receita</option>
+                            <option value="TRANSFERENCIA">Transferência</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Descrição (opcional)</label>
+                        <textarea class="form-control" id="plano-conta-descricao" name="descricao" rows="3" placeholder="Informações adicionais"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
 <template id="item-empty-row">
@@ -314,6 +503,138 @@
         justificativaField.addEventListener('input', updateContagem);
         updateContagem();
     }
+
+    // Função para atualizar um select após cadastro
+    function atualizarSelect(selectId, novoItem) {
+        const select = document.getElementById(selectId);
+        if (select && novoItem) {
+            // Verificar se já existe
+            const existingOption = Array.from(select.options).find(opt => opt.value == novoItem.id);
+            if (existingOption) {
+                existingOption.selected = true;
+            } else {
+                // Adicionar nova opção
+                const option = document.createElement('option');
+                option.value = novoItem.id;
+                option.text = novoItem.nome || novoItem.text;
+                option.selected = true;
+                select.appendChild(option);
+            }
+            select.dispatchEvent(new Event('change'));
+        }
+    }
+
+    // Cadastro Rápido - Setor
+    document.getElementById('formCadastroSetor')?.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        formData.append('propriedade_id', {{ propriedade.id }});
+
+        try {
+            const response = await fetch('{% url "cadastro_rapido_setor" propriedade.id %}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+                atualizarSelect('id_setor', {id: data.id, nome: data.nome});
+                bootstrap.Modal.getInstance(document.getElementById('modalCadastroSetor')).hide();
+                this.reset();
+            } else {
+                alert('Erro ao cadastrar: ' + (data.error || 'Erro desconhecido'));
+            }
+        } catch (error) {
+            alert('Erro ao cadastrar setor: ' + error.message);
+        }
+    });
+
+    // Cadastro Rápido - Equipamento
+    document.getElementById('formCadastroEquipamento')?.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        formData.append('propriedade_id', {{ propriedade.id }});
+
+        try {
+            const response = await fetch('{% url "cadastro_rapido_equipamento" propriedade.id %}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+                atualizarSelect('id_equipamento', {id: data.id, nome: data.nome});
+                bootstrap.Modal.getInstance(document.getElementById('modalCadastroEquipamento')).hide();
+                this.reset();
+            } else {
+                alert('Erro ao cadastrar: ' + (data.error || 'Erro desconhecido'));
+            }
+        } catch (error) {
+            alert('Erro ao cadastrar equipamento: ' + error.message);
+        }
+    });
+
+    // Cadastro Rápido - Centro de Custo
+    document.getElementById('formCadastroCentroCusto')?.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        formData.append('propriedade_id', {{ propriedade.id }});
+
+        try {
+            const response = await fetch('{% url "cadastro_rapido_centro_custo" propriedade.id %}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+                atualizarSelect('id_centro_custo', {id: data.id, nome: data.nome});
+                bootstrap.Modal.getInstance(document.getElementById('modalCadastroCentroCusto')).hide();
+                this.reset();
+            } else {
+                alert('Erro ao cadastrar: ' + (data.error || 'Erro desconhecido'));
+            }
+        } catch (error) {
+            alert('Erro ao cadastrar centro de custo: ' + error.message);
+        }
+    });
+
+    // Cadastro Rápido - Plano de Conta
+    document.getElementById('formCadastroPlanoConta')?.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        formData.append('propriedade_id', {{ propriedade.id }});
+
+        try {
+            const response = await fetch('{% url "cadastro_rapido_plano_conta" propriedade.id %}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+                atualizarSelect('id_plano_conta', {id: data.id, nome: data.codigo + ' - ' + data.nome});
+                bootstrap.Modal.getInstance(document.getElementById('modalCadastroPlanoConta')).hide();
+                this.reset();
+            } else {
+                alert('Erro ao cadastrar: ' + (data.error || 'Erro desconhecido'));
+            }
+        } catch (error) {
+            alert('Erro ao cadastrar plano de conta: ' + error.message);
+        }
+    });
 })();
 </script>
 <style>

@@ -141,6 +141,12 @@
                 {{ message }}
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
+            {% if message.tags == 'success' and 'Projeção gerada com sucesso' in message|stringformat:"s" %}
+                <script>
+                    // Abrir planilha em nova aba após sucesso na geração
+                    window.open('{% url "pecuaria_projecao_planilha" propriedade.id %}', '_blank');
+                </script>
+            {% endif %}
         {% endfor %}
     {% endif %}
 

@@ -1,106 +1,57 @@
-# 📊 Status Atual do Deploy
+# 📊 STATUS DO DEPLOY - MONPEC
 
-## ✅ O que já está funcionando:
+## ✅ Configuração Atual
 
-1. **Build da imagem**: ✅ Concluído
-2. **Deploy no Cloud Run**: ✅ Concluído
-3. **Job de migração**: ✅ Criado e executado
-4. **Domínio monpec.com.br**: ✅ Já existe (criado anteriormente)
-5. **Domínio www.monpec.com.br**: ✅ Criado com sucesso
+- **Projeto Google Cloud:** monpec-sistema-rural ✅
+- **Autenticação:** l.moncaosilva@gmail.com ✅
+- **APIs Habilitadas:**
+  - Cloud Build ✅
+  - Container Registry ✅
+  - SQL Admin ✅
+  - SQL Component ✅
+  - Cloud Run ⚠️ (precisa de permissão adicional)
 
-## ⚠️ Ações necessárias:
+## 📦 Imagens Docker
 
-### 1. Configurar DNS para www.monpec.com.br
+- **Imagem existente:** gcr.io/monpec-sistema-rural/monpec ✅
 
-O domínio `www.monpec.com.br` foi criado, mas precisa de configuração DNS:
+## 🚀 Próximos Passos
 
-**Registro CNAME necessário:**
-```
-NAME: www
-RECORD TYPE: CNAME
-CONTENTS: ghs.googlehosted.com.
-```
+Para completar o deploy, você tem 2 opções:
 
-**Como configurar:**
-1. Acesse o painel do seu provedor de domínio (onde você comprou monpec.com.br)
-2. Vá em "Gerenciar DNS" ou "Zona DNS"
-3. Adicione um registro CNAME:
-   - Nome: `www`
-   - Tipo: `CNAME`
-   - Valor: `ghs.googlehosted.com.`
-4. Salve e aguarde a propagação (pode levar até 48 horas, geralmente 1-2 horas)
+### Opção 1: Google Cloud Shell (RECOMENDADO)
 
-### 2. Verificar configuração do domínio principal
+1. Acesse: https://shell.cloud.google.com
+2. Faça upload do arquivo `DEPLOY_GOOGLE_CLOUD_SHELL.sh`
+3. Execute:
+   ```bash
+   chmod +x DEPLOY_GOOGLE_CLOUD_SHELL.sh
+   ./DEPLOY_GOOGLE_CLOUD_SHELL.sh
+   ```
 
-Para verificar o DNS do domínio principal `monpec.com.br`:
+### Opção 2: PowerShell Local
 
-```bash
-gcloud alpha run domain-mappings describe monpec.com.br --region us-central1
-```
+Se você tem todas as permissões necessárias:
 
-### 3. Configurar variáveis de ambiente (OBRIGATÓRIO)
+1. Abra PowerShell como Administrador
+2. Navegue até o diretório do projeto
+3. Execute:
+   ```powershell
+   .\DEPLOY_COMPLETO_AUTOMATICO_FINAL.ps1
+   ```
 
-Execute este comando para configurar todas as variáveis:
+## ⚠️ Problemas Encontrados
 
-```bash
-gcloud run services update monpec --region us-central1 \
-  --update-env-vars "MERCADOPAGO_ACCESS_TOKEN=APP_USR-7331944463149248-122310-414426720444c3c1d60cf733585d7821-2581972940,MERCADOPAGO_PUBLIC_KEY=APP_USR-49fe9640-f5b1-4fac-a280-2e28fbd0fea3,SECRET_KEY=SUA_SECRET_KEY_AQUI,DB_NAME=monpec_db,DB_USER=monpec_user,DB_PASSWORD=SUA_SENHA,DB_HOST=/cloudsql/SEU_CONNECTION_NAME"
-```
+- Algumas APIs precisam de permissões adicionais (Cloud Run)
+- Execute no Google Cloud Shell para evitar problemas de permissão
 
-**Substitua:**
-- `SUA_SECRET_KEY_AQUI` - Gere uma chave segura (ou use a do seu .env)
-- `SUA_SENHA` - Senha do banco de dados
-- `SEU_CONNECTION_NAME` - Nome da conexão do Cloud SQL (formato: PROJECT:REGION:INSTANCE)
+## 📝 Arquivos Criados
 
-### 4. Verificar status do serviço
+1. `DEPLOY_COMPLETO_AUTOMATICO_FINAL.ps1` - Script PowerShell completo
+2. `DEPLOY_GOOGLE_CLOUD_SHELL.sh` - Script para Cloud Shell
+3. `EXECUTAR_DEPLOY_AGORA.bat` - Arquivo batch para Windows
+4. `INSTRUCOES_DEPLOY_AUTOMATICO.md` - Documentação completa
 
-```bash
-# Ver URL do serviço
-gcloud run services describe monpec --region us-central1 --format="value(status.url)"
+---
 
-# Ver logs
-gcloud run services logs read monpec --region us-central1 --limit 50
-
-# Ver variáveis de ambiente
-gcloud run services describe monpec --region us-central1 --format="value(spec.template.spec.containers[0].env)"
-```
-
-## 🔍 Verificar se tudo está funcionando:
-
-### 1. Testar URL do Cloud Run:
-```bash
-URL=$(gcloud run services describe monpec --region us-central1 --format="value(status.url)")
-echo "Acesse: $URL"
-```
-
-### 2. Verificar se o domínio está ativo:
-Após configurar o DNS, aguarde alguns minutos e teste:
-```bash
-curl -I https://www.monpec.com.br
-```
-
-### 3. Verificar logs de erros:
-```bash
-gcloud run services logs read monpec --region us-central1 --limit 100 | grep -i error
-```
-
-## 📋 Checklist Final:
-
-- [x] Build da imagem
-- [x] Deploy no Cloud Run
-- [x] Job de migração criado
-- [x] Migrações executadas
-- [x] Domínio monpec.com.br configurado
-- [x] Domínio www.monpec.com.br criado
-- [ ] **DNS do www.monpec.com.br configurado** ⚠️
-- [ ] **Variáveis de ambiente configuradas** ⚠️
-- [ ] Sistema acessível via domínio
-- [ ] Teste de login funcionando
-- [ ] Teste de pagamento funcionando
-
-## 🚨 Próximo passo crítico:
-
-**Configure o DNS do www.monpec.com.br** e **as variáveis de ambiente** para o sistema funcionar completamente!
-
-
-
+**Última atualização:** 26/12/2025 00:40

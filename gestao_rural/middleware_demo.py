@@ -27,6 +27,8 @@ class DemoRestrictionMiddleware:
             r'^/logout/',
             r'^/comprar-sistema/',
             r'^/assinaturas/',  # Página de assinaturas/compra
+            r'^/demo/setup/',  # Setup automático de demonstração
+            r'^/criar-usuario-demonstracao/',  # Criação de usuário demo
             r'^/propriedade/\d+/modulos/',  # Página de módulos de qualquer propriedade
             r'^/propriedade/\d+/pecuaria/',  # Módulo de pecuária de qualquer propriedade
             r'^/propriedade/\d+/curral/',  # Módulo de curral de qualquer propriedade

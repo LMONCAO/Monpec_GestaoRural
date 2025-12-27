@@ -1,0 +1,47 @@
+# Serviço systemd para Gunicorn - Sistema MONPEC
+# Copie este arquivo para /etc/systemd/system/gunicorn_monpec.service
+# e habilite com: sudo systemctl enable gunicorn_monpec.service
+
+[Unit]
+Description=Gunicorn daemon for MONPEC Django application
+After=network.target postgresql.service
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/caminho/para/projeto
+Environment="DJANGO_SETTINGS_MODULE=sistema_rural.settings_producao"
+Environment="PATH=/caminho/para/venv/bin"
+ExecStart=/caminho/para/venv/bin/gunicorn \
+    --workers 3 \
+    --worker-class sync \
+    --timeout 60 \
+    --bind unix:/run/gunicorn.sock \
+    --access-logfile /var/log/monpec/gunicorn_access.log \
+    --error-logfile /var/log/monpec/gunicorn_error.log \
+    sistema_rural.wsgi:application
+
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+
+# INSTRUÇÕES:
+# 1. Substitua /caminho/para/projeto pelo caminho real do seu projeto
+# 2. Substitua /caminho/para/venv pelo caminho real do seu ambiente virtual
+# 3. Ajuste o usuário/grupo se necessário (www-data é padrão no Debian/Ubuntu)
+# 4. Copie para /etc/systemd/system/gunicorn_monpec.service
+# 5. Recarregue systemd: sudo systemctl daemon-reload
+# 6. Habilite o serviço: sudo systemctl enable gunicorn_monpec.service
+# 7. Inicie o serviço: sudo systemctl start gunicorn_monpec.service
+# 8. Verifique o status: sudo systemctl status gunicorn_monpec.service
+
+
+
+
+
+
+
+
+

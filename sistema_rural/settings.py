@@ -22,18 +22,24 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
+DEBUG = config('DEBUG', default='True', cast=bool)
 
 # SECURITY WARNING: keep the secret key used in production secret!
 # ✅ SEGURANÇA: SECRET_KEY deve sempre vir de variável de ambiente
-SECRET_KEY = os.getenv('SECRET_KEY')
+# Usar config() do decouple primeiro, mas fazer fallback para os.getenv() 
+# para garantir compatibilidade com Cloud Run e outros ambientes sem arquivo .env
+SECRET_KEY = config('SECRET_KEY', default=None)
+if not SECRET_KEY:
+    # Fallback para variável de ambiente do sistema (necessário para Cloud Run)
+    SECRET_KEY = os.getenv('SECRET_KEY')
+    
 if not SECRET_KEY:
     if DEBUG:
         # Em desenvolvimento, usar chave temporária (NUNCA em produção)
         import warnings
         warnings.warn(
             "SECRET_KEY não configurada! Usando chave temporária apenas para desenvolvimento. "
-            "Configure a variável de ambiente SECRET_KEY para produção.",
+            "Configure SECRET_KEY no arquivo .env para evitar este aviso.",
             UserWarning
         )
         SECRET_KEY = 'YrJOs823th_HB2BP6Uz9A0NVvzL0Fif-t-Rfub5BXgVtE0LxXIWEPQIFqYvI8UNiZKE'
@@ -48,6 +54,8 @@ ALLOWED_HOSTS = [
        '192.168.100.4',  # IP do seu PC na rede Wi-Fi
        '192.168.100.91',  # IP atual do servidor na rede local
        '0.0.0.0',  # Permite acesso de qualquer IP na rede local
+       'monpec.com.br',  # Domínio de produção
+       'www.monpec.com.br',  # Domínio de produção com www
    ]
 
 # Configuração CSRF para aceitar requisições do celular na rede local
@@ -56,6 +64,10 @@ CSRF_TRUSTED_ORIGINS = [
     'http://127.0.0.1:8000',
     'http://192.168.100.4:8000',
     'http://192.168.100.91:8000',
+    'https://monpec.com.br',  # Domínio de produção
+    'https://www.monpec.com.br',  # Domínio de produção com www
+    'http://monpec.com.br',  # Domínio de produção (HTTP)
+    'http://www.monpec.com.br',  # Domínio de produção com www (HTTP)
 ]
 
 # Configurações Mercado Pago
@@ -99,6 +111,7 @@ MIDDLEWARE = [
     'gestao_rural.middleware_seguranca_avancada.SegurancaAvancadaMiddleware',  # Segurança avançada
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'gestao_rural.middleware_security.SecurityHeadersMiddleware',  # Headers de segurança
+    'gestao_rural.middleware_demo_protecao.DemoProtecaoMonpec1Middleware',  # Proteção Monpec1 para usuários demo
     'gestao_rural.middleware_demo.DemoRestrictionMiddleware',  # Restrição de demo (deve ser o último)
 ]
 
@@ -209,6 +222,9 @@ BACKUP_DIR.mkdir(parents=True, exist_ok=True)
 
 # URL do site (para links em e-mails)
 SITE_URL = config('SITE_URL', default='http://localhost:8000')
+
+# Link do grupo WhatsApp para demonstração
+WHATSAPP_GRUPO_DEMO_LINK = config('WHATSAPP_GRUPO_DEMO_LINK', default='https://chat.whatsapp.com/SEU_LINK_DO_GRUPO_AQUI')
 
 # ========================================
 # CONFIGURAÇÕES DE DEMONSTRAÇÃO

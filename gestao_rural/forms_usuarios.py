@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from django import forms
+from django.core.exceptions import ValidationError
 
 from .models import PlanoAssinatura, TenantUsuario
+from .validators import SenhaAssinanteValidator
 
 
 class TenantUsuarioForm(forms.Form):
@@ -18,8 +20,19 @@ class TenantUsuarioForm(forms.Form):
         label="Senha",
         required=False,
         widget=forms.PasswordInput(render_value=False),
-        help_text="Digite a senha do usuário. Se deixar em branco, o sistema gerará uma senha temporária.",
+        help_text="Digite a senha do usuário (mínimo 8 caracteres, 1 maiúscula, 1 minúscula). Se deixar em branco, o sistema gerará uma senha temporária.",
     )
+    
+    def clean_senha(self):
+        senha = self.cleaned_data.get('senha')
+        if senha:
+            # Validar senha usando o validador customizado para assinantes
+            validator = SenhaAssinanteValidator()
+            try:
+                validator.validate(senha)
+            except ValidationError as e:
+                raise ValidationError(e.messages)
+        return senha
     perfil = forms.ChoiceField(
         label="Perfil",
         choices=TenantUsuario.Perfil.choices,

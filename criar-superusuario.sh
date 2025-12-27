@@ -102,3 +102,21 @@ echo "2. Execute: gcloud run jobs execute create-superuser-temp --region=us-cent
 echo "3. Ou conecte-se ao banco e crie via Django admin após o deploy"
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

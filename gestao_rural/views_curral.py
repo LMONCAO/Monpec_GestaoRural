@@ -45,6 +45,29 @@ from .models_manejo import (
 User = get_user_model()
 logger = logging.getLogger(__name__)
 
+
+def _is_usuario_demo(user):
+    """
+    Função helper para verificar se um usuário é demo.
+    Retorna True se:
+    - username está em ['demo', 'demo_monpec']
+    - ou tem registro UsuarioAtivo (criado pelo botão demonstração)
+    """
+    if not user or not user.is_authenticated:
+        return False
+    
+    # Verificar se é usuário demo padrão
+    if user.username in ['demo', 'demo_monpec']:
+        return True
+    
+    # Verificar se tem UsuarioAtivo (usuário criado pelo popup)
+    try:
+        from .models_auditoria import UsuarioAtivo
+        UsuarioAtivo.objects.get(usuario=user)
+        return True
+    except:
+        return False
+
 try:  # Compatibilidade com o módulo IATF completo (opcional)
     from .models_iatf_completo import (
         ProtocoloIATF,
@@ -471,8 +494,8 @@ def curral_painel(request, propriedade_id):
     """
     propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
-    # Se for usuário demo, redirecionar para página informativa
-    if request.user.username in ['demo_monpec', 'demo']:
+    # Se for usuário demo (padrão ou criado pelo botão demonstração), redirecionar para página informativa
+    if _is_usuario_demo(request.user):
         return redirect('curral_info_demo', propriedade_id=propriedade_id)
 
     catalogo_manejos = _montar_catalogo_manejos(propriedade)
@@ -698,8 +721,8 @@ def curral_dashboard_v3(request, propriedade_id):
     """
     propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
-    # Se for usuário demo, redirecionar para página informativa
-    if request.user.username in ['demo_monpec', 'demo']:
+    # Se for usuário demo (padrão ou criado pelo botão demonstração), redirecionar para página informativa
+    if _is_usuario_demo(request.user):
         return redirect('curral_info_demo', propriedade_id=propriedade_id)
 
     # Buscar sessão ativa
@@ -797,8 +820,8 @@ def curral_dashboard_v4(request, propriedade_id):
     """
     propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
 
-    # Se for usuário demo, redirecionar para página informativa
-    if request.user.username in ['demo_monpec', 'demo']:
+    # Se for usuário demo (padrão ou criado pelo botão demonstração), redirecionar para página informativa
+    if _is_usuario_demo(request.user):
         return redirect('curral_info_demo', propriedade_id=propriedade_id)
 
     # Buscar sessão ativa
@@ -4469,8 +4492,8 @@ def curral_tela_unica(request, propriedade_id):
     """Tela única do curral - PWA mobile-first com todas funcionalidades integradas."""
     propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
-    # Se for usuário demo, redirecionar para página informativa
-    if request.user.username in ['demo_monpec', 'demo']:
+    # Se for usuário demo (padrão ou criado pelo botão demonstração), redirecionar para página informativa
+    if _is_usuario_demo(request.user):
         return redirect('curral_info_demo', propriedade_id=propriedade_id)
     
     # Buscar dados necessários
@@ -4543,8 +4566,8 @@ def curral_info_demo(request, propriedade_id):
     """Página informativa sobre a Tela Curral para usuários de demonstração"""
     propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     
-    # Verificar se é usuário demo
-    if request.user.username not in ['demo_monpec', 'demo']:
+    # Verificar se é usuário demo (padrão ou criado pelo botão demonstração)
+    if not _is_usuario_demo(request.user):
         messages.error(request, 'Esta página é apenas para usuários de demonstração.')
         return redirect('curral_painel', propriedade_id=propriedade_id)
     

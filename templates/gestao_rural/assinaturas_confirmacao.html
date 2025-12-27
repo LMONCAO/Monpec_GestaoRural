@@ -1,0 +1,395 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pagamento Confirmado - MONPEC</title>
+    
+    <!-- Bootstrap & Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        html, body {
+            width: 100%;
+            overflow-x: hidden;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            color: #212529;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+        
+        /* Header Padrão do Sistema */
+        .header-padrao {
+            background: #ffffff;
+            border-bottom: 1px solid #e9ecef;
+            padding: 0.75rem 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            width: 100%;
+        }
+        
+        .header-content {
+            max-width: 100%;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 1rem;
+        }
+        
+        .logo-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+            color: #212529;
+        }
+        
+        .logo-header:hover {
+            color: #212529;
+            text-decoration: none;
+        }
+        
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: #000;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+        
+        .logo-text {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #212529;
+        }
+        
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #6c757d;
+            font-size: 0.85rem;
+        }
+        
+        /* Container Principal */
+        .main-container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem 1rem;
+            width: 100%;
+        }
+        
+        /* Card de Confirmação */
+        .confirmation-card {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 2.5rem;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e9ecef;
+        }
+        
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+            color: white;
+            font-size: 2.5rem;
+        }
+        
+        .confirmation-title {
+            text-align: center;
+            font-size: 2rem;
+            font-weight: 700;
+            color: #212529;
+            margin-bottom: 0.5rem;
+        }
+        
+        .confirmation-subtitle {
+            text-align: center;
+            font-size: 1rem;
+            color: #6c757d;
+            margin-bottom: 2rem;
+        }
+        
+        .credentials-box {
+            background: linear-gradient(135deg, #f8f9ff 0%, #e9ecef 100%);
+            border: 2px solid #0d6efd;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+        }
+        
+        .credentials-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #0d6efd;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        
+        .credential-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 0.75rem;
+            border: 1px solid #dee2e6;
+        }
+        
+        .credential-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .credential-label {
+            font-weight: 600;
+            color: #495057;
+            font-size: 0.95rem;
+        }
+        
+        .credential-value {
+            font-weight: 700;
+            color: #212529;
+            font-size: 1.1rem;
+            font-family: 'Courier New', monospace;
+            background: #f8f9fa;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .info-box {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-left: 4px solid #ffc107;
+            border-radius: 8px;
+            padding: 1.25rem;
+            margin: 1.5rem 0;
+        }
+        
+        .info-box h5 {
+            color: #856404;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+        }
+        
+        .info-box ul {
+            margin: 0;
+            padding-left: 1.5rem;
+            color: #856404;
+        }
+        
+        .info-box li {
+            margin-bottom: 0.5rem;
+        }
+        
+        .btn-primary-custom {
+            background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);
+            color: white;
+            padding: 0.875rem 2rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+            border: none;
+            width: 100%;
+            text-align: center;
+        }
+        
+        .btn-primary-custom:hover {
+            background: linear-gradient(135deg, #0b5ed7 0%, #0a58ca 100%);
+            color: white;
+            text-decoration: none;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
+        }
+        
+        .copy-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            margin-left: 0.5rem;
+            transition: all 0.2s ease;
+        }
+        
+        .copy-btn:hover {
+            background: #5a6268;
+        }
+        
+        .copy-btn.copied {
+            background: #28a745;
+        }
+        
+        @media (max-width: 768px) {
+            .main-container {
+                padding: 1rem 0.5rem;
+            }
+            
+            .confirmation-card {
+                padding: 1.5rem;
+            }
+            
+            .confirmation-title {
+                font-size: 1.5rem;
+            }
+            
+            .credential-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+            
+            .credential-value {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header Padrão do Sistema -->
+    <header class="header-padrao">
+        <div class="header-content">
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <a href="{% url 'dashboard' %}" class="logo-header">
+                    <div class="logo-icon">M</div>
+                    <span class="logo-text">MONPEC</span>
+                </a>
+            </div>
+            <div class="header-actions">
+                <div class="user-info">
+                    <i class="bi bi-person-circle"></i>
+                    <span>Olá, {{ user.first_name|default:user.username }}!</span>
+                </div>
+                <a href="{% url 'logout' %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-box-arrow-right me-1"></i> Sair
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Container Principal -->
+    <div class="main-container">
+        <div class="confirmation-card">
+            <div class="success-icon">
+                <i class="bi bi-check-circle-fill"></i>
+            </div>
+            
+            <h1 class="confirmation-title">Pagamento Confirmado!</h1>
+            <p class="confirmation-subtitle">
+                Sua assinatura de pré-lançamento foi efetivada com sucesso
+            </p>
+            
+            <div class="credentials-box">
+                <h3 class="credentials-title">
+                    <i class="bi bi-key-fill"></i> Suas Credenciais de Acesso
+                </h3>
+                
+                <div class="credential-item">
+                    <span class="credential-label">
+                        <i class="bi bi-envelope-fill me-2"></i>Email:
+                    </span>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span class="credential-value" id="email-value">{{ email }}</span>
+                        <button class="copy-btn" onclick="copiarTexto('{{ email }}', this)">
+                            <i class="bi bi-clipboard"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="credential-item">
+                    <span class="credential-label">
+                        <i class="bi bi-lock-fill me-2"></i>Senha:
+                    </span>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span class="credential-value" id="senha-value">{{ senha }}</span>
+                        <button class="copy-btn" onclick="copiarTexto('{{ senha }}', this)">
+                            <i class="bi bi-clipboard"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="info-box">
+                <h5><i class="bi bi-info-circle-fill me-2"></i>Informações Importantes</h5>
+                <ul>
+                    <li><strong>Data de Liberação:</strong> O sistema estará disponível a partir de <strong>{{ data_liberacao }}</strong></li>
+                    <li><strong>Pré-Lançamento:</strong> Esta é uma assinatura de pré-lançamento do sistema MONPEC</li>
+                    <li><strong>Suporte:</strong> Nossa equipe entrará em contato em breve para orientá-lo sobre o sistema</li>
+                    <li><strong>Segurança:</strong> Guarde estas credenciais com segurança e não compartilhe com terceiros</li>
+                </ul>
+            </div>
+            
+            <div style="margin-top: 2rem;">
+                <a href="{% url 'dashboard' %}" class="btn-primary-custom">
+                    <i class="bi bi-speedometer2 me-2"></i>Acessar Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function copiarTexto(texto, botao) {
+            navigator.clipboard.writeText(texto).then(function() {
+                const originalHTML = botao.innerHTML;
+                botao.innerHTML = '<i class="bi bi-check"></i>';
+                botao.classList.add('copied');
+                
+                setTimeout(function() {
+                    botao.innerHTML = originalHTML;
+                    botao.classList.remove('copied');
+                }, 2000);
+            }).catch(function(err) {
+                console.error('Erro ao copiar:', err);
+                alert('Erro ao copiar. Tente selecionar e copiar manualmente.');
+            });
+        }
+    </script>
+</body>
+</html>
+

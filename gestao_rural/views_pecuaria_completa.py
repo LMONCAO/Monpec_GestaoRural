@@ -25,6 +25,30 @@ from django.views.decorators.http import require_http_methods
 
 logger = logging.getLogger(__name__)
 
+
+def _is_usuario_demo(user):
+    """
+    Função helper para verificar se um usuário é demo.
+    Retorna True se:
+    - username está em ['demo', 'demo_monpec']
+    - ou tem registro UsuarioAtivo (criado pelo botão demonstração)
+    """
+    if not user or not user.is_authenticated:
+        return False
+    
+    # Verificar se é usuário demo padrão
+    if user.username in ['demo', 'demo_monpec']:
+        return True
+    
+    # Verificar se tem UsuarioAtivo (usuário criado pelo popup)
+    try:
+        from .models_auditoria import UsuarioAtivo
+        UsuarioAtivo.objects.get(usuario=user)
+        return True
+    except:
+        return False
+
+
 from .decorators import obter_propriedade_com_permissao
 from .models import (
     Propriedade, CategoriaAnimal, InventarioRebanho,
@@ -119,15 +143,37 @@ def pecuaria_completa_dashboard(request, propriedade_id):
     # ========== FILTROS GLOBAIS (BI Style) ==========
     from datetime import timedelta
     
-    # Filtro de período (padrão: mês atual)
-    try:
-        periodo_dias = int(request.GET.get('periodo_dias', 30))
-        if periodo_dias < 1 or periodo_dias > 365:
-            periodo_dias = 30  # Valor padrão se fora do range válido
-    except (ValueError, TypeError):
-        periodo_dias = 30  # Valor padrão se não for numérico
-    data_fim = date.today()
-    data_inicio = data_fim - timedelta(days=periodo_dias)
+    # Filtro de período - padrão: 01/01/2025 até hoje
+    # Verificar se há parâmetros de data na URL
+    data_inicio_param = request.GET.get('data_inicio')
+    data_fim_param = request.GET.get('data_fim')
+    
+    if data_inicio_param and data_fim_param:
+        # Usar datas fornecidas via URL
+        try:
+            data_inicio = datetime.strptime(data_inicio_param, '%Y-%m-%d').date()
+            data_fim = datetime.strptime(data_fim_param, '%Y-%m-%d').date()
+            periodo_dias = (data_fim - data_inicio).days
+        except (ValueError, TypeError):
+            # Se houver erro, usar padrão
+            data_fim = date.today()
+            data_inicio = date(2025, 1, 1)  # 01/01/2025
+            periodo_dias = (data_fim - data_inicio).days
+    elif request.GET.get('periodo_dias'):
+        # Se usar periodo_dias na URL, manter comportamento anterior
+        try:
+            periodo_dias = int(request.GET.get('periodo_dias', 30))
+            if periodo_dias < 1 or periodo_dias > 365:
+                periodo_dias = 30
+        except (ValueError, TypeError):
+            periodo_dias = 30
+        data_fim = date.today()
+        data_inicio = data_fim - timedelta(days=periodo_dias)
+    else:
+        # Padrão: 01/01/2025 até hoje
+        data_fim = date.today()
+        data_inicio = date(2025, 1, 1)  # 01/01/2025
+        periodo_dias = (data_fim - data_inicio).days
     
     # Filtro por módulo (padrão: todos)
     modulo_filtro = request.GET.get('modulo', '').upper()
@@ -157,7 +203,16 @@ def pecuaria_completa_dashboard(request, propriedade_id):
     
     # Calcular totais sempre (independente de ter inventário ou não)
     total_animais_inventario = sum(item.quantidade or 0 for item in inventario)
-    valor_total_rebanho = sum(item.valor_total or Decimal('0') for item in inventario)
+    # Calcular valor total do rebanho - valor_total é uma property que calcula quantidade * valor_por_cabeca
+    valor_total_rebanho = Decimal('0')
+    for item in inventario:
+        # valor_total é uma property, sempre retorna um valor (pode ser 0)
+        valor_item = item.valor_total  # Isso chama a property: quantidade * valor_por_cabeca
+        if valor_item:
+            valor_total_rebanho += Decimal(str(valor_item))
+        # Se valor_por_cabeca não estiver preenchido, calcular manualmente como fallback
+        elif item.valor_por_cabeca and item.quantidade:
+            valor_total_rebanho += (Decimal(str(item.valor_por_cabeca)) * Decimal(str(item.quantidade)))
     
     # Inventário por categoria para gráfico
     inventario_por_categoria = inventario.values('categoria__nome').annotate(
@@ -232,11 +287,18 @@ def pecuaria_completa_dashboard(request, propriedade_id):
         estoque_total_combustivel = sum(t.estoque_atual or Decimal('0') for t in tanques)
         
         # Aplicar filtro de período
-        consumos_mes = ConsumoCombustivel.objects.filter(
-            tanque__propriedade=propriedade,
-            data__gte=data_inicio,
-            data__lte=data_fim
-        ) if ConsumoCombustivel else []
+        consumos_mes = []
+        if ConsumoCombustivel:
+            try:
+                consumos_mes = ConsumoCombustivel.objects.filter(
+                    tanque__propriedade=propriedade,
+                    data__gte=data_inicio,
+                    data__lte=data_fim
+                )
+            except Exception as e:
+                logger.warning(f"Erro ao buscar consumos de combustível: {e}")
+                consumos_mes = []
+        
         total_consumo_mes = sum(
             c.quantidade_litros or Decimal('0') for c in consumos_mes
         ) if consumos_mes else Decimal('0')
@@ -250,10 +312,20 @@ def pecuaria_completa_dashboard(request, propriedade_id):
     
     if Equipamento:
         equipamentos_ativos = Equipamento.objects.filter(propriedade=propriedade, ativo=True).count()
-        manutencoes_pendentes = ManutencaoEquipamento.objects.filter(
-            equipamento__propriedade=propriedade,
-            status__in=['AGENDADA', 'EM_ANDAMENTO']
-        ).count() if ManutencaoEquipamento else 0
+        # Contar apenas manutenções realmente pendentes:
+        # - Status AGENDADA ou EM_ANDAMENTO
+        # - E que ainda não foram realizadas (data_realizacao vazia ou não definida)
+        # - E que não foram canceladas
+        # - E que estão vinculadas a equipamentos ativos
+        if ManutencaoEquipamento:
+            manutencoes_pendentes = ManutencaoEquipamento.objects.filter(
+                equipamento__propriedade=propriedade,
+                equipamento__ativo=True,  # Apenas equipamentos ativos
+                status__in=['AGENDADA', 'EM_ANDAMENTO'],
+                data_realizacao__isnull=True  # Apenas as que ainda não foram realizadas
+            ).count()
+        else:
+            manutencoes_pendentes = 0
     else:
         equipamentos_ativos = 0
         manutencoes_pendentes = 0
@@ -281,33 +353,37 @@ def pecuaria_completa_dashboard(request, propriedade_id):
         status_quitado = 'QUITADO'
     
     if LancamentoFinanceiro and (not modulo_filtro or modulo_filtro == 'FINANCEIRO'):
-        # Aplicar filtro de período
+        # Aplicar filtro de período - incluir quitados e pendentes
+        # Buscar todos os lançamentos do período (quitados e pendentes) para mostrar valores completos
         lancamentos_periodo = LancamentoFinanceiro.objects.filter(
             propriedade=propriedade,
             data_competencia__gte=data_inicio,
-            data_competencia__lte=data_fim,
-            status=status_quitado
+            data_competencia__lte=data_fim
         )
-        # Usar constantes do modelo em vez de strings
+        
+        # Excluir transferências (não são receitas nem despesas reais)
         if CategoriaFinanceira:
-            receitas_mes = sum(
-                l.valor or Decimal('0') for l in lancamentos_periodo.filter(
-                    tipo=CategoriaFinanceira.TIPO_RECEITA
-                )
-            )
-            despesas_mes = sum(
-                l.valor or Decimal('0') for l in lancamentos_periodo.filter(
-                    tipo=CategoriaFinanceira.TIPO_DESPESA
-                )
-            )
+            lancamentos_periodo = lancamentos_periodo.exclude(tipo=CategoriaFinanceira.TIPO_TRANSFERENCIA)
+        
+        # Debug: Log para verificar se há lançamentos
+        total_lancamentos = lancamentos_periodo.count()
+        logger.debug(f"Total de lançamentos encontrados no período {data_inicio} a {data_fim}: {total_lancamentos}")
+        
+        # Usar constantes do modelo em vez de strings
+        # Incluir todos os lançamentos (quitados e pendentes) para mostrar valores completos
+        if CategoriaFinanceira:
+            lancamentos_receitas = lancamentos_periodo.filter(tipo=CategoriaFinanceira.TIPO_RECEITA)
+            lancamentos_despesas = lancamentos_periodo.filter(tipo=CategoriaFinanceira.TIPO_DESPESA)
+            receitas_mes = sum(l.valor or Decimal('0') for l in lancamentos_receitas)
+            despesas_mes = sum(l.valor or Decimal('0') for l in lancamentos_despesas)
+            
+            logger.debug(f"Receitas: {receitas_mes}, Despesas: {despesas_mes}, Total receitas: {lancamentos_receitas.count()}, Total despesas: {lancamentos_despesas.count()}")
         else:
             # Fallback se CategoriaFinanceira não estiver disponível
-            receitas_mes = sum(
-                l.valor or Decimal('0') for l in lancamentos_periodo.filter(tipo='RECEITA')
-            )
-            despesas_mes = sum(
-                l.valor or Decimal('0') for l in lancamentos_periodo.filter(tipo='DESPESA')
-            )
+            lancamentos_receitas = lancamentos_periodo.filter(tipo='RECEITA')
+            lancamentos_despesas = lancamentos_periodo.filter(tipo='DESPESA')
+            receitas_mes = sum(l.valor or Decimal('0') for l in lancamentos_receitas)
+            despesas_mes = sum(l.valor or Decimal('0') for l in lancamentos_despesas)
         saldo_mes = receitas_mes - despesas_mes
         
         # Gráfico de receitas/despesas - dividir período em intervalos
@@ -328,8 +404,8 @@ def pecuaria_completa_dashboard(request, propriedade_id):
             lanc_intervalo = LancamentoFinanceiro.objects.filter(
                 propriedade=propriedade,
                 data_competencia__gte=intervalo_inicio,
-                data_competencia__lte=intervalo_fim,
-                status=status_quitado
+                data_competencia__lte=intervalo_fim
+                # Incluir todos (quitados e pendentes) para gráfico também
             )
             # Usar constantes do modelo
             if CategoriaFinanceira:
@@ -463,12 +539,12 @@ def pecuaria_completa_dashboard(request, propriedade_id):
     percentual_animais_abs = abs(percentual_animais)
     
     # Financeiro - tendência (comparar com período anterior)
+    # Usar todos os lançamentos (quitados e pendentes) para comparação consistente
     if LancamentoFinanceiro:
         lancamentos_anterior = LancamentoFinanceiro.objects.filter(
             propriedade=propriedade,
             data_competencia__gte=data_inicio_anterior,
-            data_competencia__lte=data_fim_anterior,
-            status=status_quitado
+            data_competencia__lte=data_fim_anterior
         )
         # Usar constantes do modelo
         if CategoriaFinanceira:
@@ -558,7 +634,7 @@ def pecuaria_completa_dashboard(request, propriedade_id):
             'icone': 'bi-exclamation-triangle-fill',
             'cor': 'danger' if estoques_baixo >= 3 else 'warning'
         })
-        total_alertas += estoques_baixo
+        total_alertas += 1  # Corrigido: somar apenas 1 alerta, não a quantidade de estoques
     
     # Alertas de manutenção
     if manutencoes_pendentes > 0:
@@ -571,14 +647,15 @@ def pecuaria_completa_dashboard(request, propriedade_id):
             'icone': 'bi-tools',
             'cor': 'danger' if manutencoes_pendentes >= 5 else 'warning'
         })
-        total_alertas += manutencoes_pendentes
+        total_alertas += 1  # Corrigido: somar apenas 1 alerta, não a quantidade de manutenções
     
     # Alertas financeiros
     if saldo_mes < 0:
         alertas_criticos.append({
             'tipo': 'SALDO_NEGATIVO',
             'titulo': 'Saldo Financeiro Negativo',
-            'descricao': f'Saldo atual: R$ {saldo_mes:.2f}',
+            'descricao': f'Saldo atual: {saldo_mes}',  # Valor será formatado no template com moeda_br
+            'valor_saldo': saldo_mes,  # Adicionar valor separado para formatação
             'prioridade': 'ALTA',
             'url': f'/propriedade/{propriedade.id}/financeiro/dashboard/',
             'icone': 'bi-cash-coin',
@@ -728,14 +805,14 @@ def pecuaria_completa_dashboard(request, propriedade_id):
     # Compras - Requisições
     if RequisicaoCompra:
         try:
-            # RequisicaoCompra tem data_cadastro
+            # RequisicaoCompra tem criado_em
             requisicoes = RequisicaoCompra.objects.filter(
                 propriedade=propriedade,
-                data_cadastro__date__gte=data_limite
-            ).order_by('-data_cadastro')[:10]
+                criado_em__date__gte=data_limite
+            ).order_by('-criado_em')[:10]
             
             for req in requisicoes:
-                data_req = req.data_cadastro.date() if req.data_cadastro else date.today()
+                data_req = req.criado_em.date() if req.criado_em else date.today()
                 
                 atividades_recentes.append({
                     'tipo': 'requisicao',
@@ -885,12 +962,123 @@ def pecuaria_completa_dashboard(request, propriedade_id):
     # ========== RENTABILIDADE ==========
     try:
         from .services_rentabilidade import calcular_indicadores_completos
-        periodo_rentabilidade = int(request.GET.get('periodo_rentabilidade', 365))
-        indicadores_rentabilidade = calcular_indicadores_completos(propriedade, periodo_rentabilidade)
+        periodo_rentabilidade = int(request.GET.get('periodo_rentabilidade', periodo_dias))
+        # Passar as datas corretas do período pesquisado
+        logger.info(f"Calculando rentabilidade - Propriedade: {propriedade.id}, Período: {data_inicio} a {data_fim} ({periodo_rentabilidade} dias)")
+        indicadores_rentabilidade = calcular_indicadores_completos(
+            propriedade, 
+            periodo_rentabilidade, 
+            data_inicio=data_inicio,
+            data_fim=data_fim
+        )
+        logger.info(f"Resultado rentabilidade - Chaves: {list(indicadores_rentabilidade.keys()) if indicadores_rentabilidade else 'None'}")
+        # Garantir que sempre retorne um dict válido mesmo se houver valores zero
+        if not indicadores_rentabilidade:
+            indicadores_rentabilidade = {
+                'custo_por_animal': {
+                    'periodo_dias': periodo_rentabilidade,
+                    'total_animais': total_animais_inventario,
+                    'custos_detalhados': {
+                        'fixos': 0.0,
+                        'variaveis': 0.0,
+                        'combustivel': 0.0,
+                        'folha': 0.0,
+                        'manutencao': 0.0,
+                        'financeiro': 0.0,
+                        'nutricao': 0.0,
+                        'veterinario': 0.0,
+                    },
+                    'custo_total': 0.0,
+                    'custo_por_animal': 0.0,
+                    'custo_por_animal_mes': 0.0,
+                },
+                'custo_por_arroba': {
+                    'periodo_dias': periodo_rentabilidade,
+                    'peso_total_kg': 0.0,
+                    'arrobas_totais': 0.0,
+                    'custo_total': 0.0,
+                    'custo_por_arroba': 0.0,
+                },
+                'lucratividade': {
+                    'periodo_dias': periodo_rentabilidade,
+                    'receita_total': 0.0,
+                    'custo_total': 0.0,
+                    'lucro': 0.0,
+                    'margem_lucro': 0.0,
+                    'roi': 0.0,
+                },
+                'periodo_dias': periodo_rentabilidade,
+            }
     except Exception as e:
-        logger.error(f"Erro ao calcular rentabilidade: {e}")
-        indicadores_rentabilidade = None
-        periodo_rentabilidade = 365
+        import traceback
+        error_trace = traceback.format_exc()
+        logger.error(f"Erro ao calcular rentabilidade: {e}\n{error_trace}", exc_info=True)
+        print(f"ERRO DETALHADO AO CALCULAR RENTABILIDADE: {e}")
+        print(error_trace)
+        # Criar estrutura vazia mas válida para não quebrar o template
+        indicadores_rentabilidade = {
+            'custo_por_animal': {
+                'periodo_dias': periodo_dias,
+                'total_animais': total_animais_inventario,
+                'custos_detalhados': {
+                    'fixos': 0.0,
+                    'variaveis': 0.0,
+                    'combustivel': 0.0,
+                    'folha': 0.0,
+                    'manutencao': 0.0,
+                    'financeiro': 0.0,
+                    'nutricao': 0.0,
+                    'veterinario': 0.0,
+                },
+                'custo_total': 0.0,
+                'custo_por_animal': 0.0,
+                'custo_por_animal_mes': 0.0,
+            },
+            'custo_por_arroba': {
+                'periodo_dias': periodo_dias,
+                'peso_total_kg': 0.0,
+                'arrobas_totais': 0.0,
+                'custo_total': 0.0,
+                'custo_por_arroba': 0.0,
+            },
+            'lucratividade': {
+                'periodo_dias': periodo_dias,
+                'receita_total': 0.0,
+                'custo_total': 0.0,
+                'lucro': 0.0,
+                'margem_lucro': 0.0,
+                'roi': 0.0,
+            },
+            'periodo_dias': periodo_dias,
+        }
+        periodo_rentabilidade = periodo_dias
+    
+    # ========== CALCULAR MÉTRICAS ADICIONAIS PARA OS CARDS ==========
+    # ROI Anual - usar lucratividade real
+    if indicadores_rentabilidade and indicadores_rentabilidade.get('lucratividade'):
+        roi_anual = Decimal(str(indicadores_rentabilidade['lucratividade'].get('roi', 0)))
+    else:
+        # Calcular ROI básico: (Receitas - Despesas) / Valor do Rebanho * 100
+        if valor_total_rebanho > 0:
+            roi_anual = ((receitas_mes - despesas_mes) / valor_total_rebanho * 100)
+        else:
+            roi_anual = Decimal('0')
+    
+    # Receita por Animal - usar período
+    receita_por_animal = (receitas_mes / total_animais_inventario) if total_animais_inventario > 0 else Decimal('0')
+    
+    # Custo por Animal - usar custos operacionais do período
+    custo_por_animal_periodo = (total_custos_operacionais / total_animais_inventario) if total_animais_inventario > 0 else Decimal('0')
+    
+    # Nascimentos do período (não apenas do mês)
+    if Nascimento:
+        nascimentos_periodo = Nascimento.objects.filter(
+            propriedade=propriedade,
+            data_nascimento__gte=data_inicio,
+            data_nascimento__lte=data_fim
+        ).count()
+    else:
+        nascimentos_periodo = 0
     
     # Informações sobre módulos disponíveis
     modulos_disponiveis = {
@@ -935,6 +1123,9 @@ def pecuaria_completa_dashboard(request, propriedade_id):
         'receitas_mes': receitas_mes,
         'despesas_mes': despesas_mes,
         'saldo_mes': saldo_mes,
+        'receitas_periodo': receitas_mes,  # Alias para usar no template
+        'despesas_periodo': despesas_mes,  # Alias para usar no template
+        'periodo_label': f"{data_inicio.strftime('%d/%m/%Y')} até {data_fim.strftime('%d/%m/%Y')}",
         'contas_ativas': contas_ativas,
         'meses_grafico': meses_grafico,
         'receitas_grafico': receitas_grafico,
@@ -983,6 +1174,11 @@ def pecuaria_completa_dashboard(request, propriedade_id):
         # Rentabilidade
         'indicadores_rentabilidade': indicadores_rentabilidade,
         'periodo_rentabilidade': periodo_rentabilidade,
+        # Métricas adicionais para cards
+        'roi_anual': roi_anual,
+        'receita_por_animal': receita_por_animal,
+        'custo_por_animal_periodo': custo_por_animal_periodo,
+        'nascimentos_periodo': nascimentos_periodo,
     }
     
     return render(request, 'gestao_rural/pecuaria_completa_dashboard.html', context)
@@ -1189,6 +1385,25 @@ def _montar_contexto_planejamento(propriedade, planejamento, cenario):
 def pecuaria_planejamento_dashboard(request, propriedade_id):
     """Dashboard estratégico do planejamento pecuário (projeções, finanças e desempenho)."""
     propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
+    
+    # Se for usuário demo, criar planejamento automaticamente se não existir
+    if _is_usuario_demo(request.user):
+        ano_atual = timezone.now().year
+        planejamento_existente = PlanejamentoAnual.objects.filter(
+            propriedade=propriedade,
+            ano=ano_atual
+        ).first()
+        
+        if not planejamento_existente:
+            try:
+                from gestao_rural.services.planejamento_helper import criar_planejamento_automatico
+                planejamento_existente = criar_planejamento_automatico(propriedade, ano_atual)
+                logger.info(f'✅ Planejamento criado automaticamente para usuário demo: {request.user.username}')
+            except ValueError as e:
+                # Se não há inventário, não criar (vai mostrar mensagem no template)
+                logger.warning(f'⚠️ Não foi possível criar planejamento automático (faltando inventário): {e}')
+            except Exception as e:
+                logger.error(f'❌ Erro ao criar planejamento automático para demo: {e}', exc_info=True)
     
     # Criar planejamento automaticamente se solicitado
     if request.method == 'POST' and 'criar_planejamento' in request.POST:

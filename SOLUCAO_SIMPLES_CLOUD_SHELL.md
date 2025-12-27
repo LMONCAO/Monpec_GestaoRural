@@ -121,3 +121,21 @@ Sempre use **aspas simples** `'...'` no bash quando houver caracteres especiais 
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

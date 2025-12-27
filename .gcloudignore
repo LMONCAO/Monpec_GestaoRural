@@ -1,4 +1,10 @@
-# Arquivos e pastas a ignorar no deploy do Google Cloud
+# Arquivos e diretórios a ignorar no build do Google Cloud
+# Isso reduz o tamanho do build e acelera o deploy
+
+# Versionamento
+.git/
+.gitignore
+.gitattributes
 
 # Python
 __pycache__/
@@ -6,88 +12,140 @@ __pycache__/
 *$py.class
 *.so
 .Python
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+*.manifest
+*.spec
+pip-log.txt
+pip-delete-this-directory.txt
+!create_superuser.py
+
+# Ambientes virtuais
+.venv/
 venv/
 env/
 ENV/
-.venv
-python311/
+env.bak/
+venv.bak/
+python*/
 
-# Django
-*.log
-db.sqlite3
-db.sqlite3-journal
-/media
-/staticfiles
-*.sqlite3
-*.db
-
-# Arquivos grandes
-tenants/
-*.pdf
-*.zip
-*.tar.gz
-*.rar
-
-# IDEs
+# IDEs e editores
+.cursor/
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
+.project
+.pydevproject
+.settings/
 
-# Git
-.git/
-.gitignore
-
-# Documentação
+# Arquivos de documentação e scripts desnecessários
 *.md
-docs/
-README*
-
-# Scripts locais
+!README.md
+*.txt
 *.bat
 *.ps1
+!deploy-gcp.ps1
 *.sh
-!deploy.sh
-!deploy.ps1
+!deploy-gcp.sh
+!executar-migracoes.sh
+!entrypoint.sh
+*.yml
+*.yaml
+!requirements.txt
+!requirements_producao.txt
+!Dockerfile.prod
+!cloudbuild-config.yaml
 
-# Backups
+# Arquivos do Cursor/IDE
+.cursor/
+**/.cursor/**
+*.png
+*.jpg
+*.jpeg
+*.gif
+assets/
+**/assets/**
+**/*.png
+**/*.jpg
+**/*.jpeg
+**/*.gif
+
+# Logs e backups
+*.log
+logs/
 backups/
-backup_*/
+backup_curral_refactor/
 
-# Testes
-test_*.py
-*_test.py
-tests/
+# Banco de dados local
+*.sqlite3
+*.db
+*.sql
 
-# Arquivos temporários
-*.tmp
-*.bak
-*.cache
+# Sistema operacional
+.DS_Store
+Thumbs.db
+desktop.ini
 
-# Configurações locais
+# Variáveis de ambiente
 .env
 .env.local
 .env.*.local
+.env.production
+.env.development
 
-# Node (se houver)
+# Node.js (se houver)
 node_modules/
-npm-debug.log
+.npm/
+package-lock.json
+yarn.lock
 
-# Outros
-.DS_Store
-Thumbs.db
+# Arquivos temporários
+*.bak
+*.tmp
+*.temp
+*.cache/
+.cache/
 
+# Arquivos comprimidos
+*.zip
+*.tar.gz
+*.rar
+*.7z
 
+# Diretórios de desenvolvimento
+deploy/
+docs/
+mockups/
+scripts/
+api/
 
+# Arquivos estáticos e mídia (serão coletados pelo collectstatic)
+staticfiles/
+media/
+static/
 
+# Arquivos de teste
+test_*.py
+*_test.py
+tests/
+test/
 
+# Arquivos de configuração local
+configurar_*.conf
+gunicorn_*.service
+vercel.json
 
+# PDFs de teste
+teste_*.pdf
 
-
-
-
-
-
-
-
+# NFE XMLs (não devem ir para produção)
+nfe/xml/

@@ -42,7 +42,7 @@
             background-color: var(--white);
             border: 1px solid var(--border-gray);
             border-radius: 12px;
-            padding: 3rem 2.5rem;
+            padding: 2.25rem 2.5rem;
             box-shadow: 0 8px 24px rgba(0,0,0,0.06);
         }
         
@@ -66,7 +66,7 @@
             text-align: center;
             color: var(--text-secondary);
             font-size: 15px;
-            margin-bottom: 2.5rem;
+            margin-bottom: 2rem;
             font-weight: 500;
         }
         
@@ -236,8 +236,8 @@
         
         .login-footer {
             text-align: center;
-            margin-top: 2rem;
-            padding-top: 2rem;
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
             border-top: 1px solid var(--border-gray);
             color: var(--text-secondary);
             font-size: 13px;
@@ -251,13 +251,13 @@
             <p class="login-subtitle">Monitor da Pecuária</p>
             
             {% if is_demo %}
-            <div class="alert alert-info mb-4" role="alert" style="background-color: #f8f9fa; color: var(--text-primary); border: 1px solid var(--border-gray); padding: 1rem 1.25rem; border-radius: 8px;">
-                <div style="font-weight: 500; font-size: 14px; line-height: 1.6;">
-                    <p style="margin-bottom: 0.75rem;">Você está na versão de demonstração</p>
+            <div class="alert alert-info mb-3" role="alert" style="background-color: #f8f9fa; color: var(--text-primary); border: 1px solid var(--border-gray); padding: 0.875rem 1rem; border-radius: 8px;">
+                <div style="font-weight: 500; font-size: 14px; line-height: 1.5;">
+                    <p style="margin-bottom: 0.625rem;">Você está na versão de demonstração</p>
                     {% if email_param %}
-                    <p style="margin-bottom: 0.5rem; font-size: 13px; color: var(--text-secondary);"><strong>Email cadastrado:</strong> {{ email_param }}</p>
+                    <p style="margin-bottom: 0.375rem; font-size: 13px; color: var(--text-secondary);"><strong>Email cadastrado:</strong> {{ email_param }}</p>
                     {% endif %}
-                    <p style="margin-bottom: 0.5rem; font-size: 13px; color: var(--text-secondary);"><strong>Usuário:</strong> {{ demo_username }}</p>
+                    <p style="margin-bottom: 0.375rem; font-size: 13px; color: var(--text-secondary);"><strong>Usuário:</strong> {{ demo_username }}</p>
                     <p style="margin-bottom: 0; font-size: 13px; color: var(--text-secondary);"><strong>Senha:</strong> {{ demo_password }}</p>
                 </div>
             </div>
@@ -280,9 +280,12 @@
                 {% if request.GET.next %}
                     <input type="hidden" name="next" value="{{ request.GET.next }}">
                 {% endif %}
+                {% if is_demo %}
+                    <input type="hidden" name="demo" value="true">
+                {% endif %}
                 
                 <div class="mb-3">
-                    <label for="username" class="form-label">Usuário</label>
+                    <label for="username" class="form-label">Usuário ou E-mail</label>
                     <input type="text" class="form-control" id="username" name="username" value="{% if email_param %}{{ email_param }}{% elif is_demo %}{{ demo_username }}{% endif %}" required autofocus>
                 </div>
                 
@@ -291,7 +294,7 @@
                         <label for="password" class="form-label mb-0">Senha</label>
                         <a href="{% url 'password_reset' %}" class="text-decoration-none" style="font-size: 13px; color: var(--primary-navy); font-weight: 500;">Esqueceu a senha?</a>
                     </div>
-                    <input type="text" class="form-control" id="password" name="password" value="{% if is_demo %}{{ demo_password }}{% endif %}" required>
+                    <input type="password" class="form-control" id="password" name="password" value="{% if is_demo %}{{ demo_password }}{% endif %}" required>
                 </div>
                 
                 <div class="form-check mb-3">

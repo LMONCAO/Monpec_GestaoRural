@@ -76,3 +76,21 @@ Você não deve mais ver erros de Cloud SQL.
 **Prioridade:** 🔴 ALTA - Configure o banco de dados primeiro!
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

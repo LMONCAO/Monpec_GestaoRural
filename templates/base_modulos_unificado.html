@@ -1,5 +1,21 @@
 {% load static %}
 {% load formatacao_br %}
+{% comment %}
+    VARIÁVEIS DISPONÍVEIS NO TEMPLATE:
+    - IS_ASSINANTE: True apenas para usuários assinantes (não demo, com acesso liberado)
+    - IS_DEMO_USER: True para usuários demo (criados pelo botão demonstração ou demo padrão)
+    - acesso_liberado: True se o usuário tem assinatura ativa
+    
+    EXEMPLO DE USO - Para mostrar conteúdo apenas para assinantes:
+    {% if IS_ASSINANTE %}
+        <!-- Seu código aqui só aparecerá para assinantes -->
+    {% endif %}
+    
+    EXEMPLO - Para mostrar conteúdo apenas para demo:
+    {% if IS_DEMO_USER %}
+        <!-- Seu código aqui só aparecerá para usuários demo -->
+    {% endif %}
+{% endcomment %}
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -1013,7 +1029,7 @@
         }
         
         /* Ajuste do main-content para usuários demo (sem banner fixo) */
-        {% if request.user.username == 'demo_monpec' or request.user.username == 'demo' %}
+        {% if IS_DEMO_USER %}
         .main-content {
             margin-top: 54px; /* Apenas o header */
             padding-top: 0 !important;
@@ -1392,12 +1408,7 @@
                     <i class="bi bi-list"></i>
                 </button>
                 {% endif %}
-                {% if not acesso_liberado %}
-                <a href="{% url 'assinaturas_dashboard' %}" class="btn btn-sm btn-success btn-assinatura-demo" style="padding: 0.4rem 1rem; font-size: 0.85rem; font-weight: 600; border-radius: 6px; text-decoration: none; display: inline-flex; align-items: center; gap: 0.4rem; white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s ease;">
-                    <i class="bi bi-credit-card"></i>
-                    Garanta sua assinatura agora
-                </a>
-                {% elif request.user.username == 'demo_monpec' or request.user.username == 'demo' %}
+                {% if not acesso_liberado or IS_DEMO_USER %}
                 <a href="{% url 'assinaturas_dashboard' %}" class="btn btn-sm btn-success btn-assinatura-demo" style="padding: 0.4rem 1rem; font-size: 0.85rem; font-weight: 600; border-radius: 6px; text-decoration: none; display: inline-flex; align-items: center; gap: 0.4rem; white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s ease;">
                     <i class="bi bi-credit-card"></i>
                     Garanta sua assinatura agora
@@ -1415,7 +1426,7 @@
                     <i class="bi bi-house-door me-2"></i>
                     <select id="seletor-propriedade" class="form-select form-select-sm" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; border-radius: 8px; padding: 0.25rem 0.5rem; font-size: 0.8rem; min-width: 200px; cursor: pointer;" onchange="trocarPropriedade(this.value)">
                         {% for prop in todas_propriedades %}
-                            <option value="{{ prop.id }}" {% if prop.id == propriedade.id %}selected{% endif %} style="background: #2c5282; color: white;">
+                            <option value="{{ prop.id }}" {% if propriedade and prop.id == propriedade.id %}selected{% endif %} style="background: #2c5282; color: white;">
                                 {{ prop.produtor.nome }} - {{ prop.nome_propriedade }}
                             </option>
                         {% endfor %}
@@ -1434,7 +1445,7 @@
     </header>
 
     <!-- Modal de Demonstração (apenas para usuários demo) -->
-    {% if request.user.username == 'demo_monpec' or request.user.username == 'demo' %}
+    {% if IS_DEMO_USER %}
     <div class="modal fade" id="modal-demonstracao" tabindex="-1" aria-labelledby="modalDemonstracaoLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content shadow-lg border-0">
@@ -1547,8 +1558,8 @@
                 modal.show();
             } else {
                 // Se o modal não existir, redirecionar para página de assinaturas
-                {% if request.user.username == 'demo_monpec' or request.user.username == 'demo' %}
-                // Para usuários demo, tentar redirecionar para página de assinaturas
+                {% if IS_DEMO_USER %}
+                // Para usuários demo, redirecionar para página de assinaturas
                 window.location.href = '{% url "assinaturas_dashboard" %}';
                 {% else %}
                 // Para outros usuários, redirecionar para página de assinaturas
@@ -1570,7 +1581,7 @@
     {% endif %}
 
     <!-- Watermark de Demonstração (apenas para usuários demo) -->
-    {% if request.user.username == 'demo_monpec' or request.user.username == 'demo' %}
+    {% if IS_DEMO_USER %}
     <style>
         body::before {
             content: 'VERSÃO DEMONSTRAÇÃO - MONPEC (MONITOR DA PECUÁRIA)';
@@ -1618,36 +1629,37 @@
         {% if propriedade %}
             <!-- Link para Voltar aos Módulos - Destacado -->
             <div class="nav-item nav-item-destaque">
+                {% if propriedade %}
                 <a href="{% url 'propriedade_modulos' propriedade.id %}" class="nav-link nav-link-destaque {% if 'modulos' in request.path and 'pecuaria' not in request.path and 'agricultura' not in request.path %}active{% endif %}">
-                    <i class="bi bi-grid-3x3-gap"></i> 
-                    <span style="flex: 1; text-align: center;">Módulos</span>
+                    <span style="flex: 1; text-align: center;">Monpec-Pagina Inicial</span>
                 </a>
+                {% endif %}
             </div>
             
             <!-- Módulos habilitados quando dentro da propriedade -->
             <div class="accordion accordion-flush" id="sidebarAccordion">
                 {% with current_url=request.resolver_match.url_name %}
                 
-                <!-- 1. Dashboard Pecuária -->
+                <!-- Dashboard Pecuária -->
                 {% if propriedade.tipo_operacao == 'PECUARIA' %}
                 <div class="nav-item modulo-pecuaria {% if request.resolver_match.url_name == 'pecuaria_dashboard' %}active{% endif %}">
                     <a href="{% url 'pecuaria_dashboard' propriedade.id %}" 
                        class="nav-link {% if request.resolver_match.url_name == 'pecuaria_dashboard' %}active{% endif %}">
-                        <i class="bi bi-graph-up-arrow"></i> <span style="margin-left: 0.5rem;">1. Dashboard Pecuária</span>
+                        <i class="bi bi-graph-up-arrow"></i> <span style="margin-left: 0.5rem;">Dashboard Pecuária</span>
                     </a>
                 </div>
                 
-                <!-- 2. Tela Curral -->
+                <!-- Tela Curral -->
                 <div class="nav-item modulo-pecuaria {% if request.resolver_match.url_name == 'curral_painel' or request.resolver_match.url_name == 'curral_dashboard' or request.resolver_match.url_name == 'curral_dashboard_v3' or request.resolver_match.url_name == 'curral_dashboard_v4' or 'curral' in request.path %}active{% endif %}">
                     <a href="{% url 'curral_dashboard_v4' propriedade.id %}" 
                        target="_blank"
                        class="nav-link nav-link-curral {% if request.resolver_match.url_name == 'curral_painel' or request.resolver_match.url_name == 'curral_dashboard' or request.resolver_match.url_name == 'curral_dashboard_v3' or request.resolver_match.url_name == 'curral_dashboard_v4' or 'curral' in request.path %}active{% endif %}">
-                        <i class="bi bi-cpu"></i> <span style="margin-left: 0.5rem;">2. Tela Curral</span>
+                        <i class="bi bi-cpu"></i> <span style="margin-left: 0.5rem;">Tela Curral</span>
                     </a>
                 </div>
                 {% endif %}
                 
-                <!-- 3. Cadastro -->
+                <!-- Cadastro -->
                 <div class="accordion-item">
                     <div class="nav-item modulo-cadastro {% if 'cadastro' in request.path or 'produtor' in request.path and 'propriedade' not in request.path or request.resolver_match.url_name == 'propriedades_lista' or request.resolver_match.url_name == 'propriedade_nova' or 'fornecedor' in request.path or 'cliente' in request.path or request.resolver_match.url_name == 'funcionario_novo' or request.resolver_match.url_name == 'categoria_nova' %}active{% endif %}">
                         <button class="accordion-button {% if 'cadastro' not in request.path and 'produtor' not in request.path and request.resolver_match.url_name != 'propriedades_lista' and request.resolver_match.url_name != 'propriedade_nova' and 'fornecedor' not in request.path and 'cliente' not in request.path and request.resolver_match.url_name != 'funcionario_novo' and request.resolver_match.url_name != 'categoria_nova' %}collapsed{% endif %}" type="button" 
@@ -1655,7 +1667,7 @@
                                 aria-expanded="{% if 'cadastro' in request.path or 'produtor' in request.path and 'propriedade' not in request.path or request.resolver_match.url_name == 'propriedades_lista' or request.resolver_match.url_name == 'propriedade_nova' or 'fornecedor' in request.path or 'cliente' in request.path or request.resolver_match.url_name == 'funcionario_novo' or request.resolver_match.url_name == 'categoria_nova' %}true{% else %}false{% endif %}" 
                                 aria-controls="submenu-cadastro">
                             <i class="bi bi-journal-text"></i>
-                            <span style="flex: 1; margin-left: 0.5rem;">3. Cadastro</span>
+                            <span style="flex: 1; margin-left: 0.5rem;">Cadastro</span>
                             <i class="bi bi-chevron-right chevron-icon"></i>
                         </button>
                         <div id="submenu-cadastro" class="accordion-collapse collapse {% if 'cadastro' in request.path or 'produtor' in request.path and 'propriedade' not in request.path or request.resolver_match.url_name == 'propriedades_lista' or request.resolver_match.url_name == 'propriedade_nova' or 'fornecedor' in request.path or 'cliente' in request.path or request.resolver_match.url_name == 'funcionario_novo' or request.resolver_match.url_name == 'categoria_nova' %}show{% endif %}" 
@@ -1697,7 +1709,7 @@
                     </div>
                 </div>
                 
-                <!-- 4. Planejamento -->
+                <!-- Planejamento -->
                 {% if propriedade.tipo_operacao == 'PECUARIA' %}
                 <div class="accordion-item">
                     <div class="nav-item modulo-planejamento {% if 'planejamento' in request.path and 'pecuaria' not in request.path %}active{% endif %}">
@@ -1706,7 +1718,7 @@
                                 aria-expanded="{% if 'planejamento' in request.path and 'pecuaria' not in request.path %}true{% else %}false{% endif %}" 
                                 aria-controls="submenu-planejamento">
                             <i class="bi bi-calendar3-range"></i>
-                            <span style="flex: 1; margin-left: 0.5rem;">4. Planejamento</span>
+                            <span style="flex: 1; margin-left: 0.5rem;">Planejamento</span>
                             <i class="bi bi-chevron-right chevron-icon"></i>
                         </button>
                         <div id="submenu-planejamento" class="accordion-collapse collapse {% if 'planejamento' in request.path and 'pecuaria' not in request.path %}show{% endif %}" 
@@ -1722,7 +1734,7 @@
                 </div>
                 {% endif %}
                 
-                <!-- 5. Pecuária com Submenu -->
+                <!-- Pecuária com Submenu -->
                 {% if propriedade.tipo_operacao == 'PECUARIA' %}
                 <div class="accordion-item">
                     <div class="nav-item modulo-pecuaria {% if 'pecuaria' in request.path or 'nutricao' in request.path %}active{% endif %}">
@@ -1731,7 +1743,7 @@
                                 aria-expanded="{% if 'pecuaria' in request.path or 'nutricao' in request.path %}true{% else %}false{% endif %}" 
                                 aria-controls="submenu-pecuaria">
                             <i class="bi bi-graph-up-arrow"></i>
-                            <span style="flex: 1; margin-left: 0.5rem;">5. Pecuária</span>
+                            <span style="flex: 1; margin-left: 0.5rem;">Pecuária</span>
                             <i class="bi bi-chevron-right chevron-icon"></i>
                         </button>
                         <div id="submenu-pecuaria" class="accordion-collapse collapse {% if 'pecuaria' in request.path or 'nutricao' in request.path %}show{% endif %}" 
@@ -1816,49 +1828,13 @@
                                         <i class="bi bi-arrow-left-right"></i> Transferências
                                     </a>
                                 </div>
-
-                                <button type="button" class="nav-subsection-toggle" data-submenu-target="relatorios-rastreabilidade" aria-expanded="{% if current_url == 'relatorio_final' or current_url == 'relatorio_inventario' or current_url == 'relatorio_financeiro' or current_url == 'relatorio_custos' or current_url == 'relatorio_endividamento' or current_url == 'relatorio_consolidado' or 'relatorios-customizados' in request.path %}true{% else %}false{% endif %}">
-                                    <span>Relatórios</span>
-                                    <i class="bi bi-chevron-right chevron"></i>
-                                </button>
-                                <div id="relatorios-rastreabilidade" class="nav-subsection-links {% if current_url == 'relatorio_final' or current_url == 'relatorio_inventario' or current_url == 'relatorio_financeiro' or current_url == 'relatorio_custos' or current_url == 'relatorio_endividamento' or current_url == 'relatorio_consolidado' or 'relatorios-customizados' in request.path %}show{% endif %}">
-                                    <a href="{% url 'relatorios_customizados_lista' propriedade.id %}"
-                                       class="nav-link nav-link-submenu {% if 'relatorios-customizados' in request.path %}active{% endif %}">
-                                        <i class="bi bi-magic"></i> Criador de Relatórios
-                                        <span class="badge bg-primary-subtle text-primary ms-auto">novo</span>
-                                    </a>
-                                    <a href="{% url 'relatorio_final' propriedade.id %}"
-                                       class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'relatorio_final' %}active{% endif %}">
-                                        <i class="bi bi-file-earmark-text"></i> Relatório Final
-                                    </a>
-                                    <a href="{% url 'relatorio_inventario' propriedade.id %}"
-                                       class="nav-link nav-link-submenu {% if 'inventario' in request.path and 'relatorio' in request.path %}active{% endif %}">
-                                        <i class="bi bi-clipboard-data"></i> Inventário
-                                    </a>
-                                    <a href="{% url 'relatorio_financeiro' propriedade.id %}"
-                                       class="nav-link nav-link-submenu {% if 'financeiro' in request.path and 'relatorio' in request.path %}active{% endif %}">
-                                        <i class="bi bi-cash-stack"></i> Financeiro
-                                    </a>
-                                    <a href="{% url 'relatorio_custos' propriedade.id %}"
-                                       class="nav-link nav-link-submenu {% if 'custos' in request.path and 'relatorio' in request.path %}active{% endif %}">
-                                        <i class="bi bi-calculator"></i> Custos
-                                    </a>
-                                    <a href="{% url 'relatorio_endividamento' propriedade.id %}"
-                                       class="nav-link nav-link-submenu {% if 'endividamento' in request.path and 'relatorio' in request.path %}active{% endif %}">
-                                        <i class="bi bi-credit-card"></i> Endividamento
-                                    </a>
-                                    <a href="{% url 'relatorio_consolidado' propriedade.id %}"
-                                       class="nav-link nav-link-submenu {% if 'consolidado' in request.path %}active{% endif %}">
-                                        <i class="bi bi-file-earmark-pdf"></i> Consolidado
-                                    </a>
-                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
                 {% endif %}
 
-                <!-- 6. Bens e Patrimônio -->
+                <!-- Bens e Patrimônio -->
                 <div class="accordion-item">
                     <div class="nav-item modulo-patrimonio {% if 'patrimonio' in request.path or 'imobilizado' in request.path %}active{% endif %}">
                         <button class="accordion-button {% if 'patrimonio' not in request.path and 'imobilizado' not in request.path %}collapsed{% endif %}" type="button" 
@@ -1866,7 +1842,7 @@
                                 aria-expanded="{% if 'patrimonio' in request.path or 'imobilizado' in request.path %}true{% else %}false{% endif %}" 
                                 aria-controls="submenu-patrimonio">
                             <i class="bi bi-box-seam"></i>
-                            <span style="flex: 1; margin-left: 0.5rem;">6. Bens e Patrimônio</span>
+                            <span style="flex: 1; margin-left: 0.5rem;">Bens e Patrimônio</span>
                             <i class="bi bi-chevron-right chevron-icon"></i>
                         </button>
                         <div id="submenu-patrimonio" class="accordion-collapse collapse {% if 'patrimonio' in request.path or 'imobilizado' in request.path %}show{% endif %}" 
@@ -1897,16 +1873,49 @@
                     </div>
                 </div>
 
-                <!-- 7. Nutrição (abre modal de compra) -->
+                <!-- Nutrição (liberado para admin e assinantes) -->
                 <div class="accordion-item">
                     <div class="nav-item modulo-nutricao {% if 'nutricao' in request.path %}active{% endif %}">
+                        {% if propriedade and user.is_superuser or propriedade and user.is_staff or propriedade and acesso_liberado or propriedade and assinatura and assinatura.status == 'ATIVA' %}
+                        <button class="accordion-button {% if 'nutricao' not in request.path %}collapsed{% endif %}" type="button" 
+                                data-bs-toggle="collapse" data-bs-target="#submenu-nutricao" 
+                                aria-expanded="{% if 'nutricao' in request.path %}true{% else %}false{% endif %}" 
+                                aria-controls="submenu-nutricao">
+                            <i class="bi bi-bag"></i>
+                            <span style="flex: 1; margin-left: 0.5rem;">Nutrição</span>
+                            <i class="bi bi-chevron-right chevron-icon"></i>
+                        </button>
+                        <div id="submenu-nutricao" class="accordion-collapse collapse {% if 'nutricao' in request.path %}show{% endif %}" 
+                             data-bs-parent="#sidebarAccordion">
+                            <div class="nav-submenu">
+                                <a href="{% url 'nutricao_dashboard' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'nutricao_dashboard' %}active{% endif %}">
+                                    <i class="bi bi-speedometer2"></i> Dashboard
+                                </a>
+                                <a href="{% url 'estoque_suplementacao_lista' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'estoque' in request.path %}active{% endif %}">
+                                    <i class="bi bi-box-seam"></i> Estoques
+                                </a>
+                                <a href="{% url 'cochos_lista' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'cochos' in request.path %}active{% endif %}">
+                                    <i class="bi bi-bucket"></i> Cochos
+                                </a>
+                                
+                                <div class="text-muted text-uppercase small px-3 mt-3 mb-1">Relatórios</div>
+                                <a href="{% url 'relatorio_nutricao_pdf' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu">
+                                    <i class="bi bi-file-earmark-pdf"></i> Relatório Nutrição (PDF)
+                                </a>
+                            </div>
+                        </div>
+                        {% else %}
                         <button class="accordion-button collapsed" type="button" 
                                 data-bs-toggle="collapse" data-bs-target="#submenu-nutricao" 
                                 aria-expanded="false" 
                                 aria-controls="submenu-nutricao"
                                 onclick="event.preventDefault(); event.stopPropagation(); abrirModalCompra();">
-                            <i class="bi bi-cup-straw"></i>
-                            <span style="flex: 1; margin-left: 0.5rem;">7. Nutrição</span>
+                            <i class="bi bi-bag"></i>
+                            <span style="flex: 1; margin-left: 0.5rem;">Nutrição</span>
                             <i class="bi bi-chevron-right chevron-icon"></i>
                         </button>
                         <div id="submenu-nutricao" class="accordion-collapse collapse" 
@@ -1915,10 +1924,11 @@
                                 <!-- Submenu oculto - não será usado -->
                             </div>
                         </div>
+                        {% endif %}
                     </div>
                 </div>
                 
-                <!-- 8. Compras -->
+                <!-- Compras -->
                 <div class="accordion-item">
                     <div class="nav-item modulo-compras {% if 'compras' in request.path %}active{% endif %}">
                         <button class="accordion-button {% if 'compras' not in request.path %}collapsed{% endif %}" type="button" 
@@ -1926,7 +1936,7 @@
                                 aria-expanded="{% if 'compras' in request.path %}true{% else %}false{% endif %}" 
                                 aria-controls="submenu-compras">
                             <i class="bi bi-bag-check"></i>
-                            <span style="flex: 1; margin-left: 0.5rem;">8. Compras</span>
+                            <span style="flex: 1; margin-left: 0.5rem;">Compras</span>
                             <i class="bi bi-chevron-right chevron-icon"></i>
                         </button>
                         <div id="submenu-compras" class="accordion-collapse collapse {% if 'compras' in request.path %}show{% endif %}" 
@@ -1936,60 +1946,40 @@
                                    class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'compras_dashboard' %}active{% endif %}">
                                     <i class="bi bi-speedometer2"></i> Dashboard
                                 </a>
-                                <a href="#" 
-                                   class="nav-link nav-link-submenu nav-link-disabled" 
-                                   onclick="event.preventDefault(); abrirModalCompra(); return false;">
+                                <a href="{% url 'requisicoes_compra_lista' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'requisicoes' in request.path %}active{% endif %}">
                                     <i class="bi bi-journal-text"></i> Requisições
-                                    <i class="bi bi-lock-fill ms-auto text-muted" style="font-size: 0.75rem;"></i>
                                 </a>
-                                <a href="#" 
-                                   class="nav-link nav-link-submenu nav-link-disabled" 
-                                   onclick="event.preventDefault(); abrirModalCompra(); return false;"
-                                   style="opacity: 0.5; cursor: not-allowed;">
+                                <a href="{% url 'requisicao_compra_nova' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'requisicao_compra_nova' %}active{% endif %}">
                                     <i class="bi bi-journal-plus"></i> Nova Requisição
-                                    <i class="bi bi-lock-fill ms-auto text-muted" style="font-size: 0.75rem;"></i>
                                 </a>
-                                <a href="#" 
-                                   class="nav-link nav-link-submenu nav-link-disabled" 
-                                   onclick="event.preventDefault(); abrirModalCompra(); return false;"
-                                   style="opacity: 0.5; cursor: not-allowed;">
+                                <a href="{% url 'setores_compra_lista' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'setores' in request.path and 'compras' in request.path %}active{% endif %}">
                                     <i class="bi bi-diagram-3"></i> Setores
-                                    <i class="bi bi-lock-fill ms-auto text-muted" style="font-size: 0.75rem;"></i>
                                 </a>
-                                <a href="#" 
-                                   class="nav-link nav-link-submenu nav-link-disabled" 
-                                   onclick="event.preventDefault(); abrirModalCompra(); return false;"
-                                   style="opacity: 0.5; cursor: not-allowed;">
+                                <a href="{% url 'fornecedores_lista' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'fornecedores' in request.path and 'compras' in request.path %}active{% endif %}">
                                     <i class="bi bi-people"></i> Fornecedores
-                                    <i class="bi bi-lock-fill ms-auto text-muted" style="font-size: 0.75rem;"></i>
                                 </a>
-                                <a href="#" 
-                                   class="nav-link nav-link-submenu nav-link-disabled" 
-                                   onclick="event.preventDefault(); abrirModalCompra(); return false;"
-                                   style="opacity: 0.5; cursor: not-allowed;">
+                                <a href="{% url 'fornecedor_novo' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'fornecedor_novo' %}active{% endif %}">
                                     <i class="bi bi-person-plus"></i> Novo Fornecedor
-                                    <i class="bi bi-lock-fill ms-auto text-muted" style="font-size: 0.75rem;"></i>
                                 </a>
-                                <a href="#" 
-                                   class="nav-link nav-link-submenu nav-link-disabled" 
-                                   onclick="event.preventDefault(); abrirModalCompra(); return false;"
-                                   style="opacity: 0.5; cursor: not-allowed;">
+                                <a href="{% url 'ordens_compra_lista' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'ordens' in request.path and 'compras' in request.path %}active{% endif %}">
                                     <i class="bi bi-file-earmark-text"></i> Ordens / Contas a Pagar
-                                    <i class="bi bi-lock-fill ms-auto text-muted" style="font-size: 0.75rem;"></i>
                                 </a>
-                                <a href="#" 
-                                   class="nav-link nav-link-submenu nav-link-disabled" 
-                                   onclick="event.preventDefault(); abrirModalCompra(); return false;"
-                                   style="opacity: 0.5; cursor: not-allowed;">
+                                <a href="{% url 'notas_fiscais_lista' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'notas-fiscais' in request.path %}active{% endif %}">
                                     <i class="bi bi-receipt-cutoff"></i> Notas Fiscais
-                                    <i class="bi bi-lock-fill ms-auto text-muted" style="font-size: 0.75rem;"></i>
                                 </a>
                             </div>
                         </div>
                     </div>
                 </div>
                 
-                <!-- 9. Operações -->
+                <!-- Operações -->
                 <div class="accordion-item">
                     <div class="nav-item modulo-operacoes {% if 'operacoes' in request.path %}active{% endif %}">
                         <button class="accordion-button {% if 'operacoes' not in request.path %}collapsed{% endif %}" type="button" 
@@ -1997,7 +1987,7 @@
                                 aria-expanded="{% if 'operacoes' in request.path %}true{% else %}false{% endif %}" 
                                 aria-controls="submenu-operacoes">
                             <i class="bi bi-tools"></i>
-                            <span style="flex: 1; margin-left: 0.5rem;">9. Operações</span>
+                            <span style="flex: 1; margin-left: 0.5rem;">Operações</span>
                             <i class="bi bi-chevron-right chevron-icon"></i>
                         </button>
                         <div id="submenu-operacoes" class="accordion-collapse collapse {% if 'operacoes' in request.path %}show{% endif %}" 
@@ -2040,7 +2030,7 @@
                     </div>
                 </div>
                 
-                <!-- 10. Financeiro -->
+                <!-- Financeiro -->
                 <div class="accordion-item">
                     <div class="nav-item modulo-financeiro {% if 'financeiro' in request.path %}active{% endif %}">
                         <button class="accordion-button {% if 'financeiro' not in request.path %}collapsed{% endif %}" type="button" 
@@ -2048,7 +2038,7 @@
                                 aria-expanded="{% if 'financeiro' in request.path %}true{% else %}false{% endif %}" 
                                 aria-controls="submenu-financeiro">
                             <i class="bi bi-wallet2"></i>
-                            <span style="flex: 1; margin-left: 0.5rem;">10. Financeiro</span>
+                            <span style="flex: 1; margin-left: 0.5rem;">Financeiro</span>
                             <i class="bi bi-chevron-right chevron-icon"></i>
                         </button>
                         <div id="submenu-financeiro" class="accordion-collapse collapse {% if 'financeiro' in request.path %}show{% endif %}" 
@@ -2090,7 +2080,7 @@
                     </div>
                 </div>
 
-                <!-- 10. Projetos Bancários (abre modal de compra) -->
+                <!-- Projetos Bancários (abre modal de compra) -->
                 <div class="accordion-item">
                     <div class="nav-item modulo-projetos {% if 'projetos_bancarios' in request.path or 'projeto_bancario' in request.path or 'projetos-bancarios' in request.path %}active{% endif %}">
                         <button class="accordion-button collapsed" type="button" 
@@ -2099,7 +2089,7 @@
                                 aria-controls="submenu-projetos"
                                 onclick="event.preventDefault(); event.stopPropagation(); abrirModalCompra();">
                             <i class="bi bi-briefcase"></i>
-                            <span style="flex: 1; margin-left: 0.5rem;">10. Projetos Bancários</span>
+                            <span style="flex: 1; margin-left: 0.5rem;">Projetos Bancários</span>
                             <i class="bi bi-chevron-right chevron-icon"></i>
                         </button>
                         <div id="submenu-projetos" class="accordion-collapse collapse" 
@@ -2111,7 +2101,7 @@
                     </div>
                 </div>
                 
-                <!-- 11. Relatórios (abre modal de compra) -->
+                <!-- Relatórios (abre modal de compra) -->
                 <div class="accordion-item">
                     <div class="nav-item modulo-relatorios {% if 'relatorios' in request.path or 'relatorio' in request.path %}active{% endif %}">
                         <button class="accordion-button collapsed" type="button" 
@@ -2120,7 +2110,7 @@
                                 aria-controls="submenu-relatorios"
                                 onclick="event.preventDefault(); event.stopPropagation(); abrirModalCompra();">
                             <i class="bi bi-file-text"></i>
-                            <span style="flex: 1; margin-left: 0.5rem;">11. Relatórios</span>
+                            <span style="flex: 1; margin-left: 0.5rem;">Relatórios</span>
                             <i class="bi bi-chevron-right chevron-icon"></i>
                         </button>
                         <div id="submenu-relatorios" class="accordion-collapse collapse" 
@@ -2132,11 +2122,11 @@
                     </div>
                 </div>
 
-                <!-- 12. Categorias -->
+                <!-- Categorias -->
                 {% if propriedade.tipo_operacao == 'PECUARIA' %}
                 <div class="nav-item modulo-categorias {% if 'categorias' in request.path %}active{% endif %}">
                     <a href="{% url 'categorias_lista' %}" class="nav-link">
-                        <i class="bi bi-bookmark-star"></i> <span style="margin-left: 0.5rem;">12. Categorias</span>
+                        <i class="bi bi-bookmark-star"></i> <span style="margin-left: 0.5rem;">Categorias</span>
                     </a>
                 </div>
                 {% endif %}

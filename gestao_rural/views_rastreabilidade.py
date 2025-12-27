@@ -22,6 +22,29 @@ from .models import (
 )
 
 
+def _is_usuario_demo(user):
+    """
+    Função helper para verificar se um usuário é demo.
+    Retorna True se:
+    - username está em ['demo', 'demo_monpec']
+    - ou tem registro UsuarioAtivo (criado pelo botão demonstração)
+    """
+    if not user or not user.is_authenticated:
+        return False
+    
+    # Verificar se é usuário demo padrão
+    if user.username in ['demo', 'demo_monpec']:
+        return True
+    
+    # Verificar se tem UsuarioAtivo (usuário criado pelo popup)
+    try:
+        from .models_auditoria import UsuarioAtivo
+        UsuarioAtivo.objects.get(usuario=user)
+        return True
+    except:
+        return False
+
+
 def _normalizar_codigo(codigo: str) -> str:
     """Remove caracteres não numéricos e devolve o código limpo."""
     if not codigo:

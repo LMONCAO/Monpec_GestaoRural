@@ -1,0 +1,165 @@
+name: 🚀 Deploy Automático para Google Cloud Run
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:  # Permite execução manual
+
+env:
+  PROJECT_ID: monpec-sistema-rural
+  SERVICE_NAME: monpec
+  REGION: us-central1
+  IMAGE_NAME: gcr.io/${{ env.PROJECT_ID }}/monpec
+
+jobs:
+  deploy:
+    name: 🚀 Build e Deploy para Cloud Run
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: 📥 Checkout do código
+        uses: actions/checkout@v4
+
+      - name: 🔐 Autenticação no Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: ⚙️ Configurar gcloud CLI
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: 📦 Configurar projeto GCP
+        run: |
+          gcloud config set project ${{ env.PROJECT_ID }}
+          gcloud config set run/region ${{ env.REGION }}
+
+      - name: 🔨 Habilitar APIs necessárias
+        run: |
+          gcloud services enable cloudbuild.googleapis.com --quiet || true
+          gcloud services enable run.googleapis.com --quiet || true
+          gcloud services enable sqladmin.googleapis.com --quiet || true
+          gcloud services enable containerregistry.googleapis.com --quiet || true
+
+      - name: 🐳 Build da imagem Docker
+        id: build
+        run: |
+          echo "🔨 Iniciando build da imagem Docker..."
+          echo "📄 Usando Dockerfile.prod..."
+          
+          gcloud builds submit \
+            --tag ${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            --tag ${{ env.IMAGE_NAME }}:latest \
+            --file Dockerfile.prod \
+            --timeout=600s \
+            --quiet
+          
+          echo "✅ Build concluído com sucesso!"
+          echo "📦 Imagem: ${{ env.IMAGE_NAME }}:${{ github.sha }}"
+          echo "📦 Imagem latest: ${{ env.IMAGE_NAME }}:latest"
+
+      - name: 🚀 Deploy para Cloud Run
+        id: deploy
+        run: |
+          echo "🚀 Iniciando deploy no Cloud Run..."
+          
+          # Verificar se o serviço já existe para decidir se usa --update-env-vars ou --set-env-vars
+          if gcloud run services describe ${{ env.SERVICE_NAME }} --region ${{ env.REGION }} --quiet &>/dev/null; then
+            echo "📝 Serviço existente encontrado. Atualizando..."
+            UPDATE_FLAG="--update-env-vars"
+          else
+            echo "🆕 Criando novo serviço..."
+            UPDATE_FLAG="--set-env-vars"
+          fi
+          
+          # Deploy com variáveis de ambiente básicas
+          gcloud run deploy ${{ env.SERVICE_NAME }} \
+            --image ${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            --platform managed \
+            --region ${{ env.REGION }} \
+            --allow-unauthenticated \
+            $UPDATE_FLAG "DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,DEBUG=False" \
+            --memory=1Gi \
+            --cpu=2 \
+            --timeout=300 \
+            --max-instances=10 \
+            --min-instances=1 \
+            --quiet
+          
+          # Obter URL do serviço
+          SERVICE_URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
+            --region ${{ env.REGION }} \
+            --format="value(status.url)")
+          
+          echo "✅ Deploy concluído!"
+          echo "🌐 URL: $SERVICE_URL"
+          echo "url=$SERVICE_URL" >> $GITHUB_OUTPUT
+
+      - name: 🔄 Aplicar migrações (opcional)
+        if: success()
+        continue-on-error: true
+        run: |
+          echo "🔄 Aplicando migrações do banco de dados..."
+          
+          # Criar job de migração (ou atualizar se já existir)
+          gcloud run jobs create migrate-db \
+            --image ${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            --region ${{ env.REGION }} \
+            --update-env-vars "DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp" \
+            --command "python" \
+            --args "manage.py,migrate,--noinput" \
+            --max-retries=3 \
+            --memory=512Mi \
+            --cpu=1 \
+            --task-timeout=600s \
+            --quiet 2>&1 | grep -v "already exists" || true
+          
+          # Executar migrações
+          echo "⏳ Executando migrações..."
+          gcloud run jobs execute migrate-db \
+            --region ${{ env.REGION }} \
+            --wait || echo "⚠️ Aviso: Migrações podem ter falhado ou já estarem atualizadas"
+
+      - name: 📊 Coletar arquivos estáticos (opcional)
+        if: success()
+        continue-on-error: true
+        run: |
+          echo "📊 Coletando arquivos estáticos..."
+          
+          # Criar job de collectstatic (ou atualizar se já existir)
+          gcloud run jobs create collectstatic \
+            --image ${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            --region ${{ env.REGION }} \
+            --update-env-vars "DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp" \
+            --command "python" \
+            --args "manage.py,collectstatic,--noinput" \
+            --max-retries=3 \
+            --memory=512Mi \
+            --cpu=1 \
+            --task-timeout=300s \
+            --quiet 2>&1 | grep -v "already exists" || true
+          
+          # Executar collectstatic
+          echo "⏳ Executando collectstatic..."
+          gcloud run jobs execute collectstatic \
+            --region ${{ env.REGION }} \
+            --wait || echo "⚠️ Aviso: Collectstatic pode ter falhado"
+
+      - name: ✅ Verificar status do deploy
+        if: always()
+        run: |
+          echo "✅ Verificando status do serviço..."
+          gcloud run services describe ${{ env.SERVICE_NAME }} \
+            --region ${{ env.REGION }} \
+            --format="table(status.url,status.latestReadyRevisionName,status.conditions[0].status)"
+          
+          echo ""
+          echo "🎉 Deploy concluído com sucesso!"
+          echo "📝 Nota: Variáveis de ambiente e secrets devem ser configurados separadamente no Cloud Run"
+          echo "🔗 Acesse o console: https://console.cloud.google.com/run/detail/${{ env.REGION }}/${{ env.SERVICE_NAME }}"

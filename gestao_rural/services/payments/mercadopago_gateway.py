@@ -27,12 +27,27 @@ class MercadoPagoGateway(PaymentGateway):
     
     def _configurar(self) -> None:
         """Configura o SDK do Mercado Pago."""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        # Tentar ler de múltiplas formas
         access_token = getattr(settings, 'MERCADOPAGO_ACCESS_TOKEN', '')
+        
+        # Se não encontrou, tentar via decouple diretamente
         if not access_token:
+            from decouple import config
+            access_token = config('MERCADOPAGO_ACCESS_TOKEN', default='')
+            logger.info(f"Token lido via decouple: {'✅ Encontrado' if access_token else '❌ Não encontrado'}")
+        
+        if not access_token:
+            logger.error("MERCADOPAGO_ACCESS_TOKEN não encontrado em settings nem via decouple")
             raise RuntimeError(
                 "MERCADOPAGO_ACCESS_TOKEN não configurado. "
-                "Defina a variável de ambiente antes de usar a integração."
+                "Defina a variável de ambiente antes de usar a integração. "
+                "Verifique se o arquivo .env está na raiz do projeto e reinicie o servidor."
             )
+        
+        logger.info(f"Token configurado: {access_token[:20]}...")
         self._mp = mercadopago.SDK(access_token)
     
     def criar_checkout_session(
@@ -50,8 +65,8 @@ class MercadoPagoGateway(PaymentGateway):
         if not self._mp:
             self._configurar()
         
-        # Usar preço do plano ou padrão de R$ 137,90
-        preco = float(plano.preco_mensal_referencia or 137.90)
+        # Usar preço do plano ou padrão de R$ 99,90
+        preco = float(plano.preco_mensal_referencia or 99.90)
         
         # Criar preferência de pagamento simples (checkout direto)
         # Não usar Preapproval por enquanto - apenas pagamento único
@@ -172,8 +187,8 @@ class MercadoPagoGateway(PaymentGateway):
         str
             ID do plano de assinatura criado.
         """
-        # Usar preço do plano ou padrão de R$ 137,90
-        preco = float(plano.preco_mensal_referencia or 137.90)
+        # Usar preço do plano ou padrão de R$ 99,90
+        preco = float(plano.preco_mensal_referencia or 99.90)
         
         preapproval_data = {
             "reason": plano.nome,
@@ -286,10 +301,10 @@ class MercadoPagoGateway(PaymentGateway):
         if status == "approved":
             assinatura.status = AssinaturaCliente.Status.ATIVA
             
-            # Definir data de liberação como 01/02/2026 se não estiver definida
+            # Definir data de liberação como 01/02/2025 se não estiver definida
             if not assinatura.data_liberacao:
                 from datetime import date
-                assinatura.data_liberacao = date(2026, 2, 1)  # 01/02/2026
+                assinatura.data_liberacao = date(2025, 2, 1)  # 01/02/2025
             
             # Atualizar período
             if not assinatura.current_period_end:
@@ -341,10 +356,10 @@ class MercadoPagoGateway(PaymentGateway):
         
         # Atualizar período e data de liberação
         if status == "authorized":
-            # Definir data de liberação como 01/02/2026 se não estiver definida
+            # Definir data de liberação como 01/02/2025 se não estiver definida
             if not assinatura.data_liberacao:
                 from datetime import date
-                assinatura.data_liberacao = date(2026, 2, 1)  # 01/02/2026
+                assinatura.data_liberacao = date(2025, 2, 1)  # 01/02/2025
             
             from datetime import timedelta
             if not assinatura.current_period_end:

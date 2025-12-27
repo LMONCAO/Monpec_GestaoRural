@@ -39,3 +39,21 @@ Write-Host "Total movido: $($scriptsRestantes.Count) scripts" -ForegroundColor C
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
