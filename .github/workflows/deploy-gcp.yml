@@ -48,36 +48,58 @@ jobs:
         run: |
           echo "🔨 Iniciando build da imagem Docker..."
           echo "📄 Usando Dockerfile.prod..."
+          echo "📦 Projeto: ${{ env.PROJECT_ID }}"
+          echo "📝 Commit SHA: ${{ github.sha }}"
           
-          # Criar arquivo cloudbuild.yaml temporário com substituições corretas
-          cat > /tmp/cloudbuild.yaml << 'EOF'
+          # Verificar se Dockerfile.prod existe
+          if [ ! -f Dockerfile.prod ]; then
+            echo "❌ ERRO: Dockerfile.prod não encontrado!"
+            ls -la | grep -i dockerfile
+            exit 1
+          fi
+          
+          # Criar arquivo cloudbuild.yaml temporário com valores diretos
+          PROJECT_ID="${{ env.PROJECT_ID }}"
+          COMMIT_SHA="${{ github.sha }}"
+          
+          cat > /tmp/cloudbuild.yaml << EOF
           steps:
           - name: 'gcr.io/cloud-builders/docker'
             args:
               - 'build'
               - '-t'
-              - 'gcr.io/${_PROJECT_ID}/monpec:${_COMMIT_SHA}'
+              - 'gcr.io/${PROJECT_ID}/monpec:${COMMIT_SHA}'
               - '-t'
-              - 'gcr.io/${_PROJECT_ID}/monpec:latest'
+              - 'gcr.io/${PROJECT_ID}/monpec:latest'
               - '-f'
               - 'Dockerfile.prod'
               - '.'
+            timeout: '600s'
           timeout: '600s'
           images:
-          - 'gcr.io/${_PROJECT_ID}/monpec:${_COMMIT_SHA}'
-          - 'gcr.io/${_PROJECT_ID}/monpec:latest'
+          - 'gcr.io/${PROJECT_ID}/monpec:${COMMIT_SHA}'
+          - 'gcr.io/${PROJECT_ID}/monpec:latest'
           EOF
           
-          # Fazer build usando Cloud Build com substituições
+          echo "📄 Arquivo cloudbuild.yaml criado:"
+          cat /tmp/cloudbuild.yaml
+          
+          # Fazer build usando Cloud Build
+          echo "🚀 Iniciando Cloud Build..."
           gcloud builds submit \
             --config=/tmp/cloudbuild.yaml \
-            --substitutions=_PROJECT_ID=${{ env.PROJECT_ID }},_COMMIT_SHA=${{ github.sha }} \
-            --timeout=600s \
-            --quiet
+            --timeout=600s
           
-          echo "✅ Build concluído com sucesso!"
-          echo "📦 Imagem: gcr.io/${{ env.PROJECT_ID }}/monpec:${{ github.sha }}"
-          echo "📦 Imagem latest: gcr.io/${{ env.PROJECT_ID }}/monpec:latest"
+          if [ $? -eq 0 ]; then
+            echo "✅ Build concluído com sucesso!"
+            echo "📦 Imagem: gcr.io/${{ env.PROJECT_ID }}/monpec:${{ github.sha }}"
+            echo "📦 Imagem latest: gcr.io/${{ env.PROJECT_ID }}/monpec:latest"
+          else
+            echo "❌ ERRO no build!"
+            echo "📋 Verifique os logs no Cloud Build Console:"
+            echo "https://console.cloud.google.com/cloud-build/builds?project=${{ env.PROJECT_ID }}"
+            exit 1
+          fi
 
       - name: 🚀 Deploy para Cloud Run
         id: deploy
