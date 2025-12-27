@@ -63,11 +63,11 @@ jobs:
           fi
           
           # Usar o arquivo cloudbuild-config.yaml com substituições do gcloud
-          # Isso é a forma CORRETA e TESTADA
+          # IMPORTANTE: Substituições devem começar com _ (underscore)
           echo "🚀 Iniciando Cloud Build com substituições..."
           gcloud builds submit \
             --config=cloudbuild-config.yaml \
-            --substitutions=PROJECT_ID=${{ env.PROJECT_ID }},COMMIT_SHA=${{ github.sha }} \
+            --substitutions=_PROJECT_ID=${{ env.PROJECT_ID }},_COMMIT_SHA=${{ github.sha }} \
             --timeout=1200s
           
           echo "✅ Build concluído!"
