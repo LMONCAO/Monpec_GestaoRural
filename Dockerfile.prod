@@ -39,15 +39,19 @@ RUN mkdir -p /app/staticfiles /app/media /app/logs && \
 # Isso garante que todos os arquivos estáticos (incluindo imagens) sejam coletados
 # Usar settings.py base durante o build para evitar problemas com configurações de DB
 # Configurar STATIC_ROOT e STATICFILES_DIRS explicitamente durante o build
-RUN DJANGO_SETTINGS_MODULE=sistema_rural.settings \
+RUN echo "Verificando arquivos estáticos antes do collectstatic..." && \
+    ls -la /app/static/site/ 2>/dev/null | head -10 || echo "AVISO: Diretório /app/static/site/ não encontrado" && \
+    DJANGO_SETTINGS_MODULE=sistema_rural.settings \
     STATIC_ROOT=/app/staticfiles \
     python manage.py collectstatic --noinput --clear && \
     echo "✓ Arquivos estáticos coletados com sucesso durante o build" && \
-    echo "Verificando estrutura de arquivos estáticos..." && \
+    echo "Verificando estrutura de arquivos estáticos coletados..." && \
     (ls -la /app/staticfiles/site/ 2>/dev/null && echo "✓ Imagens encontradas em /app/staticfiles/site/" && \
-     ls -la /app/staticfiles/site/*.jpeg 2>/dev/null | wc -l && echo "arquivos JPEG encontrados") || \
+     echo "Arquivos JPEG:" && ls -la /app/staticfiles/site/*.jpeg 2>/dev/null | wc -l && echo "arquivos encontrados") || \
     (echo "AVISO: Diretório site/ não encontrado em staticfiles, verificando estrutura..." && \
+     echo "Buscando arquivos JPEG em /app/staticfiles:" && \
      find /app/staticfiles -name "*.jpeg" -o -name "*.jpg" 2>/dev/null | head -10 && \
+     echo "Estrutura de diretórios:" && \
      ls -la /app/staticfiles/ 2>/dev/null | head -20) || \
     (echo "AVISO: collectstatic falhou durante o build, será executado no runtime" && \
      mkdir -p /app/staticfiles && \
