@@ -45,28 +45,13 @@ class ProtecaoCodigoMiddleware(MiddlewareMixin):
         cache.set(cache_key, tentativas + 1, 60)  # 1 minuto
         
         # Verificar hotlinking (acesso direto a arquivos estáticos de outros sites)
-        # IMPORTANTE: Permitir arquivos estáticos do mesmo domínio mesmo sem referer
         if request.path.startswith('/static/') or request.path.startswith('/media/'):
-            # Se não há referer, provavelmente é uma requisição do mesmo site (permitir)
-            if not referer:
-                return None  # Permitir arquivos estáticos sem referer (vêm do mesmo site)
-            
-            # Verificar se o referer é de um domínio permitido
-            dominios_permitidos = []
-            if settings.ALLOWED_HOSTS:
-                dominios_permitidos.extend(settings.ALLOWED_HOSTS)
-            dominios_permitidos.extend(['localhost', '127.0.0.1', 'monpec.com.br', 'www.monpec.com.br'])
-            
-            # Adicionar domínios do Cloud Run
-            if hasattr(settings, 'SITE_URL'):
-                from urllib.parse import urlparse
-                parsed = urlparse(settings.SITE_URL)
-                if parsed.netloc:
-                    dominios_permitidos.append(parsed.netloc)
-            
-            # Verificar se o referer é de um domínio permitido
-            if not any(dominio in referer for dominio in dominios_permitidos):
-                # Hotlinking detectado - bloquear apenas se vier de outro domínio
+            if referer and not any(dominio in referer for dominio in [
+                settings.ALLOWED_HOSTS[0] if settings.ALLOWED_HOSTS else 'localhost',
+                'localhost',
+                '127.0.0.1',
+            ]):
+                # Hotlinking detectado
                 return self._bloquear_acesso(request, "Hotlinking não permitido")
         
         return None
