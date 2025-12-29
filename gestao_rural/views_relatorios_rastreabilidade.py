@@ -17,8 +17,8 @@ from .models import (
 )
 
 # Imports para exportação
-from openpyxl import Workbook
-from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+# Importação lazy de openpyxl para evitar erro se não estiver instalado
+# Será importado dentro das funções quando necessário
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
 from reportlab.lib import colors
@@ -1075,6 +1075,15 @@ def exportar_anexo_iv_pdf(request, propriedade_id):
 @login_required
 def exportar_anexo_i_excel(request, propriedade_id):
     """Exporta Anexo I - Identificação Individual em Excel"""
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+    except ImportError:
+        from django.contrib import messages
+        messages.error(request, 'Biblioteca openpyxl não está instalada. Execute: pip install openpyxl')
+        from django.shortcuts import redirect
+        return redirect('rastreabilidade_dashboard', propriedade_id=propriedade_id)
+    
     propriedade = get_object_or_404(Propriedade, pk=propriedade_id)
     
     data_inicio = request.GET.get('data_inicio')
@@ -1174,6 +1183,15 @@ def exportar_anexo_i_excel(request, propriedade_id):
 @login_required
 def exportar_anexo_ii_excel(request, propriedade_id):
     """Exporta Anexo II - Movimentação em Excel"""
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+    except ImportError:
+        from django.contrib import messages
+        messages.error(request, 'Biblioteca openpyxl não está instalada. Execute: pip install openpyxl')
+        from django.shortcuts import redirect
+        return redirect('rastreabilidade_dashboard', propriedade_id=propriedade_id)
+    
     propriedade = get_object_or_404(Propriedade, pk=propriedade_id)
     
     data_inicio = request.GET.get('data_inicio')
@@ -1255,6 +1273,15 @@ def exportar_anexo_ii_excel(request, propriedade_id):
 @login_required
 def exportar_anexo_iii_excel(request, propriedade_id):
     """Exporta Anexo III - Registros Sanitários em Excel"""
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+    except ImportError:
+        from django.contrib import messages
+        messages.error(request, 'Biblioteca openpyxl não está instalada. Execute: pip install openpyxl')
+        from django.shortcuts import redirect
+        return redirect('rastreabilidade_dashboard', propriedade_id=propriedade_id)
+    
     propriedade = get_object_or_404(Propriedade, pk=propriedade_id)
     
     data_inicio = request.GET.get('data_inicio')
@@ -1367,6 +1394,15 @@ def exportar_anexo_iii_excel(request, propriedade_id):
 @login_required
 def exportar_anexo_iv_excel(request, propriedade_id):
     """Exporta Anexo IV - Inventário em Excel"""
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+    except ImportError:
+        from django.contrib import messages
+        messages.error(request, 'Biblioteca openpyxl não está instalada. Execute: pip install openpyxl')
+        from django.shortcuts import redirect
+        return redirect('rastreabilidade_dashboard', propriedade_id=propriedade_id)
+    
     propriedade = get_object_or_404(Propriedade, pk=propriedade_id)
     
     animais = AnimalIndividual.objects.filter(propriedade=propriedade)
