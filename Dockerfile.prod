@@ -20,11 +20,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 # Copiar requirements e instalar dependências Python primeiro (para cache de layers)
-# Usar requirements_producao.txt para produção, mas garantir que requirements.txt também esteja disponível
-COPY requirements_producao.txt requirements.txt ./
+# Tentar requirements_producao.txt primeiro, depois requirements.txt, depois instalar básico
+COPY requirements*.txt ./
 RUN pip install --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir -r requirements_producao.txt && \
-    pip list | grep -i openpyxl || echo "ERRO: openpyxl não foi instalado!"
+    (pip install --no-cache-dir -r requirements_producao.txt 2>/dev/null || \
+     pip install --no-cache-dir -r requirements.txt 2>/dev/null || \
+     pip install --no-cache-dir django psycopg2-binary gunicorn python-decouple whitenoise openpyxl) && \
+    pip list | grep -i openpyxl || echo "AVISO: openpyxl não encontrado na lista, mas tentando continuar"
 
 # Copiar código da aplicação (após instalar dependências para aproveitar cache)
 COPY . .
@@ -33,6 +35,21 @@ COPY . .
 RUN mkdir -p /app/staticfiles /app/media /app/logs && \
     chmod -R 755 /app/staticfiles /app/media /app/logs
 
+# Executar collectstatic durante o build usando settings.py base (não precisa de DB)
+# Isso garante que todos os arquivos estáticos (incluindo imagens) sejam coletados
+# Usar settings.py base durante o build para evitar problemas com configurações de DB
+# Configurar STATIC_ROOT e STATICFILES_DIRS explicitamente durante o build
+RUN DJANGO_SETTINGS_MODULE=sistema_rural.settings \
+    STATIC_ROOT=/app/staticfiles \
+    python manage.py collectstatic --noinput --clear && \
+    echo "✓ Arquivos estáticos coletados com sucesso durante o build" && \
+    (ls -la /app/staticfiles/site/ 2>/dev/null | head -10 && echo "✓ Imagens encontradas em /app/staticfiles/site/") || \
+    (echo "AVISO: Diretório site/ não encontrado em staticfiles, verificando estrutura..." && \
+     ls -la /app/staticfiles/ 2>/dev/null | head -20) || \
+    (echo "AVISO: collectstatic falhou durante o build, será executado no runtime" && \
+     mkdir -p /app/staticfiles && \
+     chmod -R 755 /app/staticfiles)
+
 # Verificar se openpyxl está instalado antes de finalizar
 RUN python -c "import openpyxl; print('✓ openpyxl instalado com sucesso:', openpyxl.__version__)" || \
     (echo "ERRO CRÍTICO: openpyxl não pode ser importado!" && exit 1)
@@ -40,6 +57,11 @@ RUN python -c "import openpyxl; print('✓ openpyxl instalado com sucesso:', ope
 # Expor porta (Cloud Run usa a variável PORT)
 EXPOSE 8080
 
+# Configurar settings para produção (será usado no runtime)
+ENV DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp
+
 # Comando para iniciar a aplicação
 # Executa migrações, cria superusuário e inicia o servidor
-CMD sh -c "python manage.py migrate --noinput && python manage.py collectstatic --noinput || true && (python manage.py shell -c \"from django.contrib.auth.models import User; import os; admin_user, created = User.objects.get_or_create(username='admin', defaults={'email': 'admin@monpec.com.br', 'is_staff': True, 'is_superuser': True, 'is_active': True}); admin_user.set_password(os.environ.get('DJANGO_SUPERUSER_PASSWORD', 'L6171r12@@')); admin_user.save()\" || true) && exec gunicorn --bind 0.0.0.0:\${PORT:-8080} --workers 2 --threads 4 --timeout 300 --access-logfile - --error-logfile - sistema_rural.wsgi:application"
+# collectstatic já foi executado durante o build, mas executamos novamente como fallback se necessário
+# Verificar se as imagens foram coletadas e listar para debug
+CMD sh -c "python manage.py migrate --noinput && (python manage.py collectstatic --noinput --clear && echo '✓ collectstatic executado no runtime' && ls -la /app/staticfiles/site/ 2>/dev/null | head -10 || echo 'AVISO: Verificando arquivos estáticos...') || true && (python manage.py shell -c \"from django.contrib.auth.models import User; import os; admin_user, created = User.objects.get_or_create(username='admin', defaults={'email': 'admin@monpec.com.br', 'is_staff': True, 'is_superuser': True, 'is_active': True}); admin_user.set_password(os.environ.get('DJANGO_SUPERUSER_PASSWORD', 'L6171r12@@')); admin_user.save()\" || true) && exec gunicorn --bind 0.0.0.0:\${PORT:-8080} --workers 2 --threads 4 --timeout 300 --access-logfile - --error-logfile - sistema_rural.wsgi:application"

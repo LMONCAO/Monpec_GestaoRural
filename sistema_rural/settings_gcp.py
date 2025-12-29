@@ -52,6 +52,15 @@ ALLOWED_HOSTS = [
     '*',  # Permitir todos os hosts do Cloud Run (será filtrado pelo middleware)
 ]
 
+# Adicionar hosts do Cloud Run dinamicamente baseado em variáveis de ambiente
+# Isso garante que hosts gerados automaticamente sejam aceitos
+if IS_CLOUD_RUN_ANY:
+    # Adicionar padrões comuns do Cloud Run
+    ALLOWED_HOSTS.extend([
+        '*.run.app',
+        '*.a.run.app',
+    ])
+
 # Adicionar hosts do Cloud Run
 # Cloud Run URLs têm formato: SERVICE-PROJECT_HASH-REGION.a.run.app
 if IS_CLOUD_RUN_ANY:
@@ -85,6 +94,8 @@ CSRF_TRUSTED_ORIGINS = [
     'http://monpec.com.br',  # HTTP também (caso não tenha SSL configurado)
     'http://www.monpec.com.br',  # HTTP também (caso não tenha SSL configurado)
     'https://monpec-sistema-rural.uc.r.appspot.com',
+    'https://monpec-29862706245.us-central1.run.app',  # Cloud Run - host específico
+    'https://monpec-fzzfjppzva-uc.a.run.app',  # Cloud Run - host alternativo
 ]
 
 # Adicionar origem do Cloud Run
@@ -116,10 +127,15 @@ DB_PASSWORD = os.getenv('DB_PASSWORD', '')
 
 # Se estiver no Google Cloud (App Engine ou Cloud Run), usar Unix Socket
 if IS_GAE or IS_CLOUD_RUN_ANY:
-    # Se CLOUD_SQL_CONNECTION_NAME não estiver definido, usar valor padrão
+    # Se CLOUD_SQL_CONNECTION_NAME não estiver definido ou estiver vazio, usar valor padrão
     if not CLOUD_SQL_CONNECTION_NAME:
         CLOUD_SQL_CONNECTION_NAME = 'monpec-sistema-rural:us-central1:monpec-db'
         import warnings
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(
+            f'CLOUD_SQL_CONNECTION_NAME não definido via variável de ambiente. Usando padrão: {CLOUD_SQL_CONNECTION_NAME}'
+        )
         warnings.warn(
             f'CLOUD_SQL_CONNECTION_NAME não definido via variável de ambiente. Usando padrão: {CLOUD_SQL_CONNECTION_NAME}',
             UserWarning
@@ -185,8 +201,15 @@ else:
     # Usar sistema de arquivos local
     STATIC_URL = '/static/'
     STATIC_ROOT = '/app/staticfiles'
-    # STATICFILES_DIRS já está herdado de settings.py via 'from .settings import *'
+    
+    # Garantir que STATICFILES_DIRS está definido explicitamente
     # Ele aponta para BASE_DIR / 'static' onde estão os arquivos originais (vídeos, imagens, etc.)
+    # BASE_DIR já está importado via 'from .settings import *'
+    if not hasattr(globals(), 'STATICFILES_DIRS') or not STATICFILES_DIRS:
+        STATICFILES_DIRS = [
+            BASE_DIR / 'static',
+        ]
+    
     # O collectstatic copia esses arquivos para STATIC_ROOT (/app/staticfiles)
     # O WhiteNoise então serve os arquivos de STATIC_ROOT automaticamente
     MEDIA_URL = '/media/'
@@ -206,21 +229,45 @@ else:
                 if isinstance(MIDDLEWARE, list):
                     MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
         
-        # Usar CompressedStaticFilesStorage
-        STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
+        # Usar StaticFilesStorage simples (sem compressão nem manifest) para garantir que imagens sejam servidas corretamente
+        # A compressão e manifest podem causar problemas com arquivos de imagem
+        STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+        
+        # Configurar WhiteNoise para servir arquivos de imagem corretamente
+        # Em produção, WhiteNoise serve arquivos diretamente do STATIC_ROOT (não usar finders)
+        WHITENOISE_USE_FINDERS = False  # Em produção, servir diretamente do STATIC_ROOT
+        WHITENOISE_AUTOREFRESH = False  # Em produção, não recarregar automaticamente
+        # WhiteNoise detecta automaticamente os tipos MIME (incluindo imagens)
     except ImportError:
         # Se whitenoise não estiver instalado, usar configuração padrão
         pass
     
     # Adicionar middleware para permitir hosts do Cloud Run dinamicamente
+    # CRÍTICO: Este middleware DEVE ser ANTES do CommonMiddleware para interceptar antes da validação do ALLOWED_HOSTS
     # Verificar se o middleware existe antes de adicionar
     try:
         from sistema_rural.middleware import CloudRunHostMiddleware
-        if 'sistema_rural.middleware.CloudRunHostMiddleware' not in MIDDLEWARE:
+        middleware_path = 'sistema_rural.middleware.CloudRunHostMiddleware'
+        if middleware_path not in MIDDLEWARE:
             if isinstance(MIDDLEWARE, list):
-                MIDDLEWARE.insert(0, 'sistema_rural.middleware.CloudRunHostMiddleware')
-    except (ImportError, AttributeError):
-        # Se o middleware não existir, continuar sem ele
+                # Tentar inserir ANTES do CommonMiddleware
+                try:
+                    common_index = MIDDLEWARE.index('django.middleware.common.CommonMiddleware')
+                    MIDDLEWARE.insert(common_index, middleware_path)
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.info(f"CloudRunHostMiddleware adicionado ANTES do CommonMiddleware")
+                except ValueError:
+                    # Se não encontrar CommonMiddleware, inserir no início
+                    MIDDLEWARE.insert(0, middleware_path)
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.info(f"CloudRunHostMiddleware adicionado ao início do MIDDLEWARE")
+    except (ImportError, AttributeError) as e:
+        # Se o middleware não existir, continuar sem ele mas logar o erro
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f"Não foi possível adicionar CloudRunHostMiddleware: {e}")
         pass
 
 # Configuração de logs
