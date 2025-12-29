@@ -219,13 +219,13 @@ else:
     # Verificar se whitenoise está disponível antes de adicionar
     try:
         import whitenoise
-        # Adicionar WhiteNoise após SecurityMiddleware
+        # Adicionar WhiteNoise após SecurityMiddleware (CRÍTICO: deve ser logo após SecurityMiddleware)
         if 'whitenoise.middleware.WhiteNoiseMiddleware' not in MIDDLEWARE:
             try:
                 security_index = MIDDLEWARE.index('django.middleware.security.SecurityMiddleware')
                 MIDDLEWARE.insert(security_index + 1, 'whitenoise.middleware.WhiteNoiseMiddleware')
             except (ValueError, AttributeError):
-                # Se não encontrar, adicionar no início
+                # Se não encontrar SecurityMiddleware, adicionar logo após o primeiro middleware
                 if isinstance(MIDDLEWARE, list):
                     MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
         
@@ -238,8 +238,13 @@ else:
         WHITENOISE_USE_FINDERS = False  # Em produção, servir diretamente do STATIC_ROOT
         WHITENOISE_AUTOREFRESH = False  # Em produção, não recarregar automaticamente
         # WhiteNoise detecta automaticamente os tipos MIME (incluindo imagens)
+        # Garantir que WhiteNoise serve arquivos do STATIC_ROOT
+        WHITENOISE_ROOT = STATIC_ROOT
     except ImportError:
         # Se whitenoise não estiver instalado, usar configuração padrão
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning("WhiteNoise não está instalado. Arquivos estáticos podem não ser servidos corretamente.")
         pass
     
     # Adicionar middleware para permitir hosts do Cloud Run dinamicamente

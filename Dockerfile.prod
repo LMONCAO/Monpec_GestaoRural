@@ -43,8 +43,11 @@ RUN DJANGO_SETTINGS_MODULE=sistema_rural.settings \
     STATIC_ROOT=/app/staticfiles \
     python manage.py collectstatic --noinput --clear && \
     echo "✓ Arquivos estáticos coletados com sucesso durante o build" && \
-    (ls -la /app/staticfiles/site/ 2>/dev/null | head -10 && echo "✓ Imagens encontradas em /app/staticfiles/site/") || \
+    echo "Verificando estrutura de arquivos estáticos..." && \
+    (ls -la /app/staticfiles/site/ 2>/dev/null && echo "✓ Imagens encontradas em /app/staticfiles/site/" && \
+     ls -la /app/staticfiles/site/*.jpeg 2>/dev/null | wc -l && echo "arquivos JPEG encontrados") || \
     (echo "AVISO: Diretório site/ não encontrado em staticfiles, verificando estrutura..." && \
+     find /app/staticfiles -name "*.jpeg" -o -name "*.jpg" 2>/dev/null | head -10 && \
      ls -la /app/staticfiles/ 2>/dev/null | head -20) || \
     (echo "AVISO: collectstatic falhou durante o build, será executado no runtime" && \
      mkdir -p /app/staticfiles && \
@@ -61,7 +64,7 @@ EXPOSE 8080
 ENV DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp
 
 # Comando para iniciar a aplicação
-# Executa migrações, cria superusuário e inicia o servidor
+# Executa migrações, cria/atualiza superusuário admin e inicia o servidor
 # collectstatic já foi executado durante o build, mas executamos novamente como fallback se necessário
-# Verificar se as imagens foram coletadas e listar para debug
-CMD sh -c "python manage.py migrate --noinput && (python manage.py collectstatic --noinput --clear && echo '✓ collectstatic executado no runtime' && ls -la /app/staticfiles/site/ 2>/dev/null | head -10 || echo 'AVISO: Verificando arquivos estáticos...') || true && (python manage.py shell -c \"from django.contrib.auth.models import User; import os; admin_user, created = User.objects.get_or_create(username='admin', defaults={'email': 'admin@monpec.com.br', 'is_staff': True, 'is_superuser': True, 'is_active': True}); admin_user.set_password(os.environ.get('DJANGO_SUPERUSER_PASSWORD', 'L6171r12@@')); admin_user.save()\" || true) && exec gunicorn --bind 0.0.0.0:\${PORT:-8080} --workers 2 --threads 4 --timeout 300 --access-logfile - --error-logfile - sistema_rural.wsgi:application"
+# Usa o comando management 'garantir_admin' para garantir que o admin sempre existe com a senha correta
+CMD sh -c "python manage.py migrate --noinput && (python manage.py collectstatic --noinput --clear && echo '✓ collectstatic executado no runtime' && ls -la /app/staticfiles/site/ 2>/dev/null | head -10 || echo 'AVISO: Verificando arquivos estáticos...') || true && (python manage.py garantir_admin --senha \${DJANGO_SUPERUSER_PASSWORD:-L6171r12@@} || echo '⚠️ Aviso: Não foi possível garantir admin (pode ser normal se o banco não estiver acessível)') && exec gunicorn --bind 0.0.0.0:\${PORT:-8080} --workers 2 --threads 4 --timeout 300 --access-logfile - --error-logfile - sistema_rural.wsgi:application"
