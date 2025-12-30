@@ -23,6 +23,15 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
+# ============================================================================
+# CONSTANTES
+# ============================================================================
+
+# Tipos de Nota Fiscal
+TIPO_NFE_ENTRADA = 'ENTRADA'
+TIPO_NFE_SAIDA = 'SAIDA'
+
 from .models import Propriedade
 from .decorators import obter_propriedade_com_permissao, bloquear_demo_cadastro
 from .models_compras_financeiro import (
@@ -37,7 +46,6 @@ from .models_compras_financeiro import (
     AutorizacaoExcedenteOrcamento,
     Produto, CategoriaProduto,
 )
-from .models_cadastros import Cliente
 from .forms_completos import (
     RequisicaoCompraForm, ItemRequisicaoCompraForm,
     AprovacaoRequisicaoCompraForm, CotacaoFornecedorForm,
@@ -46,7 +54,7 @@ from .forms_completos import (
     SetorPropriedadeForm, ConviteCotacaoFornecedorForm,
     RespostaCotacaoFornecedorCabecalhoForm, RespostaItemCotacaoFornecedorForm,
     OrcamentoCompraMensalForm, AjusteOrcamentoCompraForm,
-    NotaFiscalSaidaForm, ItemNotaFiscalForm,
+    ItemNotaFiscalForm,
     ProdutoForm, CategoriaProdutoForm,
 )
 from .services_receita_federal import (
@@ -268,7 +276,7 @@ def compras_dashboard(request, propriedade_id):
         propriedade=propriedade,
         data_emissao__gte=mes_atual
     ).select_related('fornecedor')
-    valor_compras_mes = sum(nf.valor_total for nf in nfes_mes if nf.tipo == 'ENTRADA')
+    valor_compras_mes = sum(nf.valor_total for nf in nfes_mes if nf.tipo == TIPO_NFE_ENTRADA)
     
     # Orçamento Mensal - Calculado por parcelas (ContaPagar) com vencimento no mês
     hoje = date.today()
@@ -739,8 +747,6 @@ def requisicao_compra_detalhes(request, propriedade_id, requisicao_id):
                         requisicao.solicitante.email if requisicao.solicitante else None,
                         cotacao_escolhida.fornecedor.email,
                     ]
-                    if requisicao.setor and requisicao.setor.responsavel:
-                        destinatarios.append(requisicao.setor.responsavel.email)
                     email_propriedade = getattr(requisicao.propriedade, "email", None) if requisicao.propriedade else None
                     if email_propriedade:
                         destinatarios.append(email_propriedade)
@@ -1022,8 +1028,6 @@ def cotacao_fornecedor_responder_token(request, token):
             destinatarios = [
                 requisicao.solicitante.email if requisicao.solicitante else None,
             ]
-            if requisicao.setor and requisicao.setor.responsavel:
-                destinatarios.append(requisicao.setor.responsavel.email)
             email_propriedade = getattr(requisicao.propriedade, "email", None) if requisicao.propriedade else None
             if email_propriedade:
                 destinatarios.append(email_propriedade)
@@ -1616,7 +1620,7 @@ def ordem_compra_detalhes(request, propriedade_id, ordem_id):
     itens = ordem.itens.all()
     recebimentos = ordem.recebimentos.select_related('responsavel').order_by('-criado_em')
     requisicao = ordem.requisicao_origem or ordem.requisicoes_origem.select_related('solicitante').first()
-    responsavel_setor = ordem.setor.responsavel if ordem.setor and hasattr(ordem.setor, "responsavel") else None
+    responsavel_setor = None
     pode_autorizar = (
         ordem.setor is not None
         and (
@@ -1680,8 +1684,6 @@ def ordem_compra_detalhes(request, propriedade_id, ordem_id):
                             ordem.criado_por.email if ordem.criado_por else None,
                             getattr(ordem.fornecedor, "email", None),
                         ]
-                        if ordem.setor and ordem.setor.responsavel:
-                            destinatarios.append(ordem.setor.responsavel.email)
                         email_propriedade = getattr(ordem.propriedade, "email", None) if ordem.propriedade else None
                         if email_propriedade:
                             destinatarios.append(email_propriedade)
@@ -1703,8 +1705,6 @@ def ordem_compra_detalhes(request, propriedade_id, ordem_id):
                         destinatarios = [
                             ordem.criado_por.email if ordem.criado_por else None,
                         ]
-                        if ordem.setor and ordem.setor.responsavel:
-                            destinatarios.append(ordem.setor.responsavel.email)
 
                         enviar_notificacao_compra(
                             assunto=f"[Monpec] Ordem {ordem.numero_ordem} negada pelo setor",
@@ -1740,11 +1740,13 @@ def ordem_compra_detalhes(request, propriedade_id, ordem_id):
 
 @login_required
 def notas_fiscais_lista(request, propriedade_id):
-    """Lista de notas fiscais"""
+    """Lista de notas fiscais de ENTRADA (compras)"""
     propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
-    notas = NotaFiscal.objects.filter(propriedade=propriedade).select_related(
-        'fornecedor', 'cliente'
-    ).order_by('-data_emissao')
+    # Lista apenas notas fiscais de ENTRADA (compras)
+    notas = NotaFiscal.objects.filter(
+        propriedade=propriedade,
+        tipo=TIPO_NFE_ENTRADA
+    ).select_related('fornecedor', 'cliente').order_by('-data_emissao')
     
     context = {
         'propriedade': propriedade,
@@ -1864,7 +1866,7 @@ def nota_fiscal_upload(request, propriedade_id):
             nota = NotaFiscal(
                 propriedade=propriedade,
                 fornecedor=fornecedor,
-                tipo='ENTRADA',
+                tipo=TIPO_NFE_ENTRADA,
                 numero=numero,
                 serie=serie,
                 chave_acesso=chave_acesso,
@@ -1981,12 +1983,18 @@ def nota_fiscal_upload(request, propriedade_id):
 
 @login_required
 def nota_fiscal_detalhes(request, propriedade_id, nota_id):
-    """Detalhes da nota fiscal"""
+    """Detalhes da nota fiscal de ENTRADA (compra)"""
     propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
-    nota = get_object_or_404(NotaFiscal, id=nota_id, propriedade=propriedade)
+    # Garantir que apenas notas fiscais de ENTRADA (compras) sejam acessadas
+    nota = get_object_or_404(
+        NotaFiscal, 
+        id=nota_id, 
+        propriedade=propriedade,
+        tipo=TIPO_NFE_ENTRADA
+    )
     itens = ItemNotaFiscal.objects.filter(nota_fiscal=nota)
-    ordens = nota.ordens_compra.select_related('fornecedor').all() if nota.tipo == 'ENTRADA' else []
-    contas_pagar = nota.contas_pagar.select_related('fornecedor', 'ordem_compra').all() if nota.tipo == 'ENTRADA' else []
+    ordens = nota.ordens_compra.select_related('fornecedor').all()
+    contas_pagar = nota.contas_pagar.select_related('fornecedor', 'ordem_compra').all()
     
     context = {
         'propriedade': propriedade,
@@ -1997,177 +2005,6 @@ def nota_fiscal_detalhes(request, propriedade_id, nota_id):
     }
     
     return render(request, 'gestao_rural/nota_fiscal_detalhes.html', context)
-
-
-@login_required
-def nota_fiscal_emitir(request, propriedade_id):
-    """Emitir NF-e de saída (venda)"""
-    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
-    
-    # Buscar próximo número de NF-e
-    ultima_nota = NotaFiscal.objects.filter(
-        propriedade=propriedade,
-        tipo='SAIDA',
-        serie='1'
-    ).order_by('-numero').first()
-    
-    proximo_numero = 1
-    if ultima_nota and ultima_nota.numero:
-        try:
-            proximo_numero = int(ultima_nota.numero) + 1
-        except (ValueError, TypeError):
-            pass
-    
-    # Verificar se o modelo Produto existe (migration aplicada)
-    try:
-        from .models_compras_financeiro import Produto
-        # Se chegou aqui, o modelo existe - usar formulário completo
-        ItemNotaFiscalFormSet = inlineformset_factory(
-            NotaFiscal,
-            ItemNotaFiscal,
-            form=ItemNotaFiscalForm,
-            extra=1,
-            can_delete=True,
-            min_num=1,
-            validate_min=True
-        )
-    except (ImportError, Exception) as e:
-        # Se o modelo não existe ou há erro, criar formset sem o campo produto
-        logger.warning(f'Modelo Produto não disponível, usando formulário simplificado: {str(e)}')
-        class ItemNotaFiscalFormSemProduto(forms.ModelForm):
-            """Formulário para itens da NF-e sem campo produto (fallback)"""
-            class Meta:
-                model = ItemNotaFiscal
-                fields = [
-                    'codigo_produto', 'descricao', 'ncm', 'cfop',
-                    'unidade_medida', 'quantidade', 'valor_unitario'
-                ]
-                widgets = {
-                    'codigo_produto': forms.TextInput(attrs={
-                        'class': 'form-control',
-                        'placeholder': 'Código do produto'
-                    }),
-                    'descricao': forms.TextInput(attrs={
-                        'class': 'form-control',
-                        'required': True,
-                        'placeholder': 'Descrição do produto/serviço'
-                    }),
-                    'ncm': forms.TextInput(attrs={
-                        'class': 'form-control',
-                        'placeholder': 'NCM (ex: 0102.29.00)'
-                    }),
-                    'cfop': forms.TextInput(attrs={
-                        'class': 'form-control',
-                        'placeholder': 'CFOP (ex: 5102)'
-                    }),
-                    'unidade_medida': forms.TextInput(attrs={
-                        'class': 'form-control',
-                        'value': 'UN',
-                        'placeholder': 'UN, KG, etc.'
-                    }),
-                    'quantidade': forms.NumberInput(attrs={
-                        'class': 'form-control',
-                        'step': '0.001',
-                        'min': '0.001',
-                        'required': True
-                    }),
-                    'valor_unitario': forms.NumberInput(attrs={
-                        'class': 'form-control',
-                        'step': '0.01',
-                        'min': '0.01',
-                        'required': True
-                    }),
-                }
-        
-        ItemNotaFiscalFormSet = inlineformset_factory(
-            NotaFiscal,
-            ItemNotaFiscal,
-            form=ItemNotaFiscalFormSemProduto,
-            extra=1,
-            can_delete=True,
-            min_num=1,
-            validate_min=True
-        )
-    
-    if request.method == 'POST':
-        form = NotaFiscalSaidaForm(request.POST, propriedade=propriedade)
-        formset = ItemNotaFiscalFormSet(request.POST)
-        
-        if form.is_valid() and formset.is_valid():
-            nota = form.save(commit=False)
-            nota.propriedade = propriedade
-            nota.tipo = 'SAIDA'
-            nota.numero = str(proximo_numero)
-            nota.status = 'PENDENTE'
-            
-            # Calcular valor total dos produtos
-            if not nota.valor_produtos:
-                nota.valor_produtos = Decimal('0.00')
-            
-            nota.save()
-            
-            # Salvar itens
-            formset.instance = nota
-            itens = formset.save()
-            
-            # Recalcular valor total dos produtos baseado nos itens
-            valor_total_itens = sum(item.valor_total for item in itens)
-            if valor_total_itens > 0:
-                nota.valor_produtos = valor_total_itens
-                nota.save()
-            
-            # Tentar emitir NF-e via API ou diretamente com SEFAZ (se configurado)
-            try:
-                from .services_nfe import emitir_nfe
-                resultado = emitir_nfe(nota)
-                if resultado.get('sucesso'):
-                    nota.status = 'AUTORIZADA'
-                    nota.chave_acesso = resultado.get('chave_acesso', '')
-                    nota.protocolo_autorizacao = resultado.get('protocolo', '')
-                    nota.data_autorizacao = timezone.now()
-                    if resultado.get('xml'):
-                        # Salvar XML retornado
-                        from django.core.files.base import ContentFile
-                        nota.arquivo_xml.save(f'nfe_{nota.numero}.xml', ContentFile(resultado['xml']), save=False)
-                    nota.save()
-                    messages.success(request, f'NF-e {nota.numero} emitida e autorizada com sucesso!')
-                else:
-                    nota.status = 'REJEITADA'
-                    nota.save()
-                    erro_msg = resultado.get("erro", "Erro desconhecido")
-                    messages.warning(request, f'NF-e {nota.numero} criada, mas não foi autorizada: {erro_msg}')
-            except ImportError:
-                # Serviço de NF-e não configurado - apenas salvar como pendente
-                messages.info(
-                    request, 
-                    f'NF-e {nota.numero} criada com status PENDENTE. '
-                    'Configure NFE_SEFAZ (emissão direta) ou API_NFE (API terceira) nas settings para emissão automática.'
-                )
-            except Exception as e:
-                logger.error(f'Erro ao emitir NF-e: {str(e)}', exc_info=True)
-                messages.warning(request, f'NF-e {nota.numero} criada, mas houve erro na emissão: {str(e)}')
-            
-            return redirect('nota_fiscal_detalhes', propriedade_id=propriedade.id, nota_id=nota.id)
-        else:
-            messages.error(request, 'Por favor, corrija os erros no formulário.')
-    else:
-        form = NotaFiscalSaidaForm(propriedade=propriedade)
-        formset = ItemNotaFiscalFormSet(instance=NotaFiscal())
-    
-    clientes = Cliente.objects.filter(
-        Q(propriedade=propriedade) | Q(propriedade__isnull=True),
-        ativo=True
-    ).order_by('nome')
-    
-    context = {
-        'propriedade': propriedade,
-        'form': form,
-        'formset': formset,
-        'clientes': clientes,
-        'proximo_numero': proximo_numero,
-    }
-    
-    return render(request, 'gestao_rural/nota_fiscal_emitir.html', context)
 
 
 @login_required
@@ -2711,11 +2548,15 @@ def buscar_produtos_ajax(request):
             'descricao': produto.descricao,
             'ncm': produto.ncm,
             'ncm_descricao': produto.ncm_descricao or '',
+            'origem_mercadoria': produto.origem_mercadoria or '0',
+            'cest': produto.cest or '',
+            'gtin': produto.gtin or '',
+            'ex_tipi': produto.ex_tipi or '',
             'cfop_entrada': produto.cfop_entrada or '',
             'cfop_saida_estadual': produto.cfop_saida_estadual or '',
             'cfop_saida_interestadual': produto.cfop_saida_interestadual or '',
             'unidade_medida': produto.unidade_medida,
-            'preco_venda': str(produto.preco_venda),
+            'preco_venda': str(produto.preco_venda) if hasattr(produto, 'preco_venda') else '',
             'categoria': produto.categoria.nome if produto.categoria else '',
         })
     

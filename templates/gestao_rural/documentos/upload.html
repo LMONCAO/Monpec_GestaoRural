@@ -1,0 +1,112 @@
+{% extends "base_modulos_unificado.html" %}
+{% load static %}
+
+{% block title %}Enviar Documento - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'documentos_lista' propriedade.id %}">Documentos</a></li>
+            <li class="breadcrumb-item active">Enviar Documento</li>
+        </ol>
+    </nav>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-upload text-primary me-2"></i>Enviar Novo Documento
+                    </h5>
+                    <small class="text-muted">{{ propriedade.nome_propriedade }}</small>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="tipo_documento" class="form-label">Tipo de Documento <span class="text-danger">*</span></label>
+                            <select class="form-select" id="tipo_documento" name="tipo_documento" required>
+                                <option value="">Selecione o tipo...</option>
+                                <option value="MATRICULA">Matrícula</option>
+                                <option value="ITR">ITR - Imposto Territorial Rural</option>
+                                <option value="CCIR">CCIR - Certificado de Cadastro de Imóvel Rural</option>
+                                <option value="CAR">CAR - Cadastro Ambiental Rural</option>
+                                <option value="CERTIDAO_NEGATIVA">Certidão Negativa</option>
+                                <option value="CONTRATO">Contrato</option>
+                                <option value="LAUDO">Laudo</option>
+                                <option value="OUTROS">Outros</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="nome_documento" class="form-label">Nome do Documento <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="nome_documento" name="nome_documento" required 
+                                   placeholder="Ex: Matrícula da Propriedade - Nº 12345">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="descricao" class="form-label">Descrição</label>
+                            <textarea class="form-control" id="descricao" name="descricao" rows="3" 
+                                      placeholder="Informações adicionais sobre o documento..."></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="arquivo" class="form-label">Arquivo PDF <span class="text-danger">*</span></label>
+                            <input type="file" class="form-control" id="arquivo" name="arquivo" accept=".pdf" required>
+                            <small class="form-text text-muted">Apenas arquivos PDF são permitidos. Tamanho máximo: 10MB</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="data_vencimento" class="form-label">Data de Vencimento</label>
+                            <input type="date" class="form-control" id="data_vencimento" name="data_vencimento">
+                            <small class="form-text text-muted">Opcional. Informe se o documento possui data de vencimento.</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="observacoes" class="form-label">Observações</label>
+                            <textarea class="form-control" id="observacoes" name="observacoes" rows="3" 
+                                      placeholder="Observações adicionais..."></textarea>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'documentos_lista' propriedade.id %}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left me-1"></i>Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-upload me-1"></i>Enviar Documento
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Validação de tamanho do arquivo
+document.getElementById('arquivo').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const maxSize = 10 * 1024 * 1024; // 10MB
+        if (file.size > maxSize) {
+            alert('O arquivo é muito grande. Tamanho máximo permitido: 10MB');
+            e.target.value = '';
+        }
+        
+        // Verificar se é PDF
+        if (!file.name.toLowerCase().endsWith('.pdf')) {
+            alert('Apenas arquivos PDF são permitidos.');
+            e.target.value = '';
+        }
+    }
+});
+</script>
+{% endblock %}
+
+
+

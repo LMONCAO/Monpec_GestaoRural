@@ -9,6 +9,7 @@ Suporta integração com:
 
 import requests
 import json
+import os
 from decimal import Decimal
 from django.conf import settings
 from django.utils import timezone
@@ -33,9 +34,14 @@ def emitir_nfe(nota_fiscal):
             'erro': str (se houver erro)
         }
     """
-    # Verificar se há configuração de emissão direta com SEFAZ (prioridade)
+    # Verificar se há certificado configurado no produtor ou configuração nas settings
+    produtor = nota_fiscal.propriedade.produtor
+    tem_certificado_produtor = produtor.certificado_digital and produtor.tem_certificado_valido()
     nfe_sefaz = getattr(settings, 'NFE_SEFAZ', None)
-    if nfe_sefaz and nfe_sefaz.get('USAR_DIRETO', False):
+    tem_certificado_settings = nfe_sefaz and nfe_sefaz.get('CERTIFICADO_PATH') and os.path.exists(nfe_sefaz.get('CERTIFICADO_PATH'))
+    
+    # Priorizar emissão direta se houver certificado configurado
+    if (tem_certificado_produtor or (nfe_sefaz and nfe_sefaz.get('USAR_DIRETO', False) and tem_certificado_settings)):
         try:
             from .services_nfe_sefaz import emitir_nfe_direta_sefaz
             resultado = emitir_nfe_direta_sefaz(nota_fiscal)
@@ -181,12 +187,21 @@ def _emitir_nfe_io(nota_fiscal, config):
 def _preparar_dados_nfe(nota_fiscal):
     """
     Prepara os dados da NF-e no formato esperado pela API
+    
+    Raises:
+        ValueError: Se dados obrigatórios estiverem faltando
     """
     # Dados do emitente (propriedade)
     propriedade = nota_fiscal.propriedade
     
+    if not propriedade:
+        raise ValueError('Propriedade não configurada na nota fiscal')
+    
     # Dados do destinatário (cliente)
     cliente = nota_fiscal.cliente
+    
+    if not cliente and nota_fiscal.tipo == 'SAIDA':
+        raise ValueError('Cliente é obrigatório para NF-e de saída')
     
     # Preparar itens
     itens = []

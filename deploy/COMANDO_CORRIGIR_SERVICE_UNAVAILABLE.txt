@@ -1,0 +1,40 @@
+# COMANDO PARA CORRIGIR SERVICE UNAVAILABLE
+# Execute no Cloud Shell
+
+# 1. Verificar status e logs
+echo "🔍 Verificando status do serviço..."
+gcloud run services describe monpec --region=us-central1
+echo ""
+echo "📋 Últimos logs:"
+gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=monpec AND severity>=ERROR" --limit=10 --format="table(timestamp,severity,textPayload)"
+
+# 2. Fazer redeploy completo
+echo ""
+echo "🚀 Fazendo redeploy..."
+PROJECT_ID="monpec-sistema-rural"
+SERVICE_NAME="monpec"
+REGION="us-central1"
+DB_PASSWORD="L6171r12@@jjms"
+
+gcloud config set project $PROJECT_ID
+TIMESTAMP=$(date +%Y%m%d%H%M%S)
+
+gcloud builds submit --tag gcr.io/$PROJECT_ID/$SERVICE_NAME:$TIMESTAMP
+
+gcloud run deploy $SERVICE_NAME \
+    --image gcr.io/$PROJECT_ID/$SERVICE_NAME:$TIMESTAMP \
+    --region=$REGION \
+    --platform managed \
+    --allow-unauthenticated \
+    --add-cloudsql-instances=$PROJECT_ID:$REGION:monpec-db \
+    --set-env-vars "DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,DEBUG=False,CLOUD_SQL_CONNECTION_NAME=$PROJECT_ID:$REGION:monpec-db,DB_NAME=monpec_db,DB_USER=monpec_user,DB_PASSWORD=$DB_PASSWORD" \
+    --memory=2Gi \
+    --cpu=2 \
+    --timeout=600
+
+echo ""
+echo "✅ Deploy concluído!"
+SERVICE_URL=$(gcloud run services describe $SERVICE_NAME --region=$REGION --format="value(status.url)")
+echo "🔗 URL: $SERVICE_URL"
+
+

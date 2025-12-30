@@ -10,7 +10,8 @@ class ProdutorRuralForm(forms.ModelForm):
         model = ProdutorRural
         fields = [
             'nome', 'cpf_cnpj', 'documento_identidade', 'data_nascimento', 
-            'anos_experiencia', 'telefone', 'email', 'endereco'
+            'anos_experiencia', 'telefone', 'email', 'endereco',
+            'certificado_digital', 'senha_certificado', 'certificado_valido_ate', 'certificado_tipo'
         ]
         widgets = {
             'nome': forms.TextInput(attrs={'class': 'form-control'}),
@@ -21,7 +22,26 @@ class ProdutorRuralForm(forms.ModelForm):
             'telefone': forms.TextInput(attrs={'class': 'form-control'}),
             'email': forms.EmailInput(attrs={'class': 'form-control'}),
             'endereco': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'certificado_digital': forms.FileInput(attrs={'class': 'form-control', 'accept': '.p12,.pfx', 'style': 'position: absolute; opacity: 0; width: 100%; height: 100%; cursor: pointer; top: 0; left: 0;'}),
+            'senha_certificado': forms.PasswordInput(attrs={'class': 'form-control', 'autocomplete': 'new-password', 'placeholder': 'Deixe em branco para manter a senha atual'}),
+            'certificado_valido_ate': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'certificado_tipo': forms.Select(attrs={'class': 'form-control'}),
         }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Tornar senha_certificado não obrigatória
+        self.fields['senha_certificado'].required = False
+    
+    def save(self, commit=True):
+        # Se a senha estiver vazia e já existir uma senha, manter a senha existente
+        instance = super().save(commit=False)
+        if not self.cleaned_data.get('senha_certificado') and self.instance.pk:
+            if hasattr(self.instance, 'senha_certificado') and self.instance.senha_certificado:
+                instance.senha_certificado = self.instance.senha_certificado
+        if commit:
+            instance.save()
+        return instance
 
 
 class PropriedadeForm(forms.ModelForm):
@@ -31,11 +51,18 @@ class PropriedadeForm(forms.ModelForm):
         required=False,
         label="Tipos de Ciclo Pecuário"
     )
+    produtor = forms.ModelChoiceField(
+        queryset=ProdutorRural.objects.none(),
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        required=True,
+        label="Produtor",
+        empty_label="Selecione o produtor"
+    )
 
     class Meta:
         model = Propriedade
         fields = [
-            'nome_propriedade', 'municipio', 'uf', 'endereco', 'cep', 'bairro', 
+            'produtor', 'nome_propriedade', 'municipio', 'uf', 'endereco', 'cep', 'bairro', 
             'latitude', 'longitude', 'ponto_referencia', 'area_total_ha', 'tipo_operacao',
             'tipo_ciclo_pecuario', 'tipo_propriedade', 'valor_hectare_proprio', 
             'valor_mensal_hectare_arrendamento', 'nirf', 'incra', 'car', 'inscricao_estadual'
@@ -62,7 +89,41 @@ class PropriedadeForm(forms.ModelForm):
         }
     
     def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        produtor_initial = kwargs.pop('produtor_initial', None)
         super().__init__(*args, **kwargs)
+        
+        # Configurar queryset do campo produtor baseado no usuário
+        if user:
+            # Verificar se é assinante (tem permissão de ver todos os produtores)
+            # Assumimos que se o usuário tem acesso a todos os produtores, ele é assinante
+            # Caso contrário, só vê seus próprios produtores
+            try:
+                from .models import AssinaturaCliente
+                is_assinante = AssinaturaCliente.objects.filter(usuario=user, ativa=True).exists()
+            except:
+                is_assinante = False
+            
+            if is_assinante:
+                # Assinante pode ver todos os produtores
+                self.fields['produtor'].queryset = ProdutorRural.objects.all().order_by('nome')
+            else:
+                # Usuário normal só vê seus próprios produtores
+                self.fields['produtor'].queryset = ProdutorRural.objects.filter(usuario_responsavel=user).order_by('nome')
+        
+        # Se já existe uma instância (edição), definir o produtor inicial
+        if self.instance and self.instance.pk:
+            self.fields['produtor'].initial = self.instance.produtor
+            # Não desabilitar o campo, apenas torná-lo readonly visualmente
+            # Desabilitar impede o envio do valor no POST
+            self.fields['produtor'].widget.attrs['readonly'] = True
+            self.fields['produtor'].widget.attrs['style'] = 'background-color: #e9ecef; cursor: not-allowed;'
+        elif produtor_initial:
+            # Se foi passado um produtor inicial (via URL), pré-selecionar
+            self.fields['produtor'].initial = produtor_initial
+            # Ocultar o campo se já temos um produtor definido
+            self.fields['produtor'].widget.attrs['style'] = 'display: none;'
+        
         # Adicionar opções de UF
         self.fields['uf'].widget.choices = [
             ('', 'Selecione o Estado'),
@@ -78,6 +139,15 @@ class PropriedadeForm(forms.ModelForm):
             self.fields['tipo_ciclo_pecuario'].initial = self.instance.ciclos_pecuarios_list()
         elif not self.initial.get('tipo_ciclo_pecuario'):
             self.fields['tipo_ciclo_pecuario'].initial = ['CICLO_COMPLETO']
+    
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        # Se o campo produtor não foi enviado (por estar readonly), usar o produtor da instância existente
+        if self.instance and self.instance.pk and 'produtor' not in self.cleaned_data:
+            instance.produtor = self.instance.produtor
+        if commit:
+            instance.save()
+        return instance
 
 
 class InventarioRebanhoForm(forms.ModelForm):

@@ -1,0 +1,21 @@
+# Comandos rápidos para verificar status do serviço
+
+# 1. Verificar variáveis de ambiente
+gcloud run services describe monpec --region=us-central1 --format="table(spec.template.spec.containers[0].env.name,spec.template.spec.containers[0].env.value)"
+
+# 2. Verificar conexão Cloud SQL
+gcloud run services describe monpec --region=us-central1 --format="value(spec.template.spec.containers[0].cloudSqlInstances)"
+
+# 3. Testar acesso
+curl -I https://monpec-29862706245.us-central1.run.app
+
+# 4. Ver logs de erro
+gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=monpec AND severity>=ERROR" --limit=5 --format="value(textPayload)" --project=monpec-sistema-rural
+
+# 5. Ver status do serviço
+gcloud run services describe monpec --region=us-central1 --format="value(status.url,status.conditions[0].status)"
+
+
+
+
+

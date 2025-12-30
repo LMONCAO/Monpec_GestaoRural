@@ -1,4 +1,5 @@
 # Generated manually for cadastro de produtos sincronizado com Receita Federal
+# VERSÃO CORRIGIDA: Campo NCM permite NULL inicialmente para evitar erro 500
 
 from django.conf import settings
 from django.db import migrations, models
@@ -36,7 +37,8 @@ class Migration(migrations.Migration):
                 ('descricao', models.CharField(max_length=200, verbose_name='Descrição do Produto')),
                 ('descricao_completa', models.TextField(blank=True, help_text='Descrição detalhada do produto', null=True, verbose_name='Descrição Completa')),
                 ('unidade_medida', models.CharField(choices=[('UN', 'Unidade'), ('KG', 'Quilograma'), ('TON', 'Tonelada'), ('L', 'Litro'), ('M', 'Metro'), ('M2', 'Metro Quadrado'), ('M3', 'Metro Cúbico'), ('SC', 'Saca'), ('CX', 'Caixa'), ('PC', 'Peça'), ('FD', 'Fardo'), ('RL', 'Rolo')], default='UN', max_length=10, verbose_name='Unidade de Medida')),
-                ('ncm', models.CharField(help_text='Nomenclatura Comum do Mercosul (ex: 0102.29.00)', max_length=10, verbose_name='NCM')),
+                # CORREÇÃO: NCM permite NULL inicialmente (será tratado na 0072)
+                ('ncm', models.CharField(blank=True, help_text='Nomenclatura Comum do Mercosul (ex: 0102.29.00)', max_length=10, null=True, verbose_name='NCM')),
                 ('ncm_descricao', models.CharField(blank=True, help_text='Descrição oficial do NCM pela Receita', max_length=500, null=True, verbose_name='Descrição do NCM')),
                 ('ncm_validado', models.BooleanField(default=False, help_text='Indica se o NCM foi validado com a Receita Federal', verbose_name='NCM Validado')),
                 ('ncm_data_validacao', models.DateTimeField(blank=True, null=True, verbose_name='Data de Validação do NCM')),
@@ -86,4 +88,3 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(blank=True, help_text='Produto cadastrado (preenche automaticamente os dados fiscais)', null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='itens_nota_fiscal', to='gestao_rural.produto', verbose_name='Produto'),
         ),
     ]
-

@@ -171,223 +171,413 @@ Informações removidas conforme solicitado:
 <!-- Page Header - Centralizado -->
 <div class="page-header-modulos">
     <h1>Monpec-Monitor da Pecuaria</h1>
+    <button type="button" class="btn btn-outline-primary btn-sm mt-2" id="btnConfigurarModulos" style="border-radius: 8px;">
+        <i class="bi bi-gear"></i> Configurar Módulos
+    </button>
 </div>
 
 <!-- Módulos Disponíveis -->
 <div class="container-fluid px-4" style="padding-top: 0.5rem !important;">
-    <div class="row g-3 justify-content-center" style="max-width: 1600px; margin: 0 auto;">
-    <!-- Tela Curral -->
-    {% if propriedade.tipo_operacao == 'PECUARIA' %}
-    <div class="col-lg-3 col-md-6 col-sm-6">
-        <a href="{% url 'curral_dashboard_v4' propriedade.id %}" class="text-decoration-none" target="_blank" id="linkTelaCurral">
-            <div class="card-moderno h-100 card-hover">
-                <div class="card-body-moderno text-center d-flex flex-column">
-                    <div class="mb-2">
-                        <i class="bi bi-cpu card-modulo-icon icon-curral"></i>
-                    </div>
-                    <h5 class="card-title text-dark">Tela Curral</h5>
-                    <p class="text-muted mb-auto small">Super tela operacional para identificação, pesagem, apartação, sanidade e reprodução em tempo real</p>
-                </div>
-            </div>
-        </a>
-    </div>
-    {% endif %}
+    <div class="row g-3 justify-content-center" id="modulosContainer" style="max-width: 1600px; margin: 0 auto;">
     
-    <!-- Planejamento -->
-    {% if propriedade.tipo_operacao == 'PECUARIA' %}
-    <div class="col-lg-3 col-md-6 col-sm-6">
-        <a href="{% url 'pecuaria_planejamento_dashboard' propriedade.id %}" class="text-decoration-none">
-            <div class="card-moderno h-100 card-hover">
-                <div class="card-body-moderno text-center d-flex flex-column">
-                    <div class="mb-2">
-                        <i class="bi bi-calendar3-range card-modulo-icon icon-planejamento"></i>
-                    </div>
-                    <h5 class="card-title text-dark">Planejamento</h5>
-                    <p class="text-muted mb-auto small">Planejamento estratégico, projeções, indicadores financeiros e metas do rebanho</p>
-                </div>
-            </div>
-        </a>
-    </div>
-    {% endif %}
-    
-    <!-- Pecuária -->
-    {% if propriedade.tipo_operacao == 'PECUARIA' %}
-    <div class="col-lg-3 col-md-6 col-sm-6">
-        <a href="{% url 'pecuaria_dashboard' propriedade.id %}" class="text-decoration-none">
-            <div class="card-moderno h-100 card-hover">
-                <div class="card-body-moderno text-center d-flex flex-column">
-                    <div class="mb-2">
-                        <i class="bi bi-graph-up-arrow card-modulo-icon icon-pecuaria"></i>
-                    </div>
-                    <h5 class="card-title text-dark">Pecuária</h5>
-                    <p class="text-muted mb-auto small">Gestão completa do rebanho, inventário, projeções e movimentações de animais</p>
-                </div>
-            </div>
-        </a>
-    </div>
-    {% endif %}
-    
-    <!-- Nutrição -->
-    {% if propriedade.tipo_operacao == 'PECUARIA' %}
-    <div class="col-lg-3 col-md-6 col-sm-6">
-        <a href="{% url 'nutricao_dashboard' propriedade.id %}" class="text-decoration-none">
-            <div class="card-moderno h-100 card-hover">
-                <div class="card-body-moderno text-center d-flex flex-column">
-                    <div class="mb-2">
-                        <i class="bi bi-bag card-modulo-icon icon-nutricao"></i>
-                    </div>
-                    <h5 class="card-title text-dark">Nutrição</h5>
-                    <p class="text-muted mb-auto small">Gestão de suplementação, estoques, cochos e distribuição de ração</p>
-                </div>
-            </div>
-        </a>
-    </div>
-    {% endif %}
-    
-    <!-- Bens e Patrimônio -->
-    <div class="col-lg-3 col-md-6 col-sm-6">
-        <a href="{% url 'imobilizado_dashboard' propriedade.id %}" class="text-decoration-none">
-            <div class="card-moderno h-100 card-hover">
-                <div class="card-body-moderno text-center d-flex flex-column">
-                    <div class="mb-2">
-                        <i class="bi bi-box-seam card-modulo-icon icon-patrimonio"></i>
-                    </div>
-                    <h5 class="card-title text-dark">Bens e Patrimônio</h5>
-                    <p class="text-muted mb-auto small">Controle de máquinas, veículos, instalações e depreciação</p>
-                </div>
-            </div>
-        </a>
-    </div>
-    
-    <!-- Compras -->
-    <div class="col-lg-3 col-md-6 col-sm-6">
-        <a href="{% url 'compras_dashboard' propriedade.id %}" class="text-decoration-none">
-            <div class="card-moderno h-100 card-hover">
-                <div class="card-body-moderno text-center d-flex flex-column">
-                    <div class="mb-2">
-                        <i class="bi bi-bag-check card-modulo-icon icon-compras"></i>
-                    </div>
-                    <h5 class="card-title text-dark">Compras</h5>
-                    <p class="text-muted mb-auto small">Fornecedores, ordens de compra, NF-es e gestão de compras</p>
-                </div>
-            </div>
-        </a>
-    </div>
-    
-    <!-- Financeiro -->
-    <div class="col-lg-3 col-md-6 col-sm-6">
-        <a href="{% url 'financeiro_dashboard' propriedade.id %}" class="text-decoration-none">
-            <div class="card-moderno h-100 card-hover">
-                <div class="card-body-moderno text-center d-flex flex-column">
-                    <div class="mb-2">
-                        <i class="bi bi-wallet2 card-modulo-icon icon-financeiro"></i>
-                    </div>
-                    <h5 class="card-title text-dark">Financeiro</h5>
-                    <p class="text-muted mb-auto small">Contas a pagar/receber, custos, fluxo de caixa e relatórios financeiros</p>
-                </div>
-            </div>
-        </a>
-    </div>
-    
-    <!-- Operações -->
-    <div class="col-lg-3 col-md-6 col-sm-6">
-        <a href="{% url 'operacoes_dashboard' propriedade.id %}" class="text-decoration-none">
-            <div class="card-moderno h-100 card-hover">
-                <div class="card-body-moderno text-center d-flex flex-column">
-                    <div class="mb-2">
-                        <i class="bi bi-tools card-modulo-icon icon-operacoes"></i>
-                    </div>
-                    <h5 class="card-title text-dark">Operações</h5>
-                    <p class="text-muted mb-auto small">Combustível, manutenção, equipamentos e gestão de funcionários</p>
-                </div>
-            </div>
-        </a>
-    </div>
-    
-    <!-- Projetos Bancários -->
-    <div class="col-lg-3 col-md-6 col-sm-6">
-        <a href="{% url 'projeto_bancario_dashboard' propriedade.id %}" class="text-decoration-none">
-            <div class="card-moderno h-100 card-hover">
-                <div class="card-body-moderno text-center d-flex flex-column">
-                    <div class="mb-2">
-                        <i class="bi bi-briefcase card-modulo-icon icon-projetos"></i>
-                    </div>
-                    <h5 class="card-title text-dark">Projetos Bancários</h5>
-                    <p class="text-muted mb-auto small">Projetos de crédito rural, análise de viabilidade e documentação bancária</p>
-                </div>
-            </div>
-        </a>
-    </div>
-    
-    <!-- Relatórios -->
-    <div class="col-lg-3 col-md-6 col-sm-6">
-        <a href="{% url 'relatorio_final' propriedade.id %}" class="text-decoration-none">
-            <div class="card-moderno h-100 card-hover">
-                <div class="card-body-moderno text-center d-flex flex-column">
-                    <div class="mb-2">
-                        <i class="bi bi-file-text card-modulo-icon icon-relatorios"></i>
-                    </div>
-                    <h5 class="card-title text-dark">Relatórios</h5>
-                    <p class="text-muted mb-auto small">Gere relatórios completos em PDF com todas as informações da propriedade</p>
-                </div>
-            </div>
-        </a>
-    </div>
-    
-    <!-- Categorias -->
-    {% if propriedade.tipo_operacao == 'PECUARIA' %}
-    <div class="col-lg-3 col-md-6 col-sm-6">
-        <a href="{% url 'categorias_lista' %}" class="text-decoration-none">
-            <div class="card-moderno h-100 card-hover">
-                <div class="card-body-moderno text-center d-flex flex-column">
-                    <div class="mb-2">
-                        <i class="bi bi-bookmark-star card-modulo-icon icon-categorias"></i>
-                    </div>
-                    <h5 class="card-title text-dark">Categorias de Animais</h5>
-                    <p class="text-muted mb-auto small">Gerencie as categorias de animais utilizadas no sistema</p>
-                </div>
-            </div>
-        </a>
-    </div>
-    {% endif %}
-    
-    <!-- Configurações -->
-    <div class="col-lg-3 col-md-6 col-sm-6">
-        <a href="{% url 'propriedade_editar' propriedade.id %}" class="text-decoration-none">
-            <div class="card-moderno h-100 card-hover">
-                <div class="card-body-moderno text-center d-flex flex-column">
-                    <div class="mb-2">
-                        <i class="bi bi-sliders card-modulo-icon icon-configuracoes"></i>
-                    </div>
-                    <h5 class="card-title text-dark">Configurações</h5>
-                    <p class="text-muted mb-auto small">Edite informações, área, localização e dados cadastrais da propriedade</p>
-                </div>
-            </div>
-        </a>
-    </div>
+    <!-- Módulos serão renderizados dinamicamente via JavaScript -->
 </div>
 </div>
 
+<!-- Modal de Configuração de Módulos -->
+<div class="modal fade" id="modalConfigurarModulos" tabindex="-1" aria-labelledby="modalConfigurarModulosLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalConfigurarModulosLabel">
+                    <i class="bi bi-gear"></i> Configurar Módulos da Página Inicial
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted mb-3">Arraste os módulos para reordenar. Marque/desmarque para escolher quais aparecem na página inicial. Você deve selecionar exatamente 12 módulos.</p>
+                <div id="modulosDisponiveis" class="list-group" style="max-height: 500px; overflow-y: auto;">
+                    <!-- Módulos serão renderizados aqui -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnSalvarConfiguracao">
+                    <i class="bi bi-check-circle"></i> Salvar Configuração
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Marcar item "Tela Curral" como ativo quando o card é clicado
-    const linkTelaCurral = document.getElementById('linkTelaCurral');
-    if (linkTelaCurral) {
-        linkTelaCurral.addEventListener('click', function() {
-            // Marcar como ativo no menu lateral
-            const navItemCurral = document.querySelector('.nav-link-curral');
-            const navItemParent = navItemCurral?.closest('.nav-item');
-            
-            if (navItemCurral && navItemParent) {
-                // Adicionar classe active
-                navItemCurral.classList.add('active');
-                navItemParent.classList.add('active');
-                
-                // Salvar no localStorage para manter o estado
-                localStorage.setItem('curral_active', 'true');
-            }
+    const propriedadeId = {{ propriedade.id }};
+    const tipoOperacao = '{{ propriedade.tipo_operacao }}';
+    let configuracaoModulos;
+    try {
+        configuracaoModulos = {{ configuracao_modulos|safe }};
+    } catch(e) {
+        configuracaoModulos = {
+            modulos: ['curral', 'planejamento', 'pecuaria', 'nutricao', 'patrimonio', 
+                     'compras', 'financeiro', 'operacoes', 'projetos', 'relatorios', 
+                     'categorias', 'configuracoes'],
+            ordem: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+        };
+    }
+    
+    // Definir todos os módulos disponíveis
+    const todosModulos = {
+        'curral': {
+            nome: 'Tela Curral',
+            descricao: 'Super tela operacional para identificação, pesagem, apartação, sanidade e reprodução em tempo real',
+            icon: 'bi-cpu',
+            iconClass: 'icon-curral',
+            url: '{% url "curral_dashboard_v4" propriedade.id %}',
+            target: '_blank',
+            requerPecuaria: true
+        },
+        'planejamento': {
+            nome: 'Planejamento',
+            descricao: 'Planejamento estratégico, projeções, indicadores financeiros e metas do rebanho',
+            icon: 'bi-calendar3-range',
+            iconClass: 'icon-planejamento',
+            url: '{% url "pecuaria_planejamento_dashboard" propriedade.id %}',
+            requerPecuaria: true
+        },
+        'pecuaria': {
+            nome: 'Pecuária',
+            descricao: 'Gestão completa do rebanho, inventário, projeções e movimentações de animais',
+            icon: 'bi-graph-up-arrow',
+            iconClass: 'icon-pecuaria',
+            url: '{% url "pecuaria_dashboard" propriedade.id %}',
+            requerPecuaria: true
+        },
+        'nutricao': {
+            nome: 'Nutrição',
+            descricao: 'Gestão de suplementação, estoques, cochos e distribuição de ração',
+            icon: 'bi-bag',
+            iconClass: 'icon-nutricao',
+            url: '{% url "nutricao_dashboard" propriedade.id %}',
+            requerPecuaria: true
+        },
+        'patrimonio': {
+            nome: 'Bens e Patrimônio',
+            descricao: 'Controle de máquinas, veículos, instalações e depreciação',
+            icon: 'bi-box-seam',
+            iconClass: 'icon-patrimonio',
+            url: '{% url "imobilizado_dashboard" propriedade.id %}',
+            requerPecuaria: false
+        },
+        'compras': {
+            nome: 'Compras',
+            descricao: 'Fornecedores, ordens de compra, NF-es e gestão de compras',
+            icon: 'bi-bag-check',
+            iconClass: 'icon-compras',
+            url: '{% url "compras_dashboard" propriedade.id %}',
+            requerPecuaria: false
+        },
+        'financeiro': {
+            nome: 'Financeiro',
+            descricao: 'Contas a pagar/receber, custos, fluxo de caixa e relatórios financeiros',
+            icon: 'bi-wallet2',
+            iconClass: 'icon-financeiro',
+            url: '{% url "financeiro_dashboard" propriedade.id %}',
+            requerPecuaria: false
+        },
+        'operacoes': {
+            nome: 'Operações',
+            descricao: 'Combustível, manutenção, equipamentos e gestão de funcionários',
+            icon: 'bi-tools',
+            iconClass: 'icon-operacoes',
+            url: '{% url "operacoes_dashboard" propriedade.id %}',
+            requerPecuaria: false
+        },
+        'projetos': {
+            nome: 'Projetos Bancários',
+            descricao: 'Projetos de crédito rural, análise de viabilidade e documentação bancária',
+            icon: 'bi-briefcase',
+            iconClass: 'icon-projetos',
+            url: '{% url "projeto_bancario_dashboard" propriedade.id %}',
+            requerPecuaria: false
+        },
+        'relatorios': {
+            nome: 'Relatórios',
+            descricao: 'Gere relatórios completos em PDF com todas as informações da propriedade',
+            icon: 'bi-file-text',
+            iconClass: 'icon-relatorios',
+            url: '{% url "relatorio_final" propriedade.id %}',
+            requerPecuaria: false
+        },
+        'categorias': {
+            nome: 'Categorias de Animais',
+            descricao: 'Gerencie as categorias de animais utilizadas no sistema',
+            icon: 'bi-bookmark-star',
+            iconClass: 'icon-categorias',
+            url: '{% url "categorias_lista" %}',
+            requerPecuaria: true
+        },
+        'configuracoes': {
+            nome: 'Configurações',
+            descricao: 'Edite informações, área, localização e dados cadastrais da propriedade',
+            icon: 'bi-sliders',
+            iconClass: 'icon-configuracoes',
+            url: '{% url "propriedade_editar" propriedade.id %}',
+            requerPecuaria: false
+        }
+    };
+    
+    // Obter módulos ativos e ordem da configuração
+    let modulosAtivos = configuracaoModulos.modulos || Object.keys(todosModulos);
+    let ordem = configuracaoModulos.ordem || modulosAtivos.map((_, i) => i);
+    
+    // Filtrar módulos que requerem pecuária se necessário
+    if (tipoOperacao !== 'PECUARIA') {
+        modulosAtivos = modulosAtivos.filter(codigo => {
+            const modulo = todosModulos[codigo];
+            return modulo && !modulo.requerPecuaria;
         });
     }
+    
+    // Garantir que temos exatamente 12 módulos
+    while (modulosAtivos.length < 12) {
+        const modulosDisponiveis = Object.keys(todosModulos).filter(codigo => {
+            if (tipoOperacao !== 'PECUARIA' && todosModulos[codigo].requerPecuaria) {
+                return false;
+            }
+            return !modulosAtivos.includes(codigo);
+        });
+        if (modulosDisponiveis.length > 0) {
+            modulosAtivos.push(modulosDisponiveis[0]);
+        } else {
+            break;
+        }
+    }
+    
+    // Função para renderizar um card de módulo
+    function renderizarCardModulo(codigo, index) {
+        const modulo = todosModulos[codigo];
+        if (!modulo) return '';
+        
+        const isPecuaria = tipoOperacao === 'PECUARIA';
+        if (modulo.requerPecuaria && !isPecuaria) return '';
+        
+        const targetAttr = modulo.target ? `target="${modulo.target}"` : '';
+        const idAttr = codigo === 'curral' ? 'id="linkTelaCurral"' : '';
+        
+        return `
+            <div class="col-lg-3 col-md-6 col-sm-6" data-modulo="${codigo}" data-index="${index}">
+                <a href="${modulo.url}" class="text-decoration-none" ${targetAttr} ${idAttr}>
+                    <div class="card-moderno h-100 card-hover">
+                        <div class="card-body-moderno text-center d-flex flex-column">
+                            <div class="mb-2">
+                                <i class="bi ${modulo.icon} card-modulo-icon ${modulo.iconClass}"></i>
+                            </div>
+                            <h5 class="card-title text-dark">${modulo.nome}</h5>
+                            <p class="text-muted mb-auto small">${modulo.descricao}</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        `;
+    }
+    
+    // Renderizar módulos na página
+    function renderizarModulos() {
+        const container = document.getElementById('modulosContainer');
+        container.innerHTML = '';
+        
+        // Ordenar módulos conforme a ordem configurada
+        // Se ordem tem índices, usar para ordenar modulosAtivos
+        let modulosOrdenados = [];
+        if (ordem && ordem.length === modulosAtivos.length) {
+            // Ordem contém índices de posição
+            modulosOrdenados = ordem.map((idx, pos) => {
+                const codigo = modulosAtivos[idx] || modulosAtivos[pos];
+                return codigo ? { codigo: codigo, posicao: pos } : null;
+            }).filter(item => item !== null);
+        } else {
+            // Ordem não válida, usar ordem padrão
+            modulosOrdenados = modulosAtivos.map((codigo, pos) => {
+                return { codigo: codigo, posicao: pos };
+            });
+        }
+        
+        modulosOrdenados.forEach((item, index) => {
+            container.innerHTML += renderizarCardModulo(item.codigo, index);
+        });
+        
+        // Inicializar drag and drop
+        if (typeof Sortable !== 'undefined') {
+            new Sortable(container, {
+                animation: 150,
+                handle: '.card-moderno',
+                onEnd: function(evt) {
+                    // Atualizar ordem
+                    const items = Array.from(container.children);
+                    ordem = items.map((item, idx) => {
+                        const codigo = item.getAttribute('data-modulo');
+                        return modulosAtivos.indexOf(codigo);
+                    });
+                    salvarPreferencias();
+                }
+            });
+        }
+        
+        // Marcar item "Tela Curral" como ativo quando o card é clicado
+        const linkTelaCurral = document.getElementById('linkTelaCurral');
+        if (linkTelaCurral) {
+            linkTelaCurral.addEventListener('click', function() {
+                const navItemCurral = document.querySelector('.nav-link-curral');
+                const navItemParent = navItemCurral?.closest('.nav-item');
+                
+                if (navItemCurral && navItemParent) {
+                    navItemCurral.classList.add('active');
+                    navItemParent.classList.add('active');
+                    localStorage.setItem('curral_active', 'true');
+                }
+            });
+        }
+    }
+    
+    // Renderizar módulos no modal de configuração
+    function renderizarModalConfiguracao() {
+        const container = document.getElementById('modulosDisponiveis');
+        container.innerHTML = '';
+        
+        // Criar lista de módulos disponíveis
+        Object.keys(todosModulos).forEach(codigo => {
+            const modulo = todosModulos[codigo];
+            const isPecuaria = tipoOperacao === 'PECUARIA';
+            
+            if (modulo.requerPecuaria && !isPecuaria) {
+                return; // Pular módulos que requerem pecuária
+            }
+            
+            const isAtivo = modulosAtivos.includes(codigo);
+            const posicao = modulosAtivos.indexOf(codigo);
+            
+            container.innerHTML += `
+                <div class="list-group-item d-flex align-items-center" data-modulo="${codigo}" style="cursor: move;">
+                    <input type="checkbox" class="form-check-input me-3" ${isAtivo ? 'checked' : ''} 
+                           onchange="toggleModulo('${codigo}')" style="cursor: pointer;">
+                    <i class="bi ${modulo.icon} ${modulo.iconClass} me-3" style="font-size: 1.5rem;"></i>
+                    <div class="flex-grow-1">
+                        <strong>${modulo.nome}</strong>
+                        <p class="mb-0 text-muted small">${modulo.descricao}</p>
+                    </div>
+                    <i class="bi bi-grip-vertical text-muted" style="font-size: 1.2rem; cursor: grab;"></i>
+                </div>
+            `;
+        });
+        
+        // Inicializar drag and drop no modal
+        if (typeof Sortable !== 'undefined') {
+            new Sortable(container, {
+                animation: 150,
+                handle: '.bi-grip-vertical',
+                onEnd: function(evt) {
+                    // A ordem no modal não afeta a ordem na página até salvar
+                }
+            });
+        }
+    }
+    
+    // Toggle módulo ativo/inativo
+    window.toggleModulo = function(codigo) {
+        const index = modulosAtivos.indexOf(codigo);
+        if (index > -1) {
+            modulosAtivos.splice(index, 1);
+        } else {
+            if (modulosAtivos.length < 12) {
+                modulosAtivos.push(codigo);
+            } else {
+                alert('Você deve selecionar exatamente 12 módulos. Desmarque um módulo antes de adicionar outro.');
+                const checkbox = document.querySelector(`input[onchange*="${codigo}"]`);
+                if (checkbox) checkbox.checked = false;
+                return;
+            }
+        }
+        
+        // Atualizar ordem
+        ordem = modulosAtivos.map((_, i) => i);
+    };
+    
+    // Salvar preferências
+    function salvarPreferencias() {
+        const data = {
+            modulos: modulosAtivos,
+            ordem: ordem
+        };
+        
+        fetch(`/propriedade/${propriedadeId}/modulos/preferencias/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.sucesso) {
+                // Recarregar página para aplicar mudanças
+                window.location.reload();
+            } else {
+                alert('Erro ao salvar preferências: ' + (data.erro || 'Erro desconhecido'));
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            alert('Erro ao salvar preferências');
+        });
+    }
+    
+    // Função auxiliar para obter cookie
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    // Botão de configuração
+    document.getElementById('btnConfigurarModulos').addEventListener('click', function() {
+        renderizarModalConfiguracao();
+        const modal = new bootstrap.Modal(document.getElementById('modalConfigurarModulos'));
+        modal.show();
+    });
+    
+    // Botão salvar no modal
+    document.getElementById('btnSalvarConfiguracao').addEventListener('click', function() {
+        if (modulosAtivos.length !== 12) {
+            alert('Você deve selecionar exatamente 12 módulos.');
+            return;
+        }
+        
+        // Atualizar ordem baseada na ordem do modal
+        const items = Array.from(document.getElementById('modulosDisponiveis').children);
+        const modulosOrdenados = items
+            .map(item => item.getAttribute('data-modulo'))
+            .filter(codigo => modulosAtivos.includes(codigo));
+        
+        modulosAtivos = modulosOrdenados;
+        ordem = modulosAtivos.map((_, i) => i);
+        
+        salvarPreferencias();
+    });
+    
+    // Renderizar módulos na página inicial
+    renderizarModulos();
     
     // Verificar se deve manter ativo ao carregar a página
     if (localStorage.getItem('curral_active') === 'true') {
@@ -399,11 +589,6 @@ document.addEventListener('DOMContentLoaded', function() {
             navItemParent.classList.add('active');
         }
     }
-    
-    // Limpar o estado ativo quando sair da página de módulos
-    window.addEventListener('beforeunload', function() {
-        // Não limpar aqui, deixar para quando realmente sair do curral
-    });
 });
 </script>
 {% endblock %}

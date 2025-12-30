@@ -69,23 +69,36 @@ def emitir_nfe_direta_sefaz(nota_fiscal):
     
     # Se PyNFe não estiver disponível, usar implementação básica
     try:
-        # Verificar configuração
-        config = getattr(settings, 'NFE_SEFAZ', None)
-        if not config:
-            return {
-                'sucesso': False,
-                'erro': 'Configuração de NF-e SEFAZ não encontrada. Configure NFE_SEFAZ nas settings. Para implementação completa, instale PyNFe: pip install pynfe'
-            }
+        # Buscar certificado do produtor da propriedade
+        produtor = nota_fiscal.propriedade.produtor
+        certificado_path = None
+        senha_certificado = None
         
-        # Verificar certificado digital
-        certificado_path = config.get('CERTIFICADO_PATH')
-        senha_certificado = config.get('SENHA_CERTIFICADO')
+        if produtor.certificado_digital and produtor.tem_certificado_valido():
+            # Certificado do produtor (prioridade)
+            certificado_path = produtor.certificado_digital.path
+            senha_certificado = produtor.senha_certificado
+        else:
+            # Fallback: verificar configuração nas settings (para compatibilidade)
+            config = getattr(settings, 'NFE_SEFAZ', None)
+            if config:
+                certificado_path = config.get('CERTIFICADO_PATH')
+                senha_certificado = config.get('SENHA_CERTIFICADO')
         
         if not certificado_path or not os.path.exists(certificado_path):
             return {
                 'sucesso': False,
-                'erro': 'Certificado digital não encontrado ou não configurado'
+                'erro': 'Certificado digital não encontrado ou não configurado. Configure o certificado digital no cadastro do produtor.'
             }
+        
+        if not senha_certificado:
+            return {
+                'sucesso': False,
+                'erro': 'Senha do certificado digital não configurada. Configure no cadastro do produtor.'
+            }
+        
+        # Usar configuração das settings para outros parâmetros
+        config = getattr(settings, 'NFE_SEFAZ', {})
         
         # Verificar bibliotecas necessárias
         if not LXML_AVAILABLE:

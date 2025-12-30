@@ -294,29 +294,16 @@ class ConsumoCombustivelForm(forms.ModelForm):
 
 
 class SetorPropriedadeForm(forms.ModelForm):
-    responsavel = forms.ModelChoiceField(
-        queryset=UserModel.objects.none(),
-        required=False,
-        label="Responsável",
-        widget=forms.Select(attrs={'class': 'form-select'}),
-        help_text="Usuário responsável por autorizar ordens relacionadas a este setor."
-    )
-
     class Meta:
         model = SetorPropriedade
-        fields = ['nome', 'codigo', 'descricao', 'responsavel', 'ativo']
+        fields = ['propriedade', 'nome']
         widgets = {
+            'propriedade': forms.Select(attrs={'class': 'form-select'}),
             'nome': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex.: Oficina, Suprimentos, Pecuária...'}),
-            'codigo': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Código curto para relatórios'}),
-            'descricao': forms.Textarea(attrs={'rows': 3, 'class': 'form-control', 'placeholder': 'Resumo das responsabilidades deste setor'}),
-            'ativo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
 
     def __init__(self, *args, propriedade=None, **kwargs):
         super().__init__(*args, **kwargs)
-        responsaveis_queryset = UserModel.objects.filter(is_active=True).order_by('first_name', 'last_name', 'username')
-        self.fields['responsavel'].queryset = responsaveis_queryset
-        self.fields['responsavel'].empty_label = "Selecione um responsável"
         self.propriedade_context = propriedade
 
 
@@ -663,7 +650,7 @@ class OrdemCompraForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
 
         fornecedores_qs = Fornecedor.objects.filter(ativo=True)
-        setores_qs = SetorPropriedade.objects.filter(ativo=True)
+        setores_qs = SetorPropriedade.objects.all()
         centros_qs = CentroCusto.objects.all()
         planos_qs = PlanoConta.objects.filter(ativo=True)
 
@@ -733,7 +720,7 @@ class OrcamentoCompraMensalForm(forms.ModelForm):
 
     def __init__(self, *args, propriedade=None, **kwargs):
         super().__init__(*args, **kwargs)
-        setores_qs = SetorPropriedade.objects.filter(ativo=True)
+        setores_qs = SetorPropriedade.objects.all()
         if propriedade:
             setores_qs = setores_qs.filter(propriedade=propriedade).order_by('nome')
         self.fields['setor'].queryset = setores_qs

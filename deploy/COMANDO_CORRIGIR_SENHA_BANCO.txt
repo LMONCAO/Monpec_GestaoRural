@@ -1,0 +1,14 @@
+# COMANDO PARA CORRIGIR SENHA DO BANCO DE DADOS
+# Execute no Cloud Shell
+
+# 1. Redefinir senha do usuário do banco
+gcloud sql users set-password monpec_user --instance=monpec-db --password=L6171r12@@jjms
+
+# 2. Atualizar variável de ambiente no Cloud Run
+gcloud run services update monpec --region=us-central1 --update-env-vars "DB_PASSWORD=L6171r12@@jjms"
+
+# 3. Verificar se funcionou (aguarde 30 segundos e verifique logs)
+sleep 30
+gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=monpec AND severity>=ERROR" --limit=5
+
+

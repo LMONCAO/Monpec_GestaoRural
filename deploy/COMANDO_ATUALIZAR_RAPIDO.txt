@@ -1,0 +1,7 @@
+# COMANDO ÚNICO PARA ATUALIZAR NO GOOGLE CLOUD
+# IMPORTANTE: Se der erro de senha do banco, execute primeiro:
+# gcloud sql users set-password monpec_user --instance=monpec-db --password=L6171r12@@jjms
+# Copie e cole tudo no Cloud Shell
+
+PROJECT_ID="monpec-sistema-rural" && SERVICE_NAME="monpec" && REGION="us-central1" && DB_PASSWORD="L6171r12@@jjms" && echo "🔧 Verificando senha do banco..." && gcloud sql users set-password monpec_user --instance=monpec-db --password=$DB_PASSWORD 2>/dev/null || echo "⚠️ Aviso: Não foi possível atualizar senha do banco (pode ser normal se já estiver correta)" && gcloud config set project $PROJECT_ID && grep -q "^openpyxl" requirements_producao.txt || echo "openpyxl>=3.1.5" >> requirements_producao.txt && TIMESTAMP=$(date +%Y%m%d%H%M%S) && echo "🔨 Buildando..." && gcloud builds submit --tag gcr.io/$PROJECT_ID/$SERVICE_NAME:$TIMESTAMP && echo "🚀 Deployando..." && gcloud run deploy $SERVICE_NAME --image gcr.io/$PROJECT_ID/$SERVICE_NAME:$TIMESTAMP --region=$REGION --platform managed --allow-unauthenticated --add-cloudsql-instances=$PROJECT_ID:$REGION:monpec-db --set-env-vars "DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,DEBUG=False,CLOUD_SQL_CONNECTION_NAME=$PROJECT_ID:$REGION:monpec-db,DB_NAME=monpec_db,DB_USER=monpec_user,DB_PASSWORD=$DB_PASSWORD" && echo "✅✅✅ CONCLUÍDO! ✅✅✅" && SERVICE_URL=$(gcloud run services describe $SERVICE_NAME --region=$REGION --format="value(status.url)") && echo "🔗 URL: $SERVICE_URL"
+

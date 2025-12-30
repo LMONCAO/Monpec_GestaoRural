@@ -1,0 +1,36 @@
+# ============================================================
+# COMANDOS PARA CRIAR ADMIN COM SENHA PERSONALIZADA
+# ============================================================
+# 
+# Copie e cole estes comandos no Google Cloud Shell
+# IMPORTANTE: Substitua SUA_SENHA_AQUI pela senha desejada (mínimo 12 caracteres)
+#
+# ============================================================
+
+# 1. Configurar projeto
+gcloud config set project monpec-sistema-rural
+
+# 2. Criar Cloud Run Job para criar admin (SUBSTITUA SUA_SENHA_AQUI)
+gcloud run jobs create criar-admin \
+  --region=us-central1 \
+  --image=gcr.io/monpec-sistema-rural/sistema-rural:latest \
+  --set-env-vars="DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,DB_NAME=monpec_db,DB_USER=monpec_user,DB_PASSWORD=L6171r12@@jjms,CLOUD_SQL_CONNECTION_NAME=monpec-sistema-rural:us-central1:monpec-db" \
+  --set-cloudsql-instances=monpec-sistema-rural:us-central1:monpec-db \
+  --command="python" \
+  --args="manage.py,garantir_admin,--username,admin,--email,admin@monpec.com.br,--senha,SUA_SENHA_AQUI" \
+  --max-retries=1 \
+  --memory=2Gi \
+  --cpu=2
+
+# 3. Executar o job
+gcloud run jobs execute criar-admin --region=us-central1 --wait
+
+# ============================================================
+# EXEMPLO COM SENHA ESPECÍFICA:
+# ============================================================
+# Se quiser usar a senha "MinhaSenh@Segura123", o comando seria:
+#
+# --args="manage.py,garantir_admin,--username,admin,--email,admin@monpec.com.br,--senha,MinhaSenh@Segura123"
+#
+# ============================================================
+

@@ -1,0 +1,42 @@
+# ============================================================
+# COMANDOS PARA CRIAR ADMIN NO SISTEMA WEB (CLOUD SHELL)
+# ============================================================
+# 
+# Copie e cole estes comandos no Google Cloud Shell
+# Execute linha por linha ou tudo de uma vez
+#
+# ============================================================
+
+# 1. Configurar projeto
+gcloud config set project monpec-sistema-rural
+
+# 2. Criar Cloud Run Job para criar admin
+# CORREÇÃO: Usar sh -c com cd /app para garantir que manage.py seja encontrado
+gcloud run jobs create criar-admin \
+  --region=us-central1 \
+  --image=gcr.io/monpec-sistema-rural/sistema-rural:latest \
+  --set-env-vars="DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,DB_NAME=monpec_db,DB_USER=monpec_user,DB_PASSWORD=L6171r12@@jjms,CLOUD_SQL_CONNECTION_NAME=monpec-sistema-rural:us-central1:monpec-db" \
+  --set-cloudsql-instances=monpec-sistema-rural:us-central1:monpec-db \
+  --command="sh" \
+  --args="-c,cd /app && python manage.py garantir_admin --username admin --email admin@monpec.com.br --senha L6171r12@@" \
+  --max-retries=1 \
+  --memory=2Gi \
+  --cpu=2
+
+# 3. Executar o job
+gcloud run jobs execute criar-admin --region=us-central1 --wait
+
+# ============================================================
+# PRONTO! 
+# Agora você pode fazer login com:
+# - Username: admin
+# - Senha: L6171r12@@
+# - URL: https://monpec.com.br/login/
+# ============================================================
+
+# (Opcional) Verificar logs
+# gcloud logging read "resource.type=cloud_run_job AND resource.labels.job_name=criar-admin" --limit=50
+
+# (Opcional) Deletar job após usar
+# gcloud run jobs delete criar-admin --region=us-central1
+

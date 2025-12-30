@@ -121,3 +121,10 @@ APLICAR_MIGRACOES_MERCADOPAGO.bat
 
 
 
+
+
+
+
+
+
+

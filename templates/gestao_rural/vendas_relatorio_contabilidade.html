@@ -1,0 +1,202 @@
+{% extends "base_modulos_unificado.html" %}
+{% load formatacao_br %}
+
+{% block title %}Relatório Contabilidade - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'vendas_dashboard' propriedade.id %}">Vendas</a></li>
+            <li class="breadcrumb-item active">Relatório Contabilidade</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+        <div>
+            <h2 class="mb-0"><i class="bi bi-file-earmark-spreadsheet text-primary me-2"></i>Relatório para Contabilidade</h2>
+            <small class="text-muted">Relatório completo de notas fiscais para envio à contabilidade</small>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'vendas_relatorio_contabilidade_exportar_excel' propriedade.id %}?{{ request.GET.urlencode }}" class="btn btn-success">
+                <i class="bi bi-file-earmark-excel me-1"></i>Exportar Excel
+            </a>
+            <a href="{% url 'vendas_dashboard' propriedade.id %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Voltar
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Data Início</label>
+                    <input type="date" name="data_inicio" class="form-control" value="{{ data_inicio }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Data Fim</label>
+                    <input type="date" name="data_fim" class="form-control" value="{{ data_fim }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Status</label>
+                    <select name="status" class="form-select">
+                        <option value="">Todos</option>
+                        <option value="AUTORIZADA" {% if status_filter == 'AUTORIZADA' %}selected{% endif %}>Autorizada</option>
+                        <option value="PENDENTE" {% if status_filter == 'PENDENTE' %}selected{% endif %}>Pendente</option>
+                        <option value="CANCELADA" {% if status_filter == 'CANCELADA' %}selected{% endif %}>Cancelada</option>
+                        <option value="REJEITADA" {% if status_filter == 'REJEITADA' %}selected{% endif %}>Rejeitada</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-funnel me-1"></i>Filtrar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Estatísticas -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2">Total de Notas</h6>
+                    <h3 class="mb-0">{{ total_notas }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2">Valor Total</h6>
+                    <h3 class="mb-0 text-success">{{ valor_total|moeda_br }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="text-muted mb-2">Período</h6>
+                    <h6 class="mb-0">{{ data_inicio|default:"Início" }} a {{ data_fim|default:"Fim" }}</h6>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notas por Mês -->
+    {% if notas_por_mes %}
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h6 class="mb-0"><i class="bi bi-calendar-month me-2"></i>Resumo por Mês</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Mês/Ano</th>
+                            <th class="text-end">Quantidade de Notas</th>
+                            <th class="text-end">Valor Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for mes_ano, dados in notas_por_mes.items %}
+                        <tr>
+                            <td>{{ mes_ano|date:"F/Y" }}</td>
+                            <td class="text-end">{{ dados.quantidade }}</td>
+                            <td class="text-end">{{ dados.total|moeda_br }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="table-primary">
+                            <th>TOTAL</th>
+                            <th class="text-end">{{ total_notas }}</th>
+                            <th class="text-end">{{ valor_total|moeda_br }}</th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Tabela de Notas -->
+    <div class="card">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h6 class="mb-0"><i class="bi bi-list-ul me-2"></i>Notas Fiscais</h6>
+            <span class="badge bg-light text-dark">{{ notas|length }} nota(s)</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Data</th>
+                            <th>Número</th>
+                            <th>Cliente</th>
+                            <th>CPF/CNPJ</th>
+                            <th class="text-end">Valor Total</th>
+                            <th>Status</th>
+                            <th>Chave de Acesso</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for nota in notas %}
+                        <tr>
+                            <td>{{ nota.data_emissao|date:"d/m/Y" }}</td>
+                            <td>{{ nota.numero }}/{{ nota.serie }}</td>
+                            <td>{{ nota.cliente.nome|default:"-" }}</td>
+                            <td>{{ nota.cliente.cpf_cnpj|default:"-" }}</td>
+                            <td class="text-end">{{ nota.valor_total|moeda_br }}</td>
+                            <td>
+                                <span class="badge bg-{% if nota.status == 'AUTORIZADA' %}success{% elif nota.status == 'CANCELADA' %}secondary{% elif nota.status == 'REJEITADA' %}danger{% else %}warning text-dark{% endif %}">
+                                    {{ nota.get_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if nota.chave_acesso %}
+                                <small class="font-monospace">{{ nota.chave_acesso }}</small>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'vendas_nota_fiscal_detalhes' propriedade.id nota.id %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye me-1"></i>Ver
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-4">
+                                <i class="bi bi-inbox me-2"></i>Nenhuma nota fiscal encontrada com os filtros aplicados.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-light">
+                        <tr>
+                            <th colspan="4" class="text-end">TOTAL:</th>
+                            <th class="text-end">{{ valor_total|moeda_br }}</th>
+                            <th colspan="3"></th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+
+
+

@@ -8,6 +8,7 @@ from . import views_pecuaria_completa
 from . import views_nutricao
 from . import views_operacoes
 from . import views_compras
+from . import views_vendas
 from . import views_financeiro
 from . import views_financeiro_avancado
 from . import views_funcionarios
@@ -26,6 +27,8 @@ from . import views_marketing
 from . import views_demo_setup, views_demo_loading
 from . import views_planejamento_ia
 from . import views_admin
+from . import views_configuracoes
+from . import views_documentos
 
 urlpatterns = [
     # Autenticação
@@ -70,11 +73,23 @@ urlpatterns = [
     # Gestão de propriedades
     path('produtor/<int:produtor_id>/propriedades/', views.propriedades_lista, name='propriedades_lista'),
     path('produtor/<int:produtor_id>/propriedade/nova/', views.propriedade_nova, name='propriedade_nova'),
+    path('propriedade/nova/', views.propriedade_nova, name='propriedade_nova_geral'),
     path('propriedade/<int:propriedade_id>/editar/', views.propriedade_editar, name='propriedade_editar'),
     path('propriedade/<int:propriedade_id>/excluir/', views.propriedade_excluir, name='propriedade_excluir'),
     
+    # Documentos da Propriedade
+    path('propriedade/<int:propriedade_id>/documentos/', views_documentos.documentos_lista, name='documentos_lista'),
+    path('propriedade/<int:propriedade_id>/documentos/upload/', views_documentos.documento_upload, name='documento_upload'),
+    path('propriedade/<int:propriedade_id>/documentos/<int:documento_id>/editar/', views_documentos.documento_editar, name='documento_editar'),
+    path('propriedade/<int:propriedade_id>/documentos/<int:documento_id>/excluir/', views_documentos.documento_excluir, name='documento_excluir'),
+    path('propriedade/<int:propriedade_id>/documentos/<int:documento_id>/visualizar/', views_documentos.documento_visualizar, name='documento_visualizar'),
+    path('propriedade/<int:propriedade_id>/documentos/<int:documento_id>/download/', views_documentos.documento_download, name='documento_download'),
+    path('propriedade/<int:propriedade_id>/documentos/<int:documento_id>/enviar-email/', views_documentos.documento_enviar_email, name='documento_enviar_email'),
+    path('propriedade/<int:propriedade_id>/documentos/<int:documento_id>/enviar-whatsapp/', views_documentos.documento_enviar_whatsapp, name='documento_enviar_whatsapp'),
+    
     # Dashboard de Módulos
     path('propriedade/<int:propriedade_id>/modulos/', views.propriedade_modulos, name='propriedade_modulos'),
+    path('propriedade/<int:propriedade_id>/modulos/preferencias/', views.salvar_preferencias_modulos, name='salvar_preferencias_modulos'),
     
     # Módulo Pecuária Completa (Consolidado)
     path('propriedade/<int:propriedade_id>/pecuaria/', views_pecuaria_completa.pecuaria_completa_dashboard, name='pecuaria_completa_dashboard'),
@@ -222,9 +237,45 @@ urlpatterns = [
     path('propriedade/<int:propriedade_id>/compras/ordem/nova/', views_compras.ordem_compra_nova, name='ordem_compra_nova'),
     path('propriedade/<int:propriedade_id>/compras/ordem/<int:ordem_id>/', views_compras.ordem_compra_detalhes, name='ordem_compra_detalhes'),
     path('propriedade/<int:propriedade_id>/compras/ordem/<int:ordem_id>/recebimento/', views_compras.recebimento_compra_novo, name='recebimento_compra_novo'),
+    # Notas fiscais de ENTRADA (compras)
     path('propriedade/<int:propriedade_id>/compras/notas-fiscais/', views_compras.notas_fiscais_lista, name='notas_fiscais_lista'),
     path('propriedade/<int:propriedade_id>/compras/nota-fiscal/upload/', views_compras.nota_fiscal_upload, name='nota_fiscal_upload'),
+    path('propriedade/<int:propriedade_id>/compras/nota-fiscal/sincronizar/', views_compras.sincronizar_nfe_recebidas, name='sincronizar_nfe_recebidas'),
     path('propriedade/<int:propriedade_id>/compras/nota-fiscal/<int:nota_id>/', views_compras.nota_fiscal_detalhes, name='nota_fiscal_detalhes'),
+    
+    # Módulo Vendas
+    path('propriedade/<int:propriedade_id>/vendas/', views_vendas.vendas_dashboard, name='vendas_dashboard'),
+    path('propriedade/<int:propriedade_id>/vendas/venda/nova/', views_vendas.vendas_venda_nova, name='vendas_venda_nova'),
+    path('propriedade/<int:propriedade_id>/vendas/relatorio-contabilidade/', views_vendas.vendas_relatorio_contabilidade, name='vendas_relatorio_contabilidade'),
+    path('propriedade/<int:propriedade_id>/vendas/relatorio-contabilidade/exportar-excel/', views_vendas.vendas_relatorio_contabilidade_exportar_excel, name='vendas_relatorio_contabilidade_exportar_excel'),
+    path('propriedade/<int:propriedade_id>/vendas/notas-fiscais/', views_vendas.vendas_notas_fiscais_lista, name='vendas_notas_fiscais_lista'),
+    path('propriedade/<int:propriedade_id>/vendas/nota-fiscal/emitir/', views_vendas.vendas_nota_fiscal_emitir, name='vendas_nota_fiscal_emitir'),
+    path('propriedade/<int:propriedade_id>/vendas/nota-fiscal/<int:nota_id>/', views_vendas.vendas_nota_fiscal_detalhes, name='vendas_nota_fiscal_detalhes'),
+    path('propriedade/<int:propriedade_id>/vendas/nota-fiscal/<int:nota_id>/cancelar/', views_vendas.vendas_nota_fiscal_cancelar, name='vendas_nota_fiscal_cancelar'),
+    path('propriedade/<int:propriedade_id>/vendas/nota-fiscal/<int:nota_id>/consultar-status/', views_vendas.vendas_nota_fiscal_consultar_status, name='vendas_nota_fiscal_consultar_status'),
+    path('propriedade/<int:propriedade_id>/vendas/nota-fiscal/<int:nota_id>/enviar-email/', views_vendas.vendas_nota_fiscal_enviar_email, name='vendas_nota_fiscal_enviar_email'),
+    path('propriedade/<int:propriedade_id>/vendas/nota-fiscal/<int:nota_id>/enviar-whatsapp/', views_vendas.vendas_nota_fiscal_enviar_whatsapp, name='vendas_nota_fiscal_enviar_whatsapp'),
+    path('propriedade/<int:propriedade_id>/vendas/nota-fiscal/<int:nota_id>/baixar-arquivos/', views_vendas.vendas_nota_fiscal_baixar_arquivos, name='vendas_nota_fiscal_baixar_arquivos'),
+    path('propriedade/<int:propriedade_id>/vendas/sincronizar-nfe-recebidas/', views_vendas.vendas_sincronizar_nfe_recebidas, name='vendas_sincronizar_nfe_recebidas'),
+    path('propriedade/<int:propriedade_id>/vendas/notas-fiscais/exportar-excel/', views_vendas.vendas_notas_fiscais_exportar_excel, name='vendas_notas_fiscais_exportar_excel'),
+    path('propriedade/<int:propriedade_id>/vendas/parametros-categoria/', views_vendas.vendas_por_categoria_lista, name='vendas_por_categoria_lista'),
+    path('propriedade/<int:propriedade_id>/vendas/parametros-categoria/novo/', views_vendas.vendas_por_categoria_novo, name='vendas_por_categoria_novo'),
+    path('propriedade/<int:propriedade_id>/vendas/parametros-categoria/<int:parametro_id>/editar/', views_vendas.vendas_por_categoria_editar, name='vendas_por_categoria_editar'),
+    path('propriedade/<int:propriedade_id>/vendas/parametros-categoria/bulk/', views_vendas.vendas_por_categoria_bulk, name='vendas_por_categoria_bulk'),
+    path('propriedade/<int:propriedade_id>/vendas/parametros-categoria/<int:parametro_id>/excluir/', views_vendas.vendas_por_categoria_excluir, name='vendas_por_categoria_excluir'),
+    path('propriedade/<int:propriedade_id>/vendas/parametros-categoria/<int:parametro_id>/toggle-status/', views_vendas.vendas_por_categoria_toggle_status, name='vendas_por_categoria_toggle_status'),
+    path('propriedade/<int:propriedade_id>/vendas/configurar-series-nfe/', views_vendas.vendas_configurar_series_nfe, name='vendas_configurar_series_nfe'),
+    path('propriedade/<int:propriedade_id>/vendas/configurar-series-nfe/<int:serie_id>/excluir/', views_vendas.vendas_excluir_serie_nfe, name='vendas_excluir_serie_nfe'),
+    
+    # Validação de certificado digital
+    path('produtor/<int:produtor_id>/validar-certificado/', views_vendas.validar_certificado_digital_produtor, name='validar_certificado_digital_produtor'),
+    path('certificado/validar-upload/', views_vendas.validar_certificado_upload, name='validar_certificado_upload'),
+    path('certificado/validar-upload/', views_vendas.validar_certificado_upload, name='validar_certificado_upload'),
+    
+    # URLs AJAX para NFe
+    path('ajax/buscar-produtos/', views_compras.buscar_produtos_ajax, name='ajax_buscar_produtos'),
+    path('ajax/consultar-ncm/', views_compras.consultar_ncm_ajax, name='ajax_consultar_ncm'),
+    path('ajax/validar-cfop/', views_compras.validar_cfop_ajax, name='ajax_validar_cfop'),
     
     # Módulo Financeiro (novo)
     path('propriedade/<int:propriedade_id>/financeiro/', views_financeiro.financeiro_dashboard, name='financeiro_dashboard'),
@@ -478,4 +529,11 @@ urlpatterns = [
     # Landing Page (PÚBLICA - sem login)
     path('acesso-gratuito/', views_marketing.landing_page_gratuita, name='landing_page_gratuita'),
     path('acesso-gratuito/sucesso/', views_marketing.landing_page_sucesso, name='landing_page_sucesso'),
+    
+    # ========== CONFIGURAÇÕES POR MÓDULO ==========
+    # Página centralizada de configurações/cadastros para cada módulo
+    path('propriedade/<int:propriedade_id>/configuracoes/<str:modulo>/', views_configuracoes.configuracoes_modulo, name='configuracoes_modulo'),
+    path('propriedade/<int:propriedade_id>/configuracoes/<str:modulo>/<str:cadastro_id>/ajax/', views_configuracoes.configuracoes_modulo_ajax, name='configuracoes_modulo_ajax'),
+    path('propriedade/<int:propriedade_id>/configuracoes/<str:modulo>/<str:cadastro_id>/<int:registro_id>/editar-inline/', views_configuracoes.configuracoes_modulo_editar_inline, name='configuracoes_modulo_editar_inline'),
+    path('propriedade/<int:propriedade_id>/configuracoes/<str:modulo>/<str:cadastro_id>/<int:registro_id>/excluir/', views_configuracoes.configuracoes_modulo_excluir, name='configuracoes_modulo_excluir'),
 ]

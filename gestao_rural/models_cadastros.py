@@ -530,7 +530,7 @@ class FornecedorCadastro(TimeStampedModel):
     
     # Relacionamento com Centro de Custo e Plano de Contas
     centro_custo_padrao = models.ForeignKey(
-        'gestao_rural.CentroCusto',
+        'CentroCusto',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -538,7 +538,7 @@ class FornecedorCadastro(TimeStampedModel):
         verbose_name="Centro de Custo Padrão"
     )
     plano_conta_padrao = models.ForeignKey(
-        'gestao_rural.PlanoConta',
+        'PlanoConta',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,

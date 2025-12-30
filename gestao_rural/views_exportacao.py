@@ -10,9 +10,8 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.utils.dateparse import parse_date
-from openpyxl import Workbook
-from openpyxl.chart import BarChart, Reference
-from openpyxl.styles import Font, Alignment, PatternFill
+# Importação lazy de openpyxl para evitar erro se não estiver instalado
+# Será importado dentro das funções quando necessário
 from decimal import Decimal
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
@@ -106,6 +105,15 @@ def calcular_larguras_dinamicas(table_data, num_colunas, largura_total_cm=27.7):
 @login_required
 def exportar_inventario_excel(request, propriedade_id):
     """Exporta inventário para Excel"""
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, Alignment, PatternFill
+    except ImportError:
+        from django.contrib import messages
+        messages.error(request, 'Biblioteca openpyxl não está instalada. Execute: pip install openpyxl')
+        from django.shortcuts import redirect
+        return redirect('propriedade_modulos', propriedade_id=propriedade_id)
+    
     from .models import InventarioRebanho, Propriedade
     
     propriedade = get_object_or_404(Propriedade, id=propriedade_id, produtor__usuario_responsavel=request.user)
@@ -169,6 +177,14 @@ def exportar_inventario_excel(request, propriedade_id):
 @login_required
 def exportar_projecao_excel(request, propriedade_id):
     """Exporta projeção para Excel"""
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, Alignment, PatternFill
+    except ImportError:
+        from django.contrib import messages
+        messages.error(request, 'Biblioteca openpyxl não está instalada. Execute: pip install openpyxl')
+        from django.shortcuts import redirect
+        return redirect('propriedade_modulos', propriedade_id=propriedade_id)
     from .models import MovimentacaoProjetada, Propriedade
     from decimal import Decimal
     
@@ -918,6 +934,15 @@ def exportar_projecao_pdf(request, propriedade_id):
 
 @login_required
 def exportar_iatf_excel(request, propriedade_id):
+    try:
+        from openpyxl import Workbook
+        from openpyxl.chart import BarChart, Reference
+        from openpyxl.styles import Font, Alignment, PatternFill
+    except ImportError:
+        from django.contrib import messages
+        messages.error(request, 'Biblioteca openpyxl não está instalada. Execute: pip install openpyxl')
+        from django.shortcuts import redirect
+        return redirect('propriedade_modulos', propriedade_id=propriedade_id)
     """Exporta o relatório completo de IATF em formato Excel."""
     from .models import Propriedade
 

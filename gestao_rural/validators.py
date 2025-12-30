@@ -37,3 +37,10 @@ class SenhaAssinanteValidator:
         return _("A senha deve ter no mínimo 8 caracteres, incluindo pelo menos uma letra maiúscula e uma minúscula.")
 
 
+
+
+
+
+
+
+

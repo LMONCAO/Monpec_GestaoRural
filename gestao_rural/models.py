@@ -4,6 +4,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
 from decimal import Decimal
+from datetime import date
 
 
 class ProdutorRural(models.Model):
@@ -21,12 +22,52 @@ class ProdutorRural(models.Model):
     telefone = models.CharField(max_length=20, blank=True, null=True, verbose_name="Telefone")
     email = models.EmailField(blank=True, null=True, verbose_name="E-mail")
     endereco = models.TextField(blank=True, null=True, verbose_name="Endereço")
+    
+    # Certificado Digital para emissão de NF-e
+    certificado_digital = models.FileField(
+        upload_to='certificados_digitais/',
+        blank=True,
+        null=True,
+        verbose_name="Certificado Digital (.p12/.pfx)",
+        help_text="Certificado digital A1 (arquivo .p12 ou .pfx) para emissão de NF-e"
+    )
+    senha_certificado = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        verbose_name="Senha do Certificado",
+        help_text="Senha do certificado digital"
+    )
+    certificado_valido_ate = models.DateField(
+        blank=True,
+        null=True,
+        verbose_name="Certificado válido até",
+        help_text="Data de validade do certificado digital"
+    )
+    certificado_tipo = models.CharField(
+        max_length=10,
+        choices=[('A1', 'A1 - Arquivo'), ('A3', 'A3 - Token/Cartão')],
+        default='A1',
+        blank=True,
+        null=True,
+        verbose_name="Tipo de Certificado",
+        help_text="A1: arquivo .p12/.pfx | A3: token/cartão físico (não suportado ainda)"
+    )
+    
     data_cadastro = models.DateTimeField(auto_now_add=True, verbose_name="Data de Cadastro")
     
     class Meta:
         verbose_name = "Produtor Rural"
         verbose_name_plural = "Produtores Rurais"
         ordering = ['nome']
+    
+    def tem_certificado_valido(self):
+        """Verifica se o produtor tem certificado digital válido"""
+        if not self.certificado_digital:
+            return False
+        if self.certificado_valido_ate and self.certificado_valido_ate < date.today():
+            return False
+        return True
     
     def __str__(self):
         return self.nome
@@ -518,6 +559,99 @@ class Propriedade(models.Model):
             ciclos = [item.strip() for item in ciclos.split(',') if item.strip()]
         self.tipo_ciclo_pecuario = list(ciclos)
         super().save(*args, **kwargs)
+
+
+class DocumentoPropriedade(models.Model):
+    """Modelo para armazenar documentos importantes da propriedade"""
+    
+    TIPO_DOCUMENTO_CHOICES = [
+        ('MATRICULA', 'Matrícula'),
+        ('ITR', 'ITR - Imposto Territorial Rural'),
+        ('CCIR', 'CCIR - Certificado de Cadastro de Imóvel Rural'),
+        ('CAR', 'CAR - Cadastro Ambiental Rural'),
+        ('CERTIDAO_NEGATIVA', 'Certidão Negativa'),
+        ('CONTRATO', 'Contrato'),
+        ('LAUDO', 'Laudo'),
+        ('OUTROS', 'Outros'),
+    ]
+    
+    propriedade = models.ForeignKey(
+        Propriedade,
+        on_delete=models.CASCADE,
+        related_name='documentos',
+        verbose_name="Propriedade"
+    )
+    tipo_documento = models.CharField(
+        max_length=30,
+        choices=TIPO_DOCUMENTO_CHOICES,
+        verbose_name="Tipo de Documento"
+    )
+    nome_documento = models.CharField(
+        max_length=200,
+        verbose_name="Nome do Documento"
+    )
+    descricao = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Descrição"
+    )
+    arquivo = models.FileField(
+        upload_to='propriedades/documentos/%Y/%m/',
+        verbose_name="Arquivo PDF"
+    )
+    data_upload = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Data de Upload"
+    )
+    data_atualizacao = models.DateTimeField(
+        auto_now=True,
+        verbose_name="Data de Atualização"
+    )
+    data_vencimento = models.DateField(
+        blank=True,
+        null=True,
+        verbose_name="Data de Vencimento"
+    )
+    observacoes = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Observações"
+    )
+    criado_por = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='documentos_criados',
+        verbose_name="Criado por"
+    )
+    
+    class Meta:
+        verbose_name = "Documento da Propriedade"
+        verbose_name_plural = "Documentos da Propriedade"
+        ordering = ['-data_upload']
+        indexes = [
+            models.Index(fields=['propriedade', 'tipo_documento']),
+            models.Index(fields=['data_vencimento']),
+        ]
+    
+    def __str__(self):
+        return f"{self.nome_documento} - {self.propriedade.nome_propriedade}"
+    
+    @property
+    def esta_vencido(self):
+        """Verifica se o documento está vencido"""
+        if self.data_vencimento:
+            return self.data_vencimento < date.today()
+        return False
+    
+    @property
+    def esta_proximo_vencimento(self):
+        """Verifica se o documento está próximo do vencimento (30 dias)"""
+        if self.data_vencimento:
+            from datetime import timedelta
+            return date.today() <= self.data_vencimento <= date.today() + timedelta(days=30)
+        return False
 
 
 class CategoriaAnimal(models.Model):
@@ -1179,6 +1313,27 @@ class ParametrosVendaPorCategoria(models.Model):
         default=Decimal('0.00'),
         validators=[MinValueValidator(Decimal('0')), MaxValueValidator(Decimal('100'))],
         verbose_name="Percentual de Venda Anual (%)"
+    )
+    preco_medio_kg = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        blank=True,
+        null=True,
+        verbose_name="Preço Médio por Kg (R$)"
+    )
+    preco_minimo_kg = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        blank=True,
+        null=True,
+        verbose_name="Preço Mínimo por Kg (R$)"
+    )
+    preco_maximo_kg = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        blank=True,
+        null=True,
+        verbose_name="Preço Máximo por Kg (R$)"
     )
     ativo = models.BooleanField(default=True, verbose_name="Ativo")
     data_criacao = models.DateTimeField(auto_now_add=True, verbose_name="Data de Criação")
@@ -3653,6 +3808,43 @@ class PrecoCEPEA(models.Model):
     
     def __str__(self):
         return f"{self.get_tipo_categoria_display()} - {self.uf} ({self.ano}): R$ {self.preco_medio}"
+
+
+class PreferenciaModulosUsuario(models.Model):
+    """Armazena as preferências de módulos do usuário para a página inicial"""
+    usuario = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='preferencias_modulos',
+        verbose_name="Usuário"
+    )
+    propriedade = models.ForeignKey(
+        'Propriedade',
+        on_delete=models.CASCADE,
+        related_name='preferencias_modulos',
+        verbose_name="Propriedade",
+        null=True,
+        blank=True
+    )
+    # JSON com a configuração: {"modulos": ["curral", "planejamento", ...], "ordem": [0, 1, 2, ...]}
+    # Cada módulo tem um código: curral, planejamento, pecuaria, nutricao, patrimonio, compras, financeiro, operacoes, projetos, relatorios, categorias, configuracoes
+    configuracao = models.JSONField(
+        default=dict,
+        verbose_name="Configuração dos Módulos",
+        help_text="JSON com lista de módulos ativos e ordem de exibição"
+    )
+    criado_em = models.DateTimeField(auto_now_add=True, verbose_name="Criado em")
+    atualizado_em = models.DateTimeField(auto_now=True, verbose_name="Atualizado em")
+    
+    class Meta:
+        verbose_name = "Preferência de Módulos do Usuário"
+        verbose_name_plural = "Preferências de Módulos dos Usuários"
+        unique_together = [['usuario', 'propriedade']]
+        ordering = ['-atualizado_em']
+    
+    def __str__(self):
+        propriedade_nome = self.propriedade.nome_propriedade if self.propriedade else "Geral"
+        return f"{self.usuario.username} - {propriedade_nome}"
 
 
 from .models_manejo import (  # noqa: E402,F401

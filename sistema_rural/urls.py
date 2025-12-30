@@ -25,6 +25,7 @@ from gestao_rural import views as gestao_views
 from gestao_rural import views_curral
 from gestao_rural import views_sitemap
 from gestao_rural import views_password_reset
+from gestao_rural import views_static
 
 urlpatterns = [
     # LANDING PAGE COM VÍDEO - DEVE VIR PRIMEIRO (página inicial)
@@ -63,15 +64,42 @@ urlpatterns = [
         template_name='registration/password_reset_complete.html',
     ), name='password_reset_complete'),
     
+    # Rota customizada para servir arquivos estáticos (fallback)
+    # Esta rota deve vir ANTES do include('gestao_rural.urls') para ter prioridade
+    path('static/<path:path>', views_static.serve_static_file, name='serve_static'),
+    
     path('', include('gestao_rural.urls')),
 ]
 
-# Servir arquivos estáticos em modo desenvolvimento (DEBUG=True)
-if settings.DEBUG:
-    # Servir arquivos estáticos (CSS, JS, imagens)
-    if settings.STATICFILES_DIRS:
-        urlpatterns += static(settings.STATIC_URL, document_root=settings.STATICFILES_DIRS[0])
-    # Servir arquivos de mídia se existir MEDIA_URL e MEDIA_ROOT
-    if hasattr(settings, 'MEDIA_URL') and hasattr(settings, 'MEDIA_ROOT'):
-        urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# Servir arquivos estáticos e media files
+# Em desenvolvimento (DEBUG=True): usar static() do Django
+# Em produção: WhiteNoise serve static files automaticamente
+# Media files serão servidos via WhiteNoise também (se configurado) ou via view customizada
+
+# Importar serve para produção
+from django.views.static import serve
+
+# Servir arquivos estáticos - SEMPRE em desenvolvimento
+# O helper static() do Django já cria a rota correta
+if settings.STATICFILES_DIRS:
+    static_root = settings.STATICFILES_DIRS[0]
+    urlpatterns += static(settings.STATIC_URL, document_root=static_root)
+    
+if hasattr(settings, 'MEDIA_URL') and hasattr(settings, 'MEDIA_ROOT'):
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+else:
+    # Modo produção: servir media files manualmente (WhiteNoise já serve static files)
+    # IMPORTANTE: Media files precisam ser servidos manualmente em produção
+    if hasattr(settings, 'MEDIA_URL') and hasattr(settings, 'MEDIA_ROOT') and settings.MEDIA_ROOT:
+        # Adicionar rota para servir media files
+        # Usar path completo para evitar conflitos
+        media_url = settings.MEDIA_URL.rstrip('/')
+        if media_url:
+            # Adicionar antes do include('gestao_rural.urls') mas depois das rotas principais
+            # Usar função lambda para servir arquivos de media
+            urlpatterns.insert(-1, path(
+                f'{media_url}/<path:path>',
+                lambda request, path: serve(request, path, document_root=settings.MEDIA_ROOT),
+                name='serve_media'
+            ))
 

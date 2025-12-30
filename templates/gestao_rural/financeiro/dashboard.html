@@ -13,6 +13,24 @@
 
 {% block extra_css %}
 <style>
+    /* Garantir que os links de Fluxo de Caixa, DRE e LCDPR funcionem */
+    .financeiro-link-ativo {
+        pointer-events: auto !important;
+        cursor: pointer !important;
+        opacity: 1 !important;
+        text-decoration: none !important;
+        user-select: none;
+    }
+    
+    .financeiro-link-ativo:hover {
+        opacity: 0.85 !important;
+        transform: translateY(-1px);
+    }
+    
+    .financeiro-link-ativo:active {
+        opacity: 0.75 !important;
+    }
+    
     .financeiro-dashboard {
         padding: 1rem 0;
     }
@@ -451,13 +469,19 @@
                 <i class="bi bi-cash-coin"></i>
             </div>
             <div class="flex-grow-1">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
                 <h1 class="submenu-page-title mb-0" style="font-size: 1.5rem;">Financeiro</h1>
                 <p class="submenu-page-description mb-0" style="font-size: 0.85rem;">
                     Visão geral dos lançamentos financeiros, saldos de contas e pendências da propriedade
                     <strong>{{ propriedade.nome_propriedade }}</strong>.
                 </p>
+                    </div>
             </div>
             <div class="d-flex flex-wrap gap-2">
+                <a href="{% url 'configuracoes_modulo' propriedade.id 'financeiro' %}" class="btn btn-sm btn-outline-secondary" title="Configurações do Módulo">
+                    <i class="bi bi-gear me-1"></i> Configurações
+                </a>
                 <a href="{{ url_lancamentos }}" class="btn btn-sm btn-primary">
                     <i class="bi bi-list-task me-1"></i> Lançamentos
                 </a>
@@ -470,15 +494,27 @@
                 <a href="{% url 'financeiro_conciliacao' propriedade.id %}" class="btn btn-sm btn-outline-info">
                     <i class="bi bi-bank me-1"></i> Conciliação
                 </a>
-                <button type="button" class="btn btn-sm btn-outline-primary" disabled style="cursor: not-allowed; opacity: 0.6;">
+                <a href="{% url 'financeiro_fluxo_caixa' propriedade.id %}" 
+                   id="btn-fluxo-caixa"
+                   class="btn btn-sm btn-outline-primary financeiro-link-ativo" 
+                   onclick="event.preventDefault(); event.stopPropagation(); window.location.assign(&quot;{% url 'financeiro_fluxo_caixa' propriedade.id %}&quot;); return false;"
+                   style="pointer-events: auto !important; cursor: pointer !important; opacity: 1 !important; text-decoration: none !important; display: inline-block !important;">
                     <i class="bi bi-graph-up me-1"></i> Fluxo de Caixa
-                </button>
-                <button type="button" class="btn btn-sm btn-outline-warning" disabled style="cursor: not-allowed; opacity: 0.6;">
+                </a>
+                <a href="{% url 'financeiro_dre' propriedade.id %}" 
+                   id="btn-dre"
+                   class="btn btn-sm btn-outline-warning financeiro-link-ativo" 
+                   onclick="event.preventDefault(); event.stopPropagation(); window.location.assign(&quot;{% url 'financeiro_dre' propriedade.id %}&quot;); return false;"
+                   style="pointer-events: auto !important; cursor: pointer !important; opacity: 1 !important; text-decoration: none !important; display: inline-block !important;">
                     <i class="bi bi-file-earmark-text me-1"></i> DRE
-                </button>
-                <button type="button" class="btn btn-sm btn-outline-secondary" disabled style="cursor: not-allowed; opacity: 0.6;">
+                </a>
+                <a href="{% url 'financeiro_lcdpr' propriedade.id %}" 
+                   id="btn-lcdpr"
+                   class="btn btn-sm btn-outline-secondary financeiro-link-ativo" 
+                   onclick="event.preventDefault(); event.stopPropagation(); window.location.assign(&quot;{% url 'financeiro_lcdpr' propriedade.id %}&quot;); return false;"
+                   style="pointer-events: auto !important; cursor: pointer !important; opacity: 1 !important; text-decoration: none !important; display: inline-block !important;">
                     <i class="bi bi-journal-text me-1"></i> LCDPR
-                </button>
+                </a>
                 <button type="button" class="btn btn-sm btn-outline-secondary" disabled style="cursor: not-allowed; opacity: 0.6;">
                     <i class="bi bi-bank me-1"></i> Contas
                 </button>
@@ -1627,6 +1663,106 @@
                 document.getElementById('fim').value = formatDate(fim);
                 document.querySelector('form').submit();
             });
+        });
+
+        // Garantir que os links de Fluxo de Caixa, DRE e LCDPR funcionem
+        function ativarLinksFinanceiro() {
+            const links = document.querySelectorAll('a[href*="fluxo-caixa"], a[href*="/dre/"], a[href*="/lcdpr/"], .financeiro-link-ativo');
+            console.log('Encontrados', links.length, 'links financeiros');
+            
+            links.forEach((link, index) => {
+                // Remover qualquer atributo disabled
+                link.removeAttribute('disabled');
+                link.classList.remove('disabled');
+                
+                // Garantir estilos
+                link.style.pointerEvents = 'auto';
+                link.style.cursor = 'pointer';
+                link.style.opacity = '1';
+                link.style.textDecoration = 'none';
+                link.style.userSelect = 'none';
+                
+                // Obter href
+                const href = link.getAttribute('href');
+                console.log(`Link ${index + 1}:`, href);
+                
+                // Remover todos os event listeners anteriores clonando o elemento
+                const novoLink = link.cloneNode(true);
+                link.parentNode.replaceChild(novoLink, link);
+                
+                // Adicionar múltiplos listeners para garantir
+                novoLink.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                    const url = this.getAttribute('href');
+                    console.log('Navegando para:', url);
+                    if (url) {
+                        window.location.href = url;
+                    }
+                    return false;
+                }, true);
+                
+                novoLink.addEventListener('mousedown', function(e) {
+                    e.stopPropagation();
+                }, true);
+                
+                // Garantir que o onclick inline funcione
+                if (!novoLink.getAttribute('onclick')) {
+                    novoLink.setAttribute('onclick', `window.location.href='${href}'; return false;`);
+                }
+            });
+        }
+        
+        // Executar imediatamente e também quando DOM estiver pronto
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', ativarLinksFinanceiro);
+        } else {
+            ativarLinksFinanceiro();
+        }
+        
+        // Executar novamente após um pequeno delay para garantir
+        setTimeout(ativarLinksFinanceiro, 100);
+        setTimeout(ativarLinksFinanceiro, 500);
+        
+        // Forçar navegação usando IDs diretamente
+        document.addEventListener('DOMContentLoaded', function() {
+            const btnFluxo = document.getElementById('btn-fluxo-caixa');
+            const btnDre = document.getElementById('btn-dre');
+            const btnLcdpr = document.getElementById('btn-lcdpr');
+            
+            if (btnFluxo) {
+                btnFluxo.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                    const url = this.getAttribute('href');
+                    console.log('Fluxo de Caixa - Navegando para:', url);
+                    window.location.href = url;
+                }, true);
+            }
+            
+            if (btnDre) {
+                btnDre.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                    const url = this.getAttribute('href');
+                    console.log('DRE - Navegando para:', url);
+                    window.location.href = url;
+                }, true);
+            }
+            
+            if (btnLcdpr) {
+                btnLcdpr.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                    const url = this.getAttribute('href');
+                    console.log('LCDPR - Navegando para:', url);
+                    window.location.href = url;
+                }, true);
+            }
         });
     })();
 </script>

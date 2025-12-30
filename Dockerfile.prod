@@ -1,5 +1,6 @@
-# Dockerfile para deploy no Google Cloud Run
-# Imagem base otimizada para Python 3.11
+# Dockerfile para produção - Google Cloud Run
+# Otimizado para Django 4.2.7
+
 FROM python:3.11-slim
 
 # Variáveis de ambiente
@@ -14,64 +15,69 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     postgresql-client \
     build-essential \
     libpq-dev \
+    libjpeg-dev \
+    zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Criar diretório de trabalho
 WORKDIR /app
 
-# Copiar requirements e instalar dependências Python primeiro (para cache de layers)
-# Tentar requirements_producao.txt primeiro, depois requirements.txt, depois instalar básico
-COPY requirements*.txt ./
-RUN pip install --upgrade pip setuptools wheel && \
-    (pip install --no-cache-dir -r requirements_producao.txt 2>/dev/null || \
-     pip install --no-cache-dir -r requirements.txt 2>/dev/null || \
-     pip install --no-cache-dir django psycopg2-binary gunicorn python-decouple whitenoise openpyxl) && \
-    pip list | grep -i openpyxl || echo "AVISO: openpyxl não encontrado na lista, mas tentando continuar"
+# Copiar requirements primeiro (para cache de layers)
+COPY requirements_producao.txt requirements.txt ./
 
-# Copiar código da aplicação (após instalar dependências para aproveitar cache)
+# Instalar dependências Python
+RUN pip install --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir -r requirements_producao.txt && \
+    pip list | head -20
+
+# Copiar código da aplicação
 COPY . .
 
-# Criar diretórios necessários com permissões corretas
+# Criar diretórios necessários
 RUN mkdir -p /app/staticfiles /app/media /app/logs && \
     chmod -R 755 /app/staticfiles /app/media /app/logs
 
-# Executar collectstatic durante o build usando settings.py base (não precisa de DB)
-# Isso garante que todos os arquivos estáticos (incluindo imagens) sejam coletados
-# Usar settings.py base durante o build para evitar problemas com configurações de DB
-# Configurar STATIC_ROOT e STATICFILES_DIRS explicitamente durante o build
-RUN echo "=== Verificando arquivos estáticos antes do collectstatic ===" && \
-    echo "Verificando /app/static/site/:" && \
-    (ls -la /app/static/site/ 2>/dev/null | head -10 || echo "AVISO: Diretório /app/static/site/ não encontrado") && \
-    echo "=== Executando collectstatic ===" && \
-    DJANGO_SETTINGS_MODULE=sistema_rural.settings \
+# Executar collectstatic durante o build (sem precisar de DB)
+# IMPORTANTE: Coletar TODOS os arquivos estáticos incluindo imagens, vídeos, etc.
+RUN DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp \
     STATIC_ROOT=/app/staticfiles \
-    python manage.py collectstatic --noinput --clear --verbosity=2 && \
-    echo "=== Verificando arquivos coletados ===" && \
-    echo "Estrutura de /app/staticfiles:" && \
-    (ls -la /app/staticfiles/ 2>/dev/null | head -20 || echo "AVISO: /app/staticfiles vazio") && \
-    echo "Verificando /app/staticfiles/site/:" && \
-    (ls -la /app/staticfiles/site/ 2>/dev/null && echo "✓ Imagens encontradas em /app/staticfiles/site/" && \
-     echo "Contando arquivos JPEG:" && \
-     ls -1 /app/staticfiles/site/*.jpeg 2>/dev/null | wc -l && echo "arquivos JPEG encontrados") || \
-    (echo "AVISO: Diretório site/ não encontrado em staticfiles" && \
-     echo "Buscando arquivos JPEG em /app/staticfiles:" && \
-     find /app/staticfiles -name "*.jpeg" -o -name "*.jpg" 2>/dev/null | head -10) || \
-    (echo "ERRO: collectstatic pode ter falhado, criando diretório para runtime" && \
-     mkdir -p /app/staticfiles && \
-     chmod -R 755 /app/staticfiles)
+    python manage.py collectstatic --noinput --clear --verbosity 2 || \
+    (echo "AVISO: collectstatic falhou durante build, será executado no runtime" && \
+     mkdir -p /app/staticfiles && chmod -R 755 /app/staticfiles)
 
-# Verificar se openpyxl está instalado antes de finalizar
-RUN python -c "import openpyxl; print('✓ openpyxl instalado com sucesso:', openpyxl.__version__)" || \
-    (echo "ERRO CRÍTICO: openpyxl não pode ser importado!" && exit 1)
+# Verificar se arquivos estáticos foram coletados (imagens, CSS, JS)
+RUN if [ -d "/app/staticfiles" ]; then \
+        echo "✅ Arquivos estáticos coletados:" && \
+        ls -la /app/staticfiles/ | head -20 && \
+        find /app/staticfiles -type f -name "*.jpg" -o -name "*.png" -o -name "*.jpeg" -o -name "*.gif" | head -10 && \
+        echo "Total de arquivos estáticos: $(find /app/staticfiles -type f | wc -l)"; \
+    fi
 
-# Expor porta (Cloud Run usa a variável PORT)
+# Verificar instalação crítica
+RUN python -c "import django; import openpyxl; import psycopg2; print('✅ Dependências críticas instaladas')" || \
+    (echo "❌ ERRO: Dependências críticas não instaladas!" && exit 1)
+
+# Expor porta
 EXPOSE 8080
 
-# Configurar settings para produção (será usado no runtime)
+# Configurar settings para produção
 ENV DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp
 
-# Comando para iniciar a aplicação
-# Executa migrações, cria/atualiza superusuário admin e inicia o servidor
-# collectstatic já foi executado durante o build, mas executamos novamente como fallback se necessário
-# Usa o comando management 'garantir_admin' para garantir que o admin sempre existe com a senha correta
-CMD sh -c "python manage.py migrate --noinput && echo '=== Executando collectstatic no runtime ===' && python manage.py collectstatic --noinput --clear --verbosity=2 && echo '=== Verificando arquivos coletados ===' && (ls -la /app/staticfiles/site/ 2>/dev/null && echo '✓ Imagens encontradas:' && ls -1 /app/staticfiles/site/*.jpeg 2>/dev/null | wc -l && echo 'arquivos JPEG') || (echo 'AVISO: Arquivos não encontrados em /app/staticfiles/site/' && find /app/staticfiles -name '*.jpeg' 2>/dev/null | head -5) && (python manage.py garantir_admin --senha \${DJANGO_SUPERUSER_PASSWORD:-L6171r12@@} || echo '⚠️ Aviso: Não foi possível garantir admin (pode ser normal se o banco não estiver acessível)') && exec gunicorn --bind 0.0.0.0:\${PORT:-8080} --workers 2 --threads 4 --timeout 300 --access-logfile - --error-logfile - sistema_rural.wsgi:application"
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD python -c "import requests; requests.get('http://localhost:${PORT}/', timeout=5)" || exit 1
+
+# Comando de inicialização
+# Executa migrações, garante admin, re-executa collectstatic para garantir que está tudo atualizado, e inicia servidor
+CMD sh -c "python manage.py migrate --noinput && \
+    (python manage.py collectstatic --noinput --verbosity 1 || echo '⚠️ Aviso: collectstatic falhou, usando arquivos do build') && \
+    (python manage.py garantir_admin --senha \${DJANGO_SUPERUSER_PASSWORD:-L6171r12@@} || echo '⚠️ Aviso: Não foi possível garantir admin') && \
+    echo '✅ Sistema iniciando - Landing page, fotos e sistema demo estarão disponíveis' && \
+    exec gunicorn --bind 0.0.0.0:\${PORT:-8080} \
+        --workers 2 \
+        --threads 4 \
+        --timeout 300 \
+        --access-logfile - \
+        --error-logfile - \
+        --log-level info \
+        sistema_rural.wsgi:application"

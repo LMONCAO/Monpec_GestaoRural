@@ -18,6 +18,11 @@ class ProtecaoCodigoMiddleware(MiddlewareMixin):
         if settings.DEBUG:
             return None
         
+        # CRÍTICO: Ignorar completamente requisições de arquivos estáticos
+        # Deixar o WhiteNoise ou outro middleware servir esses arquivos
+        if request.path.startswith('/static/') or request.path.startswith('/media/'):
+            return None  # Não processar arquivos estáticos - deixar passar
+        
         user_agent = request.META.get('HTTP_USER_AGENT', '').lower()
         referer = request.META.get('HTTP_REFERER', '')
         
@@ -44,56 +49,44 @@ class ProtecaoCodigoMiddleware(MiddlewareMixin):
         
         cache.set(cache_key, tentativas + 1, 60)  # 1 minuto
         
-        # Verificar hotlinking (acesso direto a arquivos estáticos de outros sites)
-        # IMPORTANTE: Permitir arquivos estáticos do mesmo domínio mesmo sem referer
-        if request.path.startswith('/static/') or request.path.startswith('/media/'):
-            # Se não há referer, provavelmente é uma requisição do mesmo site (permitir)
-            if not referer:
-                return None  # Permitir arquivos estáticos sem referer (vêm do mesmo site)
-            
-            # Verificar se o referer é de um domínio permitido
-            dominios_permitidos = []
-            if settings.ALLOWED_HOSTS:
-                dominios_permitidos.extend(settings.ALLOWED_HOSTS)
-            dominios_permitidos.extend(['localhost', '127.0.0.1', 'monpec.com.br', 'www.monpec.com.br'])
-            
-            # Adicionar domínios do Cloud Run
-            if hasattr(settings, 'SITE_URL'):
-                from urllib.parse import urlparse
-                parsed = urlparse(settings.SITE_URL)
-                if parsed.netloc:
-                    dominios_permitidos.append(parsed.netloc)
-            
-            # Verificar se o referer é de um domínio permitido
-            if not any(dominio in referer for dominio in dominios_permitidos):
-                # Hotlinking detectado - bloquear apenas se vier de outro domínio
-                return self._bloquear_acesso(request, "Hotlinking não permitido")
-        
         return None
     
     def process_response(self, request, response):
         """Adiciona headers de proteção na resposta"""
         from django.conf import settings
         
-        # Headers de proteção
+        # Headers de proteção básicos (sempre aplicados)
         response['X-Content-Type-Options'] = 'nosniff'
         response['X-Frame-Options'] = 'DENY'
         response['X-XSS-Protection'] = '1; mode=block'
         response['Referrer-Policy'] = 'strict-origin-when-cross-origin'
         
-        # Proteção adicional em produção
-        if not settings.DEBUG:
+        # Não aplicar CSP em arquivos estáticos (deixa o Django servir normalmente)
+        if request.path.startswith('/static/') or request.path.startswith('/media/'):
+            return response
+        
+        # CSP (Content Security Policy) - sempre aplicado, mas mais permissivo em DEBUG
+        if settings.DEBUG:
+            # CSP mais permissivo em desenvolvimento
+            csp = (
+                "default-src 'self'; "
+                "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://www.googletagmanager.com; "
+                "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; "
+                "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com data:; "
+                "img-src 'self' data: https: blob:; "
+                "media-src 'self' blob:; "
+                "connect-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://www.googletagmanager.com https://www.google-analytics.com; "
+                "frame-ancestors 'none';"
+            )
+        else:
+            # Proteção adicional em produção
             # Desabilitar cache para páginas sensíveis
             if request.path.startswith('/admin/') or request.path.startswith('/dashboard/'):
                 response['Cache-Control'] = 'no-store, no-cache, must-revalidate, private'
                 response['Pragma'] = 'no-cache'
                 response['Expires'] = '0'
             
-            # Proteção contra MIME sniffing
-            response['X-Content-Type-Options'] = 'nosniff'
-            
-            # CSP (Content Security Policy) - restringe recursos externos
-            # Permitir fontes dos ícones (Font Awesome e Bootstrap Icons)
+            # CSP mais restritivo em produção
             csp = (
                 "default-src 'self'; "
                 "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
@@ -101,11 +94,11 @@ class ProtecaoCodigoMiddleware(MiddlewareMixin):
                 "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
                 "img-src 'self' data: https:; "
                 "media-src 'self' blob:; "
-                "connect-src 'self'; "
+                "connect-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
                 "frame-ancestors 'none';"
             )
-            response['Content-Security-Policy'] = csp
         
+        response['Content-Security-Policy'] = csp
         return response
     
     def _obter_ip(self, request):

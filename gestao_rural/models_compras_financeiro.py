@@ -1,52 +1,30 @@
 # -*- coding: utf-8 -*-
 """
-Modelos para Sistema Financeiro Integrado
-- Compras
-- Notas Fiscais (SEFAZ)
-- Integração Financeira
-- Fornecedores
+Modelos para Módulo de Compras e Financeiro
+Inclui: Fornecedores, Produtos, Notas Fiscais, Ordens de Compra, Contas a Pagar/Receber
 """
 
 from django.db import models
-from django.db.models import Sum
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator
-from django.utils import timezone
 from decimal import Decimal
-import uuid
-
 from .models import Propriedade
-from .models_financeiro import CentroCusto, PlanoConta
-from .models_operacional import Equipamento
-
-MESES_CHOICES = (
-    (1, "Janeiro"),
-    (2, "Fevereiro"),
-    (3, "Março"),
-    (4, "Abril"),
-    (5, "Maio"),
-    (6, "Junho"),
-    (7, "Julho"),
-    (8, "Agosto"),
-    (9, "Setembro"),
-    (10, "Outubro"),
-    (11, "Novembro"),
-    (12, "Dezembro"),
-)
 
 
 # ============================================================================
-# FORNECEDORES
+# FORNECEDOR
 # ============================================================================
 
 class Fornecedor(models.Model):
     """Cadastro de fornecedores"""
     TIPO_CHOICES = [
         ('RACAO', 'Ração/Insumos'),
-        ('MEDICAMENTO', 'Medicamentos'),
+        ('MEDICAMENTO', 'Medicamentos/Veterinário'),
         ('EQUIPAMENTO', 'Equipamentos'),
         ('COMBUSTIVEL', 'Combustível'),
         ('SERVICO', 'Serviços'),
+        ('CONSTRUCAO', 'Construção'),
+        ('TRANSPORTE', 'Transporte'),
         ('OUTROS', 'Outros'),
     ]
     
@@ -54,9 +32,9 @@ class Fornecedor(models.Model):
         Propriedade,
         on_delete=models.CASCADE,
         related_name='fornecedores',
-        verbose_name="Propriedade",
         null=True,
-        blank=True
+        blank=True,
+        verbose_name="Propriedade"
     )
     nome = models.CharField(max_length=200, verbose_name="Nome/Razão Social")
     nome_fantasia = models.CharField(
@@ -65,46 +43,27 @@ class Fornecedor(models.Model):
         null=True,
         verbose_name="Nome Fantasia"
     )
-    cpf_cnpj = models.CharField(
-        max_length=18,
-        unique=True,
-        verbose_name="CPF/CNPJ"
-    )
+    cpf_cnpj = models.CharField(max_length=18, verbose_name="CPF/CNPJ")
     tipo = models.CharField(
         max_length=20,
         choices=TIPO_CHOICES,
+        default='OUTROS',
         verbose_name="Tipo de Fornecedor"
     )
-    
-    # Contato
+    inscricao_estadual = models.CharField(max_length=20, blank=True, null=True, verbose_name="Inscrição Estadual")
     telefone = models.CharField(max_length=20, blank=True, null=True, verbose_name="Telefone")
     celular = models.CharField(max_length=20, blank=True, null=True, verbose_name="Celular")
     email = models.EmailField(blank=True, null=True, verbose_name="E-mail")
     website = models.URLField(blank=True, null=True, verbose_name="Website")
-    
-    # Endereço
     endereco = models.TextField(blank=True, null=True, verbose_name="Endereço")
     cidade = models.CharField(max_length=100, blank=True, null=True, verbose_name="Cidade")
-    estado = models.CharField(max_length=2, blank=True, null=True, verbose_name="Estado")
+    estado = models.CharField(max_length=2, blank=True, null=True, verbose_name="Estado (UF)")
     cep = models.CharField(max_length=10, blank=True, null=True, verbose_name="CEP")
-    
-    # Dados Bancários
     banco = models.CharField(max_length=100, blank=True, null=True, verbose_name="Banco")
-    agencia = models.CharField(max_length=10, blank=True, null=True, verbose_name="Agência")
-    conta = models.CharField(max_length=20, blank=True, null=True, verbose_name="Conta")
-    
-    # Status
-    ativo = models.BooleanField(default=True, verbose_name="Ativo")
-    avaliacao = models.DecimalField(
-        max_digits=3,
-        decimal_places=2,
-        null=True,
-        blank=True,
-        verbose_name="Avaliação (0-5)",
-        help_text="Avaliação do fornecedor"
-    )
-    
+    agencia = models.CharField(max_length=20, blank=True, null=True, verbose_name="Agência")
+    conta = models.CharField(max_length=30, blank=True, null=True, verbose_name="Conta")
     observacoes = models.TextField(blank=True, null=True, verbose_name="Observações")
+    ativo = models.BooleanField(default=True, verbose_name="Ativo")
     data_cadastro = models.DateTimeField(auto_now_add=True, verbose_name="Data de Cadastro")
     
     class Meta:
@@ -113,443 +72,15 @@ class Fornecedor(models.Model):
         ordering = ['nome']
     
     def __str__(self):
-        return f"{self.nome} - {self.get_tipo_display()}"
-
-
-class SetorPropriedade(models.Model):
-    """Estrutura organizacional da fazenda para controle de requisições."""
-
-    propriedade = models.ForeignKey(
-        Propriedade,
-        on_delete=models.CASCADE,
-        related_name="setores_propriedade",
-        verbose_name="Propriedade",
-    )
-    nome = models.CharField(max_length=120, verbose_name="Nome do Setor")
-    codigo = models.CharField(
-        max_length=30,
-        blank=True,
-        null=True,
-        verbose_name="Código Interno",
-        help_text="Identificador curto usado em relatórios e integrações.",
-    )
-    descricao = models.TextField(
-        blank=True,
-        null=True,
-        verbose_name="Descrição / Escopo",
-    )
-    responsavel = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="setores_responsaveis",
-        verbose_name="Responsável",
-    )
-    ativo = models.BooleanField(default=True, verbose_name="Ativo")
-    data_cadastro = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name="Data de Cadastro",
-    )
-
-    class Meta:
-        verbose_name = "Setor da Propriedade"
-        verbose_name_plural = "Setores da Propriedade"
-        unique_together = ("propriedade", "nome")
-        ordering = ["propriedade__nome_propriedade", "nome"]
-
-    def __str__(self):
-        return f"{self.nome} - {self.propriedade.nome_propriedade}"
-
-
-class OrcamentoCompraMensal(models.Model):
-    """Limite mensal de gastos em compras por propriedade e setor."""
-
-    propriedade = models.ForeignKey(
-        Propriedade,
-        on_delete=models.CASCADE,
-        related_name="orcamentos_compras",
-        verbose_name="Propriedade",
-    )
-    setor = models.ForeignKey(
-        SetorPropriedade,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="orcamentos_mensais",
-        verbose_name="Setor",
-    )
-    ano = models.PositiveIntegerField(verbose_name="Ano")
-    mes = models.PositiveSmallIntegerField(choices=MESES_CHOICES, verbose_name="Mês")
-    valor_limite = models.DecimalField(
-        max_digits=14,
-        decimal_places=2,
-        validators=[MinValueValidator(Decimal("0.00"))],
-        verbose_name="Limite Mensal (R$)",
-    )
-    limite_extra = models.DecimalField(
-        max_digits=14,
-        decimal_places=2,
-        default=Decimal("0.00"),
-        verbose_name="Limite Extra (R$)",
-    )
-    observacoes = models.TextField(
-        blank=True,
-        null=True,
-        verbose_name="Observações",
-    )
-    criado_por = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="orcamentos_compras_criados",
-    )
-    atualizado_por = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="orcamentos_compras_atualizados",
-    )
-    criado_em = models.DateTimeField(auto_now_add=True, verbose_name="Criado em")
-    atualizado_em = models.DateTimeField(auto_now=True, verbose_name="Atualizado em")
-
-    class Meta:
-        verbose_name = "Orçamento Mensal de Compras"
-        verbose_name_plural = "Orçamentos Mensais de Compras"
-        unique_together = ("propriedade", "setor", "ano", "mes")
-        ordering = ["-ano", "-mes", "setor__nome"]
-
-    def __str__(self):
-        setor_nome = self.setor.nome if self.setor else "Geral"
-        return f"{setor_nome} - {self.get_mes_display()}/{self.ano}"
-
-    @property
-    def total_limite(self):
-        return (self.valor_limite or Decimal("0.00")) + (self.limite_extra or Decimal("0.00"))
-
-    def valor_utilizado(self, ignorar_ordem=None):
-        """
-        Calcula o valor utilizado baseado nas parcelas (ContaPagar) 
-        com vencimento no mês, não pela data de emissão da ordem.
-        """
-        from .models_compras_financeiro import ContaPagar
-        
-        # Buscar todas as contas a pagar com vencimento neste mês/ano
-        filtros_contas = {
-            "propriedade": self.propriedade,
-            "data_vencimento__year": self.ano,
-            "data_vencimento__month": self.mes,
-            "status__in": ["PENDENTE", "VENCIDA"],  # Apenas contas não pagas
-        }
-        
-        # Se tem setor, filtrar por ordens de compra do setor
-        if self.setor_id:
-            filtros_contas["ordem_compra__setor_id"] = self.setor_id
-        else:
-            # Se não tem setor no orçamento, buscar apenas contas de ordens sem setor (setor=None)
-            filtros_contas["ordem_compra__setor__isnull"] = True
-        
-        # Excluir contas de ordens canceladas
-        qs_contas = ContaPagar.objects.filter(**filtros_contas).exclude(
-            ordem_compra__status="CANCELADA"
-        )
-        
-        # Se há ordem para ignorar, excluir suas contas
-        if ignorar_ordem:
-            ordem_id = ignorar_ordem.pk if hasattr(ignorar_ordem, "pk") else ignorar_ordem
-            qs_contas = qs_contas.exclude(ordem_compra_id=ordem_id)
-        
-        total = qs_contas.aggregate(total=Sum("valor"))['total']
-        return total or Decimal("0.00")
-
-    def saldo_disponivel(self, ignorar_ordem=None):
-        saldo = self.total_limite - self.valor_utilizado(ignorar_ordem=ignorar_ordem)
-        return saldo if saldo > Decimal("0.00") else Decimal("0.00")
-
-    def percentual_utilizado(self, ignorar_ordem=None):
-        total_limite = self.total_limite
-        if total_limite == 0:
-            return 0
-        utilizado = self.valor_utilizado(ignorar_ordem=ignorar_ordem)
-        return float((utilizado / total_limite) * 100)
-
-    def excede_limite(self, valor, ignorar_ordem=None):
-        if valor <= Decimal("0.00"):
-            return False
-        saldo = self.total_limite - self.valor_utilizado(ignorar_ordem=ignorar_ordem)
-        return valor > saldo
-    
-    def tem_autorizacao_excedente(self, valor, ordem_compra=None):
-        """
-        Verifica se há autorização aprovada para exceder o orçamento.
-        Retorna a autorização se existir, None caso contrário.
-        """
-        # Importar aqui para evitar referência circular
-        from .models_compras_financeiro import AutorizacaoExcedenteOrcamento
-        
-        if valor <= Decimal("0.00"):
-            return None
-        
-        saldo = self.total_limite - self.valor_utilizado(ignorar_ordem=ordem_compra)
-        if valor <= saldo:
-            return None  # Não excede, não precisa autorização
-        
-        # Buscar autorização aprovada para este orçamento e valor
-        filtros = {
-            'orcamento': self,
-            'status': 'APROVADA',
-            'valor_excedente__gte': valor - saldo,
-        }
-        
-        if ordem_compra:
-            # Se já tem ordem, buscar autorização específica para ela
-            autorizacao = AutorizacaoExcedenteOrcamento.objects.filter(
-                ordem_compra=ordem_compra,
-                status='APROVADA'
-            ).first()
-            if autorizacao:
-                return autorizacao
-        
-        # Buscar autorização geral aprovada para o orçamento
-        autorizacao = AutorizacaoExcedenteOrcamento.objects.filter(**filtros).first()
-        return autorizacao
-
-
-class AjusteOrcamentoCompra(models.Model):
-    """Registro de limites extras aprovados para o orçamento mensal."""
-
-    orcamento = models.ForeignKey(
-        OrcamentoCompraMensal,
-        on_delete=models.CASCADE,
-        related_name="ajustes",
-        verbose_name="Orçamento",
-    )
-    valor = models.DecimalField(
-        max_digits=14,
-        decimal_places=2,
-        validators=[MinValueValidator(Decimal("0.01"))],
-        verbose_name="Valor do Ajuste (R$)",
-        help_text="Informe o valor adicional aprovado para este mês.",
-    )
-    justificativa = models.TextField(verbose_name="Justificativa do ajuste")
-    criado_por = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="ajustes_orcamento_criados",
-    )
-    criado_em = models.DateTimeField(auto_now_add=True, verbose_name="Criado em")
-
-    class Meta:
-        verbose_name = "Ajuste Emergencial de Orçamento"
-        verbose_name_plural = "Ajustes Emergenciais de Orçamento"
-        ordering = ["-criado_em"]
-
-    def __str__(self):
-        sinal = "+" if self.valor >= 0 else ""
-        return f"{sinal}{self.valor} em {self.criado_em:%d/%m/%Y}"
-
-
-class AutorizacaoExcedenteOrcamento(models.Model):
-    """Autorização da gerência para realizar compras que excedem o orçamento mensal."""
-    
-    STATUS_CHOICES = [
-        ('PENDENTE', 'Pendente'),
-        ('APROVADA', 'Aprovada'),
-        ('REPROVADA', 'Reprovada'),
-    ]
-    
-    orcamento = models.ForeignKey(
-        OrcamentoCompraMensal,
-        on_delete=models.CASCADE,
-        related_name="autorizacoes_excedente",
-        verbose_name="Orçamento",
-    )
-    ordem_compra = models.ForeignKey(
-        'OrdemCompra',
-        on_delete=models.CASCADE,
-        related_name="autorizacoes_excedente",
-        null=True,
-        blank=True,
-        verbose_name="Ordem de Compra",
-        help_text="Ordem de compra que excede o orçamento (pode ser None se for pré-autorização)"
-    )
-    valor_excedente = models.DecimalField(
-        max_digits=14,
-        decimal_places=2,
-        validators=[MinValueValidator(Decimal("0.01"))],
-        verbose_name="Valor Excedente (R$)",
-        help_text="Valor que excede o orçamento disponível"
-    )
-    valor_total_compra = models.DecimalField(
-        max_digits=14,
-        decimal_places=2,
-        validators=[MinValueValidator(Decimal("0.01"))],
-        verbose_name="Valor Total da Compra (R$)"
-    )
-    justificativa = models.TextField(
-        verbose_name="Justificativa",
-        help_text="Justificativa detalhada para o excedente de orçamento"
-    )
-    status = models.CharField(
-        max_length=20,
-        choices=STATUS_CHOICES,
-        default='PENDENTE',
-        verbose_name="Status da Autorização"
-    )
-    solicitado_por = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="autorizacoes_excedente_solicitadas",
-        verbose_name="Solicitado por"
-    )
-    aprovado_por = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="autorizacoes_excedente_aprovadas",
-        verbose_name="Aprovado por"
-    )
-    data_solicitacao = models.DateTimeField(auto_now_add=True, verbose_name="Data de Solicitação")
-    data_aprovacao = models.DateTimeField(null=True, blank=True, verbose_name="Data de Aprovação/Reprovação")
-    observacoes_aprovacao = models.TextField(
-        null=True,
-        blank=True,
-        verbose_name="Observações da Aprovação"
-    )
-    
-    class Meta:
-        verbose_name = "Autorização de Excedente de Orçamento"
-        verbose_name_plural = "Autorizações de Excedente de Orçamento"
-        ordering = ["-data_solicitacao"]
-    
-    def __str__(self):
-        return f"Excedente de R$ {self.valor_excedente} - {self.get_status_display()}"
-
-
-class ConviteCotacaoFornecedor(models.Model):
-    STATUS_CHOICES = [
-        ('PENDENTE', 'Pendente'),
-        ('ENVIADO', 'Enviado'),
-        ('RESPONDIDO', 'Respondido'),
-        ('CANCELADO', 'Cancelado'),
-        ('EXPIRADO', 'Expirado'),
-    ]
-
-    requisicao = models.ForeignKey(
-        'RequisicaoCompra',
-        on_delete=models.CASCADE,
-        related_name='convites',
-        verbose_name='Requisição'
-    )
-    fornecedor = models.ForeignKey(
-        Fornecedor,
-        on_delete=models.CASCADE,
-        related_name='convites_cotacao',
-        verbose_name='Fornecedor'
-    )
-    email_destinatario = models.EmailField(
-        blank=True,
-        null=True,
-        verbose_name='E-mail do destinatário'
-    )
-    token = models.CharField(
-        max_length=32,
-        unique=True,
-        editable=False
-    )
-    status = models.CharField(
-        max_length=15,
-        choices=STATUS_CHOICES,
-        default='PENDENTE',
-        verbose_name='Status'
-    )
-    enviado_por = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='convites_cotacao_enviados',
-        verbose_name='Criado por'
-    )
-    enviado_em = models.DateTimeField(
-        null=True,
-        blank=True,
-        verbose_name='Data de envio'
-    )
-    data_expiracao = models.DateTimeField(
-        null=True,
-        blank=True,
-        verbose_name='Expira em'
-    )
-    respondido_em = models.DateTimeField(
-        null=True,
-        blank=True,
-        verbose_name='Respondido em'
-    )
-    observacao_resposta = models.TextField(
-        blank=True,
-        null=True,
-        verbose_name='Observações do fornecedor'
-    )
-    criado_em = models.DateTimeField(auto_now_add=True, verbose_name='Criado em')
-    atualizado_em = models.DateTimeField(auto_now=True, verbose_name='Atualizado em')
-
-    class Meta:
-        verbose_name = 'Convite de Cotação'
-        verbose_name_plural = 'Convites de Cotação'
-        ordering = ['-criado_em']
-        constraints = [
-            models.UniqueConstraint(
-                fields=['requisicao', 'fornecedor'],
-                name='unique_convite_requisicao_fornecedor'
-            )
-        ]
-
-    def __str__(self):
-        return f"Convite {self.requisicao_id} - {self.fornecedor.nome}"
-
-    def save(self, *args, **kwargs):
-        if not self.token:
-            self.token = uuid.uuid4().hex
-        super().save(*args, **kwargs)
-
-    @property
-    def expirado(self):
-        return self.data_expiracao and timezone.now() > self.data_expiracao
-
-    def pode_responder(self):
-        return self.status in ['PENDENTE', 'ENVIADO'] and not self.expirado
-
-    def marcar_enviado(self, usuario):
-        self.enviado_por = usuario
-        self.enviado_em = timezone.now()
-        self.status = 'ENVIADO'
-        self.save(update_fields=['enviado_por', 'enviado_em', 'status', 'atualizado_em'])
-
-    def marcar_respondido(self, observacao=''):
-        self.respondido_em = timezone.now()
-        self.status = 'RESPONDIDO'
-        self.observacao_resposta = observacao
-        self.save(update_fields=['respondido_em', 'status', 'observacao_resposta', 'atualizado_em'])
-
-    def cancelar(self):
-        self.status = 'CANCELADO'
-        self.save(update_fields=['status', 'atualizado_em'])
+        return self.nome
 
 
 # ============================================================================
-# PRODUTOS (CADASTRO FISCAL)
+# PRODUTO E CATEGORIA
 # ============================================================================
 
 class CategoriaProduto(models.Model):
-    """Categorias de produtos para organização"""
+    """Categorias de produtos"""
     nome = models.CharField(max_length=100, unique=True, verbose_name="Nome da Categoria")
     descricao = models.TextField(blank=True, null=True, verbose_name="Descrição")
     ativo = models.BooleanField(default=True, verbose_name="Ativo")
@@ -564,7 +95,7 @@ class CategoriaProduto(models.Model):
 
 
 class Produto(models.Model):
-    """Cadastro de produtos sincronizado com a Receita Federal"""
+    """Cadastro de produtos"""
     UNIDADE_MEDIDA_CHOICES = [
         ('UN', 'Unidade'),
         ('KG', 'Quilograma'),
@@ -581,32 +112,15 @@ class Produto(models.Model):
     ]
     
     # Dados Básicos
-    codigo = models.CharField(
-        max_length=50,
-        unique=True,
-        verbose_name="Código do Produto",
-        help_text="Código interno do produto"
-    )
-    descricao = models.CharField(
-        max_length=200,
-        verbose_name="Descrição do Produto"
-    )
-    descricao_completa = models.TextField(
-        blank=True,
-        null=True,
-        verbose_name="Descrição Completa",
-        help_text="Descrição detalhada do produto"
-    )
+    codigo = models.CharField(max_length=50, unique=True, verbose_name="Código do Produto")
+    descricao = models.CharField(max_length=200, verbose_name="Descrição")
     categoria = models.ForeignKey(
         CategoriaProduto,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='produtos',
         verbose_name="Categoria"
     )
-    
-    # Unidade de Medida
     unidade_medida = models.CharField(
         max_length=10,
         choices=UNIDADE_MEDIDA_CHOICES,
@@ -626,21 +140,10 @@ class Produto(models.Model):
         max_length=500,
         blank=True,
         null=True,
-        verbose_name="Descrição do NCM",
-        help_text="Descrição oficial do NCM pela Receita"
-    )
-    ncm_validado = models.BooleanField(
-        default=False,
-        verbose_name="NCM Validado",
-        help_text="Indica se o NCM foi validado com a Receita Federal"
-    )
-    ncm_data_validacao = models.DateTimeField(
-        null=True,
-        blank=True,
-        verbose_name="Data de Validação do NCM"
+        verbose_name="Descrição do NCM"
     )
     
-    # Dados Fiscais - Origem da Mercadoria (OBRIGATÓRIO na NF-e)
+    # Origem da Mercadoria
     ORIGEM_CHOICES = [
         ('0', '0 - Nacional, exceto as indicadas nos códigos 3, 4, 5 e 8'),
         ('1', '1 - Estrangeira - Importação direta, exceto a indicada no código 6'),
@@ -656,202 +159,85 @@ class Produto(models.Model):
         max_length=1,
         choices=ORIGEM_CHOICES,
         default='0',
-        verbose_name="Origem da Mercadoria",
-        help_text="Origem da mercadoria conforme tabela da Receita Federal - OBRIGATÓRIO na NF-e"
+        verbose_name="Origem da Mercadoria"
     )
     
-    # Dados Fiscais - CEST (Código Especificador da Substituição Tributária)
-    cest = models.CharField(
-        max_length=7,
-        blank=True,
-        null=True,
-        verbose_name="CEST",
-        help_text="Código Especificador da Substituição Tributária (7 dígitos) - Obrigatório para alguns produtos"
-    )
+    # Campos adicionais
+    cest = models.CharField(max_length=7, blank=True, null=True, verbose_name="CEST")
+    gtin = models.CharField(max_length=14, blank=True, null=True, verbose_name="GTIN/EAN")
+    ex_tipi = models.CharField(max_length=3, blank=True, null=True, verbose_name="Exceção da TIPI")
     
-    # Dados Fiscais - GTIN/EAN (Código de Barras)
-    gtin = models.CharField(
-        max_length=14,
-        blank=True,
-        null=True,
-        verbose_name="GTIN/EAN",
-        help_text="Código GTIN (EAN/UPC) do produto (código de barras)"
-    )
+    # CFOP
+    cfop_entrada = models.CharField(max_length=10, blank=True, null=True, verbose_name="CFOP Entrada")
+    cfop_saida_estadual = models.CharField(max_length=10, blank=True, null=True, verbose_name="CFOP Saída Estadual")
+    cfop_saida_interestadual = models.CharField(max_length=10, blank=True, null=True, verbose_name="CFOP Saída Interestadual")
     
-    # Dados Fiscais - Exceção da TIPI
-    ex_tipi = models.CharField(
-        max_length=3,
-        blank=True,
-        null=True,
-        verbose_name="Exceção da TIPI",
-        help_text="Código de exceção da TIPI (quando aplicável)"
-    )
+    # Descrição completa
+    descricao_completa = models.TextField(blank=True, null=True, verbose_name="Descrição Completa")
     
-    # Dados Fiscais - CFOP
-    cfop_entrada = models.CharField(
-        max_length=10,
-        blank=True,
-        null=True,
-        verbose_name="CFOP Entrada",
-        help_text="CFOP padrão para compras (ex: 1102)"
-    )
-    cfop_saida_estadual = models.CharField(
-        max_length=10,
-        blank=True,
-        null=True,
-        verbose_name="CFOP Saída Estadual",
-        help_text="CFOP padrão para vendas dentro do estado (ex: 5102)"
-    )
-    cfop_saida_interestadual = models.CharField(
-        max_length=10,
-        blank=True,
-        null=True,
-        verbose_name="CFOP Saída Interestadual",
-        help_text="CFOP padrão para vendas fora do estado (ex: 6102)"
-    )
-    
-    # Dados Fiscais - Impostos
-    cst_icms = models.CharField(
-        max_length=3,
-        blank=True,
-        null=True,
-        verbose_name="CST ICMS",
-        help_text="Código de Situação Tributária do ICMS"
-    )
+    # Tributação
+    cst_icms = models.CharField(max_length=3, blank=True, null=True, verbose_name="CST ICMS")
     aliquota_icms = models.DecimalField(
         max_digits=5,
         decimal_places=2,
-        default=Decimal('0.00'),
-        verbose_name="Alíquota ICMS (%)"
-    )
-    cst_ipi = models.CharField(
-        max_length=3,
         blank=True,
         null=True,
-        verbose_name="CST IPI",
-        help_text="Código de Situação Tributária do IPI"
+        verbose_name="Alíquota ICMS (%)"
     )
+    cst_ipi = models.CharField(max_length=3, blank=True, null=True, verbose_name="CST IPI")
     aliquota_ipi = models.DecimalField(
         max_digits=5,
         decimal_places=2,
-        default=Decimal('0.00'),
-        verbose_name="Alíquota IPI (%)"
-    )
-    cst_pis = models.CharField(
-        max_length=3,
         blank=True,
         null=True,
-        verbose_name="CST PIS",
-        help_text="Código de Situação Tributária do PIS"
+        verbose_name="Alíquota IPI (%)"
     )
+    cst_pis = models.CharField(max_length=3, blank=True, null=True, verbose_name="CST PIS")
     aliquota_pis = models.DecimalField(
         max_digits=5,
         decimal_places=2,
-        default=Decimal('0.00'),
-        verbose_name="Alíquota PIS (%)"
-    )
-    cst_cofins = models.CharField(
-        max_length=3,
         blank=True,
         null=True,
-        verbose_name="CST COFINS",
-        help_text="Código de Situação Tributária do COFINS"
+        verbose_name="Alíquota PIS (%)"
     )
+    cst_cofins = models.CharField(max_length=3, blank=True, null=True, verbose_name="CST COFINS")
     aliquota_cofins = models.DecimalField(
         max_digits=5,
         decimal_places=2,
-        default=Decimal('0.00'),
+        blank=True,
+        null=True,
         verbose_name="Alíquota COFINS (%)"
     )
     
-    # Dados Comerciais
-    preco_venda = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        default=Decimal('0.00'),
-        verbose_name="Preço de Venda (R$)"
-    )
+    # Preços
     preco_custo = models.DecimalField(
-        max_digits=10,
+        max_digits=12,
         decimal_places=2,
-        default=Decimal('0.00'),
+        blank=True,
+        null=True,
         verbose_name="Preço de Custo (R$)"
     )
+    preco_venda = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        blank=True,
+        null=True,
+        verbose_name="Preço de Venda (R$)"
+    )
     
-    # Status e Controle
+    # Observações
+    observacoes = models.TextField(blank=True, null=True, verbose_name="Observações")
+    
     ativo = models.BooleanField(default=True, verbose_name="Ativo")
-    sincronizado_receita = models.BooleanField(
-        default=False,
-        verbose_name="Sincronizado com Receita",
-        help_text="Indica se os dados foram sincronizados com a Receita Federal"
-    )
-    data_sincronizacao = models.DateTimeField(
-        null=True,
-        blank=True,
-        verbose_name="Data da Última Sincronização"
-    )
-    observacoes = models.TextField(
-        blank=True,
-        null=True,
-        verbose_name="Observações"
-    )
-    
-    # Auditoria
     data_cadastro = models.DateTimeField(auto_now_add=True, verbose_name="Data de Cadastro")
-    data_atualizacao = models.DateTimeField(auto_now=True, verbose_name="Data de Atualização")
-    usuario_cadastro = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='produtos_cadastrados',
-        verbose_name="Usuário que Cadastrou"
-    )
     
     class Meta:
         verbose_name = "Produto"
         verbose_name_plural = "Produtos"
-        ordering = ['categoria', 'descricao']
-        indexes = [
-            models.Index(fields=['codigo']),
-            models.Index(fields=['ncm']),
-            models.Index(fields=['ativo']),
-        ]
+        ordering = ['descricao']
     
     def __str__(self):
         return f"{self.codigo} - {self.descricao}"
-    
-    def clean(self):
-        """Validação do modelo"""
-        from django.core.exceptions import ValidationError
-        
-        # Validar formato do NCM (8 dígitos) - OBRIGATÓRIO
-        if not self.ncm:
-            raise ValidationError({
-                'ncm': 'NCM é obrigatório para emissão de NF-e'
-            })
-        
-        ncm_limpo = self.ncm.replace('.', '').replace('-', '')
-        if len(ncm_limpo) != 8 or not ncm_limpo.isdigit():
-            raise ValidationError({
-                'ncm': 'NCM deve ter 8 dígitos numéricos (ex: 0102.29.00)'
-            })
-        
-        # Validar formato do CEST (7 dígitos) se informado
-        if self.cest:
-            cest_limpo = self.cest.replace('.', '').replace('-', '')
-            if len(cest_limpo) != 7 or not cest_limpo.isdigit():
-                raise ValidationError({
-                    'cest': 'CEST deve ter 7 dígitos numéricos (ex: 01.001.00)'
-                })
-        
-        # Validar formato do GTIN/EAN (8, 12, 13 ou 14 dígitos) se informado
-        if self.gtin:
-            gtin_limpo = self.gtin.replace('.', '').replace('-', '')
-            if len(gtin_limpo) not in [8, 12, 13, 14] or not gtin_limpo.isdigit():
-                raise ValidationError({
-                    'gtin': 'GTIN/EAN deve ter 8, 12, 13 ou 14 dígitos numéricos'
-                })
     
     def save(self, *args, **kwargs):
         """Override save para limpar e formatar campos fiscais"""
@@ -860,22 +246,11 @@ class Produto(models.Model):
             ncm_limpo = self.ncm.replace('.', '').replace('-', '')
             if len(ncm_limpo) == 8:
                 self.ncm = f"{ncm_limpo[:4]}.{ncm_limpo[4:6]}.{ncm_limpo[6:]}"
-        
-        # Formatar CEST (7 dígitos: XX.XXX.XX) se informado
-        if self.cest:
-            cest_limpo = self.cest.replace('.', '').replace('-', '')
-            if len(cest_limpo) == 7:
-                self.cest = f"{cest_limpo[:2]}.{cest_limpo[2:5]}.{cest_limpo[5:]}"
-        
-        # Limpar GTIN/EAN (remover pontos e traços, manter apenas números)
-        if self.gtin:
-            self.gtin = self.gtin.replace('.', '').replace('-', '').strip()
-        
         super().save(*args, **kwargs)
 
 
 # ============================================================================
-# NOTAS FISCAIS (SEFAZ)
+# NOTA FISCAL
 # ============================================================================
 
 class NotaFiscal(models.Model):
@@ -998,6 +373,17 @@ class NotaFiscal(models.Model):
         blank=True,
         verbose_name="Data de Autorização"
     )
+    data_cancelamento = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Data de Cancelamento"
+    )
+    justificativa_cancelamento = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Justificativa do Cancelamento",
+        help_text="Justificativa obrigatória para cancelamento da NF-e (mínimo 15 caracteres)"
+    )
     
     # Arquivos
     arquivo_xml = models.FileField(
@@ -1028,7 +414,6 @@ class NotaFiscal(models.Model):
         verbose_name = "Nota Fiscal"
         verbose_name_plural = "Notas Fiscais"
         ordering = ['-data_emissao', 'numero']
-        # unique_together removido pois fornecedor/cliente podem ser diferentes
     
     def __str__(self):
         if self.tipo == 'SAIDA' and self.cliente:
@@ -1211,29 +596,467 @@ class ItemNotaFiscal(models.Model):
                         if self.produto.cfop_saida_estadual:
                             self.cfop = self.produto.cfop_saida_estadual
         
-        # Calcular valor total
-        if self.quantidade and self.valor_unitario:
+        # Calcular valor_total se não estiver definido
+        if not self.valor_total or self.valor_total == 0:
             self.valor_total = self.quantidade * self.valor_unitario
-        
-        # Calcular impostos se houver alíquotas do produto
-        if self.produto:
-            # ICMS
-            if self.produto.aliquota_icms and self.valor_total:
-                self.valor_icms = (self.valor_total * self.produto.aliquota_icms / 100).quantize(Decimal('0.01'))
-            # IPI
-            if self.produto.aliquota_ipi and self.valor_total:
-                self.valor_ipi = (self.valor_total * self.produto.aliquota_ipi / 100).quantize(Decimal('0.01'))
         
         super().save(*args, **kwargs)
 
 
 # ============================================================================
-# REQUISIÇÕES E WORKFLOW DE COMPRAS
+# NUMERAÇÃO SEQUENCIAL DE NF-E (NOVO MODELO)
 # ============================================================================
 
+class NumeroSequencialNFE(models.Model):
+    """
+    Controla a numeração sequencial de NF-e por propriedade e série
+    Conforme legislação fiscal, cada estabelecimento deve ter numeração única por série
+    """
+    propriedade = models.ForeignKey(
+        Propriedade,
+        on_delete=models.CASCADE,
+        related_name='numeros_sequenciais_nfe',
+        verbose_name="Propriedade"
+    )
+    serie = models.CharField(
+        max_length=10,
+        default='1',
+        verbose_name="Série da NF-e",
+        help_text="Série da nota fiscal (geralmente '1' para a série normal)"
+    )
+    proximo_numero = models.IntegerField(
+        default=1,
+        verbose_name="Próximo Número",
+        help_text="Próximo número sequencial a ser usado nesta série"
+    )
+    data_atualizacao = models.DateTimeField(
+        auto_now=True,
+        verbose_name="Data da Última Atualização"
+    )
+    observacoes = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Observações",
+        help_text="Observações sobre esta série (ex: 'Série normal', 'Série de teste', etc.)"
+    )
 
+    class Meta:
+        verbose_name = "Número Sequencial de NF-e"
+        verbose_name_plural = "Números Sequenciais de NF-e"
+        unique_together = [['propriedade', 'serie']]
+        ordering = ['propriedade', 'serie']
+
+    def __str__(self):
+        return f"{self.propriedade.nome_propriedade} - Série {self.serie} - Próximo: {self.proximo_numero}"
+    
+    def obter_proximo_numero(self):
+        """
+        Retorna o próximo número e incrementa o contador
+        """
+        numero = self.proximo_numero
+        self.proximo_numero += 1
+        self.save(update_fields=['proximo_numero', 'data_atualizacao'])
+        return numero
+
+    @classmethod
+    def obter_ou_criar(cls, propriedade, serie='1'):
+        """
+        Obtém ou cria um registro de numeração sequencial para a propriedade e série
+        """
+        obj, created = cls.objects.get_or_create(
+                    propriedade=propriedade,
+            serie=serie,
+            defaults={'proximo_numero': 1}
+        )
+        return obj
+
+
+# ============================================================================
+# ORDEM DE COMPRA (Stubs - para não quebrar imports existentes)
+# ============================================================================
+
+class OrdemCompra(models.Model):
+    """Ordem de Compra"""
+    STATUS_CHOICES = [
+        ('RASCUNHO', 'Rascunho'),
+        ('APROVADA', 'Aprovada'),
+        ('ENVIADA', 'Enviada ao Fornecedor'),
+        ('PARCIAL', 'Recebimento Parcial'),
+        ('RECEBIDA', 'Recebida Completa'),
+        ('CANCELADA', 'Cancelada'),
+    ]
+    
+    propriedade = models.ForeignKey(
+        Propriedade,
+        on_delete=models.CASCADE,
+        related_name='ordens_compra',
+        verbose_name="Propriedade"
+    )
+    fornecedor = models.ForeignKey(
+        Fornecedor,
+        on_delete=models.CASCADE,
+        related_name='ordens_compra',
+        verbose_name="Fornecedor"
+    )
+    nota_fiscal = models.ForeignKey(
+        NotaFiscal,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Nota Fiscal"
+    )
+    requisicao_origem = models.ForeignKey(
+        'RequisicaoCompra',
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name='ordens_geradas',
+        verbose_name='Requisição de Origem'
+    )
+    setor = models.ForeignKey(
+        'SetorPropriedade',
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name='ordens_compra',
+        verbose_name='Setor Responsável'
+    )
+    centro_custo = models.ForeignKey(
+        'CentroCusto',
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name='ordens_compra',
+        verbose_name='Centro de Custo'
+    )
+    centro_custo_descricao = models.CharField(
+        max_length=120,
+        blank=True,
+        null=True,
+        verbose_name='Centro de Custo (Manual)'
+    )
+    plano_conta = models.ForeignKey(
+        'PlanoConta',
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name='ordens_compra',
+        verbose_name='Plano de Contas'
+    )
+    numero_ordem = models.CharField(
+        max_length=50,
+        unique=True,
+        verbose_name='Número da Ordem'
+    )
+    data_emissao = models.DateField(
+        verbose_name='Data de Emissão'
+    )
+    data_entrega_prevista = models.DateField(
+        blank=True,
+        null=True,
+        verbose_name='Data de Entrega Prevista'
+    )
+    data_recebimento = models.DateField(
+        blank=True,
+        null=True,
+        verbose_name='Data de Recebimento'
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='RASCUNHO',
+        verbose_name="Status"
+    )
+    valor_produtos = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        verbose_name='Valor dos Produtos (R$)'
+    )
+    valor_frete = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        verbose_name='Valor do Frete (R$)'
+    )
+    valor_total = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        verbose_name="Valor Total (R$)"
+    )
+    condicoes_pagamento = models.CharField(
+        max_length=200,
+        blank=True,
+        null=True,
+        verbose_name='Condições de Pagamento'
+    )
+    forma_pagamento = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        verbose_name='Forma de Pagamento'
+    )
+    observacoes = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Observações"
+    )
+    data_aprovacao = models.DateTimeField(
+        blank=True,
+        null=True,
+        verbose_name='Data de Aprovação'
+    )
+    aprovado_por = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name='ordens_compra_aprovadas',
+        verbose_name='Aprovado por'
+    )
+    autorizacao_setor_status = models.CharField(
+        max_length=15,
+        choices=[
+            ('PENDENTE', 'Pendente'),
+            ('AUTORIZADA', 'Autorizada'),
+            ('NEGADA', 'Negada'),
+        ],
+        default='PENDENTE',
+        verbose_name='Status Autorização Setor'
+    )
+    autorizacao_setor_usuario = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name='ordens_compra_autorizadas_setor',
+        verbose_name='Responsável Autorização Setor'
+    )
+    autorizacao_setor_data = models.DateTimeField(
+        blank=True,
+        null=True,
+        verbose_name='Data Autorização Setor'
+    )
+    autorizacao_setor_observacoes = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name='Observações da Autorização do Setor'
+    )
+    data_criacao = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='Data de Criação'
+    )
+    criado_por = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name='ordens_compra_criadas',
+        verbose_name='Criado por'
+    )
+    
+    class Meta:
+        verbose_name = "Ordem de Compra"
+        verbose_name_plural = "Ordens de Compra"
+        ordering = ['-data_criacao']
+    
+    def __str__(self):
+        return f"OC {self.numero_ordem}"
+    
+    def __str__(self):
+        return f"OC {self.numero}"
+
+
+class ItemOrdemCompra(models.Model):
+    """Item de Ordem de Compra - Stub básico"""
+    ordem_compra = models.ForeignKey(OrdemCompra, on_delete=models.CASCADE, related_name='itens')
+    
+    class Meta:
+        verbose_name = "Item de Ordem de Compra"
+        verbose_name_plural = "Itens de Ordem de Compra"
+    
+    def __str__(self):
+        return f"Item {self.id}"
+
+
+# ============================================================================
+# CONTAS A PAGAR/RECEBER (Stubs - para não quebrar imports existentes)
+# ============================================================================
+
+class ContaPagar(models.Model):
+    """Conta a Pagar"""
+    STATUS_CHOICES = [
+        ('PENDENTE', 'Pendente'),
+        ('VENCIDA', 'Vencida'),
+        ('PAGA', 'Paga'),
+        ('CANCELADA', 'Cancelada'),
+    ]
+    
+    propriedade = models.ForeignKey(
+        Propriedade,
+        on_delete=models.CASCADE,
+        related_name='contas_pagar',
+        verbose_name='Propriedade'
+    )
+    fornecedor = models.ForeignKey(
+        Fornecedor,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='contas_pagar',
+        verbose_name='Fornecedor'
+    )
+    ordem_compra = models.ForeignKey(
+        'OrdemCompra',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='contas_pagar',
+        verbose_name='Ordem de Compra'
+    )
+    nota_fiscal = models.ForeignKey(
+        NotaFiscal,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='contas_pagar',
+        verbose_name='Nota Fiscal'
+    )
+    descricao = models.CharField(
+        max_length=200,
+        verbose_name='Descrição'
+    )
+    categoria = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text='Ex: Combustível, Ração, Salário, etc.',
+        verbose_name='Categoria'
+    )
+    valor = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        verbose_name='Valor (R$)'
+    )
+    data_vencimento = models.DateField(
+        verbose_name='Data de Vencimento'
+    )
+    data_pagamento = models.DateField(
+        blank=True,
+        null=True,
+        verbose_name='Data de Pagamento'
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='PENDENTE',
+        verbose_name='Status'
+    )
+    forma_pagamento = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        verbose_name='Forma de Pagamento'
+    )
+    observacoes = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name='Observações'
+    )
+    data_registro = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='Data de Registro'
+    )
+
+    class Meta:
+        verbose_name = "Conta a Pagar"
+        verbose_name_plural = "Contas a Pagar"
+        ordering = ['data_vencimento', 'status']
+
+    def __str__(self):
+        return f"{self.descricao} - R$ {self.valor}"
+
+
+class ContaReceber(models.Model):
+    """Conta a Receber"""
+    STATUS_CHOICES = [
+        ('PENDENTE', 'Pendente'),
+        ('VENCIDA', 'Vencida'),
+        ('RECEBIDA', 'Recebida'),
+        ('CANCELADA', 'Cancelada'),
+    ]
+    
+    propriedade = models.ForeignKey(
+        Propriedade,
+        on_delete=models.CASCADE,
+        related_name='contas_receber',
+        verbose_name='Propriedade'
+    )
+    descricao = models.CharField(
+        max_length=200,
+        verbose_name='Descrição'
+    )
+    categoria = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text='Ex: Venda de Animais, Venda de Produção, etc.',
+        verbose_name='Categoria'
+    )
+    cliente = models.CharField(
+        max_length=200,
+        blank=True,
+        null=True,
+        verbose_name='Cliente'
+    )
+    valor = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        verbose_name='Valor (R$)'
+    )
+    data_vencimento = models.DateField(
+        verbose_name='Data de Vencimento'
+    )
+    data_recebimento = models.DateField(
+        blank=True,
+        null=True,
+        verbose_name='Data de Recebimento'
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='PENDENTE',
+        verbose_name='Status'
+    )
+    forma_recebimento = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        verbose_name='Forma de Recebimento'
+    )
+    observacoes = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name='Observações'
+    )
+    data_registro = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='Data de Registro'
+    )
+    
+    class Meta:
+        verbose_name = "Conta a Receber"
+        verbose_name_plural = "Contas a Receber"
+        ordering = ['data_vencimento', 'status']
+    
+    def __str__(self):
+        return f"{self.descricao} - R$ {self.valor}"
+
+
+# Stubs adicionais para outros imports que possam existir
 class RequisicaoCompra(models.Model):
-    """Fluxo de requisição aberto na fazenda"""
+    """Requisição de compra de insumos"""
     STATUS_CHOICES = [
         ('RASCUNHO', 'Rascunho'),
         ('ENVIADA', 'Aguardando Aprovação do Gerente'),
@@ -1248,192 +1071,137 @@ class RequisicaoCompra(models.Model):
         ('CONCLUIDA', 'Concluída'),
         ('CANCELADA', 'Cancelada'),
     ]
-
+    
     PRIORIDADE_CHOICES = [
         ('BAIXA', 'Baixa'),
         ('MEDIA', 'Média'),
         ('ALTA', 'Alta'),
         ('URGENTE', 'Urgente'),
     ]
-
+    
     propriedade = models.ForeignKey(
         Propriedade,
         on_delete=models.CASCADE,
         related_name='requisicoes_compra',
-        verbose_name="Propriedade"
+        verbose_name='Propriedade'
     )
     solicitante = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
         related_name='requisicoes_compra_criadas',
-        verbose_name="Solicitante"
+        verbose_name='Solicitante'
     )
     status = models.CharField(
         max_length=40,
         choices=STATUS_CHOICES,
         default='RASCUNHO',
-        verbose_name="Status"
+        verbose_name='Status'
     )
     prioridade = models.CharField(
         max_length=10,
         choices=PRIORIDADE_CHOICES,
         default='MEDIA',
-        verbose_name="Prioridade"
+        verbose_name='Prioridade'
     )
     titulo = models.CharField(
         max_length=200,
-        verbose_name="Título"
+        verbose_name='Título'
     )
-    justificativa = models.TextField(verbose_name="Justificativa")
+    justificativa = models.TextField(
+        verbose_name='Justificativa'
+    )
     data_necessidade = models.DateField(
-        null=True,
         blank=True,
-        verbose_name="Data de Necessidade"
-    )
-    setor = models.ForeignKey(
-        SetorPropriedade,
-        on_delete=models.SET_NULL,
         null=True,
-        blank=True,
-        related_name="requisicoes",
-        verbose_name="Setor Solicitante"
-    )
-    equipamento = models.ForeignKey(
-        Equipamento,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="requisicoes_compra",
-        verbose_name="Máquina/Equipamento"
+        verbose_name='Data de Necessidade'
     )
     centro_custo = models.ForeignKey(
-        CentroCusto,
+        'CentroCusto',
         on_delete=models.SET_NULL,
-        null=True,
         blank=True,
-        related_name="requisicoes_compra",
-        verbose_name="Centro de Custo"
+        null=True,
+        related_name='requisicoes_compra',
+        verbose_name='Centro de Custo'
     )
     centro_custo_descricao = models.CharField(
         max_length=120,
-        null=True,
         blank=True,
-        verbose_name="Centro de Custo (Manual)"
+        null=True,
+        verbose_name='Centro de Custo (Manual)'
     )
     plano_conta = models.ForeignKey(
-        PlanoConta,
+        'PlanoConta',
         on_delete=models.SET_NULL,
-        null=True,
         blank=True,
-        related_name="requisicoes_compra",
-        verbose_name="Plano de Contas"
+        null=True,
+        related_name='requisicoes_compra',
+        verbose_name='Plano de Contas'
     )
-    observacoes = models.TextField(
-        null=True,
+    setor = models.ForeignKey(
+        'SetorPropriedade',
+        on_delete=models.SET_NULL,
         blank=True,
-        verbose_name="Observações"
+        null=True,
+        related_name='requisicoes',
+        verbose_name='Setor Solicitante'
     )
-    numero = models.CharField(
-        max_length=25,
-        unique=True,
-        null=True,
+    equipamento = models.ForeignKey(
+        'Equipamento',
+        on_delete=models.SET_NULL,
         blank=True,
-        verbose_name="Número da Requisição"
-    )
-    motivo_cancelamento = models.TextField(
         null=True,
-        blank=True,
-        verbose_name="Motivo do Cancelamento"
+        related_name='requisicoes_compra',
+        verbose_name='Máquina/Equipamento'
     )
     ordem_compra = models.ForeignKey(
         'OrdemCompra',
         on_delete=models.SET_NULL,
-        null=True,
         blank=True,
+        null=True,
         related_name='requisicoes_origem',
-        verbose_name="Ordem de Compra Gerada"
+        verbose_name='Ordem de Compra Gerada'
+    )
+    observacoes = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name='Observações'
+    )
+    motivo_cancelamento = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name='Motivo do Cancelamento'
     )
     criado_em = models.DateTimeField(
         auto_now_add=True,
-        verbose_name="Data de Criação"
+        verbose_name='Data de Criação'
     )
     atualizado_em = models.DateTimeField(
         auto_now=True,
-        verbose_name="Última Atualização"
+        verbose_name='Última Atualização'
     )
     enviado_em = models.DateTimeField(
-        null=True,
         blank=True,
-        verbose_name="Data de Envio"
+        null=True,
+        verbose_name='Data de Envio'
     )
     concluido_em = models.DateTimeField(
-        null=True,
         blank=True,
-        verbose_name="Data de Conclusão"
+        null=True,
+        verbose_name='Data de Conclusão'
     )
-
+    
     class Meta:
-        verbose_name = "Requisição de Compra"
-        verbose_name_plural = "Requisições de Compra"
+        verbose_name = 'Requisição de Compra'
+        verbose_name_plural = 'Requisições de Compra'
         ordering = ['-criado_em']
-
+    
     def __str__(self):
-        numero = f"{self.numero} - " if self.numero else ""
-        return f"{numero}{self.titulo} - {self.get_status_display()}"
-
-    @property
-    def total_estimado(self):
-        return sum(item.valor_estimado_total for item in self.itens.all())
-
-    @classmethod
-    def gerar_proximo_numero(cls, propriedade):
-        from django.utils import timezone
-
-        ano = timezone.now().year
-        base = f"REQ-{ano}"
-        ultimo = (
-            cls.objects.filter(propriedade=propriedade, numero__startswith=base)
-            .order_by('-numero')
-            .first()
-        )
-        sequencial = 1
-        if ultimo and ultimo.numero:
-            try:
-                sequencial = int(ultimo.numero.split('/')[-1]) + 1
-            except (ValueError, IndexError):
-                sequencial = cls.objects.filter(
-                    propriedade=propriedade,
-                    numero__startswith=base
-                ).count() + 1
-        return f"{base}/{sequencial:04d}"
-
-    def save(self, *args, **kwargs):
-        from django.utils import timezone
-
-        if not self.numero and self.propriedade_id:
-            self.numero = self.gerar_proximo_numero(self.propriedade)
-        if not self.criado_em:
-            self.criado_em = timezone.now()
-        super().save(*args, **kwargs)
-
-    @property
-    def centro_custo_display(self):
-        if self.centro_custo:
-            return str(self.centro_custo)
-        return self.centro_custo_descricao or ""
-
-    @property
-    def plano_conta_display(self):
-        return str(self.plano_conta) if self.plano_conta else ""
-
-    @property
-    def setor_display(self):
-        return str(self.setor) if self.setor else ""
+        return f"RC {self.id}"
 
 
 class ItemRequisicaoCompra(models.Model):
-    """Itens que compõem a requisição"""
-    UNIDADE_CHOICES = [
+    """Item de uma requisição de compra"""
+    UNIDADE_MEDIDA_CHOICES = [
         ('UN', 'Unidade'),
         ('KG', 'Quilograma'),
         ('L', 'Litro'),
@@ -1442,63 +1210,66 @@ class ItemRequisicaoCompra(models.Model):
         ('MT', 'Metro'),
         ('OUTROS', 'Outros'),
     ]
-
+    
     requisicao = models.ForeignKey(
         RequisicaoCompra,
         on_delete=models.CASCADE,
         related_name='itens',
-        verbose_name="Requisição"
+        verbose_name='Requisição'
     )
     descricao = models.CharField(
         max_length=255,
-        verbose_name="Descrição do Item"
+        verbose_name='Descrição do Item'
     )
     unidade_medida = models.CharField(
         max_length=10,
-        choices=UNIDADE_CHOICES,
+        choices=UNIDADE_MEDIDA_CHOICES,
         default='UN',
-        verbose_name="Unidade de Medida"
+        verbose_name='Unidade de Medida'
     )
     quantidade = models.DecimalField(
         max_digits=12,
         decimal_places=3,
         validators=[MinValueValidator(Decimal('0.001'))],
-        verbose_name="Quantidade"
+        verbose_name='Quantidade'
     )
     valor_estimado_unitario = models.DecimalField(
         max_digits=12,
         decimal_places=2,
         default=Decimal('0.00'),
         validators=[MinValueValidator(Decimal('0.00'))],
-        verbose_name="Valor Estimado Unitário (R$)"
+        verbose_name='Valor Estimado Unitário (R$)'
     )
     fornecedor_preferencial = models.CharField(
         max_length=200,
-        null=True,
         blank=True,
-        verbose_name="Fornecedor Preferencial"
+        null=True,
+        verbose_name='Fornecedor Preferencial'
     )
     observacoes = models.TextField(
-        null=True,
         blank=True,
-        verbose_name="Observações do Item"
+        null=True,
+        verbose_name='Observações do Item'
     )
-
+    
     class Meta:
-        verbose_name = "Item de Requisição de Compra"
-        verbose_name_plural = "Itens de Requisição de Compra"
+        verbose_name = 'Item de Requisição de Compra'
+        verbose_name_plural = 'Itens de Requisição de Compra'
         ordering = ['requisicao', 'descricao']
-
+    
     def __str__(self):
-        return f"{self.descricao} ({self.quantidade} {self.unidade_medida})"
-
+        return f"Item {self.id}"
+    
     @property
     def valor_estimado_total(self):
-        return self.quantidade * self.valor_estimado_unitario
+        """Calcula o valor total estimado do item"""
+        if self.quantidade and self.valor_estimado_unitario:
+            return self.quantidade * self.valor_estimado_unitario
+        return Decimal('0.00')
 
 
 class AprovacaoRequisicaoCompra(models.Model):
-    """Histórico de aprovações por etapa"""
+    """Aprovação de uma requisição de compra em diferentes etapas"""
     ETAPA_CHOICES = [
         ('GERENCIA', 'Gerência da Fazenda'),
         ('COMPRADOR', 'Comprador'),
@@ -1506,61 +1277,61 @@ class AprovacaoRequisicaoCompra(models.Model):
         ('RECEBIMENTO', 'Recebimento'),
         ('FINANCEIRO', 'Financeiro'),
     ]
-
+    
     DECISAO_CHOICES = [
         ('PENDENTE', 'Pendente'),
         ('APROVADO', 'Aprovado'),
         ('REPROVADO', 'Reprovado'),
         ('DEVOLVIDO', 'Devolvido para Ajustes'),
     ]
-
+    
     requisicao = models.ForeignKey(
         RequisicaoCompra,
         on_delete=models.CASCADE,
         related_name='aprovacoes',
-        verbose_name="Requisição"
+        verbose_name='Requisição'
+    )
+    usuario = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name='aprovacoes_requisicao',
+        verbose_name='Usuário'
     )
     etapa = models.CharField(
         max_length=30,
         choices=ETAPA_CHOICES,
-        verbose_name="Etapa"
+        verbose_name='Etapa'
     )
     decisao = models.CharField(
         max_length=20,
         choices=DECISAO_CHOICES,
         default='PENDENTE',
-        verbose_name="Decisão"
-    )
-    usuario = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='aprovacoes_requisicao',
-        verbose_name="Usuário"
+        verbose_name='Decisão'
     )
     comentario = models.TextField(
-        null=True,
         blank=True,
-        verbose_name="Comentário"
+        null=True,
+        verbose_name='Comentário'
     )
     data_decisao = models.DateTimeField(
-        null=True,
         blank=True,
-        verbose_name="Data da Decisão"
+        null=True,
+        verbose_name='Data da Decisão'
     )
-
+    
     class Meta:
-        verbose_name = "Aprovação de Requisição"
-        verbose_name_plural = "Aprovações de Requisição"
+        verbose_name = 'Aprovação de Requisição'
+        verbose_name_plural = 'Aprovações de Requisição'
         ordering = ['-data_decisao']
-
+    
     def __str__(self):
-        return f"{self.requisicao_id} - {self.get_etapa_display()} - {self.get_decisao_display()}"
+        return f"Aprovação {self.id}"
 
 
 class CotacaoFornecedor(models.Model):
-    """Cotações coletadas pelo comprador"""
+    """Cotação de preços fornecida por um fornecedor"""
     STATUS_CHOICES = [
         ('EM_ANDAMENTO', 'Em Andamento'),
         ('RECEBIDA', 'Recebida'),
@@ -1568,829 +1339,502 @@ class CotacaoFornecedor(models.Model):
         ('NAO_SELECIONADA', 'Não Selecionada'),
         ('CANCELADA', 'Cancelada'),
     ]
-
-    requisicao = models.ForeignKey(
-        RequisicaoCompra,
-        on_delete=models.CASCADE,
-        related_name='cotacoes',
-        verbose_name="Requisição"
-    )
+    
     fornecedor = models.ForeignKey(
         Fornecedor,
         on_delete=models.CASCADE,
         related_name='cotacoes',
-        verbose_name="Fornecedor"
-    )
-    comprador = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='cotacoes_registradas',
-        verbose_name="Comprador Responsável"
+        verbose_name='Fornecedor'
     )
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,
         default='EM_ANDAMENTO',
-        verbose_name="Status"
+        verbose_name='Status'
     )
     prazo_entrega_estimado = models.CharField(
         max_length=120,
-        null=True,
         blank=True,
-        verbose_name="Prazo de Entrega Estimado"
+        null=True,
+        verbose_name='Prazo de Entrega Estimado'
     )
     validade_proposta = models.DateField(
-        null=True,
         blank=True,
-        verbose_name="Validade da Proposta"
+        null=True,
+        verbose_name='Validade da Proposta'
     )
     condicoes_pagamento = models.CharField(
         max_length=200,
-        null=True,
         blank=True,
-        verbose_name="Condições de Pagamento"
+        null=True,
+        verbose_name='Condições de Pagamento'
     )
     valor_frete = models.DecimalField(
         max_digits=12,
         decimal_places=2,
         default=Decimal('0.00'),
         validators=[MinValueValidator(Decimal('0.00'))],
-        verbose_name="Valor do Frete (R$)"
+        verbose_name='Valor do Frete (R$)'
     )
     valor_total = models.DecimalField(
         max_digits=14,
         decimal_places=2,
         default=Decimal('0.00'),
         validators=[MinValueValidator(Decimal('0.00'))],
-        verbose_name="Valor Total Cotado (R$)"
+        verbose_name='Valor Total Cotado (R$)'
     )
     observacoes = models.TextField(
-        null=True,
         blank=True,
-        verbose_name="Observações"
+        null=True,
+        verbose_name='Observações'
     )
     anexo_proposta = models.FileField(
         upload_to='compras/cotacoes/',
-        null=True,
         blank=True,
-        verbose_name="Proposta Anexada"
+        null=True,
+        verbose_name='Proposta Anexada'
+    )
+    comprador = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name='cotacoes_registradas',
+        verbose_name='Comprador Responsável'
     )
     criado_em = models.DateTimeField(
         auto_now_add=True,
-        verbose_name="Data de Registro"
+        verbose_name='Data de Registro'
     )
     atualizado_em = models.DateTimeField(
         auto_now=True,
-        verbose_name="Última Atualização"
+        verbose_name='Última Atualização'
     )
-
+    
     class Meta:
-        verbose_name = "Cotação de Fornecedor"
-        verbose_name_plural = "Cotações de Fornecedores"
+        verbose_name = 'Cotação de Fornecedor'
+        verbose_name_plural = 'Cotações de Fornecedores'
         ordering = ['-criado_em']
-
+    
     def __str__(self):
-        return f"Cotação {self.fornecedor.nome} - {self.get_status_display()}"
+        return f"Cotação {self.id}"
 
 
 class ItemCotacaoFornecedor(models.Model):
-    """Itens de uma cotação por fornecedor"""
+    """Item de uma cotação de fornecedor"""
     cotacao = models.ForeignKey(
         CotacaoFornecedor,
         on_delete=models.CASCADE,
         related_name='itens',
-        verbose_name="Cotação"
+        verbose_name='Cotação'
     )
     item_requisicao = models.ForeignKey(
-        ItemRequisicaoCompra,
+        'ItemRequisicaoCompra',
         on_delete=models.SET_NULL,
-        null=True,
         blank=True,
+        null=True,
         related_name='itens_cotados',
-        verbose_name="Item da Requisição"
+        verbose_name='Item da Requisição'
     )
     descricao = models.CharField(
         max_length=255,
-        verbose_name="Descrição"
+        verbose_name='Descrição'
     )
     unidade_medida = models.CharField(
         max_length=10,
         default='UN',
-        verbose_name="Unidade"
+        verbose_name='Unidade'
     )
     quantidade = models.DecimalField(
         max_digits=12,
         decimal_places=3,
         validators=[MinValueValidator(Decimal('0.001'))],
-        verbose_name="Quantidade"
+        verbose_name='Quantidade'
     )
     valor_unitario = models.DecimalField(
         max_digits=12,
         decimal_places=2,
         validators=[MinValueValidator(Decimal('0.00'))],
-        verbose_name="Valor Unitário (R$)"
+        verbose_name='Valor Unitário (R$)'
     )
     valor_total = models.DecimalField(
         max_digits=14,
         decimal_places=2,
-        verbose_name="Valor Total (R$)"
+        verbose_name='Valor Total (R$)'
     )
-
+    
     class Meta:
-        verbose_name = "Item de Cotação"
-        verbose_name_plural = "Itens de Cotação"
+        verbose_name = 'Item de Cotação'
+        verbose_name_plural = 'Itens de Cotação'
         ordering = ['cotacao', 'descricao']
-
+    
     def __str__(self):
-        return f"{self.cotacao_id} - {self.descricao}"
-
+        return f"Item {self.id}"
+    
     def save(self, *args, **kwargs):
-        self.valor_total = self.quantidade * self.valor_unitario
+        """Calcula o valor total automaticamente"""
+        if self.quantidade and self.valor_unitario:
+            self.valor_total = self.quantidade * self.valor_unitario
         super().save(*args, **kwargs)
 
 
 class RecebimentoCompra(models.Model):
-    """Registro do recebimento físico dos materiais"""
+    """Recebimento de uma ordem de compra"""
     STATUS_CHOICES = [
         ('PENDENTE', 'Pendente'),
         ('RECEBIDO', 'Recebido'),
         ('DIVERGENCIA', 'Divergência'),
         ('CANCELADO', 'Cancelado'),
     ]
-
+    
     ordem_compra = models.ForeignKey(
-        'OrdemCompra',
+        OrdemCompra,
         on_delete=models.CASCADE,
         related_name='recebimentos',
-        verbose_name="Ordem de Compra"
+        verbose_name='Ordem de Compra'
     )
     responsavel = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,
-        null=True,
         blank=True,
+        null=True,
         related_name='recebimentos_registrados',
-        verbose_name="Responsável Pelo Recebimento"
+        verbose_name='Responsável Pelo Recebimento'
     )
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,
         default='PENDENTE',
-        verbose_name="Status"
+        verbose_name='Status'
     )
     data_prevista = models.DateField(
-        null=True,
         blank=True,
-        verbose_name="Data Prevista"
+        null=True,
+        verbose_name='Data Prevista'
     )
     data_recebimento = models.DateField(
-        null=True,
         blank=True,
-        verbose_name="Data de Recebimento"
+        null=True,
+        verbose_name='Data de Recebimento'
     )
     observacoes = models.TextField(
-        null=True,
         blank=True,
-        verbose_name="Observações"
+        null=True,
+        verbose_name='Observações'
     )
     comprovante_assinado = models.FileField(
         upload_to='compras/recebimentos/',
-        null=True,
         blank=True,
-        verbose_name="Comprovante Assinado"
+        null=True,
+        verbose_name='Comprovante Assinado'
     )
     criado_em = models.DateTimeField(
         auto_now_add=True,
-        verbose_name="Data de Registro"
+        verbose_name='Data de Registro'
     )
     atualizado_em = models.DateTimeField(
         auto_now=True,
-        verbose_name="Última Atualização"
+        verbose_name='Última Atualização'
     )
-
+    
     class Meta:
-        verbose_name = "Recebimento de Compra"
-        verbose_name_plural = "Recebimentos de Compra"
+        verbose_name = 'Recebimento de Compra'
+        verbose_name_plural = 'Recebimentos de Compra'
         ordering = ['-criado_em']
-
+    
     def __str__(self):
-        return f"Recebimento OC {self.ordem_compra.numero_ordem} - {self.get_status_display()}"
+        return f"Recebimento {self.id}"
 
 
 class ItemRecebimentoCompra(models.Model):
-    """Itens conferidos no recebimento"""
+    """Item recebido de uma ordem de compra"""
     recebimento = models.ForeignKey(
         RecebimentoCompra,
         on_delete=models.CASCADE,
         related_name='itens',
-        verbose_name="Recebimento"
+        verbose_name='Recebimento'
     )
     item_ordem = models.ForeignKey(
         'ItemOrdemCompra',
         on_delete=models.CASCADE,
         related_name='recebimentos',
-        verbose_name="Item da Ordem"
+        verbose_name='Item da Ordem'
     )
     quantidade_recebida = models.DecimalField(
         max_digits=12,
         decimal_places=3,
         validators=[MinValueValidator(Decimal('0.000'))],
-        verbose_name="Quantidade Recebida"
+        verbose_name='Quantidade Recebida'
     )
     divergencia = models.BooleanField(
         default=False,
-        verbose_name="Possui Divergência?"
+        verbose_name='Possui Divergência?'
     )
     justificativa_divergencia = models.TextField(
-        null=True,
         blank=True,
-        verbose_name="Justificativa da Divergência"
+        null=True,
+        verbose_name='Justificativa da Divergência'
     )
-
+    
     class Meta:
-        verbose_name = "Item Recebido"
-        verbose_name_plural = "Itens Recebidos"
+        verbose_name = 'Item Recebido'
+        verbose_name_plural = 'Itens Recebidos'
         ordering = ['recebimento', 'item_ordem']
-
+    
     def __str__(self):
-        return f"{self.recebimento_id} - {self.item_ordem_id}"
+        return f"Item {self.id}"
 
 
-class EventoFluxoCompra(models.Model):
-    """Trilha de auditoria do processo"""
-    ETAPA_CHOICES = [
-        ('CRIACAO', 'Criação'),
-        ('ENVIO', 'Envio para Aprovação'),
-        ('APROVACAO_GERENCIA', 'Aprovação Gerência'),
-        ('COTACAO', 'Cotação'),
-        ('APROVACAO_COMPRAS', 'Aprovação Compras'),
-        ('EMISSAO_OC', 'Emissão de OC'),
-        ('RECEBIMENTO', 'Recebimento'),
-        ('FINANCEIRO', 'Financeiro'),
-        ('AUTORIZACAO_SETOR', 'Autorização do Setor'),
-        ('CANCELAMENTO', 'Cancelamento'),
-        ('OUTROS', 'Outros'),
+class SetorPropriedade(models.Model):
+    propriedade = models.ForeignKey(Propriedade, on_delete=models.CASCADE)
+    nome = models.CharField(max_length=100)
+    class Meta:
+        verbose_name = "Setor da Propriedade"
+    def __str__(self):
+        return self.nome
+
+
+class ConviteCotacaoFornecedor(models.Model):
+    """Convite de cotação enviado para fornecedor"""
+    STATUS_CHOICES = [
+        ('PENDENTE', 'Pendente'),
+        ('ENVIADO', 'Enviado'),
+        ('RESPONDIDO', 'Respondido'),
+        ('CANCELADO', 'Cancelado'),
+        ('EXPIRADO', 'Expirado'),
     ]
-
+    
     requisicao = models.ForeignKey(
-        RequisicaoCompra,
+        'RequisicaoCompra',
         on_delete=models.CASCADE,
-        related_name='eventos_fluxo',
+        related_name='convites',
         verbose_name="Requisição"
     )
-    etapa = models.CharField(
-        max_length=40,
-        choices=ETAPA_CHOICES,
-        default='OUTROS',
-        verbose_name="Etapa"
+    fornecedor = models.ForeignKey(
+        Fornecedor,
+        on_delete=models.CASCADE,
+        related_name='convites_cotacao',
+        verbose_name="Fornecedor"
     )
-    status_anterior = models.CharField(
-        max_length=40,
-        null=True,
+    email_destinatario = models.EmailField(
         blank=True,
-        verbose_name="Status Anterior"
-    )
-    status_novo = models.CharField(
-        max_length=40,
         null=True,
-        blank=True,
-        verbose_name="Status Novo"
+        verbose_name='E-mail do destinatário'
     )
-    usuario = models.ForeignKey(
+    token = models.CharField(
+        max_length=32,
+        unique=True,
+        editable=False
+    )
+    status = models.CharField(
+        max_length=15,
+        choices=STATUS_CHOICES,
+        default='PENDENTE',
+        verbose_name='Status'
+    )
+    enviado_em = models.DateTimeField(
+        blank=True,
+        null=True,
+        verbose_name='Data de envio'
+    )
+    data_expiracao = models.DateTimeField(
+        blank=True,
+        null=True,
+        verbose_name='Expira em'
+    )
+    respondido_em = models.DateTimeField(
+        blank=True,
+        null=True,
+        verbose_name='Respondido em'
+    )
+    observacao_resposta = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name='Observações do fornecedor'
+    )
+    enviado_por = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,
-        null=True,
         blank=True,
-        related_name='eventos_fluxo_compra',
-        verbose_name="Usuário"
-    )
-    comentario = models.TextField(
         null=True,
-        blank=True,
-        verbose_name="Comentário"
+        related_name='convites_cotacao_enviados',
+        verbose_name='Criado por'
     )
     criado_em = models.DateTimeField(
         auto_now_add=True,
-        verbose_name="Data do Evento"
+        verbose_name='Criado em'
     )
-
+    atualizado_em = models.DateTimeField(
+        auto_now=True,
+        verbose_name='Atualizado em'
+    )
+    
     class Meta:
-        verbose_name = "Evento do Fluxo de Compras"
-        verbose_name_plural = "Eventos do Fluxo de Compras"
+        verbose_name = "Convite de Cotação"
+        verbose_name_plural = "Convites de Cotação"
         ordering = ['-criado_em']
-
+        constraints = [
+            models.UniqueConstraint(
+                fields=['requisicao', 'fornecedor'],
+                name='unique_convite_requisicao_fornecedor'
+            )
+        ]
+    
     def __str__(self):
-        return f"Evento {self.get_etapa_display()} - {self.criado_em:%d/%m/%Y %H:%M}"
+        return f"Convite {self.id}"
+    
+    def save(self, *args, **kwargs):
+        """Gera token automaticamente se não existir"""
+        import secrets
+        if not self.token:
+            self.token = secrets.token_urlsafe(24)[:32]
+        super().save(*args, **kwargs)
 
 
-# ============================================================================
-# COMPRAS
-# ============================================================================
-
-class OrdemCompra(models.Model):
-    """Ordem de Compra"""
-
-    STATUS_CHOICES = [
-        ('RASCUNHO', 'Rascunho'),
-        ('APROVADA', 'Aprovada'),
-        ('ENVIADA', 'Enviada ao Fornecedor'),
-        ('PARCIAL', 'Recebimento Parcial'),
-        ('RECEBIDA', 'Recebida Completa'),
-        ('CANCELADA', 'Cancelada'),
+class OrcamentoCompraMensal(models.Model):
+    """Orçamento mensal de compras por setor"""
+    MES_CHOICES = [
+        (1, 'Janeiro'),
+        (2, 'Fevereiro'),
+        (3, 'Março'),
+        (4, 'Abril'),
+        (5, 'Maio'),
+        (6, 'Junho'),
+        (7, 'Julho'),
+        (8, 'Agosto'),
+        (9, 'Setembro'),
+        (10, 'Outubro'),
+        (11, 'Novembro'),
+        (12, 'Dezembro'),
     ]
-
-    AUTORIZACAO_SETOR_CHOICES = [
-        ('PENDENTE', 'Pendente'),
-        ('AUTORIZADA', 'Autorizada'),
-        ('NEGADA', 'Negada'),
-    ]
-
+    
     propriedade = models.ForeignKey(
         Propriedade,
         on_delete=models.CASCADE,
-        related_name='ordens_compra',
-        verbose_name="Propriedade"
-    )
-    requisicao_origem = models.ForeignKey(
-        RequisicaoCompra,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='ordens_geradas',
-        verbose_name="Requisição de Origem"
-    )
-    fornecedor = models.ForeignKey(
-        Fornecedor,
-        on_delete=models.CASCADE,
-        related_name='ordens_compra',
-        verbose_name="Fornecedor"
+        related_name='orcamentos_compras',
+        verbose_name='Propriedade'
     )
     setor = models.ForeignKey(
-        SetorPropriedade,
+        'SetorPropriedade',
         on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='ordens_compra',
-        verbose_name="Setor Responsável"
-    )
-    plano_conta = models.ForeignKey(
-        PlanoConta,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='ordens_compra',
-        verbose_name="Plano de Contas"
-    )
-    centro_custo = models.ForeignKey(
-        CentroCusto,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='ordens_compra',
-        verbose_name="Centro de Custo"
-    )
-    centro_custo_descricao = models.CharField(
-        max_length=120,
         blank=True,
         null=True,
-        verbose_name="Centro de Custo (Manual)"
+        related_name='orcamentos_mensais',
+        verbose_name='Setor'
     )
-
-    # Dados da Ordem
-    numero_ordem = models.CharField(
-        max_length=50,
-        unique=True,
-        verbose_name="Número da Ordem"
+    ano = models.PositiveIntegerField(
+        verbose_name='Ano'
     )
-    data_emissao = models.DateField(verbose_name="Data de Emissão")
-    data_entrega_prevista = models.DateField(
-        null=True,
-        blank=True,
-        verbose_name="Data de Entrega Prevista"
+    mes = models.PositiveSmallIntegerField(
+        choices=MES_CHOICES,
+        verbose_name='Mês'
     )
-    data_recebimento = models.DateField(
-        null=True,
-        blank=True,
-        verbose_name="Data de Recebimento"
-    )
-
-    # Status
-    status = models.CharField(
-        max_length=20,
-        choices=STATUS_CHOICES,
-        default='RASCUNHO',
-        verbose_name="Status"
-    )
-    autorizacao_setor_status = models.CharField(
-        max_length=15,
-        choices=AUTORIZACAO_SETOR_CHOICES,
-        default='PENDENTE',
-        verbose_name="Status Autorização Setor"
-    )
-    autorizacao_setor_usuario = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='ordens_compra_autorizadas_setor',
-        verbose_name="Responsável Autorização Setor"
-    )
-    autorizacao_setor_data = models.DateTimeField(
-        null=True,
-        blank=True,
-        verbose_name="Data Autorização Setor"
-    )
-    autorizacao_setor_observacoes = models.TextField(
-        null=True,
-        blank=True,
-        verbose_name="Observações da Autorização do Setor"
-    )
-
-    # Valores
-    valor_produtos = models.DecimalField(
-        max_digits=12,
+    valor_limite = models.DecimalField(
+        max_digits=14,
         decimal_places=2,
-        default=0,
-        verbose_name="Valor dos Produtos (R$)"
+        validators=[MinValueValidator(Decimal('0.00'))],
+        verbose_name='Limite Mensal (R$)'
     )
-    valor_frete = models.DecimalField(
-        max_digits=10,
+    limite_extra = models.DecimalField(
+        max_digits=14,
         decimal_places=2,
-        default=0,
-        verbose_name="Valor do Frete (R$)"
+        default=Decimal('0.00'),
+        verbose_name='Limite Extra (R$)'
     )
-    valor_total = models.DecimalField(
-        max_digits=12,
-        decimal_places=2,
-        default=0,
-        verbose_name="Valor Total (R$)"
-    )
-
-    # Condições
-    condicoes_pagamento = models.CharField(
-        max_length=200,
+    observacoes = models.TextField(
         blank=True,
         null=True,
-        verbose_name="Condições de Pagamento"
+        verbose_name='Observações'
     )
-    forma_pagamento = models.CharField(
-        max_length=50,
-        blank=True,
-        null=True,
-        verbose_name="Forma de Pagamento"
-    )
-
-    # Relacionamento com NF-e
-    nota_fiscal = models.ForeignKey(
-        NotaFiscal,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='ordens_compra',
-        verbose_name="Nota Fiscal"
-    )
-
-    # Aprovação
-    aprovado_por = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='ordens_compra_aprovadas',
-        verbose_name="Aprovado por"
-    )
-    data_aprovacao = models.DateTimeField(
-        null=True,
-        blank=True,
-        verbose_name="Data de Aprovação"
-    )
-
-    observacoes = models.TextField(blank=True, null=True, verbose_name="Observações")
     criado_por = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,
+        blank=True,
         null=True,
-        related_name='ordens_compra_criadas',
-        verbose_name="Criado por"
+        related_name='orcamentos_compras_criados',
+        verbose_name='Criado por'
     )
-    data_criacao = models.DateTimeField(auto_now_add=True, verbose_name="Data de Criação")
-
+    atualizado_por = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name='orcamentos_compras_atualizados',
+        verbose_name='Atualizado por'
+    )
+    criado_em = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='Criado em'
+    )
+    atualizado_em = models.DateTimeField(
+        auto_now=True,
+        verbose_name='Atualizado em'
+    )
+    
     class Meta:
-        verbose_name = "Ordem de Compra"
-        verbose_name_plural = "Ordens de Compra"
-        ordering = ['-data_emissao', 'numero_ordem']
-
+        verbose_name = 'Orçamento Mensal de Compras'
+        verbose_name_plural = 'Orçamentos Mensais de Compras'
+        ordering = ['-ano', '-mes', 'setor__nome']
+        unique_together = [('propriedade', 'setor', 'ano', 'mes')]
+    
     def __str__(self):
-        return f"OC {self.numero_ordem} - {self.fornecedor.nome}"
-
-    def save(self, *args, **kwargs):
-        # Calcular valor total
-        self.valor_total = self.valor_produtos + self.valor_frete
-        super().save(*args, **kwargs)
-
-    @property
-    def setor_autorizado(self):
-        return self.autorizacao_setor_status == 'AUTORIZADA'
-
-    @property
-    def centro_custo_display(self):
-        if self.centro_custo:
-            return str(self.centro_custo)
-        return self.centro_custo_descricao or ""
+        setor_nome = self.setor.nome if self.setor else "Geral"
+        mes_nome = dict(self.MES_CHOICES).get(self.mes, str(self.mes))
+        return f"{setor_nome} - {mes_nome}/{self.ano}"
 
 
-
-    class Meta:
-        verbose_name = "Ordem de Compra"
-        verbose_name_plural = "Ordens de Compra"
-        ordering = ['-data_emissao', 'numero_ordem']
-
-    def __str__(self):
-        return f"OC {self.numero_ordem} - {self.fornecedor.nome}"
-
-    def save(self, *args, **kwargs):
-        # Calcular valor total
-        self.valor_total = self.valor_produtos + self.valor_frete
-        super().save(*args, **kwargs)
-
-    @property
-    def setor_autorizado(self):
-        return self.autorizacao_setor_status == 'AUTORIZADA'
-
-    @property
-    def centro_custo_display(self):
-        if self.centro_custo:
-            return str(self.centro_custo)
-        return self.centro_custo_descricao or ""
-
-
-class ItemOrdemCompra(models.Model):
-    """Itens da Ordem de Compra"""
-    ordem_compra = models.ForeignKey(
-        OrdemCompra,
+class AjusteOrcamentoCompra(models.Model):
+    """Ajuste emergencial de orçamento mensal"""
+    orcamento = models.ForeignKey(
+        OrcamentoCompraMensal,
         on_delete=models.CASCADE,
-        related_name='itens',
-        verbose_name="Ordem de Compra"
+        related_name='ajustes',
+        verbose_name='Orçamento'
     )
-    
-    # Produto
-    descricao = models.CharField(max_length=200, verbose_name="Descrição")
-    codigo_produto = models.CharField(
-        max_length=50,
-        blank=True,
-        null=True,
-        verbose_name="Código do Produto"
-    )
-    unidade_medida = models.CharField(
-        max_length=10,
-        default='UN',
-        verbose_name="Unidade de Medida"
-    )
-    
-    # Quantidades
-    quantidade_solicitada = models.DecimalField(
-        max_digits=10,
-        decimal_places=3,
-        verbose_name="Quantidade Solicitada"
-    )
-    quantidade_recebida = models.DecimalField(
-        max_digits=10,
-        decimal_places=3,
-        default=0,
-        verbose_name="Quantidade Recebida"
-    )
-    
-    # Valores
-    valor_unitario = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        verbose_name="Valor Unitário (R$)"
-    )
-    valor_total = models.DecimalField(
-        max_digits=12,
-        decimal_places=2,
-        verbose_name="Valor Total (R$)"
-    )
-    
-    # Validade (para produtos perecíveis)
-    data_validade = models.DateField(
-        null=True,
-        blank=True,
-        verbose_name="Data de Validade"
-    )
-    
-    observacoes = models.TextField(blank=True, null=True, verbose_name="Observações")
-    
-    class Meta:
-        verbose_name = "Item da Ordem de Compra"
-        verbose_name_plural = "Itens da Ordem de Compra"
-        ordering = ['ordem_compra', 'descricao']
-    
-    def __str__(self):
-        return f"{self.ordem_compra.numero_ordem} - {self.descricao}"
-    
-    def save(self, *args, **kwargs):
-        # Calcular valor total
-        if self.quantidade_solicitada and self.valor_unitario:
-            self.valor_total = self.quantidade_solicitada * self.valor_unitario
-        super().save(*args, **kwargs)
-
-
-# ============================================================================
-# CONTAS A PAGAR E RECEBER
-# ============================================================================
-
-class ContaPagar(models.Model):
-    """Contas a Pagar"""
-    STATUS_CHOICES = [
-        ('PENDENTE', 'Pendente'),
-        ('VENCIDA', 'Vencida'),
-        ('PAGA', 'Paga'),
-        ('CANCELADA', 'Cancelada'),
-    ]
-    
-    propriedade = models.ForeignKey(
-        Propriedade,
-        on_delete=models.CASCADE,
-        related_name='contas_pagar',
-        verbose_name="Propriedade"
-    )
-    
-    # Relacionamentos
-    fornecedor = models.ForeignKey(
-        Fornecedor,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='contas_pagar',
-        verbose_name="Fornecedor"
-    )
-    ordem_compra = models.ForeignKey(
-        OrdemCompra,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='contas_pagar',
-        verbose_name="Ordem de Compra"
-    )
-    nota_fiscal = models.ForeignKey(
-        NotaFiscal,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='contas_pagar',
-        verbose_name="Nota Fiscal"
-    )
-    
-    # Dados da Conta
-    descricao = models.CharField(max_length=200, verbose_name="Descrição")
-    categoria = models.CharField(
-        max_length=100,
-        blank=True,
-        null=True,
-        verbose_name="Categoria",
-        help_text="Ex: Combustível, Ração, Salário, etc."
-    )
-    
-    # Valores e Datas
     valor = models.DecimalField(
-        max_digits=12,
+        max_digits=14,
         decimal_places=2,
-        verbose_name="Valor (R$)"
+        validators=[MinValueValidator(Decimal('0.01'))],
+        help_text='Informe o valor adicional aprovado para este mês.',
+        verbose_name='Valor do Ajuste (R$)'
     )
-    data_vencimento = models.DateField(verbose_name="Data de Vencimento")
-    data_pagamento = models.DateField(
-        null=True,
-        blank=True,
-        verbose_name="Data de Pagamento"
+    justificativa = models.TextField(
+        verbose_name='Justificativa do ajuste'
     )
-    
-    # Status
-    status = models.CharField(
-        max_length=20,
-        choices=STATUS_CHOICES,
-        default='PENDENTE',
-        verbose_name="Status"
-    )
-    
-    # Forma de Pagamento
-    forma_pagamento = models.CharField(
-        max_length=50,
+    criado_por = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
         blank=True,
         null=True,
-        verbose_name="Forma de Pagamento"
+        related_name='ajustes_orcamento_criados',
+        verbose_name='Criado por'
     )
-    
-    observacoes = models.TextField(blank=True, null=True, verbose_name="Observações")
-    data_registro = models.DateTimeField(auto_now_add=True, verbose_name="Data de Registro")
+    criado_em = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='Criado em'
+    )
     
     class Meta:
-        verbose_name = "Conta a Pagar"
-        verbose_name_plural = "Contas a Pagar"
-        ordering = ['data_vencimento', 'status']
+        verbose_name = 'Ajuste Emergencial de Orçamento'
+        verbose_name_plural = 'Ajustes Emergenciais de Orçamento'
+        ordering = ['-criado_em']
     
     def __str__(self):
-        return f"{self.descricao} - R$ {self.valor} - {self.data_vencimento}"
-    
-    def save(self, *args, **kwargs):
-        # Atualizar status baseado na data
-        from datetime import date
-        if not self.data_pagamento:
-            if self.data_vencimento < date.today():
-                self.status = 'VENCIDA'
-            else:
-                self.status = 'PENDENTE'
-        else:
-            self.status = 'PAGA'
-        super().save(*args, **kwargs)
+        return f"Ajuste de R$ {self.valor} - {self.orcamento}"
 
 
-class ContaReceber(models.Model):
-    """Contas a Receber"""
-    STATUS_CHOICES = [
-        ('PENDENTE', 'Pendente'),
-        ('VENCIDA', 'Vencida'),
-        ('RECEBIDA', 'Recebida'),
-        ('CANCELADA', 'Cancelada'),
-    ]
-    
-    propriedade = models.ForeignKey(
-        Propriedade,
-        on_delete=models.CASCADE,
-        related_name='contas_receber',
-        verbose_name="Propriedade"
-    )
-    
-    # Dados da Conta
-    descricao = models.CharField(max_length=200, verbose_name="Descrição")
-    categoria = models.CharField(
-        max_length=100,
-        blank=True,
-        null=True,
-        verbose_name="Categoria",
-        help_text="Ex: Venda de Animais, Venda de Produção, etc."
-    )
-    
-    # Cliente (se aplicável)
-    cliente = models.CharField(
-        max_length=200,
-        blank=True,
-        null=True,
-        verbose_name="Cliente"
-    )
-    
-    # Valores e Datas
-    valor = models.DecimalField(
-        max_digits=12,
-        decimal_places=2,
-        verbose_name="Valor (R$)"
-    )
-    data_vencimento = models.DateField(verbose_name="Data de Vencimento")
-    data_recebimento = models.DateField(
-        null=True,
-        blank=True,
-        verbose_name="Data de Recebimento"
-    )
-    
-    # Status
-    status = models.CharField(
-        max_length=20,
-        choices=STATUS_CHOICES,
-        default='PENDENTE',
-        verbose_name="Status"
-    )
-    
-    # Forma de Recebimento
-    forma_recebimento = models.CharField(
-        max_length=50,
-        blank=True,
-        null=True,
-        verbose_name="Forma de Recebimento"
-    )
-    
-    observacoes = models.TextField(blank=True, null=True, verbose_name="Observações")
-    data_registro = models.DateTimeField(auto_now_add=True, verbose_name="Data de Registro")
-    
+class AutorizacaoExcedenteOrcamento(models.Model):
+    orcamento = models.ForeignKey(OrcamentoCompraMensal, on_delete=models.CASCADE)
     class Meta:
-        verbose_name = "Conta a Receber"
-        verbose_name_plural = "Contas a Receber"
-        ordering = ['data_vencimento', 'status']
-    
+        verbose_name = "Autorização de Excedente de Orçamento"
     def __str__(self):
-        return f"{self.descricao} - R$ {self.valor} - {self.data_vencimento}"
-    
-    def save(self, *args, **kwargs):
-        # Atualizar status baseado na data
-        from datetime import date
-        if not self.data_recebimento:
-            if self.data_vencimento < date.today():
-                self.status = 'VENCIDA'
-            else:
-                self.status = 'PENDENTE'
-        else:
-            self.status = 'RECEBIDA'
-        super().save(*args, **kwargs)
+        return f"Autorização {self.id}"
 
+
+class EventoFluxoCompra(models.Model):
+    requisicao = models.ForeignKey(RequisicaoCompra, on_delete=models.CASCADE)
+    class Meta:
+        verbose_name = "Evento de Fluxo de Compra"
+    def __str__(self):
+        return f"Evento {self.id}"
 

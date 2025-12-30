@@ -35,3 +35,10 @@ def is_usuario_assinante(user):
 
 
 
+
+
+
+
+
+
+

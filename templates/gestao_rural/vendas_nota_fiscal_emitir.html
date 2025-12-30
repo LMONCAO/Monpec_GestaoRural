@@ -1,0 +1,1282 @@
+{% extends "base_modulos_unificado.html" %}
+{% load formatacao_br %}
+
+{% block title %}Emitir NF-e de Saída - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'vendas_dashboard' propriedade.id %}">Vendas</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'vendas_notas_fiscais_lista' propriedade.id %}">Notas Fiscais</a></li>
+            <li class="breadcrumb-item active">Emitir NF-e</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+        <div>
+            <h2 class="mb-0"><i class="bi bi-receipt-cutoff text-success me-2"></i>Emitir NF-e de Saída</h2>
+            <small class="text-muted">Emita nota fiscal eletrônica para suas vendas</small>
+        </div>
+    </div>
+
+    <!-- Indicador de Progresso (Steps) -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="wizard-steps">
+                <div class="step-item active" data-step="1">
+                    <div class="step-number">1</div>
+                    <div class="step-label">Dados da NF-e</div>
+                </div>
+                <div class="step-connector"></div>
+                <div class="step-item" data-step="2">
+                    <div class="step-number">2</div>
+                    <div class="step-label">Itens</div>
+                </div>
+                <div class="step-connector"></div>
+                <div class="step-item" data-step="3">
+                    <div class="step-number">3</div>
+                    <div class="step-label">Valores</div>
+                </div>
+                <div class="step-connector"></div>
+                <div class="step-item" data-step="4">
+                    <div class="step-number">4</div>
+                    <div class="step-label">Revisão</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <form method="post" id="form-nfe">
+        {% csrf_token %}
+        
+        <div class="row">
+            <div class="col-xl-8">
+                <!-- ETAPA 1: Dados da NF-e -->
+                <div class="card mb-3 wizard-step" id="step-1" data-step="1">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="bi bi-file-earmark-text me-2"></i>Dados da Nota Fiscal</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Cliente *</label>
+                                {{ form.cliente }}
+                                {% if form.cliente.errors %}
+                                    <div class="text-danger small">{{ form.cliente.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Número da NF-e</label>
+                                <input type="text" class="form-control" value="{{ proximo_numero }}" disabled>
+                                <small class="text-muted">Número será gerado automaticamente</small>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Série *</label>
+                                {{ form.serie }}
+                                {% if form.serie.errors %}
+                                    <div class="text-danger small">{{ form.serie.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Data de Emissão *</label>
+                                {{ form.data_emissao }}
+                                {% if form.data_emissao.errors %}
+                                    <div class="text-danger small">{{ form.data_emissao.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Data de Saída</label>
+                                {{ form.data_entrada }}
+                                {% if form.data_entrada.errors %}
+                                    <div class="text-danger small">{{ form.data_entrada.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ETAPA 2: Itens da NF-e -->
+                <div class="card mb-3 wizard-step" id="step-2" data-step="2" style="display: none;">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-list-ul me-2"></i>Itens da Nota Fiscal</h5>
+                    </div>
+                    <div class="card-body">
+                        {{ formset.management_form }}
+                        <div id="itens-container">
+                            {% for item_form in formset %}
+                            <div class="item-form border rounded p-3 mb-3" data-item-index="{{ forloop.counter0 }}">
+                                <div class="row g-3">
+                                    <div class="col-md-12">
+                                        <label class="form-label">Buscar Produto Cadastrado</label>
+                                        <div class="input-group">
+                                            <input type="text" 
+                                                   class="form-control produto-busca" 
+                                                   placeholder="Digite código, descrição ou NCM do produto..."
+                                                   data-item-index="{{ forloop.counter0 }}"
+                                                   autocomplete="off">
+                                            <button type="button" class="btn btn-outline-secondary" onclick="limparProduto({{ forloop.counter0 }})">
+                                                <i class="bi bi-x-circle"></i> Limpar
+                                            </button>
+                                        </div>
+                                        <div class="list-group produto-sugestoes" id="sugestoes-{{ forloop.counter0 }}" style="display: none; position: absolute; z-index: 1000; max-height: 200px; overflow-y: auto; width: 100%;"></div>
+                                    </div>
+                                    <div class="col-md-12">
+                                        <label class="form-label">Produto *</label>
+                                        {{ item_form.produto }}
+                                        <small class="text-muted">Selecione um produto cadastrado ou preencha manualmente abaixo</small>
+                                    </div>
+                                    <div class="col-md-12">
+                                        <label class="form-label">Descrição do Produto/Serviço *</label>
+                                        {{ item_form.descricao }}
+                                        {% if item_form.descricao.errors %}
+                                            <div class="text-danger small">{{ item_form.descricao.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Código do Produto</label>
+                                        {{ item_form.codigo_produto }}
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">NCM *</label>
+                                        {{ item_form.ncm }}
+                                        <small class="text-muted">Ex: 0102.29.00</small>
+                                        <button type="button" class="btn btn-sm btn-outline-info mt-1" onclick="consultarNCM({{ forloop.counter0 }})">
+                                            <i class="bi bi-search"></i> Validar
+                                        </button>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Origem da Mercadoria *</label>
+                                        {{ item_form.origem_mercadoria }}
+                                        <small class="text-muted">Obrigatório na NF-e</small>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">CFOP</label>
+                                        {{ item_form.cfop }}
+                                        <small class="text-muted">Ex: 5102</small>
+                                        <button type="button" class="btn btn-sm btn-outline-info mt-1" onclick="validarCFOP({{ forloop.counter0 }})">
+                                            <i class="bi bi-search"></i> Validar
+                                        </button>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Unidade</label>
+                                        {{ item_form.unidade_medida }}
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">CEST</label>
+                                        {{ item_form.cest }}
+                                        <small class="text-muted">Ex: 01.001.00</small>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">GTIN/EAN</label>
+                                        {{ item_form.gtin }}
+                                        <small class="text-muted">Código de barras</small>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Exceção TIPI</label>
+                                        {{ item_form.ex_tipi }}
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Quantidade *</label>
+                                        {{ item_form.quantidade }}
+                                        {% if item_form.quantidade.errors %}
+                                            <div class="text-danger small">{{ item_form.quantidade.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Valor Unitário (R$) *</label>
+                                        {{ item_form.valor_unitario }}
+                                        {% if item_form.valor_unitario.errors %}
+                                            <div class="text-danger small">{{ item_form.valor_unitario.errors }}</div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Valor Total (R$)</label>
+                                        <input type="text" class="form-control" id="valor-total-{{ forloop.counter0 }}" readonly>
+                                    </div>
+                                    {% if item_form.DELETE %}
+                                    <div class="col-md-12">
+                                        <div class="form-check">
+                                            {{ item_form.DELETE }}
+                                            <label class="form-check-label" for="{{ item_form.DELETE.id_for_label }}">
+                                                Remover este item
+                                            </label>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {{ item_form.id }}
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <button type="button" class="btn btn-outline-primary btn-sm" id="adicionar-item">
+                            <i class="bi bi-plus-circle me-1"></i>Adicionar Item
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ETAPA 3: Valores Totais -->
+                <div class="card mb-3 wizard-step" id="step-3" data-step="3" style="display: none;">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-calculator me-2"></i>Valores</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Valor dos Produtos (R$) *</label>
+                                {{ form.valor_produtos }}
+                                {% if form.valor_produtos.errors %}
+                                    <div class="text-danger small">{{ form.valor_produtos.errors }}</div>
+                                {% endif %}
+                                <small class="text-muted">Será calculado automaticamente pelos itens</small>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Valor do Frete (R$)</label>
+                                {{ form.valor_frete }}
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Valor do Seguro (R$)</label>
+                                {{ form.valor_seguro }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Valor do Desconto (R$)</label>
+                                {{ form.valor_desconto }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Outras Despesas (R$)</label>
+                                {{ form.valor_outros }}
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label">Observações</label>
+                                {{ form.observacoes }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ETAPA 4: Revisão da NF-e -->
+                <div class="card mb-3 wizard-step" id="step-4" data-step="4" style="display: none;">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0"><i class="bi bi-eye me-2"></i>Revisão da Nota Fiscal</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="preview-nfe">
+                            <!-- Preview será preenchido via JavaScript -->
+                            <div class="text-center py-5">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Carregando...</span>
+                                </div>
+                                <p class="mt-3 text-muted">Carregando preview da nota fiscal...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tela de Processamento -->
+                <div class="card mb-3" id="processamento-nfe" style="display: none;">
+                    <div class="card-body text-center py-5">
+                        <div class="spinner-border text-success mb-3" role="status" style="width: 3rem; height: 3rem;">
+                            <span class="visually-hidden">Processando...</span>
+                        </div>
+                        <h5 class="mb-2">Emitindo Nota Fiscal</h5>
+                        <p class="text-muted mb-0">Aguarde, estamos processando a emissão da NF-e...</p>
+                        <div class="progress mt-3" style="height: 6px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 100%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botões de Navegação -->
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <button type="button" class="btn btn-outline-secondary" id="btn-anterior" style="display: none;">
+                                <i class="bi bi-arrow-left me-1"></i>Anterior
+                            </button>
+                            <div class="ms-auto"></div>
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-primary" id="btn-proximo">
+                                    Próximo<i class="bi bi-arrow-right ms-1"></i>
+                                </button>
+                                <button type="button" class="btn btn-success" id="btn-emitir" style="display: none;">
+                                    <i class="bi bi-check-circle me-1"></i>Emitir NF-e
+                                </button>
+                                <a href="{% url 'vendas_notas_fiscais_lista' propriedade.id %}" class="btn btn-outline-secondary">
+                                    <i class="bi bi-x-circle me-1"></i>Cancelar
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Informações</h6>
+                    </div>
+                    <div class="card-body small text-muted">
+                        <ul class="mb-3">
+                            <li>A NF-e será criada e enviada para autorização na SEFAZ.</li>
+                            <li>Certifique-se de que o cliente está cadastrado corretamente.</li>
+                            <li>Os valores serão calculados automaticamente baseado nos itens.</li>
+                            <li>Após a autorização, a chave de acesso será gerada.</li>
+                        </ul>
+                        <p class="mb-0">
+                            <strong>Nota:</strong> Para emissão automática, configure:
+                            <ul class="mb-0 mt-2">
+                                <li><strong>Opção 1:</strong> Integração direta com SEFAZ (certificado digital) - Configure <code>NFE_SEFAZ</code> nas settings</li>
+                                <li><strong>Opção 2:</strong> API terceira (Focus NFe, NFe.io) - Configure <code>API_NFE</code> nas settings</li>
+                            </ul>
+                            Sem configuração, a NF-e será criada com status "PENDENTE" para emissão manual posterior.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<style>
+.wizard-steps {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem 0;
+}
+
+.step-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+}
+
+.step-number {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #e9ecef;
+    color: #6c757d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.step-item.active .step-number {
+    background-color: #198754;
+    color: white;
+}
+
+.step-item.completed .step-number {
+    background-color: #198754;
+    color: white;
+}
+
+.step-item.completed .step-number::after {
+    content: '\2713';
+}
+
+.step-label {
+    font-size: 0.875rem;
+    color: #6c757d;
+    font-weight: 500;
+}
+
+.step-item.active .step-label {
+    color: #198754;
+    font-weight: 600;
+}
+
+.step-connector {
+    flex: 1;
+    height: 2px;
+    background-color: #e9ecef;
+    margin: 0 1rem;
+    margin-top: -1.5rem;
+    max-width: 150px;
+}
+
+.step-item.completed ~ .step-connector,
+.step-item.active ~ .step-connector {
+    background-color: #198754;
+}
+
+.wizard-step {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+</style>
+
+<script>
+let timeoutBusca = null;
+let currentStep = 1;
+const totalSteps = 4;
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar wizard
+    initWizard();
+    
+    // Event listeners para navegação
+    document.getElementById('btn-proximo').addEventListener('click', function() {
+        if (validateCurrentStep()) {
+            nextStep();
+        }
+    });
+    
+    document.getElementById('btn-anterior').addEventListener('click', function() {
+        previousStep();
+    });
+    
+    document.getElementById('btn-emitir').addEventListener('click', function() {
+        emitirNotaFiscal();
+    });
+    
+    // Quando chegar na etapa 4, gerar preview
+    const observerStep4 = new MutationObserver(function(mutations) {
+        if (currentStep === 4) {
+            gerarPreviewNFe();
+        }
+    });
+    
+    // Calcular valor total dos itens
+    function calcularValorTotal(index) {
+        const quantidadeEl = document.querySelector(`#id_form-${index}-quantidade`);
+        const valorUnitarioEl = document.querySelector(`#id_form-${index}-valor_unitario`);
+        
+        if (!quantidadeEl || !valorUnitarioEl) return;
+        
+        const quantidade = parseFloat(quantidadeEl.value) || 0;
+        const valorUnitario = parseFloat(valorUnitarioEl.value) || 0;
+        const valorTotal = quantidade * valorUnitario;
+        
+        const valorTotalElement = document.querySelector(`#valor-total-${index}`);
+        if (valorTotalElement) {
+            valorTotalElement.value = valorTotal.toFixed(2);
+        }
+        
+        // Recalcular valor total dos produtos
+        recalcularValorProdutos();
+    }
+    
+    function recalcularValorProdutos() {
+        let total = 0;
+        document.querySelectorAll('[id^="valor-total-"]').forEach(input => {
+            total += parseFloat(input.value) || 0;
+        });
+        const valorProdutosElement = document.querySelector('#id_valor_produtos');
+        if (valorProdutosElement) {
+            valorProdutosElement.value = total.toFixed(2);
+        }
+    }
+    
+    // Adicionar listeners para cálculo automático
+    document.querySelectorAll('[id^="id_form-"][id$="-quantidade"], [id^="id_form-"][id$="-valor_unitario"]').forEach(input => {
+        input.addEventListener('input', function() {
+            const match = this.id.match(/id_form-(\d+)-/);
+            if (match) {
+                calcularValorTotal(match[1]);
+            }
+        });
+    });
+    
+    // Calcular valores iniciais
+    document.querySelectorAll('[id^="valor-total-"]').forEach((input, index) => {
+        calcularValorTotal(index);
+    });
+    
+    // Busca de produtos
+    document.querySelectorAll('.produto-busca').forEach(input => {
+        input.addEventListener('input', function() {
+            const index = this.dataset.itemIndex;
+            const termo = this.value.trim();
+            
+            clearTimeout(timeoutBusca);
+            
+            if (termo.length < 2) {
+                const sugestoesEl = document.getElementById(`sugestoes-${index}`);
+                if (sugestoesEl) sugestoesEl.style.display = 'none';
+                return;
+            }
+            
+            timeoutBusca = setTimeout(() => {
+                buscarProdutos(termo, index);
+            }, 300);
+        });
+        
+        // Fechar sugestões ao clicar fora
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.item-form')) {
+                document.querySelectorAll('.produto-sugestoes').forEach(el => {
+                    el.style.display = 'none';
+                });
+            }
+        });
+    });
+    
+    // Listener para mudança de produto selecionado
+    document.querySelectorAll('.produto-select').forEach(select => {
+        select.addEventListener('change', function() {
+            if (this.value) {
+                carregarDadosProduto(this.value, this);
+            }
+        });
+    });
+});
+
+// Funções do Wizard
+function initWizard() {
+    updateStepIndicator();
+    updateNavigationButtons();
+}
+
+function nextStep() {
+    if (currentStep < totalSteps) {
+        currentStep++;
+        showStep(currentStep);
+        updateStepIndicator();
+        updateNavigationButtons();
+        
+        // Se chegou na etapa 4, gerar preview
+        if (currentStep === 4) {
+            gerarPreviewNFe();
+        }
+        
+        // Scroll para o topo da etapa
+        document.querySelector(`#step-${currentStep}`).scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
+function previousStep() {
+    if (currentStep > 1) {
+        currentStep--;
+        showStep(currentStep);
+        updateStepIndicator();
+        updateNavigationButtons();
+        
+        // Scroll para o topo da etapa
+        document.querySelector(`#step-${currentStep}`).scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
+function showStep(step) {
+    // Esconder todas as etapas
+    document.querySelectorAll('.wizard-step').forEach(el => {
+        el.style.display = 'none';
+    });
+    
+    // Mostrar etapa atual
+    const stepEl = document.querySelector(`#step-${step}`);
+    if (stepEl) {
+        stepEl.style.display = 'block';
+    }
+}
+
+function updateStepIndicator() {
+    document.querySelectorAll('.step-item').forEach((item, index) => {
+        const stepNum = index + 1;
+        item.classList.remove('active', 'completed');
+        
+        if (stepNum < currentStep) {
+            item.classList.add('completed');
+        } else if (stepNum === currentStep) {
+            item.classList.add('active');
+        }
+    });
+}
+
+function updateNavigationButtons() {
+    const btnAnterior = document.getElementById('btn-anterior');
+    const btnProximo = document.getElementById('btn-proximo');
+    const btnEmitir = document.getElementById('btn-emitir');
+    
+    // Botão Anterior
+    if (currentStep > 1) {
+        btnAnterior.style.display = 'block';
+    } else {
+        btnAnterior.style.display = 'none';
+    }
+    
+    // Botão Próximo / Emitir
+    if (currentStep < totalSteps) {
+        btnProximo.style.display = 'block';
+        btnEmitir.style.display = 'none';
+    } else {
+        btnProximo.style.display = 'none';
+        btnEmitir.style.display = 'block';
+    }
+}
+
+function validateCurrentStep() {
+    let isValid = true;
+    const stepEl = document.querySelector(`#step-${currentStep}`);
+    
+    if (currentStep === 1) {
+        // Validar dados da NF-e
+        const cliente = document.querySelector('#id_cliente');
+        const serie = document.querySelector('#id_serie');
+        const dataEmissao = document.querySelector('#id_data_emissao');
+        
+        if (cliente && !cliente.value) {
+            alert('Por favor, selecione um cliente.');
+            cliente.focus();
+            isValid = false;
+        } else if (serie && !serie.value) {
+            alert('Por favor, informe a série da NF-e.');
+            serie.focus();
+            isValid = false;
+        } else if (dataEmissao && !dataEmissao.value) {
+            alert('Por favor, informe a data de emissão.');
+            dataEmissao.focus();
+            isValid = false;
+        }
+    } else if (currentStep === 2) {
+        // Validar itens (pelo menos um item deve ter descrição, quantidade e valor)
+        let hasValidItem = false;
+        document.querySelectorAll('[id^="id_form-"][id$="-descricao"]').forEach(input => {
+            const match = input.id.match(/id_form-(\d+)-/);
+            if (match) {
+                const index = match[1];
+                const descricao = input.value;
+                const quantidadeEl = document.querySelector(`#id_form-${index}-quantidade`);
+                const valorUnitarioEl = document.querySelector(`#id_form-${index}-valor_unitario`);
+                const deleteEl = document.querySelector(`#id_form-${index}-DELETE`);
+                
+                // Verificar se o item não está marcado para deletar
+                if (!deleteEl || !deleteEl.checked) {
+                    if (descricao && descricao.trim() && quantidadeEl && quantidadeEl.value && valorUnitarioEl && valorUnitarioEl.value) {
+                        hasValidItem = true;
+                    }
+                }
+            }
+        });
+        
+        if (!hasValidItem) {
+            alert('Por favor, adicione pelo menos um item com descrição, quantidade e valor unitário.');
+            isValid = false;
+        }
+    }
+    
+    return isValid;
+}
+
+function buscarProdutos(termo, index) {
+    fetch(`/ajax/buscar-produtos/?termo=${encodeURIComponent(termo)}`)
+        .then(response => response.json())
+        .then(data => {
+            const sugestoes = document.getElementById(`sugestoes-${index}`);
+            if (!sugestoes) return;
+            
+            sugestoes.innerHTML = '';
+            
+            if (data.produtos && data.produtos.length > 0) {
+                data.produtos.forEach(produto => {
+                    const item = document.createElement('a');
+                    item.href = '#';
+                    item.className = 'list-group-item list-group-item-action';
+                    item.innerHTML = `
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">${produto.codigo} - ${produto.descricao}</h6>
+                        </div>
+                        <small class="text-muted">NCM: ${produto.ncm} | ${produto.categoria}</small>
+                    `;
+                    item.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        selecionarProduto(produto, index);
+                    });
+                    sugestoes.appendChild(item);
+                });
+                sugestoes.style.display = 'block';
+            } else {
+                sugestoes.style.display = 'none';
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao buscar produtos:', error);
+        });
+}
+
+function selecionarProduto(produto, index) {
+    // Preencher campos do formulário
+    const produtoEl = document.querySelector(`#id_form-${index}-produto`);
+    const codigoEl = document.querySelector(`#id_form-${index}-codigo_produto`);
+    const descricaoEl = document.querySelector(`#id_form-${index}-descricao`);
+    const ncmEl = document.querySelector(`#id_form-${index}-ncm`);
+    const origemEl = document.querySelector(`#id_form-${index}-origem_mercadoria`);
+    const cestEl = document.querySelector(`#id_form-${index}-cest`);
+    const gtinEl = document.querySelector(`#id_form-${index}-gtin`);
+    const exTipiEl = document.querySelector(`#id_form-${index}-ex_tipi`);
+    const unidadeEl = document.querySelector(`#id_form-${index}-unidade_medida`);
+    const cfopEl = document.querySelector(`#id_form-${index}-cfop`);
+    const valorUnitarioEl = document.querySelector(`#id_form-${index}-valor_unitario`);
+    
+    if (produtoEl) produtoEl.value = produto.id;
+    if (codigoEl) codigoEl.value = produto.codigo || '';
+    if (descricaoEl) descricaoEl.value = produto.descricao || '';
+    if (ncmEl) ncmEl.value = produto.ncm || '';
+    if (origemEl) origemEl.value = produto.origem_mercadoria || '0';
+    if (cestEl) cestEl.value = produto.cest || '';
+    if (gtinEl) gtinEl.value = produto.gtin || '';
+    if (exTipiEl) exTipiEl.value = produto.ex_tipi || '';
+    if (unidadeEl) unidadeEl.value = produto.unidade_medida || 'UN';
+    if (cfopEl && produto.cfop_saida_estadual) cfopEl.value = produto.cfop_saida_estadual;
+    if (valorUnitarioEl && produto.preco_venda && parseFloat(produto.preco_venda) > 0) {
+        valorUnitarioEl.value = parseFloat(produto.preco_venda).toFixed(2);
+    }
+    
+    // Esconder sugestões
+    const sugestoesEl = document.getElementById(`sugestoes-${index}`);
+    if (sugestoesEl) sugestoesEl.style.display = 'none';
+    
+    const buscaEl = document.querySelector(`[data-item-index="${index}"].produto-busca`);
+    if (buscaEl) buscaEl.value = `${produto.codigo} - ${produto.descricao}`;
+    
+    // Recalcular valores
+    calcularValorTotal(index);
+}
+
+function limparProduto(index) {
+    const produtoEl = document.querySelector(`#id_form-${index}-produto`);
+    const buscaEl = document.querySelector(`[data-item-index="${index}"].produto-busca`);
+    const sugestoesEl = document.getElementById(`sugestoes-${index}`);
+    
+    if (produtoEl) produtoEl.value = '';
+    if (buscaEl) buscaEl.value = '';
+    if (sugestoesEl) sugestoesEl.style.display = 'none';
+}
+
+function carregarDadosProduto(produtoId, selectElement) {
+    fetch(`/ajax/buscar-produtos/?termo=${produtoId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.produtos && data.produtos.length > 0) {
+                const produto = data.produtos.find(p => p.id == produtoId);
+                if (produto) {
+                    const itemForm = selectElement.closest('.item-form');
+                    if (itemForm) {
+                        const index = itemForm.dataset.itemIndex;
+                        selecionarProduto(produto, index);
+                    }
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao carregar produto:', error);
+        });
+}
+
+function consultarNCM(index) {
+    const ncmEl = document.querySelector(`#id_form-${index}-ncm`);
+    if (!ncmEl || !ncmEl.value) {
+        alert('Informe o NCM para consultar');
+        return;
+    }
+    
+    fetch(`/ajax/consultar-ncm/?ncm=${encodeURIComponent(ncmEl.value)}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.sucesso) {
+                if (data.descricao) {
+                    alert(`NCM válido!\n\nDescrição: ${data.descricao}`);
+                } else {
+                    alert(`NCM validado localmente.\n\n${data.aviso || ''}`);
+                }
+            } else {
+                alert(`Erro: ${data.erro}`);
+            }
+        })
+        .catch(error => {
+            alert('Erro ao consultar NCM');
+            console.error(error);
+        });
+}
+
+function validarCFOP(index) {
+    const cfopEl = document.querySelector(`#id_form-${index}-cfop`);
+    if (!cfopEl || !cfopEl.value) {
+        alert('Informe o CFOP para validar');
+        return;
+    }
+    
+    fetch(`/ajax/validar-cfop/?cfop=${encodeURIComponent(cfopEl.value)}&tipo=SAIDA`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.sucesso) {
+                alert(`CFOP válido!\n\n${data.descricao}\n\n${data.aviso || ''}`);
+            } else {
+                alert(`Erro: ${data.erro}`);
+            }
+        })
+        .catch(error => {
+            alert('Erro ao validar CFOP');
+            console.error(error);
+        });
+}
+
+function calcularValorTotal(index) {
+    const quantidadeEl = document.querySelector(`#id_form-${index}-quantidade`);
+    const valorUnitarioEl = document.querySelector(`#id_form-${index}-valor_unitario`);
+    
+    if (!quantidadeEl || !valorUnitarioEl) return;
+    
+    const quantidade = parseFloat(quantidadeEl.value) || 0;
+    const valorUnitario = parseFloat(valorUnitarioEl.value) || 0;
+    const valorTotal = quantidade * valorUnitario;
+    
+    const valorTotalElement = document.querySelector(`#valor-total-${index}`);
+    if (valorTotalElement) {
+        valorTotalElement.value = valorTotal.toFixed(2);
+    }
+    
+    // Recalcular valor total dos produtos
+    let total = 0;
+    document.querySelectorAll('[id^="valor-total-"]').forEach(input => {
+        total += parseFloat(input.value) || 0;
+    });
+    const valorProdutosElement = document.querySelector('#id_valor_produtos');
+    if (valorProdutosElement) {
+        valorProdutosElement.value = total.toFixed(2);
+    }
+}
+
+// Gerar preview da NF-e na etapa 4
+function gerarPreviewNFe() {
+    const previewEl = document.getElementById('preview-nfe');
+    if (!previewEl) return;
+    
+    // Coletar dados do formulário
+    const formData = new FormData(document.getElementById('form-nfe'));
+    const clienteSelect = document.querySelector('#id_cliente');
+    const clienteTexto = clienteSelect ? clienteSelect.options[clienteSelect.selectedIndex].text : 'Não informado';
+    const serie = document.querySelector('#id_serie') ? document.querySelector('#id_serie').value : '';
+    const dataEmissao = document.querySelector('#id_data_emissao') ? document.querySelector('#id_data_emissao').value : '';
+    const dataSaida = document.querySelector('#id_data_entrada') ? document.querySelector('#id_data_entrada').value : '';
+    const valorProdutos = document.querySelector('#id_valor_produtos') ? parseFloat(document.querySelector('#id_valor_produtos').value) || 0 : 0;
+    const valorFrete = document.querySelector('#id_valor_frete') ? parseFloat(document.querySelector('#id_valor_frete').value) || 0 : 0;
+    const valorSeguro = document.querySelector('#id_valor_seguro') ? parseFloat(document.querySelector('#id_valor_seguro').value) || 0 : 0;
+    const valorDesconto = document.querySelector('#id_valor_desconto') ? parseFloat(document.querySelector('#id_valor_desconto').value) || 0 : 0;
+    const valorOutros = document.querySelector('#id_valor_outros') ? parseFloat(document.querySelector('#id_valor_outros').value) || 0 : 0;
+    const observacoes = document.querySelector('#id_observacoes') ? document.querySelector('#id_observacoes').value : '';
+    
+    // Calcular valor total
+    const valorTotal = valorProdutos + valorFrete + valorSeguro + valorOutros - valorDesconto;
+    
+    // Coletar itens
+    let itensHtml = '';
+    let itemIndex = 0;
+    document.querySelectorAll('.item-form').forEach(itemForm => {
+        const deleteCheckbox = itemForm.querySelector('[name$="-DELETE"]');
+        if (deleteCheckbox && deleteCheckbox.checked) return;
+        
+        const descricao = itemForm.querySelector(`#id_form-${itemIndex}-descricao`) ? itemForm.querySelector(`#id_form-${itemIndex}-descricao`).value : '';
+        const quantidade = itemForm.querySelector(`#id_form-${itemIndex}-quantidade`) ? itemForm.querySelector(`#id_form-${itemIndex}-quantidade`).value : '0';
+        const unidade = itemForm.querySelector(`#id_form-${itemIndex}-unidade_medida`) ? itemForm.querySelector(`#id_form-${itemIndex}-unidade_medida`).value : 'UN';
+        const ncm = itemForm.querySelector(`#id_form-${itemIndex}-ncm`) ? itemForm.querySelector(`#id_form-${itemIndex}-ncm`).value : '';
+        const valorUnitario = itemForm.querySelector(`#id_form-${itemIndex}-valor_unitario`) ? parseFloat(itemForm.querySelector(`#id_form-${itemIndex}-valor_unitario`).value) || 0 : 0;
+        const valorTotalItem = parseFloat(quantidade) * valorUnitario;
+        
+        if (descricao) {
+            itensHtml += `
+                <tr>
+                    <td><strong>${descricao}</strong></td>
+                    <td class="text-end">${quantidade}</td>
+                    <td>${unidade}</td>
+                    <td>${ncm || '-'}</td>
+                    <td class="text-end">R$ ${valorUnitario.toFixed(2).replace('.', ',')}</td>
+                    <td class="text-end">R$ ${valorTotalItem.toFixed(2).replace('.', ',')}</td>
+                </tr>
+            `;
+        }
+        itemIndex++;
+    });
+    
+    // Formatar datas
+    const formatarData = (dataStr) => {
+        if (!dataStr) return '-';
+        const parts = dataStr.split('-');
+        return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    };
+    
+    // Formatar moeda
+    const formatarMoeda = (valor) => {
+        return `R$ ${valor.toFixed(2).replace('.', ',')}`;
+    };
+    
+    // Gerar HTML do preview
+    previewEl.innerHTML = `
+        <div class="nfe-preview">
+            <div class="card mb-3">
+                <div class="card-header bg-success text-white">
+                    <h6 class="mb-0"><i class="bi bi-file-earmark-text me-2"></i>Dados da Nota Fiscal</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <p class="mb-1"><strong>Cliente:</strong></p>
+                            <p class="mb-0">${clienteTexto}</p>
+                        </div>
+                        <div class="col-md-3">
+                            <p class="mb-1"><strong>Série:</strong></p>
+                            <p class="mb-0">${serie || '-'}</p>
+                        </div>
+                        <div class="col-md-3">
+                            <p class="mb-1"><strong>Número:</strong></p>
+                            <p class="mb-0" id="preview-numero">{{ proximo_numero }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="mb-1"><strong>Data de Emissão:</strong></p>
+                            <p class="mb-0">${formatarData(dataEmissao)}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="mb-1"><strong>Data de Saída:</strong></p>
+                            <p class="mb-0">${formatarData(dataSaida) || '-'}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-list-ul me-2"></i>Itens da Nota Fiscal</h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-striped align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Descrição</th>
+                                    <th class="text-end">Quantidade</th>
+                                    <th>Unidade</th>
+                                    <th>NCM</th>
+                                    <th class="text-end">Valor Unit.</th>
+                                    <th class="text-end">Valor Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${itensHtml || '<tr><td colspan="6" class="text-center text-muted py-4">Nenhum item encontrado.</td></tr>'}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-calculator me-2"></i>Valores</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <p class="mb-1"><strong>Valor dos Produtos:</strong></p>
+                            <p class="mb-0">${formatarMoeda(valorProdutos)}</p>
+                        </div>
+                        <div class="col-md-3">
+                            <p class="mb-1"><strong>Frete:</strong></p>
+                            <p class="mb-0">${formatarMoeda(valorFrete)}</p>
+                        </div>
+                        <div class="col-md-3">
+                            <p class="mb-1"><strong>Seguro:</strong></p>
+                            <p class="mb-0">${formatarMoeda(valorSeguro)}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="mb-1"><strong>Desconto:</strong></p>
+                            <p class="mb-0">${formatarMoeda(valorDesconto)}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="mb-1"><strong>Outras Despesas:</strong></p>
+                            <p class="mb-0">${formatarMoeda(valorOutros)}</p>
+                        </div>
+                        <div class="col-12">
+                            <hr>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0"><strong>Valor Total:</strong></h5>
+                                <h4 class="mb-0 text-success">${formatarMoeda(valorTotal)}</h4>
+                            </div>
+                        </div>
+                        ${observacoes ? `
+                        <div class="col-12">
+                            <p class="mb-1"><strong>Observações:</strong></p>
+                            <p class="mb-0">${observacoes}</p>
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Emitir nota fiscal
+function emitirNotaFiscal() {
+    // Validar formulário antes de enviar
+    const form = document.getElementById('form-nfe');
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+    
+    // Esconder etapa 4 e mostrar tela de processamento
+    document.querySelector('#step-4').style.display = 'none';
+    document.querySelector('.card.mb-4').style.display = 'none'; // Esconder botões de navegação
+    document.getElementById('processamento-nfe').style.display = 'block';
+    
+    // Fazer scroll para tela de processamento
+    document.getElementById('processamento-nfe').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    
+    // Enviar formulário via AJAX
+    const formData = new FormData(form);
+    
+    fetch(form.action || window.location.href, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.sucesso) {
+            // Esconder tela de processamento
+            document.getElementById('processamento-nfe').style.display = 'none';
+            
+            // Abrir modal de envio
+            abrirModalEnvio(data.nota_id, data.chave_acesso);
+        } else {
+            // Mostrar erro
+            alert('Erro ao emitir NF-e: ' + (data.erro || 'Erro desconhecido'));
+            // Voltar para etapa 4
+            document.querySelector('#step-4').style.display = 'block';
+            document.querySelector('.card.mb-4').style.display = 'block';
+            document.getElementById('processamento-nfe').style.display = 'none';
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro ao processar a emissão da NF-e. Por favor, tente novamente.');
+        // Voltar para etapa 4
+        document.querySelector('#step-4').style.display = 'block';
+        document.querySelector('.card.mb-4').style.display = 'block';
+        document.getElementById('processamento-nfe').style.display = 'none';
+    });
+}
+
+// Abrir modal de envio
+function abrirModalEnvio(notaId, chaveAcesso) {
+    // Criar modal dinamicamente
+    const modalHtml = `
+        <div class="modal fade" id="modalEnvioNFe" tabindex="-1" aria-labelledby="modalEnvioNFeLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title" id="modalEnvioNFeLabel">
+                            <i class="bi bi-check-circle me-2"></i>NF-e Emitida com Sucesso!
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="mb-3">A nota fiscal foi emitida e autorizada com sucesso!</p>
+                        <p class="mb-3"><strong>Chave de Acesso:</strong><br><code class="small">${chaveAcesso || 'N/A'}</code></p>
+                        <hr>
+                        <p class="mb-3"><strong>Deseja enviar a NF-e para o cliente?</strong></p>
+                        <div class="d-grid gap-2">
+                            <button type="button" class="btn btn-primary" onclick="enviarPorEmail(${notaId})">
+                                <i class="bi bi-envelope me-2"></i>Enviar por E-mail
+                            </button>
+                            <button type="button" class="btn btn-success" onclick="enviarPorWhatsapp(${notaId})">
+                                <i class="bi bi-whatsapp me-2"></i>Enviar por WhatsApp
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="fecharModalEbaixar(${notaId})">
+                                <i class="bi bi-x-circle me-2"></i>Fechar e Baixar Arquivos
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remover modal existente se houver
+    const existingModal = document.getElementById('modalEnvioNFe');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Adicionar modal ao body
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // Abrir modal
+    const modal = new bootstrap.Modal(document.getElementById('modalEnvioNFe'));
+    modal.show();
+}
+
+// Enviar por email
+function enviarPorEmail(notaId) {
+    const email = prompt('Digite o e-mail do cliente:');
+    if (!email) return;
+    
+    // Validar formato básico de e-mail
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        alert('Por favor, digite um e-mail válido.');
+        return;
+    }
+    
+    const propriedadeId = window.location.pathname.match(/propriedade\/(\d+)/);
+    if (!propriedadeId) {
+        alert('Erro: Não foi possível identificar a propriedade.');
+        return;
+    }
+    
+    // Mostrar loading
+    const btnEmail = event.target;
+    const originalText = btnEmail.innerHTML;
+    btnEmail.disabled = true;
+    btnEmail.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando...';
+    
+    fetch(`/propriedade/${propriedadeId[1]}/vendas/nota-fiscal/${notaId}/enviar-email/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+        },
+        body: JSON.stringify({ email: email })
+    })
+    .then(response => response.json())
+    .then(data => {
+        btnEmail.disabled = false;
+        btnEmail.innerHTML = originalText;
+        
+        if (data.sucesso) {
+            alert('✅ NF-e enviada por e-mail com sucesso!\n\nE-mail: ' + email);
+            fecharModalEbaixar(notaId);
+        } else {
+            alert('❌ Erro ao enviar e-mail:\n\n' + (data.erro || 'Erro desconhecido'));
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        btnEmail.disabled = false;
+        btnEmail.innerHTML = originalText;
+        alert('❌ Erro ao enviar e-mail. Por favor, verifique:\n\n1. As configurações de e-mail do servidor\n2. Se o e-mail está correto\n3. Tente novamente mais tarde.');
+    });
+}
+
+// Enviar por WhatsApp
+function enviarPorWhatsapp(notaId) {
+    const telefone = prompt('Digite o telefone do cliente:\n\nFormato: DDD + número\nExemplo: 5511999999999 (Brasil)\n        5511988888888 (Brasil)');
+    if (!telefone) return;
+    
+    // Validar telefone (deve ter pelo menos 10 dígitos)
+    const telefoneLimpo = telefone.replace(/\D/g, '');
+    if (telefoneLimpo.length < 10) {
+        alert('❌ Telefone inválido. Deve conter pelo menos 10 dígitos.\n\nExemplo: 5511999999999');
+        return;
+    }
+    
+    const propriedadeId = window.location.pathname.match(/propriedade\/(\d+)/);
+    if (!propriedadeId) {
+        alert('Erro: Não foi possível identificar a propriedade.');
+        return;
+    }
+    
+    // Mostrar loading
+    const btnWhatsapp = event.target;
+    const originalText = btnWhatsapp.innerHTML;
+    btnWhatsapp.disabled = true;
+    btnWhatsapp.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando...';
+    
+    fetch(`/propriedade/${propriedadeId[1]}/vendas/nota-fiscal/${notaId}/enviar-whatsapp/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+        },
+        body: JSON.stringify({ telefone: telefoneLimpo })
+    })
+    .then(response => response.json())
+    .then(data => {
+        btnWhatsapp.disabled = false;
+        btnWhatsapp.innerHTML = originalText;
+        
+        if (data.sucesso) {
+            if (data.whatsapp_url) {
+                // Se retornou URL do WhatsApp Web, abrir em nova aba
+                const abrirWhatsapp = confirm(
+                    '✅ Link do WhatsApp gerado com sucesso!\n\n' +
+                    'Deseja abrir o WhatsApp Web agora?\n\n' +
+                    (data.observacao ? data.observacao + '\n\n' : '') +
+                    'Clique em OK para abrir o WhatsApp Web.'
+                );
+                
+                if (abrirWhatsapp) {
+                    window.open(data.whatsapp_url, '_blank');
+                }
+                
+                // Se tiver PDF ou XML, informar que precisa anexar manualmente
+                if (data.tem_pdf || data.tem_xml) {
+                    setTimeout(() => {
+                        alert(
+                            '📎 Anexar Arquivos Manualmente\n\n' +
+                            'Os arquivos PDF e XML da NF-e estão disponíveis para download.\n\n' +
+                            'Se desejar enviá-los pelo WhatsApp:\n' +
+                            '1. Abra o WhatsApp Web\n' +
+                            '2. Clique no botão de anexar\n' +
+                            '3. Selecione os arquivos PDF e XML\n\n' +
+                            'Os arquivos serão baixados automaticamente após fechar este modal.'
+                        );
+                    }, 500);
+                }
+            } else {
+                // Enviado via API
+                alert('✅ NF-e enviada via WhatsApp com sucesso!\n\nTelefone: ' + telefoneLimpo);
+            }
+            
+            // Aguardar um pouco antes de fechar e baixar
+            setTimeout(() => {
+                fecharModalEbaixar(notaId);
+            }, data.whatsapp_url ? 2000 : 1000);
+        } else {
+            alert('❌ Erro ao enviar WhatsApp:\n\n' + (data.erro || 'Erro desconhecido'));
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        btnWhatsapp.disabled = false;
+        btnWhatsapp.innerHTML = originalText;
+        alert('❌ Erro ao enviar WhatsApp. Por favor, tente novamente.');
+    });
+}
+
+// Fechar modal e baixar arquivos
+function fecharModalEbaixar(notaId) {
+    // Fechar modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('modalEnvioNFe'));
+    if (modal) {
+        modal.hide();
+    }
+    
+    // Baixar PDF e XML
+    const propriedadeId = window.location.pathname.match(/propriedade\/(\d+)/);
+    if (!propriedadeId) {
+        alert('Erro: Não foi possível identificar a propriedade.');
+        return;
+    }
+    window.location.href = `/propriedade/${propriedadeId[1]}/vendas/nota-fiscal/${notaId}/baixar-arquivos/`;
+}
+</script>
+{% endblock %}

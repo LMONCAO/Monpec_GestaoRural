@@ -50,24 +50,43 @@ def emitir_nfe_com_pynfe(nota_fiscal):
                 'erro': 'PyNFe não instalado. Execute: pip install pynfe'
             }
         
-        # Verificar configuração
-        config = getattr(settings, 'NFE_SEFAZ', None)
-        if not config:
-            return {
-                'sucesso': False,
-                'erro': 'Configuração NFE_SEFAZ não encontrada nas settings'
-            }
+        # Buscar certificado do produtor da propriedade
+        produtor = nota_fiscal.propriedade.produtor
+        certificado_path = None
+        senha_certificado = None
         
-        certificado_path = config.get('CERTIFICADO_PATH')
-        senha_certificado = config.get('SENHA_CERTIFICADO')
-        ambiente = config.get('AMBIENTE', 'homologacao')
-        uf = config.get('UF', 'SP')
+        if produtor.certificado_digital and produtor.tem_certificado_valido():
+            # Certificado do produtor (prioridade)
+            certificado_path = produtor.certificado_digital.path
+            senha_certificado = produtor.senha_certificado
+        else:
+            # Fallback: verificar configuração nas settings (para compatibilidade)
+            config = getattr(settings, 'NFE_SEFAZ', None)
+            if config:
+                certificado_path = config.get('CERTIFICADO_PATH')
+                senha_certificado = config.get('SENHA_CERTIFICADO')
         
         if not certificado_path or not os.path.exists(certificado_path):
             return {
                 'sucesso': False,
-                'erro': 'Certificado digital não encontrado'
+                'erro': 'Certificado digital não encontrado ou não configurado. Configure o certificado digital no cadastro do produtor.'
             }
+        
+        if not senha_certificado:
+            return {
+                'sucesso': False,
+                'erro': 'Senha do certificado digital não configurada. Configure no cadastro do produtor.'
+            }
+        
+        # Usar configuração das settings para outros parâmetros
+        config = getattr(settings, 'NFE_SEFAZ', {})
+        ambiente = config.get('AMBIENTE', 'homologacao')
+        # Tentar obter UF da propriedade, fallback para SP
+        uf = config.get('UF')
+        if not uf and hasattr(nota_fiscal.propriedade, 'estado') and nota_fiscal.propriedade.estado:
+            uf = nota_fiscal.propriedade.estado
+        if not uf:
+            uf = 'SP'
         
         # Criar emitente
         emitente = _criar_emitente_pynfe(nota_fiscal.propriedade, config)

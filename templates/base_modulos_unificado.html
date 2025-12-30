@@ -699,12 +699,13 @@
         }
         
         .nav-link-destaque {
-            background: linear-gradient(135deg, #6495ed 0%, #3d6fd8 100%) !important;
-            color: #ffffff !important;
+            background: linear-gradient(135deg, #87CEEB 0%, #B0E0E6 50%, #DAA520 100%) !important;
+            color: #1a1a1a !important;
             font-weight: 700 !important;
             padding: 0.85rem 1rem !important;
             border-radius: 10px !important;
-            box-shadow: 0 4px 12px rgba(100, 149, 237, 0.3) !important;
+            border: 2px solid #FFD700 !important;
+            box-shadow: 0 4px 12px rgba(218, 165, 32, 0.4), 0 0 8px rgba(255, 215, 0, 0.3) !important;
             text-align: center !important;
             justify-content: center !important;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
@@ -714,9 +715,9 @@
         }
         
         .nav-link-destaque i {
-            color: #ffffff !important;
+            color: #1a1a1a !important;
             font-size: 1.2rem !important;
-            background: rgba(255, 255, 255, 0.2) !important;
+            background: rgba(255, 215, 0, 0.3) !important;
             padding: 6px 8px !important;
             border-radius: 8px !important;
             flex-shrink: 0 !important;
@@ -728,19 +729,21 @@
         }
         
         .nav-link-destaque:hover {
-            background: linear-gradient(135deg, #3d6fd8 0%, #2c5282 100%) !important;
+            background: linear-gradient(135deg, #7EC8E3 0%, #9BD4E0 50%, #B8860B 100%) !important;
+            border: 2px solid #FFD700 !important;
             transform: translateY(-2px) !important;
-            box-shadow: 0 6px 16px rgba(100, 149, 237, 0.4) !important;
+            box-shadow: 0 6px 16px rgba(218, 165, 32, 0.5), 0 0 12px rgba(255, 215, 0, 0.4) !important;
         }
         
         .nav-link-destaque:hover i {
-            background: rgba(255, 255, 255, 0.3) !important;
+            background: rgba(255, 215, 0, 0.4) !important;
             transform: scale(1.1) !important;
         }
         
         .nav-link-destaque.active {
-            background: linear-gradient(135deg, #3d6fd8 0%, #2c5282 100%) !important;
-            box-shadow: 0 4px 16px rgba(100, 149, 237, 0.5) !important;
+            background: linear-gradient(135deg, #7EC8E3 0%, #9BD4E0 50%, #B8860B 100%) !important;
+            border: 2px solid #FFD700 !important;
+            box-shadow: 0 4px 16px rgba(218, 165, 32, 0.6), 0 0 10px rgba(255, 215, 0, 0.5) !important;
         }
 
         /* Accordion Profissional - Layout Vertical */
@@ -1684,6 +1687,10 @@
                                    class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'propriedades_lista' or request.resolver_match.url_name == 'propriedade_nova' or request.resolver_match.url_name == 'propriedade_editar' %}active{% endif %}">
                                     <i class="bi bi-house-door"></i> Fazenda/Propriedade
                                 </a>
+                                <a href="{% url 'documentos_lista' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'documentos' in request.path %}active{% endif %}">
+                                    <i class="bi bi-file-earmark-pdf"></i> Documentos
+                                </a>
                                 <a href="{% url 'fornecedores_lista' propriedade.id %}" 
                                    class="nav-link nav-link-submenu {% if 'fornecedor' in request.path %}active{% endif %}">
                                     <i class="bi bi-truck"></i> Fornecedores
@@ -1979,6 +1986,41 @@
                     </div>
                 </div>
                 
+                <!-- Vendas -->
+                <div class="accordion-item">
+                    <div class="nav-item modulo-vendas {% if 'vendas' in request.path and 'compras' not in request.path %}active{% endif %}">
+                        <button class="accordion-button {% if 'vendas' not in request.path or 'compras' in request.path %}collapsed{% endif %}" type="button" 
+                                data-bs-toggle="collapse" data-bs-target="#submenu-vendas" 
+                                aria-expanded="{% if 'vendas' in request.path and 'compras' not in request.path %}true{% else %}false{% endif %}" 
+                                aria-controls="submenu-vendas">
+                            <i class="bi bi-cart-check"></i>
+                            <span style="flex: 1; margin-left: 0.5rem;">Vendas</span>
+                            <i class="bi bi-chevron-right chevron-icon"></i>
+                        </button>
+                        <div id="submenu-vendas" class="accordion-collapse collapse {% if 'vendas' in request.path and 'compras' not in request.path %}show{% endif %}" 
+                             data-bs-parent="#sidebarAccordion">
+                            <div class="nav-submenu">
+                                <a href="{% url 'vendas_dashboard' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'vendas_dashboard' %}active{% endif %}">
+                                    <i class="bi bi-speedometer2"></i> Dashboard
+                                </a>
+                                <a href="{% url 'vendas_notas_fiscais_lista' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'vendas/notas-fiscais' in request.path %}active{% endif %}">
+                                    <i class="bi bi-receipt-cutoff"></i> Notas Fiscais
+                                </a>
+                                <a href="{% url 'vendas_nota_fiscal_emitir' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'vendas_nota_fiscal_emitir' %}active{% endif %}">
+                                    <i class="bi bi-file-earmark-plus"></i> Emitir NF-e
+                                </a>
+                                <a href="{% url 'vendas_por_categoria_lista' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'parametros-categoria' in request.path %}active{% endif %}">
+                                    <i class="bi bi-sliders"></i> Parâmetros de Venda
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
                 <!-- Operações -->
                 <div class="accordion-item">
                     <div class="nav-item modulo-operacoes {% if 'operacoes' in request.path %}active{% endif %}">
@@ -2053,26 +2095,25 @@
                                        class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'financeiro_dashboard' %}active{% endif %}">
                                         <i class="bi bi-cash-coin"></i> Financeiro Completo
                                     </a>
-                                    <a href="#" 
-                                       class="nav-link nav-link-submenu nav-link-disabled" 
-                                       onclick="event.preventDefault(); abrirModalCompra(); return false;"
-    >
+                                    <a href="{% url 'financeiro_fluxo_caixa' propriedade.id %}" 
+                                       class="nav-link nav-link-submenu {% if 'fluxo-caixa' in request.path %}active{% endif %}">
                                         <i class="bi bi-cash-stack"></i> Fluxo de Caixa
-                                        <i class="bi bi-lock-fill ms-auto text-muted" style="font-size: 0.75rem;"></i>
                                     </a>
-                                    <a href="#" 
-                                       class="nav-link nav-link-submenu nav-link-disabled" 
-                                       onclick="event.preventDefault(); abrirModalCompra(); return false;"
-                                       style="opacity: 0.5; cursor: not-allowed;">
+                                    <a href="{% url 'financeiro_contas_pagar' propriedade.id %}" 
+                                       class="nav-link nav-link-submenu {% if 'contas-pagar' in request.path %}active{% endif %}">
                                         <i class="bi bi-arrow-down-circle"></i> Contas a Pagar
-                                        <i class="bi bi-lock-fill ms-auto text-muted" style="font-size: 0.75rem;"></i>
                                     </a>
-                                    <a href="#" 
-                                       class="nav-link nav-link-submenu nav-link-disabled" 
-                                       onclick="event.preventDefault(); abrirModalCompra(); return false;"
-                                       style="opacity: 0.5; cursor: not-allowed;">
+                                    <a href="{% url 'financeiro_contas_receber' propriedade.id %}" 
+                                       class="nav-link nav-link-submenu {% if 'contas-receber' in request.path %}active{% endif %}">
                                         <i class="bi bi-arrow-up-circle"></i> Contas a Receber
-                                        <i class="bi bi-lock-fill ms-auto text-muted" style="font-size: 0.75rem;"></i>
+                                    </a>
+                                    <a href="{% url 'financeiro_dre' propriedade.id %}" 
+                                       class="nav-link nav-link-submenu {% if 'dre' in request.path and 'financeiro' in request.path %}active{% endif %}">
+                                        <i class="bi bi-file-earmark-text"></i> DRE
+                                    </a>
+                                    <a href="{% url 'financeiro_lcdpr' propriedade.id %}" 
+                                       class="nav-link nav-link-submenu {% if 'lcdpr' in request.path %}active{% endif %}">
+                                        <i class="bi bi-journal-text"></i> LCDPR
                                     </a>
                                 </div>
                             </div>

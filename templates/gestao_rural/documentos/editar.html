@@ -1,0 +1,121 @@
+{% extends "base_modulos_unificado.html" %}
+{% load static %}
+
+{% block title %}Editar Documento - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'documentos_lista' propriedade.id %}">Documentos</a></li>
+            <li class="breadcrumb-item active">Editar Documento</li>
+        </ol>
+    </nav>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-pencil text-primary me-2"></i>Editar Documento
+                    </h5>
+                    <small class="text-muted">{{ propriedade.nome_propriedade }}</small>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="tipo_documento" class="form-label">Tipo de Documento <span class="text-danger">*</span></label>
+                            <select class="form-select" id="tipo_documento" name="tipo_documento" required>
+                                <option value="">Selecione o tipo...</option>
+                                <option value="MATRICULA" {% if documento.tipo_documento == 'MATRICULA' %}selected{% endif %}>Matrícula</option>
+                                <option value="ITR" {% if documento.tipo_documento == 'ITR' %}selected{% endif %}>ITR - Imposto Territorial Rural</option>
+                                <option value="CCIR" {% if documento.tipo_documento == 'CCIR' %}selected{% endif %}>CCIR - Certificado de Cadastro de Imóvel Rural</option>
+                                <option value="CAR" {% if documento.tipo_documento == 'CAR' %}selected{% endif %}>CAR - Cadastro Ambiental Rural</option>
+                                <option value="CERTIDAO_NEGATIVA" {% if documento.tipo_documento == 'CERTIDAO_NEGATIVA' %}selected{% endif %}>Certidão Negativa</option>
+                                <option value="CONTRATO" {% if documento.tipo_documento == 'CONTRATO' %}selected{% endif %}>Contrato</option>
+                                <option value="LAUDO" {% if documento.tipo_documento == 'LAUDO' %}selected{% endif %}>Laudo</option>
+                                <option value="OUTROS" {% if documento.tipo_documento == 'OUTROS' %}selected{% endif %}>Outros</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="nome_documento" class="form-label">Nome do Documento <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="nome_documento" name="nome_documento" required 
+                                   value="{{ documento.nome_documento }}">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="descricao" class="form-label">Descrição</label>
+                            <textarea class="form-control" id="descricao" name="descricao" rows="3">{{ documento.descricao|default:"" }}</textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="arquivo" class="form-label">Arquivo PDF</label>
+                            <input type="file" class="form-control" id="arquivo" name="arquivo" accept=".pdf">
+                            <small class="form-text text-muted">
+                                Selecione um novo arquivo para substituir o atual. 
+                                {% if documento.arquivo %}
+                                <br>Arquivo atual: <a href="{% url 'documento_visualizar' propriedade.id documento.id %}" target="_blank">{{ documento.arquivo.name|slice:"-50:" }}</a>
+                                {% endif %}
+                            </small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="data_vencimento" class="form-label">Data de Vencimento</label>
+                            <input type="date" class="form-control" id="data_vencimento" name="data_vencimento" 
+                                   value="{% if documento.data_vencimento %}{{ documento.data_vencimento|date:'Y-m-d' }}{% endif %}">
+                            <small class="form-text text-muted">Opcional. Informe se o documento possui data de vencimento.</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="observacoes" class="form-label">Observações</label>
+                            <textarea class="form-control" id="observacoes" name="observacoes" rows="3">{{ documento.observacoes|default:"" }}</textarea>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <strong>Informação:</strong> Se você não selecionar um novo arquivo, o arquivo atual será mantido.
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'documentos_lista' propriedade.id %}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left me-1"></i>Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle me-1"></i>Salvar Alterações
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Validação de tamanho do arquivo
+document.getElementById('arquivo').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const maxSize = 10 * 1024 * 1024; // 10MB
+        if (file.size > maxSize) {
+            alert('O arquivo é muito grande. Tamanho máximo permitido: 10MB');
+            e.target.value = '';
+        }
+        
+        // Verificar se é PDF
+        if (!file.name.toLowerCase().endsWith('.pdf')) {
+            alert('Apenas arquivos PDF são permitidos.');
+            e.target.value = '';
+        }
+    }
+});
+</script>
+{% endblock %}
+
+
+

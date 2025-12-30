@@ -587,7 +587,8 @@ def categoria_editar(request, propriedade_id, categoria_id):
 @login_required
 def centros_custo_lista(request, propriedade_id):
     propriedade = _obter_propriedade(request.user, propriedade_id)
-    centros = CentroCustoFinanceiro.objects.filter(
+    from .models_financeiro import CentroCusto
+    centros = CentroCusto.objects.filter(
         propriedade=propriedade,
     ).order_by("nome")
     context = {

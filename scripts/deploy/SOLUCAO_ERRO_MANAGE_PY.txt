@@ -1,0 +1,59 @@
+========================================
+SOLUÇÃO PARA ERRO: manage.py não encontrado
+========================================
+
+PROBLEMA:
+---------
+Erro: python: can't open file 'C:\Users\lmonc\Desktop\MonPO-Monitor de Plano Orçamentario\Monpec_GestaoRural\scripts\deploy\manage.py': [Errno 2] No such file or directory
+
+CAUSA:
+------
+O arquivo manage.py está localizado na RAIZ do projeto, não em scripts/deploy/.
+Alguns scripts estão mudando para o diretório scripts/deploy e tentando executar
+manage.py a partir dali, o que causa o erro.
+
+SOLUÇÃO:
+--------
+1. Certifique-se de que o script mude para o diretório raiz antes de executar manage.py
+2. Ou use o caminho relativo correto: python ..\..\manage.py
+
+SCRIPTS CORRIGIDOS:
+-------------------
+- EXECUTAR_TUDO_AGORA.bat
+- REINICIAR_SERVIDOR.bat
+- INICIAR.bat
+- INICIAR_SERVIDOR.bat
+
+COMO CORRIGIR OUTROS SCRIPTS:
+------------------------------
+Se você encontrar o mesmo erro em outros scripts, procure por:
+  cd /d "%~dp0"
+  
+E substitua por:
+  cd /d "%~dp0\..\.."
+
+Isso fará com que o script mude para o diretório raiz do projeto (dois níveis acima
+de scripts/deploy) antes de tentar executar manage.py.
+
+EXEMPLO:
+--------
+ANTES (INCORRETO):
+  cd /d "%~dp0"
+  python manage.py migrate
+
+DEPOIS (CORRETO):
+  cd /d "%~dp0\..\.."
+  python manage.py migrate
+
+OU (ALTERNATIVA):
+  cd /d "%~dp0"
+  python ..\..\manage.py migrate
+
+SCRIPTS DE AJUDA:
+-----------------
+- CORRIGIR_CAMINHO_MANAGE_PY.bat - Diagnóstico do problema
+- CORRIGIR_CAMINHO_MANAGE_PY.ps1 - Diagnóstico do problema (PowerShell)
+- CORRIGIR_TODOS_SCRIPTS.bat - Tenta corrigir automaticamente todos os scripts
+
+========================================
+

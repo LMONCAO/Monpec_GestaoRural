@@ -17,6 +17,9 @@ class GestaoRuralConfig(AppConfig):
             from . import models_iatf_completo  # noqa: F401
             # Importar models_cadastros para garantir que Cliente seja carregado
             from . import models_cadastros  # noqa: F401
+            # Importar models_financeiro e models_operacional para garantir que CentroCusto, PlanoConta e Equipamento sejam registrados
+            from . import models_financeiro  # noqa: F401
+            from . import models_operacional  # noqa: F401
             from .services.provisionamento import registrar_workspaces_existentes
             
             # Criar categorias padrão se não existirem

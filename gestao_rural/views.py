@@ -13,6 +13,7 @@ from django.core.mail import send_mail
 from django.conf import settings
 from .decorators import bloquear_demo_cadastro
 import logging
+import os
 from datetime import datetime, timedelta, date
 from decimal import Decimal, InvalidOperation
 import json
@@ -203,10 +204,12 @@ def criar_usuario_demonstracao(request):
                     settings.AUTH_PASSWORD_VALIDATORS = []
                     
                     try:
+                        # Usar variável de ambiente para senha de demo, com fallback temporário
+                        demo_password = os.getenv('DEMO_USER_PASSWORD', 'monpec')
                         user = User.objects.create_user(
                             username=username,
                             email=email.lower(),  # Garantir lowercase
-                            password='monpec',
+                            password=demo_password,
                             first_name=nome_completo.split()[0] if nome_completo.split() else '',
                             last_name=' '.join(nome_completo.split()[1:]) if len(nome_completo.split()) > 1 else '',
                             is_active=True,
@@ -240,13 +243,21 @@ def criar_usuario_demonstracao(request):
                 
         except Exception as e:
             error_trace = traceback.format_exc()
-            logger.error(f'❌ Erro ao criar usuário de demonstração: {type(e).__name__}: {str(e)}')
+            error_type = type(e).__name__
+            error_message = str(e)
+            
+            logger.error(f'❌ Erro ao criar usuário de demonstração: {error_type}: {error_message}')
             logger.error(f'📋 Traceback completo:\n{error_trace}')
+            logger.error(f'📝 Dados recebidos: nome={nome_completo[:50]}, email={email}, telefone={telefone}')
+            logger.error(f'🌐 Método: {request.method}, Content-Type: {request.content_type}')
+            logger.error(f'🔐 CSRF Token presente: {"csrftoken" in request.COOKIES}')
+            
+            # Preparar string de erro para verificação
+            error_str = error_message.lower()
             
             # Se for erro de tabela não existir, tentar criar a tabela ou apenas redirecionar
             # Só tentar verificar usuário se tivermos um email válido
             if email:
-                error_str = str(e).lower()
                 if 'no such table' in error_str or 'usuarioativo' in error_str or 'does not exist' in error_str:
                     logger.warning(f'⚠️ Erro de tabela não existir detectado. Tentando verificar se usuário foi criado...')
                     # Verificar se o usuário foi criado mesmo assim (case-insensitive)
@@ -264,8 +275,16 @@ def criar_usuario_demonstracao(request):
                     except Exception as e2:
                         logger.error(f'❌ Erro ao verificar usuário existente: {e2}')
             
+            # Se for erro de CSRF, retornar mensagem específica
+            if 'csrf' in error_str or 'CSRF' in error_type or 'Forbidden' in error_type:
+                logger.error(f'🚫 Erro de CSRF detectado. Verifique CSRF_TRUSTED_ORIGINS')
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Erro de segurança. Por favor, recarregue a página e tente novamente.'
+                }, status=403)
+            
             # Log do erro completo para debug
-            logger.error(f'❌ Falha completa no processamento. Tipo: {type(e).__name__}, Mensagem: {str(e)}')
+            logger.error(f'❌ Falha completa no processamento. Tipo: {error_type}, Mensagem: {error_message}')
             
             return JsonResponse({
                 'success': False,
@@ -643,12 +662,12 @@ def login_view(request):
                             logger.warning(f'Erro ao verificar UsuarioAtivo para {user.username}: {e}', exc_info=True)
                     
                     # Log detalhado para debug
-                    logger.info(f'🔍 DEBUG LOGIN - username={username}, is_demo_user={is_demo_user}, is_demo_param={is_demo_param}, demo_get={demo_get}, demo_post={demo_post}')
+                    logger.info(f'[DEBUG LOGIN] - username={username}, is_demo_user={is_demo_user}, is_demo_param={is_demo_param}, demo_get={demo_get}, demo_post={demo_post}')
                     
                     # Se for demo, redirecionar para tela de loading primeiro
                     if is_demo_user or is_demo_param:
-                        logger.info(f'🔴🔴🔴 USUÁRIO DE DEMONSTRAÇÃO DETECTADO - is_demo_user={is_demo_user}, is_demo_param={is_demo_param}, demo_get={demo_get}, demo_post={demo_post}, username={username}')
-                        logger.info(f'🔴🔴🔴 REDIRECIONANDO PARA DEMO_LOADING AGORA!')
+                        logger.info(f'[USUARIO DE DEMONSTRACAO DETECTADO] - is_demo_user={is_demo_user}, is_demo_param={is_demo_param}, demo_get={demo_get}, demo_post={demo_post}, username={username}')
+                        logger.info(f'[REDIRECIONANDO PARA DEMO_LOADING]')
                         return redirect('demo_loading')
                     
                     # Registrar sessão segura (apenas se não for demo ou se não redirecionou)
@@ -1100,9 +1119,23 @@ def produtor_novo(request):
         
         form = ProdutorRuralForm(initial=initial_data)
     
+    # Buscar lista de produtores cadastrados para exibir discretamente
+    # Incluir contagem de propriedades para otimizar a query
+    if _is_usuario_assinante(request.user):
+        produtores = ProdutorRural.objects.annotate(
+            propriedades_count=Count('propriedade')
+        ).order_by('nome')
+    else:
+        produtores = ProdutorRural.objects.filter(
+            usuario_responsavel=request.user
+        ).annotate(
+            propriedades_count=Count('propriedade')
+        ).order_by('nome')
+    
     context = {
         'form': form,
         'is_demo_user': is_demo_user,
+        'produtores': produtores,
     }
     return render(request, 'gestao_rural/produtor_novo.html', context)
 
@@ -1118,7 +1151,7 @@ def produtor_editar(request, produtor_id):
         produtor = get_object_or_404(ProdutorRural, id=produtor_id, usuario_responsavel=request.user)
     
     if request.method == 'POST':
-        form = ProdutorRuralForm(request.POST, instance=produtor)
+        form = ProdutorRuralForm(request.POST, request.FILES, instance=produtor)
         if form.is_valid():
             form.save()
             messages.success(request, 'Produtor atualizado com sucesso!')
@@ -1126,7 +1159,11 @@ def produtor_editar(request, produtor_id):
     else:
         form = ProdutorRuralForm(instance=produtor)
     
-    return render(request, 'gestao_rural/produtor_editar.html', {'form': form, 'produtor': produtor})
+    return render(request, 'gestao_rural/produtor_editar.html', {
+        'form': form, 
+        'produtor': produtor,
+        'today': date.today()
+    })
 
 
 @login_required
@@ -1166,24 +1203,26 @@ def propriedades_lista(request, produtor_id):
 
 
 @login_required
-def propriedade_nova(request, produtor_id):
+def propriedade_nova(request, produtor_id=None):
     """Cadastro de nova propriedade"""
-    # Se for assinante, pode acessar qualquer produtor
-    if _is_usuario_assinante(request.user):
-        produtor = get_object_or_404(ProdutorRural, id=produtor_id)
-    else:
-        produtor = get_object_or_404(ProdutorRural, id=produtor_id, usuario_responsavel=request.user)
+    produtor = None
+    
+    # Se produtor_id foi fornecido na URL, buscar o produtor
+    if produtor_id:
+        # Se for assinante, pode acessar qualquer produtor
+        if _is_usuario_assinante(request.user):
+            produtor = get_object_or_404(ProdutorRural, id=produtor_id)
+        else:
+            produtor = get_object_or_404(ProdutorRural, id=produtor_id, usuario_responsavel=request.user)
     
     if request.method == 'POST':
-        form = PropriedadeForm(request.POST)
+        form = PropriedadeForm(request.POST, user=request.user, produtor_initial=produtor)
         if form.is_valid():
-            propriedade = form.save(commit=False)
-            propriedade.produtor = produtor
-            propriedade.save()
+            propriedade = form.save()
             messages.success(request, 'Propriedade cadastrada com sucesso!')
-            return redirect('propriedades_lista', produtor_id=produtor.id)
+            return redirect('propriedades_lista', produtor_id=propriedade.produtor.id)
     else:
-        form = PropriedadeForm()
+        form = PropriedadeForm(user=request.user, produtor_initial=produtor)
     
     context = {
         'form': form,
@@ -1199,13 +1238,13 @@ def propriedade_editar(request, propriedade_id):
     propriedade = get_object_or_404(Propriedade, id=propriedade_id, produtor__usuario_responsavel=request.user)
     
     if request.method == 'POST':
-        form = PropriedadeForm(request.POST, instance=propriedade)
+        form = PropriedadeForm(request.POST, instance=propriedade, user=request.user)
         if form.is_valid():
             form.save()
             messages.success(request, 'Propriedade atualizada com sucesso!')
             return redirect('propriedades_lista', produtor_id=propriedade.produtor.id)
     else:
-        form = PropriedadeForm(instance=propriedade)
+        form = PropriedadeForm(instance=propriedade, user=request.user)
     
     context = {
         'form': form,
@@ -4704,11 +4743,78 @@ def propriedade_modulos(request, propriedade_id):
     # Buscar todas as propriedades disponíveis para o seletor
     todas_propriedades = _obter_todas_propriedades(request.user)
     
+    # Buscar preferências de módulos do usuário para esta propriedade
+    from .models import PreferenciaModulosUsuario
+    try:
+        preferencia = PreferenciaModulosUsuario.objects.get(
+            usuario=request.user,
+            propriedade=propriedade
+        )
+        configuracao = preferencia.configuracao
+    except PreferenciaModulosUsuario.DoesNotExist:
+        # Configuração padrão: todos os módulos na ordem original
+        configuracao = {
+            'modulos': ['curral', 'planejamento', 'pecuaria', 'nutricao', 'patrimonio', 
+                       'compras', 'financeiro', 'operacoes', 'projetos', 'relatorios', 
+                       'categorias', 'configuracoes'],
+            'ordem': list(range(12))
+        }
+    
     context = {
         'propriedade': propriedade,
         'total_animais': total_animais,
         'todas_propriedades': todas_propriedades,
+        'configuracao_modulos': json.dumps(configuracao),
     }
     
     return render(request, 'propriedade_modulos.html', context)
+
+
+@login_required
+def salvar_preferencias_modulos(request, propriedade_id):
+    """Salva as preferências de módulos do usuário"""
+    from .models import PreferenciaModulosUsuario, Propriedade
+    from .decorators import obter_propriedade_com_permissao
+    
+    if request.method != 'POST':
+        return JsonResponse({'erro': 'Método não permitido'}, status=405)
+    
+    try:
+        # Verificar permissão
+        propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
+        
+        # Obter dados do POST
+        data = json.loads(request.body)
+        modulos = data.get('modulos', [])
+        ordem = data.get('ordem', [])
+        
+        # Validar que temos exatamente 12 módulos (mantendo o número de cards)
+        if len(modulos) != 12:
+            return JsonResponse({
+                'erro': 'Deve haver exatamente 12 módulos selecionados'
+            }, status=400)
+        
+        # Criar ou atualizar preferência
+        preferencia, created = PreferenciaModulosUsuario.objects.update_or_create(
+            usuario=request.user,
+            propriedade=propriedade,
+            defaults={
+                'configuracao': {
+                    'modulos': modulos,
+                    'ordem': ordem
+                }
+            }
+        )
+        
+        return JsonResponse({
+            'sucesso': True,
+            'mensagem': 'Preferências salvas com sucesso!',
+            'configuracao': preferencia.configuracao
+        })
+        
+    except Exception as e:
+        logger.error(f'Erro ao salvar preferências de módulos: {str(e)}')
+        return JsonResponse({
+            'erro': f'Erro ao salvar preferências: {str(e)}'
+        }, status=500)
 
