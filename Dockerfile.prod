@@ -72,7 +72,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 CMD sh -c "python manage.py migrate --noinput && \
     (python manage.py collectstatic --noinput --verbosity 1 || echo '⚠️ Aviso: collectstatic falhou, usando arquivos do build') && \
     (python manage.py garantir_admin --senha \${DJANGO_SUPERUSER_PASSWORD:-L6171r12@@} || echo '⚠️ Aviso: Não foi possível garantir admin') && \
-    echo '✅ Sistema iniciando - Landing page, fotos e sistema demo estarão disponíveis' && \
+    echo '✅ Sistema iniciando - Landing page com imagens, layout mobile otimizado e formulário demo funcionando' && \
     exec gunicorn --bind 0.0.0.0:\${PORT:-8080} \
         --workers 2 \
         --threads 4 \

@@ -1579,9 +1579,32 @@
 
         /* ========== RESPONSIVIDADE ========== */
         @media (max-width: 768px) {
+            /* No mobile, mostrar apenas logo e botões no header */
             .nav-menu {
-                flex-direction: column;
-                gap: 15px;
+                display: flex;
+                flex-direction: row;
+                gap: 10px;
+                align-items: center;
+            }
+
+            /* Ocultar links de navegação no mobile (mantém apenas botões) */
+            .nav-menu li.d-none {
+                display: none !important;
+            }
+
+            .logo-container {
+                flex-shrink: 0;
+            }
+
+            .logo-text {
+                font-size: 32px;
+            }
+
+            .btn-demonstracao,
+            .btn-cliente {
+                padding: 8px 16px;
+                font-size: 13px;
+                white-space: nowrap;
             }
 
             .hero-section {
@@ -1624,8 +1647,8 @@
             }
 
             .navbar-custom {
-                flex-direction: column;
-                gap: 20px;
+                flex-wrap: nowrap;
+                gap: 10px;
             }
             
             .hero-content {
@@ -1735,10 +1758,10 @@
                     <span class="logo-text">Monpec<span class="ponto-verde">.</span></span>
                 </div>
                 <ul class="nav-menu">
-                    <li><a href="#inicio">Início</a></li>
-                    <li><a href="#solucoes">Soluções</a></li>
-                    <li><a href="#clientes">Clientes</a></li>
-                    <li><a href="#contato">Contato</a></li>
+                    <li class="d-none d-md-block"><a href="#inicio">Início</a></li>
+                    <li class="d-none d-md-block"><a href="#solucoes">Soluções</a></li>
+                    <li class="d-none d-md-block"><a href="#clientes">Clientes</a></li>
+                    <li class="d-none d-md-block"><a href="#contato">Contato</a></li>
                     <li><a href="#contato" class="btn-demonstracao" id="btn-demo-header">Demonstração</a></li>
                     <li><a href="{% url 'login' %}" class="btn-cliente">Já sou assinante</a></li>
                 </ul>
