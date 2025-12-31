@@ -591,16 +591,12 @@ def login_view(request):
             else:
                 # Verificar se e-mail foi verificado (para novos usuários)
                 # EXCETO para usuários de demonstração (do popup)
-                from .models_auditoria import VerificacaoEmail, UsuarioAtivo
+                from .models_auditoria import VerificacaoEmail
+                from .helpers_acesso import is_usuario_demo
                 from django.db import OperationalError
                 
-                # Verificar se é usuário de demonstração
-                is_demo_user_check = False
-                try:
-                    UsuarioAtivo.objects.get(usuario=user)
-                    is_demo_user_check = True
-                except (UsuarioAtivo.DoesNotExist, OperationalError):
-                    pass
+                # Verificar se é usuário de demonstração usando função centralizada
+                is_demo_user_check = is_usuario_demo(user)
                 
                 # Verificar se veio com parâmetro demo
                 is_demo_param_check = request.GET.get('demo') == 'true' or request.POST.get('demo') == 'true'
@@ -637,7 +633,10 @@ def login_view(request):
                     
                     # IMPORTANTE: Verificar se é demo ANTES de registrar sessão segura
                     # para garantir que o redirecionamento funcione
-                    is_demo_user = False
+                    from .helpers_acesso import is_usuario_demo
+                    
+                    # Verificar se é usuário demo usando função centralizada
+                    is_demo_user = is_usuario_demo(user)
                     
                     # Verificar parâmetro demo na URL (GET ou POST) - prioridade máxima
                     demo_get = request.GET.get('demo')
@@ -645,21 +644,8 @@ def login_view(request):
                     is_demo_param = (demo_get and (demo_get.lower() == 'true' or demo_get == '1')) or \
                                    (demo_post and (demo_post.lower() == 'true' or demo_post == '1'))
                     
-                    # Verificar se é usuário demo padrão (username demo ou demo_monpec)
-                    if user.username in ['demo', 'demo_monpec']:
-                        is_demo_user = True
-                        logger.info(f'✅ Usuário demo padrão detectado no login: {user.username}')
-                    else:
-                        # Verificar se é usuário de demonstração (do popup - tem UsuarioAtivo)
-                        try:
-                            from .models_auditoria import UsuarioAtivo
-                            usuario_ativo_obj = UsuarioAtivo.objects.get(usuario=user)
-                            is_demo_user = True
-                            logger.info(f'✅ Usuário demo (popup) detectado no login: {user.username} (UsuarioAtivo ID: {usuario_ativo_obj.id})')
-                        except UsuarioAtivo.DoesNotExist:
-                            logger.debug(f'Usuário {user.username} não tem UsuarioAtivo - não é demo do popup')
-                        except Exception as e:
-                            logger.warning(f'Erro ao verificar UsuarioAtivo para {user.username}: {e}', exc_info=True)
+                    if is_demo_user:
+                        logger.info(f'✅ Usuário demo detectado no login: {user.username} (função centralizada)')
                     
                     # Log detalhado para debug
                     logger.info(f'[DEBUG LOGIN] - username={username}, is_demo_user={is_demo_user}, is_demo_param={is_demo_param}, demo_get={demo_get}, demo_post={demo_post}')
@@ -675,14 +661,18 @@ def login_view(request):
                     
                     # Atualizar registro de usuário ativo (se existir)
                     from .models_auditoria import UsuarioAtivo
+                    from django.db import ProgrammingError
                     usuario_ativo = None
-                    is_demo_user = False
                     try:
                         usuario_ativo = UsuarioAtivo.objects.get(usuario=user)
-                        is_demo_user = True
                         usuario_ativo.ultimo_acesso = timezone.now()
                         usuario_ativo.total_acessos += 1
                         usuario_ativo.save()
+                        logger.info(f'✅ UsuarioAtivo atualizado para {user.username}: total_acessos={usuario_ativo.total_acessos}')
+                    except (UsuarioAtivo.DoesNotExist, ProgrammingError) as e:
+                        # Tabela não existe ou registro não encontrado - continuar normalmente
+                        logger.warning(f'Tabela UsuarioAtivo não acessível: {e}')
+                        usuario_ativo = None
                         
                         # Se for primeiro acesso, enviar convite para o grupo do WhatsApp
                         if usuario_ativo.total_acessos == 1:
@@ -789,8 +779,8 @@ Esta mensagem foi enviada automaticamente pelo sistema MONPEC.
                             logger.info(f'Email de acesso enviado para l.moncaosilva@google.com - Usuário: {username}')
                         except Exception as e:
                             logger.error(f'Erro ao enviar email de acesso: {str(e)}')
-                    except UsuarioAtivo.DoesNotExist:
-                        # Usuário não é de demonstração, não precisa enviar email
+                    except (UsuarioAtivo.DoesNotExist, ProgrammingError):
+                        # Usuário não é de demonstração ou tabela não existe, não precisa enviar email
                         pass
                     
                     # Registrar log
@@ -964,10 +954,6 @@ def dashboard(request):
         # Usuário sem assinatura - usar suas próprias propriedades
         propriedades = Propriedade.objects.filter(produtor__usuario_responsavel=request.user)
     
-    # Se for usuário demo, buscar propriedades diretamente
-    if request.user.username == 'demo' or request.user.username == 'demo_monpec':
-        propriedades = Propriedade.objects.filter(produtor__usuario_responsavel=request.user)
-    
     # Buscar primeira propriedade disponível (priorizando Monpec1, Monpec2, Monpec3 do produtor)
     propriedade_prioritaria = propriedades.filter(
         nome_propriedade__iregex=r'^Monpec\d+$'
@@ -992,22 +978,9 @@ def dashboard(request):
         return redirect('propriedade_modulos', propriedade_id=propriedade_prioritaria.id)
     
     # Se não houver propriedades, verificar se é demo e redirecionar para setup
-    # Verificar se é usuário demo
-    is_demo_user = False
-    
-    # Verificar se é usuário demo padrão (username demo ou demo_monpec)
-    if request.user.username in ['demo', 'demo_monpec']:
-        is_demo_user = True
-        logger.info(f'✅ Usuário demo padrão detectado no dashboard: {request.user.username}')
-    else:
-        # Verificar se é usuário de demonstração (do popup - tem UsuarioAtivo)
-        try:
-            from .models_auditoria import UsuarioAtivo
-            UsuarioAtivo.objects.get(usuario=request.user)
-            is_demo_user = True
-            logger.info(f'✅ Usuário demo (popup) detectado no dashboard: {request.user.username}')
-        except:
-            pass
+    # Verificar se é usuário demo usando função centralizada
+    from .helpers_acesso import is_usuario_demo
+    is_demo_user = is_usuario_demo(request.user)
     
     if is_demo_user:
         logger.info(f'🔴 Usuário demo sem propriedades. Redirecionando para demo_setup.')
@@ -1022,19 +995,9 @@ def dashboard(request):
 def produtor_novo(request):
     """Cadastro de novo produtor rural"""
     # Verificar se é usuário de demonstração
-    is_demo_user = False
-    
-    # Verificar se é usuário demo padrão
-    if request.user.username in ['demo', 'demo_monpec']:
-        is_demo_user = True
-    else:
-        # Verificar se é usuário de demonstração (do popup)
-        try:
-            from .models_auditoria import UsuarioAtivo
-            UsuarioAtivo.objects.get(usuario=request.user)
-            is_demo_user = True
-        except:
-            pass
+    # Verificar se é usuário demo usando função centralizada
+    from .helpers_acesso import is_usuario_demo
+    is_demo_user = is_usuario_demo(request.user)
     
     # Se for usuário demo, redirecionar IMEDIATAMENTE para setup automático (que cria tudo)
     if is_demo_user:
@@ -1108,12 +1071,15 @@ def produtor_novo(request):
         if is_demo_user:
             try:
                 from .models_auditoria import UsuarioAtivo
+                from django.db import ProgrammingError
                 usuario_ativo = UsuarioAtivo.objects.get(usuario=request.user)
                 initial_data = {
                     'nome': usuario_ativo.nome_completo,
                     'email': usuario_ativo.email,
                     'telefone': usuario_ativo.telefone,
                 }
+            except (UsuarioAtivo.DoesNotExist, ProgrammingError):
+                pass
             except:
                 pass
         
