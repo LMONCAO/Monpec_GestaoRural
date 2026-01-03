@@ -50,3 +50,5 @@ Após organizar, verifique por duplicados:
 ## 📝 Nota
 **NÃO remova arquivos sem revisar primeiro!** Alguns podem conter lógica importante ou serem referenciados em outros lugares.
 
+
+

@@ -25,7 +25,7 @@ def demo_setup(request):
     Configura automaticamente o ambiente de demonstração para usuários demo.
     Cria produtor, propriedade Monpec1 e dados realistas.
     """
-    logger.info(f'🔵 DEMO_SETUP CHAMADO - user: {request.user.username}')
+    logger.info(f'DEMO_SETUP CHAMADO - user: {request.user.username}')
     
     # Verificar se é usuário de demonstração
     is_demo_user = False
@@ -33,19 +33,19 @@ def demo_setup(request):
     # Verificar se é usuário demo padrão
     if request.user.username in ['demo', 'demo_monpec']:
         is_demo_user = True
-        logger.info(f'✅ Usuário demo padrão detectado: {request.user.username}')
+        logger.info(f'Usuário demo padrão detectado: {request.user.username}')
     else:
         # Verificar se é usuário de demonstração (do popup)
         try:
             UsuarioAtivo.objects.get(usuario=request.user)
             is_demo_user = True
-            logger.info(f'✅ Usuário demo (popup) detectado: {request.user.username}')
+            logger.info(f'Usuário demo (popup) detectado: {request.user.username}')
         except:
-            logger.info(f'❌ Usuário {request.user.username} não é demo')
+            logger.info(f'Usuário {request.user.username} não é demo')
             pass
     
     if not is_demo_user:
-        logger.warning(f'⚠️ Usuário não demo tentou acessar demo_setup: {request.user.username}')
+        logger.warning(f'Usuário não demo tentou acessar demo_setup: {request.user.username}')
         messages.error(request, 'Esta página é apenas para usuários de demonstração.')
         return redirect('dashboard')
     
@@ -61,12 +61,12 @@ def demo_setup(request):
         
         if propriedade:
             # Já está configurado, redirecionar para a propriedade
-            logger.info(f'✅ Demonstração já configurada. Redirecionando para propriedade {propriedade.id}')
+            logger.info(f'Demonstração já configurada. Redirecionando para propriedade {propriedade.id}')
             messages.success(request, 'Demonstração já configurada! Redirecionando...')
             return redirect('propriedade_modulos', propriedade_id=propriedade.id)
     
     # Se chegou aqui, precisa criar tudo automaticamente
-    logger.info(f'🚀 Iniciando criação automática de dados para demonstração...')
+    logger.info(f'Iniciando criação automática de dados para demonstração...')
     try:
         with transaction.atomic():
             # 1. Criar ou obter produtor
@@ -100,9 +100,9 @@ def demo_setup(request):
                     }
                 )
                 if created:
-                    logger.info(f'✅ Produtor criado: {produtor.nome} (CPF: {cpf_demo})')
+                    logger.info(f'Produtor criado: {produtor.nome} (CPF: {cpf_demo})')
                 else:
-                    logger.info(f'✅ Produtor já existia: {produtor.nome} (CPF: {produtor.cpf_cnpj})')
+                    logger.info(f'Produtor já existia: {produtor.nome} (CPF: {produtor.cpf_cnpj})')
             
             # 2. Criar propriedade Monpec1 (ou Monpec2, Monpec3, etc. se já existir para este produtor)
             if not propriedade:
@@ -128,7 +128,7 @@ def demo_setup(request):
                         proximo_numero = 2
                     
                     nome_propriedade = f'Monpec{proximo_numero}'
-                    logger.info(f'📝 Propriedade Monpec1 já existe para este produtor. Usando {nome_propriedade}')
+                    logger.info(f'Propriedade Monpec1 já existe para este produtor. Usando {nome_propriedade}')
                 else:
                     nome_propriedade = 'Monpec1'
                 
@@ -146,9 +146,9 @@ def demo_setup(request):
                     }
                 )
                 if created:
-                    logger.info(f'✅ Propriedade criada: {propriedade.nome_propriedade} (ID: {propriedade.id})')
+                    logger.info(f'Propriedade criada: {propriedade.nome_propriedade} (ID: {propriedade.id})')
                 else:
-                    logger.info(f'✅ Propriedade já existia: {propriedade.nome_propriedade} (ID: {propriedade.id})')
+                    logger.info(f'Propriedade já existia: {propriedade.nome_propriedade} (ID: {propriedade.id})')
             
             # 3. Criar categorias de animais
             categorias_data = [
@@ -196,7 +196,7 @@ def demo_setup(request):
                     data_inventario=date.today(),
                 )
             
-            logger.info(f'✅ Inventário criado com {sum(d["quantidade"] for d in inventario_data)} animais')
+            logger.info(f'Inventário criado com {sum(d["quantidade"] for d in inventario_data)} animais')
             
             # 5. Criar dados operacionais
             try:
@@ -271,9 +271,9 @@ def demo_setup(request):
                         }
                     )
                 
-                logger.info('✅ Dados operacionais criados')
+                logger.info('Dados operacionais criados')
             except Exception as e:
-                logger.warning(f'⚠️ Erro ao criar dados operacionais: {e}')
+                logger.warning(f'Erro ao criar dados operacionais: {e}')
             
             # 6. Criar dados de reprodução
             try:
@@ -333,9 +333,9 @@ def demo_setup(request):
                             }
                         )
                 
-                logger.info('✅ Dados de reprodução criados')
+                logger.info('Dados de reprodução criados')
             except Exception as e:
-                logger.warning(f'⚠️ Erro ao criar dados de reprodução: {e}')
+                logger.warning(f'Erro ao criar dados de reprodução: {e}')
             
             # 7. Criar funcionários
             try:
@@ -373,9 +373,9 @@ def demo_setup(request):
                         }
                     )
                 
-                logger.info('✅ Funcionários criados')
+                logger.info('Funcionários criados')
             except Exception as e:
-                logger.warning(f'⚠️ Erro ao criar funcionários: {e}')
+                logger.warning(f'Erro ao criar funcionários: {e}')
             
             # 8. Criar fornecedores e contas
             try:
@@ -427,9 +427,9 @@ def demo_setup(request):
                         }
                     )
                 
-                logger.info('✅ Fornecedores e contas criados')
+                logger.info('Fornecedores e contas criados')
             except Exception as e:
-                logger.warning(f'⚠️ Erro ao criar fornecedores e contas: {e}')
+                logger.warning(f'Erro ao criar fornecedores e contas: {e}')
             
             # 9. Criar pastagens
             try:
@@ -452,9 +452,9 @@ def demo_setup(request):
                         }
                     )
                 
-                logger.info('✅ Pastagens criadas')
+                logger.info('Pastagens criadas')
             except Exception as e:
-                logger.warning(f'⚠️ Erro ao criar pastagens: {e}')
+                logger.warning(f'Erro ao criar pastagens: {e}')
             
             # 10. Criar bens patrimoniais
             try:
@@ -491,9 +491,9 @@ def demo_setup(request):
                         }
                     )
                 
-                logger.info('✅ Bens patrimoniais criados')
+                logger.info('Bens patrimoniais criados')
             except Exception as e:
-                logger.warning(f'⚠️ Erro ao criar bens patrimoniais: {e}')
+                logger.warning(f'Erro ao criar bens patrimoniais: {e}')
             
             # 11. Criar fluxo de caixa
             try:
@@ -524,9 +524,9 @@ def demo_setup(request):
                         }
                     )
                 
-                logger.info('✅ Fluxo de caixa criado')
+                logger.info('Fluxo de caixa criado')
             except Exception as e:
-                logger.warning(f'⚠️ Erro ao criar fluxo de caixa: {e}')
+                logger.warning(f'Erro ao criar fluxo de caixa: {e}')
             
             # 12. Criar animais individuais (amostra)
             try:
@@ -554,9 +554,9 @@ def demo_setup(request):
                             }
                         )
                     
-                    logger.info('✅ 50 animais individuais criados')
+                    logger.info('50 animais individuais criados')
             except Exception as e:
-                logger.warning(f'⚠️ Erro ao criar animais individuais: {e}')
+                logger.warning(f'Erro ao criar animais individuais: {e}')
             
             # 13. Criar dados financeiros adicionais
             try:
@@ -625,9 +625,9 @@ def demo_setup(request):
                         }
                     )
                 
-                logger.info('✅ Dados financeiros criados')
+                logger.info('Dados financeiros criados')
             except Exception as e:
-                logger.warning(f'⚠️ Erro ao criar dados financeiros: {e}')
+                logger.warning(f'Erro ao criar dados financeiros: {e}')
             
             # 14. Criar projeto bancário (exemplo)
             try:
@@ -646,9 +646,9 @@ def demo_setup(request):
                     }
                 )
                 
-                logger.info('✅ Projeto bancário criado')
+                logger.info('Projeto bancário criado')
             except Exception as e:
-                logger.warning(f'⚠️ Erro ao criar projeto bancário: {e}')
+                logger.warning(f'Erro ao criar projeto bancário: {e}')
             
             # 15. Criar custos fixos e variáveis
             try:
@@ -682,44 +682,54 @@ def demo_setup(request):
                         defaults={'valor_unitario': cv_data['valor_unitario']}
                     )
                 
-                logger.info('✅ Custos fixos e variáveis criados')
+                logger.info('Custos fixos e variáveis criados')
             except Exception as e:
-                logger.warning(f'⚠️ Erro ao criar custos: {e}')
+                logger.warning(f'Erro ao criar custos: {e}')
             
             # Garantir que propriedade foi criada corretamente
             if not propriedade:
-                logger.error('❌ Erro: Propriedade não foi criada após todo o processo')
+                logger.error('Erro: Propriedade não foi criada após todo o processo')
                 messages.error(request, 'Erro ao criar propriedade. Por favor, tente novamente.')
                 return redirect('dashboard')
             
             # Popular com dados completos usando o comando popular_monpec1_demo
             # Isso garante que todos os usuários demo tenham os mesmos dados completos do demo_monpec
             # IMPORTANTE: Executar FORA do transaction.atomic para garantir que o commit aconteça
-            logger.info(f'🚀 Executando popular_monpec1_demo para popular dados completos (mesmo template do demo_monpec)...')
+            logger.info(f'Executando popular_monpec1_demo para popular dados completos (mesmo template do demo_monpec)...')
         
         # Executar o comando FORA do transaction.atomic para evitar problemas de transação aninhada
         try:
             from django.core.management import call_command
+            import sys
+            import io
+            
+            # Configurar encoding UTF-8 para stdout/stderr para evitar erros com emojis no Windows
+            if sys.platform == 'win32':
+                sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+                sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+            
             # Usar force=True para garantir que os dados sejam populados mesmo se já existirem alguns dados parciais
             call_command('popular_monpec1_demo', propriedade_id=propriedade.id, force=True, verbosity=2)
-            logger.info(f'✅ Dados completos populados com sucesso!')
+            logger.info(f'Dados completos populados com sucesso!')
             messages.success(request, 'Demonstração configurada com sucesso! Todos os módulos foram populados com dados realistas. Você será redirecionado...')
         except Exception as e:
-            logger.error(f'❌ ERRO ao executar popular_monpec1_demo: {e}', exc_info=True)
+            logger.error(f'ERRO ao executar popular_monpec1_demo: {e}', exc_info=True)
             # Ainda mostrar mensagem de sucesso pois os dados básicos foram criados
-            messages.warning(request, f'Demonstração configurada, mas houve um problema ao popular todos os dados: {str(e)}. Tente acessar novamente.')
+            # Remover emojis da mensagem de erro para evitar problemas de encoding
+            error_msg = str(e).encode('ascii', errors='ignore').decode('ascii')
+            messages.warning(request, f'Demonstração configurada, mas houve um problema ao popular todos os dados: {error_msg}. Tente acessar novamente.')
         
         # Redirecionar para a propriedade
-        logger.info(f'🔴🔴🔴 REDIRECIONANDO PARA PROPRIEDADE {propriedade.id} - {propriedade.nome_propriedade}')
+        logger.info(f'REDIRECIONANDO PARA PROPRIEDADE {propriedade.id} - {propriedade.nome_propriedade}')
         return redirect('propriedade_modulos', propriedade_id=propriedade.id)
             
     except Exception as e:
-        logger.error(f'❌ Erro ao configurar demonstração: {e}', exc_info=True)
+        logger.error(f'Erro ao configurar demonstração: {e}', exc_info=True)
         messages.error(request, f'Erro ao configurar demonstração: {str(e)}')
         # Tentar redirecionar para o dashboard em caso de erro
         return redirect('dashboard')
     
     # Se chegou aqui sem criar propriedade, redirecionar para o dashboard
-    logger.warning(f'⚠️ Demo setup concluído sem criar propriedade. Redirecionando para dashboard.')
+    logger.warning(f'Demo setup concluído sem criar propriedade. Redirecionando para dashboard.')
     return redirect('dashboard')
 

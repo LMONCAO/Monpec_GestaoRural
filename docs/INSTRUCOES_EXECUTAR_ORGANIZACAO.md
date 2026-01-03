@@ -63,3 +63,5 @@ Verifique:
 - Se tudo está nas pastas corretas
 - Se não há arquivos importantes faltando na raiz
 
+
+

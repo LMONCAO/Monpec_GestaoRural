@@ -26,6 +26,7 @@ from gestao_rural import views_curral
 from gestao_rural import views_sitemap
 from gestao_rural import views_password_reset
 from gestao_rural import views_static
+from gestao_rural import views_media
 
 urlpatterns = [
     # LANDING PAGE COM VÍDEO - DEVE VIR PRIMEIRO (página inicial)
@@ -64,9 +65,14 @@ urlpatterns = [
         template_name='registration/password_reset_complete.html',
     ), name='password_reset_complete'),
     
-    # Rota customizada para servir arquivos estáticos (fallback)
-    # Esta rota deve vir ANTES do include('gestao_rural.urls') para ter prioridade
+    # Rota customizada para servir arquivos estáticos (FALLBACK)
+    # IMPORTANTE: Esta rota funciona como fallback se WhiteNoise não servir o arquivo
+    # WhiteNoise tem prioridade (middleware), mas se falhar, esta view serve o arquivo
+    # A ordem importa: esta rota deve vir ANTES do include('gestao_rural.urls')
     path('static/<path:path>', views_static.serve_static_file, name='serve_static'),
+    
+    # Rota para servir arquivos media (fotos, uploads) em produção
+    path('media/<path:path>', views_media.serve_media, name='serve_media'),
     
     path('', include('gestao_rural.urls')),
 ]

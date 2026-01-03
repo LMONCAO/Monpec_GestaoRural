@@ -6,35 +6,53 @@ from django.db import migrations
 def adicionar_campo_permite_negativo_se_nao_existir(apps, schema_editor):
     """Adiciona o campo permite_negativo se ele não existir na tabela."""
     db_alias = schema_editor.connection.alias
+    db_vendor = schema_editor.connection.vendor
     with schema_editor.connection.cursor() as cursor:
-        # Verificar se a coluna já existe
-        cursor.execute("""
-            SELECT COUNT(*) FROM pragma_table_info('gestao_rural_contafinanceira') 
-            WHERE name='permite_negativo'
-        """)
+        # Verificar se a coluna já existe (PostgreSQL ou SQLite)
+        if db_vendor == 'postgresql':
+            cursor.execute("""
+                SELECT COUNT(*) FROM information_schema.columns 
+                WHERE table_name='gestao_rural_contafinanceira' AND column_name='permite_negativo'
+            """)
+        else:  # SQLite
+            cursor.execute("""
+                SELECT COUNT(*) FROM pragma_table_info('gestao_rural_contafinanceira') 
+                WHERE name='permite_negativo'
+            """)
         existe = cursor.fetchone()[0] > 0
         
         if not existe:
             # Adicionar a coluna se não existir
-            cursor.execute("""
-                ALTER TABLE gestao_rural_contafinanceira 
-                ADD COLUMN permite_negativo BOOLEAN DEFAULT 0
-            """)
+            if db_vendor == 'postgresql':
+                cursor.execute("""
+                    ALTER TABLE gestao_rural_contafinanceira 
+                    ADD COLUMN permite_negativo BOOLEAN DEFAULT FALSE
+                """)
+            else:  # SQLite
+                cursor.execute("""
+                    ALTER TABLE gestao_rural_contafinanceira 
+                    ADD COLUMN permite_negativo BOOLEAN DEFAULT 0
+                """)
 
 
 def remover_campo_permite_negativo_se_existir(apps, schema_editor):
     """Remove o campo permite_negativo se ele existir (para rollback)."""
     db_alias = schema_editor.connection.alias
+    db_vendor = schema_editor.connection.vendor
     with schema_editor.connection.cursor() as cursor:
         # Verificar se a coluna existe
-        cursor.execute("""
-            SELECT COUNT(*) FROM pragma_table_info('gestao_rural_contafinanceira') 
-            WHERE name='permite_negativo'
-        """)
-        existe = cursor.fetchone()[0] > 0
-        
-        if existe:
-            # Em produção, isso precisaria de uma estratégia diferente
+        if db_vendor == 'postgresql':
+            cursor.execute("""
+                SELECT COUNT(*) FROM information_schema.columns 
+                WHERE table_name='gestao_rural_contafinanceira' AND column_name='permite_negativo'
+            """)
+            existe = cursor.fetchone()[0] > 0
+            if existe:
+                cursor.execute("""
+                    ALTER TABLE gestao_rural_contafinanceira 
+                    DROP COLUMN permite_negativo
+                """)
+        else:  # SQLite não suporta DROP COLUMN diretamente
             pass
 
 

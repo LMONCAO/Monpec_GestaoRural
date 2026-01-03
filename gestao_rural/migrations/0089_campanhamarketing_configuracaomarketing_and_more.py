@@ -8,16 +8,27 @@ import django.db.models.deletion
 def remove_unique_together_safely(apps, schema_editor):
     """Remove unique_together de forma segura, ignorando se o índice não existir"""
     db_alias = schema_editor.connection.alias
+    db_vendor = schema_editor.connection.vendor
     SetorPropriedade = apps.get_model('gestao_rural', 'SetorPropriedade')
     
     # Tentar remover o unique_together usando SQL direto
     with schema_editor.connection.cursor() as cursor:
-        # Verificar se o índice existe no SQLite
-        cursor.execute("""
-            SELECT name FROM sqlite_master 
-            WHERE type='index' AND name='unique_setor_por_propriedade_nome'
-        """)
-        if cursor.fetchone():
+        index_exists = False
+        if db_vendor == 'postgresql':
+            # Verificar se o índice existe no PostgreSQL
+            cursor.execute("""
+                SELECT COUNT(*) FROM pg_indexes 
+                WHERE indexname='unique_setor_por_propriedade_nome'
+            """)
+            index_exists = cursor.fetchone()[0] > 0
+        else:  # SQLite
+            cursor.execute("""
+                SELECT name FROM sqlite_master 
+                WHERE type='index' AND name='unique_setor_por_propriedade_nome'
+            """)
+            index_exists = cursor.fetchone() is not None
+        
+        if index_exists:
             # Índice existe, tentar removê-lo
             try:
                 cursor.execute("DROP INDEX IF EXISTS unique_setor_por_propriedade_nome")

@@ -1,0 +1,167 @@
+name: 🚀 Deploy Principal - Google Cloud Run
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+env:
+  PROJECT_ID: monpec-sistema-rural
+  SERVICE_NAME: monpec
+  REGION: us-central1
+  DB_INSTANCE: monpec-db
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: 📥 Checkout do código
+        uses: actions/checkout@v4
+
+      - name: 🔐 Autenticar no Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: ⚙️ Configurar Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: 🔨 Build da imagem Docker
+        env:
+          PROJECT_ID: ${{ env.PROJECT_ID }}
+        run: |
+          IMAGE_NAME="gcr.io/${PROJECT_ID}/monpec"
+          IMAGE_TAG="${IMAGE_NAME}:${GITHUB_SHA}"
+          IMAGE_LATEST="${IMAGE_NAME}:latest"
+          
+          echo "🔨 Building image: $IMAGE_TAG"
+          gcloud builds submit \
+            --tag $IMAGE_TAG \
+            --tag $IMAGE_LATEST \
+            --timeout=1800s \
+            --machine-type=E2_HIGHCPU_8 \
+            .
+          
+          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+          echo "IMAGE_LATEST=$IMAGE_LATEST" >> $GITHUB_ENV
+
+      - name: 🔍 Verificar Secrets
+        run: |
+          echo "Verificando secrets necessarios..."
+          if [ -z "${{ secrets.GCP_SA_KEY }}" ]; then
+            echo "❌ ERRO: GCP_SA_KEY nao configurado!"
+            exit 1
+          fi
+          if [ -z "${{ secrets.SECRET_KEY }}" ]; then
+            echo "❌ ERRO: SECRET_KEY nao configurado!"
+            exit 1
+          fi
+          if [ -z "${{ secrets.DB_NAME }}" ]; then
+            echo "❌ ERRO: DB_NAME nao configurado!"
+            exit 1
+          fi
+          if [ -z "${{ secrets.DB_USER }}" ]; then
+            echo "❌ ERRO: DB_USER nao configurado!"
+            exit 1
+          fi
+          if [ -z "${{ secrets.DB_PASSWORD }}" ]; then
+            echo "❌ ERRO: DB_PASSWORD nao configurado!"
+            exit 1
+          fi
+          if [ -z "${{ secrets.DJANGO_SUPERUSER_PASSWORD }}" ]; then
+            echo "❌ ERRO: DJANGO_SUPERUSER_PASSWORD nao configurado!"
+            exit 1
+          fi
+          echo "✅ Todos os secrets estao configurados"
+
+      - name: 🚀 Deploy no Cloud Run
+        run: |
+          echo "🚀 Iniciando deploy no Cloud Run..."
+          CLOUD_SQL_CONN="${{ env.PROJECT_ID }}:${{ env.REGION }}:${{ env.DB_INSTANCE }}"
+          echo "Cloud SQL Connection: $CLOUD_SQL_CONN"
+          
+          gcloud run deploy ${{ env.SERVICE_NAME }} \
+            --image ${{ env.IMAGE_TAG }} \
+            --region=${{ env.REGION }} \
+            --platform=managed \
+            --allow-unauthenticated \
+            --add-cloudsql-instances=$CLOUD_SQL_CONN \
+            --set-env-vars "DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,DEBUG=False,SECRET_KEY=${{ secrets.SECRET_KEY }},CLOUD_SQL_CONNECTION_NAME=$CLOUD_SQL_CONN,DB_NAME=${{ secrets.DB_NAME }},DB_USER=${{ secrets.DB_USER }},DB_PASSWORD=${{ secrets.DB_PASSWORD }},DJANGO_SUPERUSER_PASSWORD=${{ secrets.DJANGO_SUPERUSER_PASSWORD }},GOOGLE_CLOUD_PROJECT=${{ env.PROJECT_ID }},DEMO_USER_PASSWORD=monpec" \
+            --memory=2Gi \
+            --cpu=2 \
+            --timeout=600 \
+            --max-instances=10 \
+            --min-instances=0 \
+            --quiet
+          
+          if [ $? -eq 0 ]; then
+            echo "✅ Deploy concluido com sucesso!"
+          else
+            echo "❌ ERRO: Falha no deploy!"
+            echo "Verifique os logs acima para mais detalhes"
+            exit 1
+          fi
+
+      - name: 📋 Obter URL do serviço
+        id: get-url
+        run: |
+          echo "📋 Obtendo URL do servico..."
+          SERVICE_URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
+            --region=${{ env.REGION }} \
+            --format="value(status.url)" 2>/dev/null || echo "")
+          if [ -z "$SERVICE_URL" ]; then
+            echo "URL=https://monpec-xxxxx-uc.a.run.app" >> $GITHUB_OUTPUT
+            echo "⚠️ Nao foi possivel obter URL automaticamente"
+            echo "Verifique manualmente: gcloud run services describe ${{ env.SERVICE_NAME }} --region=${{ env.REGION }}"
+          else
+            echo "URL=$SERVICE_URL" >> $GITHUB_OUTPUT
+            echo "✅ Deploy concluido! URL: $SERVICE_URL"
+          fi
+
+      - name: 🔍 Verificar Status do Servico
+        if: always()
+        run: |
+          echo "🔍 Verificando status do servico..."
+          gcloud run services describe ${{ env.SERVICE_NAME }} \
+            --region=${{ env.REGION }} \
+            --format="table(status.conditions[0].type,status.conditions[0].status,status.url)" || true
+          
+          echo ""
+          echo "📋 Verificando logs recentes (ultimas 10 linhas)..."
+          gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=${{ env.SERVICE_NAME }}" \
+            --limit=10 \
+            --format="table(timestamp,severity,textPayload)" \
+            --project=${{ env.PROJECT_ID }} || true
+          
+          echo ""
+          echo "🔴 Verificando erros..."
+          ERRORS=$(gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=${{ env.SERVICE_NAME }} AND severity>=ERROR" \
+            --limit=5 \
+            --format="value(textPayload)" \
+            --project=${{ env.PROJECT_ID }} || echo "")
+          
+          if [ -z "$ERRORS" ]; then
+            echo "✅ Nenhum erro encontrado nos logs recentes!"
+          else
+            echo "⚠️ Erros encontrados:"
+            echo "$ERRORS"
+          fi
+
+      - name: 📝 Resumo do deploy
+        run: |
+          echo "## 🚀 Deploy Concluído!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Serviço:** ${{ env.SERVICE_NAME }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Região:** ${{ env.REGION }}" >> $GITHUB_STEP_SUMMARY
+          echo "**URL:** ${{ steps.get-url.outputs.URL }}" >> $GITHUB_STEP_SUMMARY
+
+

@@ -1,0 +1,28 @@
+# Comando simples para executar no PowerShell
+# Copie e cole no PowerShell
+
+cd "C:\Users\lmonc\Desktop\MonPO-Monitor de Plano Orçamentario\Monpec_GestaoRural"
+
+$TIMESTAMP = Get-Date -Format "yyyyMMddHHmmss"
+$IMAGE_NAME = "gcr.io/monpec-sistema-rural/monpec:$TIMESTAMP"
+
+Write-Host "🔨 Buildando..." -ForegroundColor Yellow
+gcloud builds submit --tag $IMAGE_NAME --timeout=600s
+
+if ($LASTEXITCODE -eq 0) {
+    Write-Host "✅ Build concluído! Fazendo deploy..." -ForegroundColor Green
+    
+    gcloud run deploy monpec `
+      --region=us-central1 `
+      --image=$IMAGE_NAME `
+      --set-env-vars="DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,DB_NAME=monpec_db,DB_USER=monpec_user,DB_PASSWORD=L6171r12@@jjms,CLOUD_SQL_CONNECTION_NAME=monpec-sistema-rural:us-central1:monpec-db" `
+      --set-cloudsql-instances=monpec-sistema-rural:us-central1:monpec-db `
+      --memory=2Gi `
+      --cpu=2 `
+      --timeout=300 `
+      --allow-unauthenticated `
+      --quiet
+    
+    Write-Host "✅ Pronto! Teste: https://monpec-29862706245.us-central1.run.app/login/" -ForegroundColor Green
+}
+

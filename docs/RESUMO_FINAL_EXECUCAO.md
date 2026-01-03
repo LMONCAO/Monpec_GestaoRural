@@ -85,3 +85,5 @@ projeto/
 
 A estrutura de organização foi criada e configurada com sucesso. Os scripts estão prontos para uso e a documentação está completa. A organização dos arquivos existentes pode ser concluída executando os scripts criados.
 
+
+

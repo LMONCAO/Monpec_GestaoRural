@@ -28,14 +28,11 @@ def usuario_tem_acesso_propriedade(usuario, propriedade):
         return True
     
     # Permitir acesso de usuários demo à propriedade Monpec1
-    try:
-        from .models_auditoria import UsuarioAtivo
-        UsuarioAtivo.objects.get(usuario=usuario)
+    from .helpers_acesso import is_usuario_demo
+    if is_usuario_demo(usuario):
         # Se for usuário demo, permitir acesso apenas à Monpec1
         if 'Monpec1' in propriedade.nome_propriedade:
             return True
-    except:
-        pass
     
     if not propriedade.produtor:
         return False
@@ -147,18 +144,9 @@ def bloquear_demo_cadastro(view_func):
             from django.contrib.auth.views import redirect_to_login
             return redirect_to_login(request.get_full_path())
         
-        # Verificar se é usuário demo
-        is_demo_user = False
-        if request.user.username in ['demo_monpec', 'demo']:
-            is_demo_user = True
-        else:
-            # Verificar se tem UsuarioAtivo (usuário criado pelo popup)
-            try:
-                from .models_auditoria import UsuarioAtivo
-                UsuarioAtivo.objects.get(usuario=request.user)
-                is_demo_user = True
-            except:
-                pass
+        # Verificar se é usuário demo usando função centralizada
+        from .helpers_acesso import is_usuario_demo
+        is_demo_user = is_usuario_demo(request.user)
         
         if is_demo_user:
             # Bloquear qualquer acesso (GET, POST, PUT, PATCH, DELETE) para páginas de cadastro/edição

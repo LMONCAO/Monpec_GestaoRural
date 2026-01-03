@@ -111,15 +111,9 @@
   /* Ajustar wrapper do curral para ocupar toda a tela */
   body.curral-v2 .curral-v2-wrapper {
     max-width: 100% !important;
-<<<<<<< Updated upstream
     width: 100% !important;
     margin: 0 auto !important;
-    padding: 20px !important;
-=======
-    margin: 0 !important;
     padding: 0 !important;
-    width: 100% !important;
->>>>>>> Stashed changes
     box-sizing: border-box !important;
   }
   
@@ -1329,10 +1323,13 @@ if (typeof window.gravarPesagemDireto !== 'function') {
 
 // ========== FUNÇÕES PARA HABILITAR/DESABILITAR CAMPO DE PESO ==========
 window.habilitarCampoPesoV2 = function() {
-<<<<<<< Updated upstream
   // Verificar qual tipo de pesagem está ativo
   const config = window.configPesagemSalva;
   const isApartacao = config && config.tipoPesagem === 'aparte';
+  
+  const pesoInput = document.getElementById('pesoValorV2');
+  const gravarBtn = document.getElementById('pesoGravarBtnV2');
+  const editarBtn = document.getElementById('pesoEditarBtnV2');
   
   if (isApartacao) {
     // Habilitar campo de apartação
@@ -1384,52 +1381,24 @@ window.habilitarCampoPesoV2 = function() {
     }
   } else {
     // Habilitar campo de rotina
-    const pesoInput = document.getElementById('pesoValorV2');
-    const gravarBtn = document.getElementById('pesoGravarBtnV2');
-    
     if (pesoInput) {
       pesoInput.disabled = false;
       pesoInput.placeholder = '0,0';
       pesoInput.style.backgroundColor = '';
       pesoInput.style.cursor = 'text';
+      pesoInput.style.opacity = '1';
       pesoInput.focus();
       console.log('✅ Campo de peso ROTINA HABILITADO');
-    }
-    
-    if (gravarBtn) {
-      gravarBtn.disabled = false;
-      gravarBtn.style.opacity = '';
-      gravarBtn.style.cursor = '';
-      console.log('✅ Botão Gravar ROTINA HABILITADO');
-    }
-    
-    // Habilitar também o botão "Finalizar e Gravar"
-    if (typeof window.atualizarBotaoFinalizarV2 === 'function') {
-      window.atualizarBotaoFinalizarV2();
-    }
-=======
-  const pesoInput = document.getElementById('pesoValorV2');
-  const gravarBtn = document.getElementById('pesoGravarBtnV2');
-  const editarBtn = document.getElementById('pesoEditarBtnV2');
-  
-  if (pesoInput) {
-    pesoInput.disabled = false;
-    pesoInput.placeholder = '0,0';
-    pesoInput.style.backgroundColor = '';
-    pesoInput.style.cursor = 'text';
-    pesoInput.style.opacity = '1';
-    pesoInput.focus();
-    console.log('✅ Campo de peso HABILITADO');
-    
-    // Adicionar listener para atualizar termômetro quando peso for digitado
-    // Remover listener anterior se existir
-    if (window.calcularEficienciaPeso) {
-      pesoInput.removeEventListener('input', window.calcularEficienciaPeso);
-    }
-    
-    window.calcularEficienciaPeso = function() {
-      const pesoDigitado = pesoInput.value.replace(',', '.').trim();
-      const pesoNumero = parseFloat(pesoDigitado);
+      
+      // Adicionar listener para atualizar termômetro quando peso for digitado
+      // Remover listener anterior se existir
+      if (window.calcularEficienciaPeso) {
+        pesoInput.removeEventListener('input', window.calcularEficienciaPeso);
+      }
+      
+      window.calcularEficienciaPeso = function() {
+        const pesoDigitado = pesoInput.value.replace(',', '.').trim();
+        const pesoNumero = parseFloat(pesoDigitado);
       
       // Atualizar campo "Peso Atual Registrado" quando peso for digitado
       const pesoAtualRegistrado = document.getElementById('pesoAtualRegistradoV2');
@@ -1511,7 +1480,7 @@ window.habilitarCampoPesoV2 = function() {
   // Habilitar também o botão "Finalizar e Gravar"
   if (typeof window.atualizarBotaoFinalizarV2 === 'function') {
     window.atualizarBotaoFinalizarV2();
->>>>>>> Stashed changes
+  }
   }
   
   return true;
@@ -3333,10 +3302,8 @@ window.abrirFichaCompletaV4 = function() {
   
   /* Card de Progresso da Sessão */
   .progresso-sessao-container {
-=======
     margin: 20px auto 40px auto;
     padding: 0 20px;
->>>>>>> Stashed changes
     width: 100%;
     box-sizing: border-box;
     overflow-x: hidden;
@@ -3398,9 +3365,6 @@ window.abrirFichaCompletaV4 = function() {
     font-weight: 500;
   }
 
-<<<<<<< Updated upstream
-  /* Layout de duas colunas para v4 - 60% esquerdo / 40% direito (balança) */
-=======
   @media (max-width: 768px) {
     .curral-v2-wrapper {
       padding: 0 12px;
@@ -3415,16 +3379,12 @@ window.abrirFichaCompletaV4 = function() {
     }
   }
 
-  /* Layout de duas colunas para v4 - Ajustado para alinhamento perfeito e responsividade */
->>>>>>> Stashed changes
+  /* Layout de duas colunas para v4 - 60% esquerdo / 40% direito (balança) */
   .curral-v4-layout {
     display: grid;
-    grid-template-columns: 55% 45%;
+    grid-template-columns: 60% 40%;
     gap: 16px;
     margin-top: 12px;
-<<<<<<< Updated upstream
-    align-items: start;
-=======
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
@@ -3433,7 +3393,7 @@ window.abrirFichaCompletaV4 = function() {
     margin-right: 0;
     align-items: start;
     grid-auto-rows: min-content;
->>>>>>> Stashed changes
+    position: relative;
   }
 
   @media (max-width: 1400px) {
@@ -3496,15 +3456,14 @@ window.abrirFichaCompletaV4 = function() {
     display: flex;
     flex-direction: column;
     gap: 12px;
-<<<<<<< Updated upstream
-    height: 100%;
-=======
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
     padding: 0;
     margin: 0;
->>>>>>> Stashed changes
+    position: sticky;
+    top: 0;
+    align-self: start;
   }
   
   /* Wrapper para pesagem e manejos - layout horizontal */
@@ -3514,7 +3473,6 @@ window.abrirFichaCompletaV4 = function() {
     display: flex;
     flex-direction: column;
     gap: 16px;
-<<<<<<< Updated upstream
     flex: 1;
     min-height: 0;
     box-sizing: border-box;
@@ -3542,11 +3500,9 @@ window.abrirFichaCompletaV4 = function() {
   #balancaApartacaoContainer [style*="grid-template-columns: repeat(4, 1fr)"] {
     width: 100% !important;
     max-width: 100% !important;
-=======
     box-sizing: border-box;
     margin: 0;
     padding: 0;
->>>>>>> Stashed changes
   }
   
   /* Grid horizontal para os cards de manejo - ajustado para não ultrapassar */
@@ -3625,6 +3581,81 @@ window.abrirFichaCompletaV4 = function() {
     box-sizing: border-box;
     margin-left: 0;
     margin-right: 0;
+  }
+  
+  /* Permitir que cards com largura específica definida inline funcionem corretamente */
+  .curral-v4-painel-esquerdo .card-curral[style*="width: 60%"] {
+    width: 60% !important;
+    max-width: 60% !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+  
+  /* Wrapper para seções com 60% de largura */
+  .curral-v4-painel-esquerdo > div[style*="width: 60%"] {
+    width: 60% !important;
+    max-width: 60% !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    display: block !important;
+  }
+  
+  /* FORÇAR ALINHAMENTO CORRETO - Regras específicas para garantir 60% centralizado */
+  .curral-v4-painel-esquerdo {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  
+  /* Resetar largura padrão dos cards no painel esquerdo */
+  .curral-v4-painel-esquerdo > * {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  
+  /* Wrapper CONFIGURAÇÃO DA SESSÃO - sobrescrever regra anterior */
+  .curral-v4-painel-esquerdo > div[style*="width: 60%"],
+  .curral-v4-painel-esquerdo > div[style*="width:60%"] {
+    width: 60% !important;
+    max-width: 60% !important;
+    margin: 0 auto 12px auto !important;
+    display: block !important;
+  }
+  
+  /* Cards com width: 60% definido inline - sobrescrever regra padrão */
+  .curral-v4-painel-esquerdo .card-curral[style*="width: 60%"],
+  .curral-v4-painel-esquerdo .card-curral[style*="width:60%"] {
+    width: 60% !important;
+    max-width: 60% !important;
+    margin: 12px auto !important;
+    display: block !important;
+  }
+  
+  /* FICHA CADASTRAL - garantir que o card pai tenha 60% */
+  .curral-v4-painel-esquerdo .card-curral:has(#fichaCadastralV4),
+  .curral-v4-painel-esquerdo .card-curral:has([id*="fichaCadastral"]) {
+    width: 60% !important;
+    max-width: 60% !important;
+    margin: 12px auto !important;
+  }
+  
+  /* Painel direito - garantir que ocupe 40% e fique fixo */
+  .curral-v4-painel-direito {
+    width: 40% !important;
+    max-width: 40% !important;
+    position: sticky !important;
+    top: 20px !important;
+    align-self: flex-start !important;
+    height: fit-content !important;
+  }
+  
+  /* Card de balança ocupar todo o espaço do painel direito */
+  .curral-v4-painel-direito .balanca-eletronica-grande {
+    width: 100% !important;
+    max-width: 100% !important;
   }
 
   /* Remover margin-top do primeiro card do painel esquerdo para alinhamento perfeito */
@@ -8084,16 +8115,18 @@ window.abrirFichaCompletaV4 = function() {
   <div class="curral-v4-layout">
     <!-- PAINEL ESQUERDO -->
     <div class="curral-v4-painel-esquerdo">
-      <!-- Título da Seção -->
-      <div style="margin-bottom: 10px;">
-        <h2 style="margin: 0; color: #1976d2; display: flex; align-items: center; gap: 8px; font-size: 1.1rem; font-weight: 700;">
-          <i class="fas fa-cog"></i> CONFIGURAÇÃO DA SESSÃO
-        </h2>
-        <p style="margin: 4px 0 0 0; color: #666; font-size: 0.8rem;">Configure as opções abaixo para esta sessão</p>
-      </div>
+      <!-- Wrapper para CONFIGURAÇÃO DA SESSÃO com 60% de largura -->
+      <div style="width: 60%; margin: 0 auto;">
+        <!-- Título da Seção -->
+        <div style="margin-bottom: 10px;">
+          <h2 style="margin: 0; color: #1976d2; display: flex; align-items: center; gap: 8px; font-size: 1.1rem; font-weight: 700;">
+            <i class="fas fa-cog"></i> CONFIGURAÇÃO DA SESSÃO
+          </h2>
+          <p style="margin: 4px 0 0 0; color: #666; font-size: 0.8rem;">Configure as opções abaixo para esta sessão</p>
+        </div>
 
-      <!-- Grid de Cards de Configuração - 4 colunas (responsivo) -->
-      <div id="gridConfigCards" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 12px;">
+        <!-- Grid de Cards de Configuração - 4 colunas (responsivo) -->
+        <div id="gridConfigCards" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 12px;">
         <!-- PESAGEM -->
         <div style="position: relative; min-height: 120px;">
           <!-- Card Original -->
@@ -8210,10 +8243,12 @@ window.abrirFichaCompletaV4 = function() {
           </div>
         </div>
       </div>
+      </div>
+      <!-- Fim do wrapper CONFIGURAÇÃO DA SESSÃO -->
 
 
       <!-- IDENTIFICAÇÃO (F2) -->
-      <div class="card-curral" style="width: 65%;">
+      <div class="card-curral" style="width: 60%; margin: 0 auto;">
         <div class="card-curral-header">
           <h2 style="font-size: 1rem;"><i class="fas fa-qrcode"></i> IDENTIFICAÇÃO (F2)</h2>
         </div>
@@ -8240,7 +8275,7 @@ window.abrirFichaCompletaV4 = function() {
       </div>
 
       <!-- FICHA CADASTRAL -->
-      <div class="card-curral">
+      <div class="card-curral" style="width: 60%; margin: 0 auto;">
         <div class="card-curral-header">
           <h2 style="font-size: 1rem;"><i class="fas fa-file-alt"></i> FICHA CADASTRAL</h2>
           <button type="button" class="btn btn-sm btn-primary" id="btnFichaAnimalV2" style="display: none;">
@@ -8354,7 +8389,6 @@ window.abrirFichaCompletaV4 = function() {
       <div class="pesagem-manejos-wrapper" style="flex: 1; display: flex; flex-direction: column; width: 100%; max-width: 100%;">
       <!-- BALANÇA ELETRÔNICA -->
       <div class="balanca-eletronica-grande">
-<<<<<<< Updated upstream
         <!-- Título dinâmico -->
         <div class="balanca-titulo" id="balancaTitulo">BALANÇA ELETRÔNICA</div>
         
@@ -8377,27 +8411,6 @@ window.abrirFichaCompletaV4 = function() {
               <div style="font-size: 0.7rem; color: rgba(255,255,255,0.7); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">Média Individual</div>
               <div id="balancaMediaIndividual" style="font-size: 2rem; font-weight: 700; color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.2);">—</div>
             </div>
-=======
-        <div class="balanca-titulo">BALANÇA ELETRÔNICA</div>
-        <div style="margin-top: 20px; width: 100%;">
-          <input type="text" 
-                 id="pesoValorV2" 
-                 class="peso-display-v2-input" 
-                 placeholder="Digite o peso"
-                 inputmode="decimal"
-                 pattern="[0-9,\.]+"
-                 disabled
-                 onkeypress="if(event.key === 'Enter' || event.keyCode === 13) { event.preventDefault(); event.stopPropagation(); const btn = document.getElementById('pesoGravarBtnV2'); if(btn && !btn.disabled && typeof window.gravarPesagemDireto === 'function') { window.gravarPesagemDireto(); } return false; }"
-                 style="width: 100%; max-width: 300px; font-size: 2.5rem; padding: 16px; text-align: center; border: 2px solid rgba(255,255,255,0.3); border-radius: 8px; background: rgba(255,255,255,0.95); color: #000000; font-weight: 900;">
-          
-          <div style="margin-top: 16px; display: flex; gap: 12px; justify-content: center;">
-            <button type="button" class="btn btn-gravar" id="pesoGravarBtnV2" onclick="if(typeof window.gravarPesagemDireto==='function'){window.gravarPesagemDireto();}else{alert('Erro: Função não disponível. Recarregue a página.');}" disabled style="background: rgba(255,255,255,0.2); border: 2px solid white; color: white; padding: 10px 24px; border-radius: 8px; font-weight: 600; cursor: not-allowed; opacity: 0.5;">
-              <i class="fas fa-save"></i> Gravar
-            </button>
-            <button type="button" class="btn btn-limpar" id="pesoLimparBtnV2" onclick="if(typeof window.limparPesoV2 === 'function'){window.limparPesoV2();}else{var p=document.getElementById('pesoValorV2');if(p){p.value='';p.focus();}}" style="background: rgba(255,255,255,0.2); border: 2px solid white; color: white; padding: 10px 24px; border-radius: 8px; font-weight: 600;">
-              <i class="fas fa-eraser"></i> Limpar
-            </button>
->>>>>>> Stashed changes
           </div>
           
           <!-- Linha 2: Divisão por Sexo e Campo de Peso -->
@@ -8571,7 +8584,6 @@ window.abrirFichaCompletaV4 = function() {
             </div>
             <div class="card-curral-body" style="padding: 12px;">
               <p style="font-size: 0.85rem; color: #78909c; margin: 0;">Configure na aba Nutrição</p>
->>>>>>> Stashed changes
             </div>
           </div>
         </div>
@@ -8725,18 +8737,9 @@ window.abrirFichaCompletaV4 = function() {
         </div>
       </div>
 
-<<<<<<< Updated upstream
-      <!-- Espaço reservado para outras funcionalidades (se necessário) -->
-      <!-- Fim do wrapper pesagem-manejos-wrapper -->
-      
       <!-- Botão GRAVAR DADOS -->
-      <button type="button" class="btn btn-primary btn-lg" id="btnFinalizarGravarV2" onclick="if(typeof window.finalizarEGravarManejos==='function'){window.finalizarEGravarManejos();}else{alert('Erro: Função não disponível. Recarregue a página.');}" disabled style="width: 100%; max-width: 100%; padding: 16px; font-size: 1.1rem; font-weight: 700; background: linear-gradient(135deg, #4caf50 0%, #45a049 100%); border: none; border-radius: 8px; color: white; opacity: 0.5; cursor: not-allowed; margin-top: auto; margin-left: 0; margin-right: 0; box-sizing: border-box;">
-        <i class="fas fa-check-double"></i> GRAVAR DADOS
-=======
-      <!-- Botão REGISTRAR DADOS -->
       <button type="button" class="btn btn-primary btn-lg" id="btnFinalizarGravarV2" onclick="if(typeof window.finalizarEGravarManejos==='function'){window.finalizarEGravarManejos();}else{alert('Erro: Função não disponível. Recarregue a página.');}" disabled style="width: 100%; padding: 16px; font-size: 1.1rem; font-weight: 700; background: linear-gradient(135deg, #4caf50 0%, #45a049 100%); border: none; border-radius: 8px; color: white; opacity: 0.5; cursor: not-allowed; box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3); transition: all 0.3s ease;">
-        <i class="fas fa-check-double"></i> Registrar Dados
->>>>>>> Stashed changes
+        <i class="fas fa-check-double"></i> GRAVAR DADOS
       </button>
     </div>
   </div>
@@ -14128,7 +14131,6 @@ function atualizarInfoPesagem(dados) {
       }
     } else {
       pesoAtualRegistrado.textContent = '—';
->>>>>>> Stashed changes
     }
   }
   

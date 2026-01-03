@@ -52,8 +52,8 @@ def calcular_custo_por_animal(propriedade, periodo_dias=365, data_inicio=None, d
         propriedade=propriedade,
         ativo=True
     )
-    custo_fixo_total_anual = sum(c.custo_anual for c in custos_fixos if c.custo_anual)
-    custo_fixo_total = (custo_fixo_total_anual * periodo_dias / 365) if periodo_dias > 0 else Decimal('0')
+    custo_fixo_total_anual = sum(Decimal(str(c.custo_anual or 0)) for c in custos_fixos if c.custo_anual)
+    custo_fixo_total = (Decimal(str(custo_fixo_total_anual)) * Decimal(str(periodo_dias)) / Decimal('365')) if periodo_dias > 0 else Decimal('0')
     
     # 2. Custos Variáveis (por cabeça) - proporcional ao período
     custos_variaveis = CustoVariavel.objects.filter(
@@ -61,19 +61,19 @@ def calcular_custo_por_animal(propriedade, periodo_dias=365, data_inicio=None, d
         ativo=True
     )
     inventario = InventarioRebanho.objects.filter(propriedade=propriedade)
-    total_animais = sum(item.quantidade for item in inventario)
+    total_animais = sum(Decimal(str(item.quantidade or 0)) for item in inventario)
     
     custo_variavel_total_anual = Decimal('0')
     for custo_var in custos_variaveis:
         if hasattr(custo_var, 'custo_anual_por_cabeca') and custo_var.custo_anual_por_cabeca:
-            custo_variavel_total_anual += custo_var.custo_anual_por_cabeca * total_animais
+            custo_variavel_total_anual += Decimal(str(custo_var.custo_anual_por_cabeca)) * Decimal(str(total_animais))
         elif hasattr(custo_var, 'valor_por_cabeca') and custo_var.valor_por_cabeca:
-            custo_variavel_total_anual += custo_var.valor_por_cabeca * total_animais * 12
+            custo_variavel_total_anual += Decimal(str(custo_var.valor_por_cabeca)) * Decimal(str(total_animais)) * Decimal('12')
     
-    custo_variavel_total = (custo_variavel_total_anual * periodo_dias / 365) if periodo_dias > 0 else Decimal('0')
+    custo_variavel_total = (Decimal(str(custo_variavel_total_anual)) * Decimal(str(periodo_dias)) / Decimal('365')) if periodo_dias > 0 else Decimal('0')
     
     # Se não houver custos variáveis cadastrados mas houver animais, criar valor padrão estimado
-    if custo_variavel_total == Decimal('0') and total_animais > 0 and periodo_dias > 0:
+    if custo_variavel_total == Decimal('0') and total_animais > Decimal('0') and periodo_dias > 0:
         try:
             # Estimativa: R$ 50/animal/ano (custo variável padrão)
             custo_variavel_total = Decimal('50') * Decimal(str(total_animais)) * (Decimal(str(periodo_dias)) / Decimal('365'))
@@ -104,7 +104,7 @@ def calcular_custo_por_animal(propriedade, periodo_dias=365, data_inicio=None, d
         custo_folha = sum(f.salario_base or Decimal('0') for f in funcionarios) * meses_periodo if funcionarios.exists() else Decimal('0')
         
         # Se não houver funcionários cadastrados mas houver animais, criar valor padrão estimado
-        if custo_folha == Decimal('0') and total_animais > 0:
+        if custo_folha == Decimal('0') and total_animais > Decimal('0'):
             # Estimativa: 1 funcionário para cada 300 animais, salário mínimo de R$ 1.500
             try:
                 funcionarios_estimados = max(1, int(float(total_animais) / 300))
@@ -248,9 +248,9 @@ def calcular_custo_por_animal(propriedade, periodo_dias=365, data_inicio=None, d
     
     # Se não houver despesas financeiras no período mas houver custos operacionais, estimar
     # Despesas financeiras geralmente representam 5-10% dos custos operacionais
-    if custo_financeiro == Decimal('0') and total_animais > 0:
+    if custo_financeiro == Decimal('0') and total_animais > Decimal('0'):
         try:
-            custos_operacionais_base = custo_combustivel + custo_folha + custo_manutencao + custo_nutricao + custo_veterinario
+            custos_operacionais_base = Decimal(str(custo_combustivel)) + Decimal(str(custo_folha)) + Decimal(str(custo_manutencao)) + Decimal(str(custo_nutricao)) + Decimal(str(custo_veterinario))
             if custos_operacionais_base > Decimal('0'):
                 # Estimativa: 7% dos custos operacionais
                 custo_financeiro = custos_operacionais_base * Decimal('0.07')
@@ -259,19 +259,20 @@ def calcular_custo_por_animal(propriedade, periodo_dias=365, data_inicio=None, d
             pass
     
     # Total de custos (custos fixos e variáveis já estão proporcionais ao período)
+    # Garantir que todos os valores sejam Decimal antes da soma
     custo_total = (
-        custo_fixo_total +  # Já proporcional ao período
-        custo_variavel_total +  # Já proporcional ao período
-        custo_combustivel +
-        custo_folha +
-        custo_manutencao +
-        custo_financeiro +
-        custo_nutricao +
-        custo_veterinario
+        Decimal(str(custo_fixo_total)) +  # Já proporcional ao período
+        Decimal(str(custo_variavel_total)) +  # Já proporcional ao período
+        Decimal(str(custo_combustivel)) +
+        Decimal(str(custo_folha)) +
+        Decimal(str(custo_manutencao)) +
+        Decimal(str(custo_financeiro)) +
+        Decimal(str(custo_nutricao)) +
+        Decimal(str(custo_veterinario))
     )
     
     # Custo por animal
-    custo_por_animal = (custo_total / Decimal(str(total_animais))) if total_animais > 0 else Decimal('0')
+    custo_por_animal = (custo_total / Decimal(str(total_animais))) if total_animais > Decimal('0') else Decimal('0')
     
     # Custo mensal médio (custo por animal / número de meses no período)
     # Usar 30.44 como média de dias por mês para cálculo mais preciso

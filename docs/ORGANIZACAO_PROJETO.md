@@ -51,3 +51,5 @@ Arquivos temporários (não versionados)
 - Apenas arquivos temporários e na pasta `temp/` são ignorados
 - Scripts duplicados devem ser consolidados ou removidos
 
+
+

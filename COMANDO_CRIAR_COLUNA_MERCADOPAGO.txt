@@ -1,0 +1,38 @@
+# Execute este comando no PowerShell para criar a coluna mercadopago_customer_id
+
+$PROJECT_ID = "monpec-sistema-rural"
+$REGION = "us-central1"
+$IMAGE_NAME = "gcr.io/$PROJECT_ID/monpec:latest"
+
+gcloud config set project $PROJECT_ID
+
+Write-Host "🔧 Criando coluna mercadopago_customer_id..." -ForegroundColor Yellow
+
+gcloud run jobs delete criar-mercadopago-final --region=$REGION --quiet 2>$null
+
+# Comando simplificado usando base64 ou escape correto
+$cmd = 'import os,django;os.environ.setdefault("DJANGO_SETTINGS_MODULE","sistema_rural.settings_gcp");django.setup();from django.db import connection;c=connection.cursor();c.execute("SELECT column_name FROM information_schema.columns WHERE table_name=''gestao_rural_assinaturacliente'' AND column_name=''mercadopago_customer_id''");r=c.fetchone();print("EXISTE:",bool(r));exec("if not r:\n    c.execute(''ALTER TABLE gestao_rural_assinaturacliente ADD COLUMN mercadopago_customer_id VARCHAR(255) NULL'')\n    c.execute(''CREATE INDEX IF NOT EXISTS gestao_rura_mercado_1a0de9_idx ON gestao_rural_assinaturacliente(mercadopago_customer_id)'')\n    print(''CRIADA'')") if not r else print("JA_EXISTE")'
+
+gcloud run jobs create criar-mercadopago-final `
+  --region=$REGION `
+  --image=$IMAGE_NAME `
+  --set-env-vars="DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,DB_NAME=monpec_db,DB_USER=monpec_user,DB_PASSWORD=L6171r12@@jjms,CLOUD_SQL_CONNECTION_NAME=monpec-sistema-rural:us-central1:monpec-db" `
+  --set-cloudsql-instances=monpec-sistema-rural:us-central1:monpec-db `
+  --command="python" `
+  --args="-c","$cmd" `
+  --max-retries=1 `
+  --memory=2Gi `
+  --cpu=2 `
+  --task-timeout=300
+
+Write-Host "⏱️  Executando..." -ForegroundColor Yellow
+gcloud run jobs execute criar-mercadopago-final --region=$REGION --wait
+
+gcloud logging read "resource.type=cloud_run_job AND resource.labels.job_name=criar-mercadopago-final" --limit=30 --format="value(textPayload)" --freshness=5m
+
+gcloud run jobs delete criar-mercadopago-final --region=$REGION --quiet 2>$null
+
+Write-Host ""
+Write-Host "✅ Verificação concluída!" -ForegroundColor Green
+Write-Host "🌐 Teste: https://monpec-29862706245.us-central1.run.app/login/" -ForegroundColor Cyan
+

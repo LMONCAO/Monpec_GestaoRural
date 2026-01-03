@@ -20,6 +20,7 @@ class GestaoRuralConfig(AppConfig):
             # Importar models_financeiro e models_operacional para garantir que CentroCusto, PlanoConta e Equipamento sejam registrados
             from . import models_financeiro  # noqa: F401
             from . import models_operacional  # noqa: F401
+            from . import models_auditoria  # noqa: F401 - Importar para registrar modelos de auditoria
             from .services.provisionamento import registrar_workspaces_existentes
             
             # Criar categorias padrão se não existirem

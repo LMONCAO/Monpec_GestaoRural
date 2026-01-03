@@ -133,3 +133,5 @@ def configurar_serie_nfe(propriedade, serie, proximo_numero=1, observacoes=''):
 
 
 
+
+

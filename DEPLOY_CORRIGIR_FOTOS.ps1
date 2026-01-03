@@ -192,3 +192,4 @@ Write-Output "   1. Verifique os logs do build (procure por 'collectstatic')"
 Write-Output "   2. Execute o script de diagnóstico"
 Write-Output "   3. Verifique se as fotos estão em static/site/ no repositório"
 Write-Output ""
+

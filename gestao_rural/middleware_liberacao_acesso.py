@@ -44,35 +44,14 @@ class LiberacaoAcessoMiddleware(MiddlewareMixin):
         if not request.user.is_authenticated:
             return None
         
-        # Importar função helper para verificar se é assinante
-        from .helpers_acesso import is_usuario_assinante
+        # Importar funções helper
+        from .helpers_acesso import is_usuario_demo, is_usuario_assinante
         
-        # Verificar se é admin ou assinante - se for, liberar acesso completo
-        if is_usuario_assinante(request.user):
-            # Admin ou assinante com acesso liberado - permitir acesso completo
-            try:
-                assinatura = AssinaturaCliente.objects.select_related('plano').filter(usuario=request.user).first()
-                request.assinatura = assinatura
-                request.acesso_liberado = True
-            except:
-                request.assinatura = None
-                request.acesso_liberado = True  # Admin sempre tem acesso
-            return None  # Permitir acesso completo
+        # CRÍTICO: Verificar se é usuário demo PRIMEIRO (antes de verificar assinatura)
+        # Usuários demo NUNCA são assinantes, mesmo que tenham assinatura no banco
+        is_demo_user = is_usuario_demo(request.user)
         
-        # Verificar se é usuário demo PRIMEIRO (antes de verificar assinatura)
-        # Usuários criados pelo botão demonstração (com UsuarioAtivo) devem ser tratados como demo padrão
-        is_demo_user = False
-        if request.user.username in ['demo', 'demo_monpec']:
-            is_demo_user = True
-        else:
-            try:
-                from .models_auditoria import UsuarioAtivo
-                UsuarioAtivo.objects.get(usuario=request.user)
-                is_demo_user = True  # Usuário criado pelo botão demonstração = mesmo comportamento que demo padrão
-            except:
-                pass
-        
-        # Se for usuário demo, tratar como pré-lançamento (bloquear módulos)
+        # Se for usuário demo, tratar como demo (acesso restrito)
         if is_demo_user:
             request.assinatura = None
             request.acesso_liberado = False  # Usuários demo têm acesso restrito
@@ -83,6 +62,19 @@ class LiberacaoAcessoMiddleware(MiddlewareMixin):
             ]):
                 return None  # Continuar normalmente, mas acesso_liberado será False
             return None
+        
+        # Verificar se é admin ou assinante - se for, liberar acesso completo
+        # (Só chega aqui se NÃO for demo, então is_usuario_assinante pode ser chamado)
+        if is_usuario_assinante(request.user):
+            # Admin ou assinante com acesso liberado - permitir acesso completo
+            try:
+                assinatura = AssinaturaCliente.objects.select_related('plano').filter(usuario=request.user).first()
+                request.assinatura = assinatura
+                request.acesso_liberado = True
+            except:
+                request.assinatura = None
+                request.acesso_liberado = True  # Admin sempre tem acesso
+            return None  # Permitir acesso completo
         
         # Verificar se o usuário tem assinatura (mas não é assinante ativo)
         try:

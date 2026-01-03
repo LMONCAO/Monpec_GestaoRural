@@ -87,3 +87,5 @@ projeto/
 └── [arquivos Django na raiz]
 ```
 
+
+

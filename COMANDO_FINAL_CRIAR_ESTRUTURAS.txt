@@ -1,0 +1,33 @@
+# Comando final para criar todas as estruturas faltantes
+# Copie e cole no PowerShell
+
+$PROJECT_ID = "monpec-sistema-rural"
+$REGION = "us-central1"
+$IMAGE_NAME = "gcr.io/$PROJECT_ID/monpec:latest"
+
+gcloud config set project $PROJECT_ID
+
+Write-Host "🔧 Criando estruturas faltantes..." -ForegroundColor Yellow
+
+gcloud run jobs delete fix-db --region=$REGION --quiet 2>$null
+
+# Criar job com código Python inline
+gcloud run jobs create fix-db `
+  --region=$REGION `
+  --image=$IMAGE_NAME `
+  --set-env-vars="DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,DB_NAME=monpec_db,DB_USER=monpec_user,DB_PASSWORD=L6171r12@@jjms,CLOUD_SQL_CONNECTION_NAME=monpec-sistema-rural:us-central1:monpec-db" `
+  --set-cloudsql-instances=monpec-sistema-rural:us-central1:monpec-db `
+  --command="python" `
+  --args="-c,import os,django;os.environ.setdefault('DJANGO_SETTINGS_MODULE','sistema_rural.settings_gcp');django.setup();from django.db import connection;c=connection.cursor();exec('c.execute(\"SELECT column_name FROM information_schema.columns WHERE table_name=''gestao_rural_assinaturacliente'' AND column_name=''mercadopago_customer_id''\");e=c.fetchone();print(\"mercadopago_customer_id:\",\"existe\" if e else \"criando...\");exec(\"if not e:c.execute(''ALTER TABLE gestao_rural_assinaturacliente ADD COLUMN mercadopago_customer_id VARCHAR(255) NULL'');c.execute(''CREATE INDEX IF NOT EXISTS gestao_rura_mercado_1a0de9_idx ON gestao_rural_assinaturacliente(mercadopago_customer_id)'');print(''criada'')\") if not e else None');exec('c.execute(\"SELECT column_name FROM information_schema.columns WHERE table_name=''gestao_rural_produtorrural'' AND column_name=''certificado_digital''\");e=c.fetchone();print(\"certificado_digital:\",\"existe\" if e else \"criando...\");exec(\"if not e:c.execute(''ALTER TABLE gestao_rural_produtorrural ADD COLUMN certificado_digital VARCHAR(100) NULL'');print(''criada'')\") if not e else None');exec('c.execute(\"SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema=''public'' AND table_name=''gestao_rural_usuarioativo'')\");e=c.fetchone()[0];print(\"UsuarioAtivo:\",\"existe\" if e else \"criando...\");exec(\"if not e:c.execute(''CREATE TABLE gestao_rural_usuarioativo (id BIGSERIAL NOT NULL PRIMARY KEY, nome_completo VARCHAR(255) NOT NULL, email VARCHAR(254) NOT NULL, telefone VARCHAR(20), primeiro_acesso TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(), ultimo_acesso TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(), total_acessos INTEGER NOT NULL DEFAULT 0, ativo BOOLEAN NOT NULL DEFAULT true, criado_em TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(), usuario_id BIGINT NOT NULL UNIQUE, CONSTRAINT gestao_rural_usuarioativo_usuario_id_fkey FOREIGN KEY (usuario_id) REFERENCES auth_user(id) DEFERRABLE INITIALLY DEFERRED)'');c.execute(''CREATE INDEX IF NOT EXISTS gestao_rural_usuarioativo_usuario_id_idx ON gestao_rural_usuarioativo(usuario_id)'');c.execute(''INSERT INTO django_migrations (app, name, applied) VALUES (''''gestao_rural'''', ''''0081_add_usuario_ativo'''', NOW()) ON CONFLICT (app, name) DO NOTHING'');print(''criada'')\") if not e else None');print('Concluido')" `
+  --max-retries=1 `
+  --memory=2Gi `
+  --cpu=2 `
+  --task-timeout=300
+
+Write-Host "⏱️  Executando (aguarde 1-2 minutos)..." -ForegroundColor Yellow
+gcloud run jobs execute fix-db --region=$REGION --wait
+
+gcloud run jobs delete fix-db --region=$REGION --quiet 2>$null
+
+Write-Host "✅ Pronto! Teste: https://monpec-29862706245.us-central1.run.app/login/" -ForegroundColor Green
+

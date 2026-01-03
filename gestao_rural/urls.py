@@ -1,5 +1,8 @@
 from django.urls import path, include
 from . import views
+from . import views_produtores  # Views refatoradas de produtores
+from . import views_propriedades  # Views refatoradas de propriedades
+from . import views_pecuaria_basica  # Views refatoradas de pecuária básica
 from . import views_exportacao
 from . import views_cenarios
 from . import views_rastreabilidade
@@ -28,9 +31,12 @@ from . import views_demo_setup, views_demo_loading
 from . import views_planejamento_ia
 from . import views_admin
 from . import views_configuracoes
+from . import views_debug_static
 from . import views_documentos
 
 urlpatterns = [
+    # Debug: verificar arquivos estáticos (remover em produção)
+    path('debug/static-files/', views_debug_static.debug_static_files, name='debug_static_files'),
     # Autenticação
     path('login/', views.login_view, name='login'),
     # Logout está definido no urls.py principal para garantir redirecionamento correto
@@ -65,17 +71,17 @@ urlpatterns = [
     path('logs-auditoria/', views_seguranca.logs_auditoria, name='logs_auditoria'),
     path('seguranca/', views_seguranca.informacoes_seguranca, name='informacoes_seguranca'),
     
-    # Gestão de produtores
-    path('produtor/novo/', views.produtor_novo, name='produtor_novo'),
-    path('produtor/<int:produtor_id>/editar/', views.produtor_editar, name='produtor_editar'),
-    path('produtor/<int:produtor_id>/excluir/', views.produtor_excluir, name='produtor_excluir'),
+    # Gestão de produtores (refatorado para views_produtores.py)
+    path('produtor/novo/', views_produtores.produtor_novo, name='produtor_novo'),
+    path('produtor/<int:produtor_id>/editar/', views_produtores.produtor_editar, name='produtor_editar'),
+    path('produtor/<int:produtor_id>/excluir/', views_produtores.produtor_excluir, name='produtor_excluir'),
     
-    # Gestão de propriedades
-    path('produtor/<int:produtor_id>/propriedades/', views.propriedades_lista, name='propriedades_lista'),
-    path('produtor/<int:produtor_id>/propriedade/nova/', views.propriedade_nova, name='propriedade_nova'),
-    path('propriedade/nova/', views.propriedade_nova, name='propriedade_nova_geral'),
-    path('propriedade/<int:propriedade_id>/editar/', views.propriedade_editar, name='propriedade_editar'),
-    path('propriedade/<int:propriedade_id>/excluir/', views.propriedade_excluir, name='propriedade_excluir'),
+    # Gestão de propriedades (refatorado para views_propriedades.py)
+    path('produtor/<int:produtor_id>/propriedades/', views_propriedades.propriedades_lista, name='propriedades_lista'),
+    path('produtor/<int:produtor_id>/propriedade/nova/', views_propriedades.propriedade_nova, name='propriedade_nova'),
+    path('propriedade/nova/', views_propriedades.propriedade_nova, name='propriedade_nova_geral'),
+    path('propriedade/<int:propriedade_id>/editar/', views_propriedades.propriedade_editar, name='propriedade_editar'),
+    path('propriedade/<int:propriedade_id>/excluir/', views_propriedades.propriedade_excluir, name='propriedade_excluir'),
     
     # Documentos da Propriedade
     path('propriedade/<int:propriedade_id>/documentos/', views_documentos.documentos_lista, name='documentos_lista'),
@@ -95,9 +101,10 @@ urlpatterns = [
     path('propriedade/<int:propriedade_id>/pecuaria/', views_pecuaria_completa.pecuaria_completa_dashboard, name='pecuaria_completa_dashboard'),
     path('propriedade/<int:propriedade_id>/pecuaria/dashboard/', views_pecuaria_completa.pecuaria_completa_dashboard, name='pecuaria_dashboard'),  # Alias para compatibilidade
     path('propriedade/<int:propriedade_id>/pecuaria/dashboard/consulta/', views_pecuaria_completa.dashboard_consulta_api, name='dashboard_consulta_api'),
-    path('propriedade/<int:propriedade_id>/pecuaria/inventario/', views.pecuaria_inventario, name='pecuaria_inventario'),
-    path('propriedade/<int:propriedade_id>/pecuaria/parametros/', views.pecuaria_parametros, name='pecuaria_parametros'),
-    path('propriedade/<int:propriedade_id>/pecuaria/parametros-avancados/', views.pecuaria_parametros_avancados, name='pecuaria_parametros_avancados'),
+    # Pecuária básica (refatorado para views_pecuaria_basica.py)
+    path('propriedade/<int:propriedade_id>/pecuaria/inventario/', views_pecuaria_basica.pecuaria_inventario, name='pecuaria_inventario'),
+    path('propriedade/<int:propriedade_id>/pecuaria/parametros/', views_pecuaria_basica.pecuaria_parametros, name='pecuaria_parametros'),
+    path('propriedade/<int:propriedade_id>/pecuaria/parametros-avancados/', views_pecuaria_basica.pecuaria_parametros_avancados, name='pecuaria_parametros_avancados'),
     path('propriedade/<int:propriedade_id>/pecuaria/testar-transferencias/', views.testar_transferencias, name='testar_transferencias'),
     path('api/saldo-fazenda/<int:fazenda_id>/<int:categoria_id>/', views.obter_saldo_fazenda_ajax, name='obter_saldo_fazenda_ajax'),
     path('propriedade/<int:propriedade_id>/inventario/saldo/<int:categoria_id>/', views.buscar_saldo_inventario, name='buscar_saldo_inventario'),
@@ -127,7 +134,7 @@ urlpatterns = [
     path('propriedade/<int:propriedade_id>/pecuaria/vendas-projecao/relatorio-consolidado-pdf/', views_cenarios.relatorio_vendas_consolidado_pdf, name='relatorio_vendas_consolidado_pdf'),
     path('propriedade/<int:propriedade_id>/pecuaria/vendas-projecao/exportar-pdf/', views_cenarios.exportar_relatorio_vendas_pdf, name='exportar_relatorio_vendas_pdf'),
     path('propriedade/<int:propriedade_id>/pecuaria/vendas-projecao/exportar-excel/', views_cenarios.exportar_relatorio_vendas_excel, name='exportar_relatorio_vendas_excel'),
-    path('propriedade/<int:propriedade_id>/pecuaria/inventario/dados/', views.pecuaria_inventario_dados, name='pecuaria_inventario_dados'),
+    path('propriedade/<int:propriedade_id>/pecuaria/inventario/dados/', views_pecuaria_basica.pecuaria_inventario_dados, name='pecuaria_inventario_dados'),
     
     # Rastreabilidade (dentro de Pecuária) - Comentado pois as funções estão em views_rastreabilidade
     # path('propriedade/<int:propriedade_id>/pecuaria/rastreabilidade/animais/', views_pecuaria_completa.animais_individuais_lista, name='animais_individuais_lista'),

@@ -179,6 +179,15 @@ def numero_br(valor, casas_decimais=0):
         return '0'
 
 
+@register.filter(name='formatar_numero')
+def formatar_numero(valor, casas_decimais=0):
+    """
+    Alias para numero_br - Formata número no padrão brasileiro: 1.000 ou 1.152,38
+    Uso: {{ valor|formatar_numero }} ou {{ valor|formatar_numero:2 }}
+    """
+    return numero_br(valor, casas_decimais)
+
+
 @register.filter(name='percentual_br')
 def percentual_br(valor, casas_decimais=1):
     """

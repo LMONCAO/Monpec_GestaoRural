@@ -172,3 +172,4 @@ def diagnosticar_fotos():
 
 if __name__ == '__main__':
     diagnosticar_fotos()
+

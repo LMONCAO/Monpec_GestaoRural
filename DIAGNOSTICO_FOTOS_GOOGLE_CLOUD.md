@@ -122,3 +122,4 @@ curl -I https://monpec.com.br/static/site/foto1.jpeg
 ```bash
 python manage.py collectstatic --noinput --settings=sistema_rural.settings_gcp
 ```
+

@@ -703,6 +703,7 @@ class OrdemCompra(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
+        related_name='ordens_compra',
         verbose_name="Nota Fiscal"
     )
     requisicao_origem = models.ForeignKey(

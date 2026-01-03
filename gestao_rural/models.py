@@ -60,6 +60,11 @@ class ProdutorRural(models.Model):
         verbose_name = "Produtor Rural"
         verbose_name_plural = "Produtores Rurais"
         ordering = ['nome']
+        indexes = [
+            models.Index(fields=['usuario_responsavel', 'nome']),
+            models.Index(fields=['cpf_cnpj']),
+            models.Index(fields=['data_cadastro']),
+        ]
     
     def tem_certificado_valido(self):
         """Verifica se o produtor tem certificado digital válido"""
@@ -516,6 +521,11 @@ class Propriedade(models.Model):
         verbose_name = "Propriedade"
         verbose_name_plural = "Propriedades"
         ordering = ['nome_propriedade']
+        indexes = [
+            models.Index(fields=['produtor', 'nome_propriedade']),
+            models.Index(fields=['produtor', 'tipo_operacao']),
+            models.Index(fields=['data_cadastro']),
+        ]
     
     def __str__(self):
         return f"{self.nome_propriedade} - {self.produtor.nome}"

@@ -3,6 +3,17 @@
 Comando para popular a propriedade Monpec1 com dados realistas de pecuária
 para demonstração do sistema
 """
+import sys
+import io
+
+# Configurar encoding UTF-8 para stdout/stderr no Windows
+if sys.platform == 'win32':
+    try:
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+        sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+    except AttributeError:
+        # Se já estiver configurado, ignorar
+        pass
 
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
@@ -92,7 +103,7 @@ class Command(BaseCommand):
 
     @transaction.atomic
     def handle(self, *args, **options):
-        self.stdout.write(self.style.SUCCESS('🚀 Iniciando popularização da Monpec1...'))
+        self.stdout.write(self.style.SUCCESS('Iniciando popularizacao da Monpec1...'))
         
         propriedade_id = options.get('propriedade_id')
         

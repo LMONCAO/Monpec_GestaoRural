@@ -6,12 +6,19 @@ from django.db import migrations
 def adicionar_campo_agencia_se_nao_existir(apps, schema_editor):
     """Adiciona o campo agencia se ele não existir na tabela."""
     db_alias = schema_editor.connection.alias
+    db_vendor = schema_editor.connection.vendor
     with schema_editor.connection.cursor() as cursor:
-        # Verificar se a coluna já existe
-        cursor.execute("""
-            SELECT COUNT(*) FROM pragma_table_info('gestao_rural_contafinanceira') 
-            WHERE name='agencia'
-        """)
+        # Verificar se a coluna já existe (PostgreSQL ou SQLite)
+        if db_vendor == 'postgresql':
+            cursor.execute("""
+                SELECT COUNT(*) FROM information_schema.columns 
+                WHERE table_name='gestao_rural_contafinanceira' AND column_name='agencia'
+            """)
+        else:  # SQLite
+            cursor.execute("""
+                SELECT COUNT(*) FROM pragma_table_info('gestao_rural_contafinanceira') 
+                WHERE name='agencia'
+            """)
         existe = cursor.fetchone()[0] > 0
         
         if not existe:
@@ -25,16 +32,21 @@ def adicionar_campo_agencia_se_nao_existir(apps, schema_editor):
 def remover_campo_agencia_se_existir(apps, schema_editor):
     """Remove o campo agencia se ele existir (para rollback)."""
     db_alias = schema_editor.connection.alias
+    db_vendor = schema_editor.connection.vendor
     with schema_editor.connection.cursor() as cursor:
         # Verificar se a coluna existe
-        cursor.execute("""
-            SELECT COUNT(*) FROM pragma_table_info('gestao_rural_contafinanceira') 
-            WHERE name='agencia'
-        """)
-        existe = cursor.fetchone()[0] > 0
-        
-        if existe:
-            # Em produção, isso precisaria de uma estratégia diferente
+        if db_vendor == 'postgresql':
+            cursor.execute("""
+                SELECT COUNT(*) FROM information_schema.columns 
+                WHERE table_name='gestao_rural_contafinanceira' AND column_name='agencia'
+            """)
+            existe = cursor.fetchone()[0] > 0
+            if existe:
+                cursor.execute("""
+                    ALTER TABLE gestao_rural_contafinanceira 
+                    DROP COLUMN agencia
+                """)
+        else:  # SQLite não suporta DROP COLUMN diretamente
             pass
 
 

@@ -46,3 +46,5 @@ echo "   ./scripts/emergencia/rollback_rapido.sh"
 
 
 
+
+

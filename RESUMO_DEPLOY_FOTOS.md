@@ -141,3 +141,4 @@ ls -la staticfiles/site/
 - O problema específico é que as **fotos não foram incluídas** no build
 - As fotos existem localmente e no git, mas não chegaram ao container
 - Pode ser necessário fazer commit/push das fotos ou ajustar o contexto do build
+

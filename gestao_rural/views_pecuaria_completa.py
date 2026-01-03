@@ -278,7 +278,11 @@ def pecuaria_completa_dashboard(request, propriedade_id):
             valor_distribuido_mes = Decimal('0')
         
         if Cocho:
-            cochos_ativos = Cocho.objects.filter(propriedade=propriedade, status='ATIVO').count()
+            try:
+                cochos_ativos = Cocho.objects.filter(propriedade=propriedade, status='ATIVO').count()
+            except Exception as e:
+                logger.warning(f'Erro ao buscar cochos: {e}')
+                cochos_ativos = 0
         else:
             cochos_ativos = 0
         
@@ -332,16 +336,21 @@ def pecuaria_completa_dashboard(request, propriedade_id):
             manutencoes_pendentes = 0
         
         if Funcionario:
-            funcionarios_ativos = Funcionario.objects.filter(
-                propriedade=propriedade,
-                situacao='ATIVO'
-            ).count()
-            folha_mensal = sum(
-                f.salario_base or Decimal('0') for f in Funcionario.objects.filter(
+            try:
+                funcionarios_ativos = Funcionario.objects.filter(
                     propriedade=propriedade,
                     situacao='ATIVO'
+                ).count()
+                folha_mensal = sum(
+                    f.salario_base or Decimal('0') for f in Funcionario.objects.filter(
+                        propriedade=propriedade,
+                        situacao='ATIVO'
+                    )
                 )
-            )
+            except Exception as e:
+                logger.warning(f'Erro ao buscar funcionários: {e}')
+                funcionarios_ativos = 0
+                folha_mensal = Decimal('0')
         else:
             funcionarios_ativos = 0
             folha_mensal = Decimal('0')
@@ -493,9 +502,12 @@ def pecuaria_completa_dashboard(request, propriedade_id):
             )
             # Se houver campo de data, aplicar filtro
             if hasattr(RequisicaoCompra, 'data_criacao'):
+                # Converter date para datetime timezone-aware
+                data_inicio_dt = timezone.make_aware(datetime.combine(data_inicio, datetime.min.time()))
+                data_fim_dt = timezone.make_aware(datetime.combine(data_fim, datetime.max.time()))
                 requisicoes_query = requisicoes_query.filter(
-                    data_criacao__gte=data_inicio,
-                    data_criacao__lte=data_fim
+                    data_criacao__gte=data_inicio_dt,
+                    data_criacao__lte=data_fim_dt
                 )
             requisicoes_pendentes = requisicoes_query.count()
         else:
@@ -509,9 +521,12 @@ def pecuaria_completa_dashboard(request, propriedade_id):
             )
             # Se houver campo de data, aplicar filtro
             if hasattr(OrdemCompra, 'data_criacao'):
+                # Converter date para datetime timezone-aware
+                data_inicio_dt = timezone.make_aware(datetime.combine(data_inicio, datetime.min.time()))
+                data_fim_dt = timezone.make_aware(datetime.combine(data_fim, datetime.max.time()))
                 ordens_query = ordens_query.filter(
-                    data_criacao__gte=data_inicio,
-                    data_criacao__lte=data_fim
+                    data_criacao__gte=data_inicio_dt,
+                    data_criacao__lte=data_fim_dt
                 )
             ordens_pendentes = ordens_query.count()
             valor_ordens_pendentes = sum(o.valor_total or Decimal('0') for o in ordens_query)
@@ -605,11 +620,18 @@ def pecuaria_completa_dashboard(request, propriedade_id):
                 d.valor_total or Decimal('0') for d in distribuicoes_anterior
             ) if distribuicoes_anterior else Decimal('0')
             
-            funcionarios_anterior = Funcionario.objects.filter(
-                propriedade=propriedade,
-                situacao='ATIVO'
-            )
-            folha_anterior = sum(f.salario_base or Decimal('0') for f in funcionarios_anterior)
+            if Funcionario:
+                try:
+                    funcionarios_anterior = Funcionario.objects.filter(
+                        propriedade=propriedade,
+                        situacao='ATIVO'
+                    )
+                    folha_anterior = sum(f.salario_base or Decimal('0') for f in funcionarios_anterior)
+                except Exception as e:
+                    logger.warning(f'Erro ao buscar funcionários anterior: {e}')
+                    folha_anterior = Decimal('0')
+            else:
+                folha_anterior = Decimal('0')
             
             custos_anterior = valor_consumo_anterior + folha_anterior + valor_distribuido_anterior
             tendencia_custos = total_custos_operacionais - custos_anterior

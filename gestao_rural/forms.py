@@ -95,21 +95,41 @@ class PropriedadeForm(forms.ModelForm):
         
         # Configurar queryset do campo produtor baseado no usuário
         if user:
-            # Verificar se é assinante (tem permissão de ver todos os produtores)
-            # Assumimos que se o usuário tem acesso a todos os produtores, ele é assinante
-            # Caso contrário, só vê seus próprios produtores
-            try:
-                from .models import AssinaturaCliente
-                is_assinante = AssinaturaCliente.objects.filter(usuario=user, ativa=True).exists()
-            except:
-                is_assinante = False
-            
-            if is_assinante:
-                # Assinante pode ver todos os produtores
+            # Verificar se é admin (superusuário ou staff) - pode ver TODOS os produtores
+            if user.is_superuser or user.is_staff:
+                # Admin pode ver todos os produtores
                 self.fields['produtor'].queryset = ProdutorRural.objects.all().order_by('nome')
             else:
-                # Usuário normal só vê seus próprios produtores
-                self.fields['produtor'].queryset = ProdutorRural.objects.filter(usuario_responsavel=user).order_by('nome')
+                # Verificar se é assinante usando função segura
+                try:
+                    from .helpers_db import obter_assinatura_usuario_seguro, obter_usuarios_tenant_seguro
+                    
+                    assinatura = obter_assinatura_usuario_seguro(user)
+                    
+                    if assinatura and hasattr(assinatura, 'ativa') and assinatura.ativa:
+                        # Assinante: buscar todos os usuários da mesma assinatura (equipe)
+                        usuarios_tenant = obter_usuarios_tenant_seguro(assinatura)
+                        
+                        # Obter IDs dos usuários da equipe
+                        usuarios_ids = [tu.usuario.id for tu in usuarios_tenant]
+                        
+                        # Também incluir o próprio usuário (pode não estar em TenantUsuario se for o dono da assinatura)
+                        usuarios_ids.append(user.id)
+                        
+                        # Filtrar produtores cadastrados por esses usuários (equipe do assinante)
+                        self.fields['produtor'].queryset = ProdutorRural.objects.filter(
+                            usuario_responsavel__id__in=usuarios_ids
+                        ).order_by('nome')
+                    else:
+                        # Usuário normal ou assinante inativo: só vê seus próprios produtores
+                        self.fields['produtor'].queryset = ProdutorRural.objects.filter(
+                            usuario_responsavel=user
+                        ).order_by('nome')
+                except Exception:
+                    # Em caso de erro, comportamento seguro: apenas seus próprios produtores
+                    self.fields['produtor'].queryset = ProdutorRural.objects.filter(
+                        usuario_responsavel=user
+                    ).order_by('nome')
         
         # Se já existe uma instância (edição), definir o produtor inicial
         if self.instance and self.instance.pk:
@@ -119,10 +139,11 @@ class PropriedadeForm(forms.ModelForm):
             self.fields['produtor'].widget.attrs['readonly'] = True
             self.fields['produtor'].widget.attrs['style'] = 'background-color: #e9ecef; cursor: not-allowed;'
         elif produtor_initial:
-            # Se foi passado um produtor inicial (via URL), pré-selecionar
+            # Se foi passado um produtor inicial (via URL), pré-selecionar mas SEMPRE mostrar o campo
+            # Permitir que o usuário possa alterar a seleção
             self.fields['produtor'].initial = produtor_initial
-            # Ocultar o campo se já temos um produtor definido
-            self.fields['produtor'].widget.attrs['style'] = 'display: none;'
+            # NÃO ocultar o campo - sempre permitir seleção
+            # self.fields['produtor'].widget.attrs['style'] = 'display: none;'  # REMOVIDO
         
         # Adicionar opções de UF
         self.fields['uf'].widget.choices = [

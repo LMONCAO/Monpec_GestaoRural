@@ -6,36 +6,53 @@ from django.db import migrations, models
 def adicionar_campo_banco_se_nao_existir(apps, schema_editor):
     """Adiciona o campo banco se ele não existir na tabela."""
     db_alias = schema_editor.connection.alias
+    db_vendor = schema_editor.connection.vendor
     with schema_editor.connection.cursor() as cursor:
-        # Verificar se a coluna já existe
-        cursor.execute("""
-            SELECT COUNT(*) FROM pragma_table_info('gestao_rural_contafinanceira') 
-            WHERE name='banco'
-        """)
+        # Verificar se a coluna já existe (PostgreSQL ou SQLite)
+        if db_vendor == 'postgresql':
+            cursor.execute("""
+                SELECT COUNT(*) FROM information_schema.columns 
+                WHERE table_name='gestao_rural_contafinanceira' AND column_name='banco'
+            """)
+        else:  # SQLite
+            cursor.execute("""
+                SELECT COUNT(*) FROM pragma_table_info('gestao_rural_contafinanceira') 
+                WHERE name='banco'
+            """)
         existe = cursor.fetchone()[0] > 0
         
         if not existe:
             # Adicionar a coluna se não existir
-            cursor.execute("""
-                ALTER TABLE gestao_rural_contafinanceira 
-                ADD COLUMN banco VARCHAR(120) DEFAULT ''
-            """)
+            if db_vendor == 'postgresql':
+                cursor.execute("""
+                    ALTER TABLE gestao_rural_contafinanceira 
+                    ADD COLUMN banco VARCHAR(120) DEFAULT ''
+                """)
+            else:  # SQLite
+                cursor.execute("""
+                    ALTER TABLE gestao_rural_contafinanceira 
+                    ADD COLUMN banco VARCHAR(120) DEFAULT ''
+                """)
 
 
 def remover_campo_banco_se_existir(apps, schema_editor):
     """Remove o campo banco se ele existir (para rollback)."""
     db_alias = schema_editor.connection.alias
+    db_vendor = schema_editor.connection.vendor
     with schema_editor.connection.cursor() as cursor:
         # Verificar se a coluna existe
-        cursor.execute("""
-            SELECT COUNT(*) FROM pragma_table_info('gestao_rural_contafinanceira') 
-            WHERE name='banco'
-        """)
-        existe = cursor.fetchone()[0] > 0
-        
-        if existe:
-            # SQLite não suporta DROP COLUMN diretamente, então apenas ignoramos
-            # Em produção, isso precisaria de uma estratégia diferente
+        if db_vendor == 'postgresql':
+            cursor.execute("""
+                SELECT COUNT(*) FROM information_schema.columns 
+                WHERE table_name='gestao_rural_contafinanceira' AND column_name='banco'
+            """)
+            existe = cursor.fetchone()[0] > 0
+            if existe:
+                cursor.execute("""
+                    ALTER TABLE gestao_rural_contafinanceira 
+                    DROP COLUMN banco
+                """)
+        else:  # SQLite não suporta DROP COLUMN diretamente
             pass
 
 

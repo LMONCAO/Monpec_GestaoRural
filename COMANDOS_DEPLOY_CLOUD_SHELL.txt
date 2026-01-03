@@ -1,0 +1,57 @@
+========================================
+🚀 COMANDOS PARA DEPLOY NO CLOUD SHELL
+========================================
+Copie e cole estes comandos no Google Cloud Shell
+
+1. CONFIGURAR PROJETO
+----------------------
+gcloud config set project monpec-sistema-rural
+
+2. BUILD DA IMAGEM DOCKER
+----------------------
+gcloud builds submit --tag gcr.io/monpec-sistema-rural/monpec:latest
+
+3. DEPLOY NO CLOUD RUN
+----------------------
+gcloud run deploy monpec \
+    --image gcr.io/monpec-sistema-rural/monpec:latest \
+    --region us-central1 \
+    --platform managed \
+    --allow-unauthenticated \
+    --add-cloudsql-instances="monpec-sistema-rural:us-central1:monpec-db" \
+    --set-env-vars="DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,DEBUG=False,SECRET_KEY=0d0)yw=u#u=owx#=qo(&%-b+a_@_u3=1wt242v2fx_\$1ap4+4t,CLOUD_SQL_CONNECTION_NAME=monpec-sistema-rural:us-central1:monpec-db,DB_NAME=monpec_db,DB_USER=monpec_user,DB_PASSWORD=L6171r12@@jjms,GOOGLE_CLOUD_PROJECT=monpec-sistema-rural" \
+    --memory=2Gi \
+    --cpu=2 \
+    --timeout=600 \
+    --min-instances=1 \
+    --max-instances=10 \
+    --port=8080
+
+4. OBTER URL DO SERVIÇO
+----------------------
+gcloud run services describe monpec --region us-central1 --format="value(status.url)"
+
+5. APLICAR MIGRAÇÕES (IMPORTANTE!)
+----------------------
+# Criar job para migrações
+gcloud run jobs create migrate-job \
+    --image gcr.io/monpec-sistema-rural/monpec:latest \
+    --region us-central1 \
+    --add-cloudsql-instances="monpec-sistema-rural:us-central1:monpec-db" \
+    --set-env-vars="DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,DB_NAME=monpec_db,DB_USER=monpec_user,DB_PASSWORD=L6171r12@@jjms,CLOUD_SQL_CONNECTION_NAME=monpec-sistema-rural:us-central1:monpec-db" \
+    --command="python" \
+    --args="manage.py,migrate" \
+    --memory=2Gi \
+    --cpu=2
+
+# Executar o job
+gcloud run jobs execute migrate-job --region us-central1 --wait
+
+6. VER LOGS
+----------------------
+gcloud run services logs read monpec --region us-central1 --limit=50
+
+========================================
+✅ DEPLOY CONCLUÍDO!
+========================================
+

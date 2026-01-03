@@ -98,10 +98,13 @@
                     <span class="icon bi bi-speedometer2"></span>
                     <span>Dashboard</span>
                 </a>
-                <a href="{% url 'produtor_novo' %}"
-                   class="{% if request.resolver_match and request.resolver_match.url_name == 'produtor_novo' or request.resolver_match and request.resolver_match.url_name == 'produtor_editar' or request.resolver_match and request.resolver_match.url_name == 'produtor_excluir' or request.resolver_match and request.resolver_match.url_name == 'propriedades_lista' %}active{% endif %}">
-                    <span class="icon bi bi-person-plus"></span>
-                    <span>Novo Produtor</span>
+                <a href="{% url 'dashboard' %}"
+                   class="{% if request.resolver_match and request.resolver_match.url_name == 'dashboard' or request.resolver_match and request.resolver_match.url_name == 'produtor_novo' or request.resolver_match and request.resolver_match.url_name == 'produtor_editar' or request.resolver_match and request.resolver_match.url_name == 'produtor_excluir' or request.resolver_match and request.resolver_match.url_name == 'propriedades_lista' %}active{% endif %}">
+                    <span class="icon bi bi-people"></span>
+                    <span>Produtores</span>
+                    {% if produtores_menu and produtores_menu|length > 0 %}
+                    <span class="badge bg-primary ms-auto" style="font-size: 0.7rem;">{{ produtores_menu|length }}</span>
+                    {% endif %}
                 </a>
                 <a href="{% url 'categorias_lista' %}"
                    class="{% if request.resolver_match and request.resolver_match.url_name == 'categorias_lista' or request.resolver_match and request.resolver_match.url_name == 'categoria_nova' or request.resolver_match and request.resolver_match.url_name == 'categoria_editar' or request.resolver_match and request.resolver_match.url_name == 'categoria_excluir' %}active{% endif %}">

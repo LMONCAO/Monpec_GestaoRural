@@ -54,6 +54,114 @@ def _obter_todas_propriedades(user):
         ).select_related('produtor').order_by('produtor__nome', 'nome_propriedade')
 
 
+def _garantir_produtor_e_propriedade_padrao(user):
+    """
+    Garante que o usuário tenha um produtor e uma propriedade padrão.
+    Se não existirem, cria automaticamente.
+    Retorna a propriedade padrão (criada ou existente).
+    """
+    from .models import ProdutorRural, Propriedade
+    from django.db import ProgrammingError, transaction
+    
+    try:
+        # Verificar se já existe alguma propriedade para o usuário
+        propriedades = Propriedade.objects.filter(
+            produtor__usuario_responsavel=user
+        )
+        
+        if propriedades.exists():
+            # Retornar a primeira propriedade encontrada
+            return propriedades.first()
+        
+        # Se não há propriedades, verificar se existe produtor
+        produtores = ProdutorRural.objects.filter(usuario_responsavel=user)
+        
+        if not produtores.exists():
+            # Criar produtor padrão
+            nome_produtor = user.get_full_name() or user.username or 'Meu Produtor'
+            email_produtor = user.email or f'{user.username}@monpec.com.br'
+            
+            # Gerar CPF/CNPJ único baseado no ID do usuário
+            cpf_cnpj_base = f'{user.id:011d}' if user.id else '00000000000'
+            
+            # Verificar se já existe esse CPF/CNPJ
+            while ProdutorRural.objects.filter(cpf_cnpj=cpf_cnpj_base).exists():
+                cpf_cnpj_base = f'{int(cpf_cnpj_base) + 1:011d}'
+            
+            try:
+                with transaction.atomic():
+                    produtor = ProdutorRural.objects.create(
+                        nome=nome_produtor,
+                        cpf_cnpj=cpf_cnpj_base,
+                        usuario_responsavel=user,
+                        email=email_produtor,
+                        telefone='',
+                        anos_experiencia=0,
+                    )
+                    logger.info(f'Produtor padrão criado automaticamente para usuário {user.username}: {produtor.nome}')
+            except ProgrammingError as e:
+                # Se houver erro (coluna não existe), criar apenas com campos básicos
+                logger.warning(f'Erro ao criar produtor (coluna faltando): {e}. Criando apenas com campos básicos.')
+                campos_basicos = {
+                    'nome': nome_produtor,
+                    'cpf_cnpj': cpf_cnpj_base,
+                    'usuario_responsavel': user,
+                }
+                try:
+                    produtor = ProdutorRural.objects.create(**campos_basicos, email=email_produtor)
+                except ProgrammingError:
+                    produtor = ProdutorRural.objects.create(**campos_basicos)
+        else:
+            produtor = produtores.first()
+        
+        # Agora garantir que existe uma propriedade
+        propriedade = Propriedade.objects.filter(produtor=produtor).first()
+        
+        if not propriedade:
+            # Criar propriedade padrão
+            nome_propriedade = 'Minha Propriedade'
+            
+            # Verificar se já existe propriedade com esse nome para o produtor
+            contador = 1
+            while Propriedade.objects.filter(produtor=produtor, nome_propriedade=nome_propriedade).exists():
+                nome_propriedade = f'Minha Propriedade {contador}'
+                contador += 1
+            
+            try:
+                with transaction.atomic():
+                    propriedade = Propriedade.objects.create(
+                        produtor=produtor,
+                        nome_propriedade=nome_propriedade,
+                        municipio='Campo Grande',
+                        uf='MS',
+                        area_total_ha=Decimal('100.00'),
+                        tipo_operacao='PECUARIA',
+                        tipo_ciclo_pecuario=['CICLO_COMPLETO'],
+                        tipo_propriedade='PROPRIA',
+                        valor_hectare_proprio=Decimal('5000.00'),
+                    )
+                    logger.info(f'Propriedade padrão criada automaticamente para usuário {user.username}: {propriedade.nome_propriedade}')
+            except ProgrammingError as e:
+                logger.warning(f'Erro ao criar propriedade (coluna faltando): {e}. Tentando criar apenas com campos básicos.')
+                campos_basicos = {
+                    'produtor': produtor,
+                    'nome_propriedade': nome_propriedade,
+                    'municipio': 'Campo Grande',
+                    'uf': 'MS',
+                    'area_total_ha': Decimal('100.00'),
+                }
+                try:
+                    propriedade = Propriedade.objects.create(**campos_basicos, tipo_operacao='PECUARIA')
+                except ProgrammingError:
+                    propriedade = Propriedade.objects.create(**campos_basicos)
+        
+        return propriedade
+        
+    except Exception as e:
+        logger.error(f'Erro ao garantir produtor e propriedade padrão para usuário {user.username}: {e}')
+        return None
+
+
 def google_search_console_verification(request):
     """
     Serve o arquivo HTML de verificação do Google Search Console.
@@ -98,7 +206,7 @@ def criar_usuario_demonstracao(request):
     
     logger = logging.getLogger(__name__)
     
-    logger.info(f'📥 Recebida requisição para criar usuário de demonstração. Método: {request.method}')
+    logger.info(f'Recebida requisição para criar usuário de demonstração. Método: {request.method}')
     
     if request.method == 'POST':
         # Inicializar variáveis para uso no bloco except
@@ -111,11 +219,11 @@ def criar_usuario_demonstracao(request):
             email = request.POST.get('email', '').strip().lower()
             telefone = request.POST.get('telefone', '').strip()
             
-            logger.info(f'📝 Dados recebidos: nome={nome_completo[:50]}, email={email}, telefone={telefone}')
+            logger.info(f'Dados recebidos: nome={nome_completo[:50]}, email={email}, telefone={telefone}')
             
             # Validação
             if not nome_completo or not email:
-                logger.warning(f'⚠️ Campos obrigatórios não preenchidos: nome_completo={bool(nome_completo)}, email={bool(email)}')
+                logger.warning(f'Campos obrigatórios não preenchidos: nome_completo={bool(nome_completo)}, email={bool(email)}')
                 return JsonResponse({
                     'success': False,
                     'message': 'Por favor, preencha todos os campos obrigatórios.'
@@ -127,144 +235,292 @@ def criar_usuario_demonstracao(request):
             try:
                 validate_email(email)
             except ValidationError as e:
-                logger.warning(f'⚠️ Email inválido: {email}, erro: {e}')
+                logger.warning(f'Email inválido: {email}, erro: {e}')
                 return JsonResponse({
                     'success': False,
                     'message': 'Por favor, informe um e-mail válido.'
                 }, status=400)
             
-            with transaction.atomic():
-                # Verificar se o usuário já existe (case-insensitive)
-                user = User.objects.filter(email__iexact=email).first()
+            # Verificar se o usuário já existe (case-insensitive)
+            user = None
+            usuario_existente = False
+            
+            try:
+                with transaction.atomic():
+                    user = User.objects.filter(email__iexact=email).first()
+                    
+                    if user:
+                        usuario_existente = True
+                        logger.info(f'Usuário já existe: {user.username} (ID: {user.id})')
+                        
+                        # Se o usuário já existe, atualizar senha para "monpec" e criar/atualizar UsuarioAtivo
+                        # Desabilitar validação de senha temporariamente para demonstração
+                        from django.conf import settings
+                        validators_originais = getattr(settings, 'AUTH_PASSWORD_VALIDATORS', [])
+                        settings.AUTH_PASSWORD_VALIDATORS = []
+                        
+                        try:
+                            user.set_password('monpec')
+                            user.is_active = True
+                            user.email = email.lower()  # Garantir email em lowercase
+                            user.save()
+                            logger.info(f'Senha e status do usuário existente atualizados')
+                        except Exception as e_save:
+                            logger.warning(f'Erro ao atualizar usuário existente: {e_save}. Continuando mesmo assim...')
+                        finally:
+                            settings.AUTH_PASSWORD_VALIDATORS = validators_originais
+                        
+                        # Recarregar do banco para garantir que está atualizado
+                        try:
+                            user.refresh_from_db()
+                        except Exception as e_refresh:
+                            logger.warning(f'Erro ao recarregar usuário: {e_refresh}')
+                        
+                        logger.info(f'Usuário existente: id={user.id}, email={user.email}, username={user.username}, is_active={user.is_active}')
+                        
+                        # Criar ou atualizar registro de usuário ativo (com tratamento de erro caso tabela não exista)
+                        try:
+                            usuario_ativo, created = UsuarioAtivo.objects.get_or_create(
+                                usuario=user,
+                                defaults={
+                                    'nome_completo': nome_completo,
+                                    'email': email,
+                                    'telefone': telefone,
+                                }
+                            )
+                            if not created:
+                                usuario_ativo.nome_completo = nome_completo
+                                usuario_ativo.telefone = telefone
+                                usuario_ativo.save()
+                            logger.info(f'UsuarioAtivo {"criado" if created else "atualizado"}: id={usuario_ativo.id}')
+                        except Exception as e:
+                            # Se a tabela não existir, apenas logar o erro mas continuar
+                            logger.warning(f'Tabela UsuarioAtivo não existe ainda ou erro ao criar: {e}')
+                            logger.info(f'Continuando sem UsuarioAtivo - usuário {user.username} será logado mesmo assim')
+                    else:
+                        # Criar novo usuário
+                        # Gerar username único baseado no email
+                        username_base = email.split('@')[0]
+                        username = username_base
+                        sufixo = 1
+                        while User.objects.filter(username=username).exists():
+                            username = f"{username_base}{sufixo}"
+                            sufixo += 1
+                        
+                        # Criar usuário sem validação de senha (demonstração)
+                        # Desabilitar validação temporariamente
+                        from django.contrib.auth.password_validation import get_password_validators
+                        from django.conf import settings
+                        
+                        # Salvar validadores originais
+                        validators_originais = getattr(settings, 'AUTH_PASSWORD_VALIDATORS', [])
+                        
+                        # Desabilitar validação temporariamente
+                        settings.AUTH_PASSWORD_VALIDATORS = []
+                        
+                        try:
+                            # Usar variável de ambiente para senha de demo, com fallback temporário
+                            # O módulo os já está importado no topo do arquivo (linha 16)
+                            demo_password = os.getenv('DEMO_USER_PASSWORD', 'monpec')
+                            user = User.objects.create_user(
+                                username=username,
+                                email=email.lower(),  # Garantir lowercase
+                                password=demo_password,
+                                first_name=nome_completo.split()[0] if nome_completo.split() else '',
+                                last_name=' '.join(nome_completo.split()[1:]) if len(nome_completo.split()) > 1 else '',
+                                is_active=True,
+                            )
+                            logger.info(f'Usuário criado: username={username}, email={user.email}, id={user.id}')
+                        except Exception as e_create:
+                            # Se der erro ao criar (ex: usuário já existe por username), tentar buscar novamente
+                            logger.warning(f'Erro ao criar usuário: {e_create}. Tentando buscar usuário existente...')
+                            user = User.objects.filter(email__iexact=email).first()
+                            if user:
+                                usuario_existente = True
+                                logger.info(f'Usuário encontrado após erro de criação: {user.username}')
+                            else:
+                                raise  # Re-raise se não encontrou
+                        finally:
+                            # Restaurar validadores
+                            settings.AUTH_PASSWORD_VALIDATORS = validators_originais
+                        
+                        # Criar registro de usuário ativo (com tratamento de erro caso tabela não exista)
+                        if user:
+                            try:
+                                usuario_ativo, created = UsuarioAtivo.objects.get_or_create(
+                                    usuario=user,
+                                    defaults={
+                                        'nome_completo': nome_completo,
+                                        'email': email.lower(),
+                                        'telefone': telefone,
+                                    }
+                                )
+                                if not created:
+                                    usuario_ativo.nome_completo = nome_completo
+                                    usuario_ativo.telefone = telefone
+                                    usuario_ativo.save()
+                                logger.info(f'UsuarioAtivo {"criado" if created else "atualizado"}: id={usuario_ativo.id}, email={email}')
+                            except Exception as e:
+                                # Se a tabela não existir, apenas logar o erro mas continuar
+                                # Isso não deve impedir o login do usuário
+                                logger.warning(f'Tabela UsuarioAtivo não existe ainda ou erro ao criar: {e}')
+                                logger.info(f'Continuando sem UsuarioAtivo - usuário {user.username} foi criado com sucesso')
+            except Exception as e_transaction:
+                logger.error(f'Erro na transação ao criar/atualizar usuário: {e_transaction}')
+                # Tentar buscar usuário mesmo se a transação falhou
+                if not user:
+                    user = User.objects.filter(email__iexact=email).first()
+                    if user:
+                        usuario_existente = True
+                        logger.info(f'Usuário encontrado após erro de transação: {user.username}')
+            
+            # Fazer login automático FORA da transação atômica
+            # Isso evita problemas de TransactionManagementError
+            if user:
+                # Buscar o usuário novamente do banco para garantir que está commitado
+                try:
+                    user = User.objects.get(pk=user.pk)
+                except User.DoesNotExist:
+                    logger.error(f'Usuário {user.pk} não encontrado após commit da transação')
+                    # Tentar buscar por email como último recurso
+                    user = User.objects.filter(email__iexact=email).first()
+                    if not user:
+                        return JsonResponse({
+                            'success': False,
+                            'message': 'Erro ao criar usuário. Por favor, tente novamente.'
+                        }, status=500)
                 
-                if user:
-                    # Se o usuário já existe, atualizar senha para "monpec" e criar/atualizar UsuarioAtivo
-                    # Desabilitar validação de senha temporariamente para demonstração
-                    from django.conf import settings
-                    validators_originais = getattr(settings, 'AUTH_PASSWORD_VALIDATORS', [])
-                    settings.AUTH_PASSWORD_VALIDATORS = []
-                    
-                    try:
-                        user.set_password('monpec')
-                        user.is_active = True
-                        user.email = email.lower()  # Garantir email em lowercase
-                        user.save()
-                    finally:
-                        settings.AUTH_PASSWORD_VALIDATORS = validators_originais
-                    
-                    # Recarregar do banco para garantir que está atualizado
-                    user.refresh_from_db()
-                    logger.info(f'✅ Usuário existente atualizado: id={user.id}, email={user.email}, username={user.username}, is_active={user.is_active}, password_set={bool(user.password)}')
-                    
-                    # Criar ou atualizar registro de usuário ativo (com tratamento de erro caso tabela não exista)
-                    try:
-                        usuario_ativo, created = UsuarioAtivo.objects.get_or_create(
-                            usuario=user,
-                            defaults={
-                                'nome_completo': nome_completo,
-                                'email': email,
-                                'telefone': telefone,
-                            }
-                        )
-                        if not created:
-                            usuario_ativo.nome_completo = nome_completo
-                            usuario_ativo.telefone = telefone
-                            usuario_ativo.save()
-                    except Exception as e:
-                        # Se a tabela não existir, apenas logar o erro mas continuar
-                        logger.warning(f'Tabela UsuarioAtivo não existe ainda: {e}')
-                    
-                    # Redirecionar IMEDIATAMENTE para login de demonstração com dados preenchidos
-                    login_url = reverse('login') + f'?demo=true&email={urllib.parse.quote(email)}&nome={urllib.parse.quote(nome_completo)}'
-                    
+                # Garantir que o usuário está ativo
+                if not user.is_active:
+                    user.is_active = True
+                    user.save()
+                    logger.info(f'Usuário {user.username} foi ativado')
+                
+                # Fazer login
+                try:
+                    login(request, user)
+                    logger.info(f'Login automático realizado para usuário: {user.username}')
+                except Exception as e_login:
+                    logger.error(f'Erro ao fazer login: {e_login}')
+                    # Mesmo com erro de login, retornar sucesso e redirecionar para login manual
+                    login_url = reverse('login') + f'?demo=true&email={urllib.parse.quote(email)}&nome={urllib.parse.quote(nome_completo or "")}'
                     return JsonResponse({
                         'success': True,
-                        'message': 'Usuário já cadastrado! Redirecionando para o login...',
+                        'message': 'Usuário encontrado! Redirecionando para login...',
                         'redirect_url': login_url
                     })
-                else:
-                    # Criar novo usuário
-                    # Gerar username único baseado no email
-                    username_base = email.split('@')[0]
-                    username = username_base
-                    sufixo = 1
-                    while User.objects.filter(username=username).exists():
-                        username = f"{username_base}{sufixo}"
-                        sufixo += 1
-                    
-                    # Criar usuário sem validação de senha (demonstração)
-                    # Desabilitar validação temporariamente
-                    from django.contrib.auth.password_validation import get_password_validators
-                    from django.conf import settings
-                    
-                    # Salvar validadores originais
-                    validators_originais = getattr(settings, 'AUTH_PASSWORD_VALIDATORS', [])
-                    
-                    # Desabilitar validação temporariamente
-                    settings.AUTH_PASSWORD_VALIDATORS = []
-                    
-                    try:
-                        # Usar variável de ambiente para senha de demo, com fallback temporário
-                        demo_password = os.getenv('DEMO_USER_PASSWORD', 'monpec')
-                        user = User.objects.create_user(
-                            username=username,
-                            email=email.lower(),  # Garantir lowercase
-                            password=demo_password,
-                            first_name=nome_completo.split()[0] if nome_completo.split() else '',
-                            last_name=' '.join(nome_completo.split()[1:]) if len(nome_completo.split()) > 1 else '',
-                            is_active=True,
-                        )
-                        logger.info(f'✅ Usuário criado: username={username}, email={user.email}, id={user.id}')
-                    finally:
-                        # Restaurar validadores
-                        settings.AUTH_PASSWORD_VALIDATORS = validators_originais
-                    
-                    # Criar registro de usuário ativo (com tratamento de erro caso tabela não exista)
-                    try:
-                        usuario_ativo = UsuarioAtivo.objects.create(
-                            usuario=user,
-                            nome_completo=nome_completo,
-                            email=email.lower(),
-                            telefone=telefone,
-                        )
-                        logger.info(f'✅ UsuarioAtivo criado: id={usuario_ativo.id}, email={email}')
-                    except Exception as e:
-                        # Se a tabela não existir, apenas logar o erro mas continuar
-                        logger.error(f'❌ Erro ao criar UsuarioAtivo para {email}: {e}', exc_info=True)
-                    
-                    # Redirecionar para login com dados preenchidos
-                    login_url = reverse('login') + f'?demo=true&email={urllib.parse.quote(email.lower())}&nome={urllib.parse.quote(nome_completo)}'
-                    
-                    return JsonResponse({
-                        'success': True,
-                        'message': 'Usuário criado com sucesso! Redirecionando...',
-                        'redirect_url': login_url
-                    })
+                
+                # Redirecionar diretamente para demo_loading
+                demo_loading_url = reverse('demo_loading')
+                
+                mensagem = 'Usuário criado com sucesso! Redirecionando...' if not usuario_existente else 'Bem-vindo de volta! Redirecionando...'
+                
+                return JsonResponse({
+                    'success': True,
+                    'message': mensagem,
+                    'redirect_url': demo_loading_url
+                })
+            else:
+                # Se não conseguiu criar nem encontrar usuário, tentar uma última vez
+                logger.warning(f'Usuário não encontrado após todas as tentativas. Fazendo busca final por email: {email}')
+                
+                # Última tentativa: buscar usuário por email (case-insensitive)
+                try:
+                    user = User.objects.filter(email__iexact=email).first()
+                    if user:
+                        logger.info(f'✅ Usuário encontrado na busca final: {user.username} (ID: {user.id})')
+                        usuario_existente = True
+                        
+                        # Garantir que está ativo
+                        if not user.is_active:
+                            user.is_active = True
+                            user.save()
+                        
+                        # Tentar fazer login
+                        try:
+                            login(request, user)
+                            logger.info(f'Login automático realizado na busca final para: {user.username}')
+                            
+                            demo_loading_url = reverse('demo_loading')
+                            return JsonResponse({
+                                'success': True,
+                                'message': 'Bem-vindo de volta! Redirecionando...',
+                                'redirect_url': demo_loading_url
+                            })
+                        except Exception as e_login_final:
+                            logger.error(f'Erro ao fazer login na busca final: {e_login_final}')
+                            # Redirecionar para login manual
+                            login_url = reverse('login') + f'?demo=true&email={urllib.parse.quote(email)}&nome={urllib.parse.quote(nome_completo or "")}'
+                            return JsonResponse({
+                                'success': True,
+                                'message': 'Usuário encontrado! Redirecionando para login...',
+                                'redirect_url': login_url
+                            })
+                except Exception as e_final:
+                    logger.error(f'Erro na busca final: {e_final}')
+                
+                # Se chegou aqui, realmente não conseguiu criar nem encontrar
+                logger.error(f'❌ Não foi possível criar ou encontrar usuário com email: {email}')
+                logger.error(f'   Verifique os logs acima para mais detalhes')
+                
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Erro ao processar cadastro. Por favor, tente novamente ou entre em contato com o suporte.',
+                    'debug_info': 'Verifique os logs do servidor para mais detalhes' if settings.DEBUG else None
+                }, status=500)
                 
         except Exception as e:
             error_trace = traceback.format_exc()
             error_type = type(e).__name__
             error_message = str(e)
             
-            logger.error(f'❌ Erro ao criar usuário de demonstração: {error_type}: {error_message}')
-            logger.error(f'📋 Traceback completo:\n{error_trace}')
-            logger.error(f'📝 Dados recebidos: nome={nome_completo[:50]}, email={email}, telefone={telefone}')
-            logger.error(f'🌐 Método: {request.method}, Content-Type: {request.content_type}')
-            logger.error(f'🔐 CSRF Token presente: {"csrftoken" in request.COOKIES}')
+            logger.error(f'❌ ERRO CRÍTICO ao criar usuário de demonstração: {error_type}: {error_message}')
+            logger.error(f'Traceback completo:\n{error_trace}')
+            logger.error(f'Dados recebidos: nome={nome_completo[:50]}, email={email}, telefone={telefone}')
+            logger.error(f'Método: {request.method}, Content-Type: {request.content_type}')
+            logger.error(f'CSRF Token presente: {"csrftoken" in request.COOKIES}')
+            
+            # Tentar buscar usuário mesmo com erro crítico
+            if email:
+                try:
+                    logger.info(f'Tentando buscar usuário após erro crítico: {email}')
+                    user_fallback = User.objects.filter(email__iexact=email).first()
+                    if user_fallback:
+                        logger.info(f'✅ Usuário encontrado após erro crítico: {user_fallback.username}')
+                        try:
+                            login(request, user_fallback)
+                            demo_loading_url = reverse('demo_loading')
+                            return JsonResponse({
+                                'success': True,
+                                'message': 'Usuário encontrado! Redirecionando...',
+                                'redirect_url': demo_loading_url
+                            })
+                        except:
+                            login_url = reverse('login') + f'?demo=true&email={urllib.parse.quote(email)}&nome={urllib.parse.quote(nome_completo or "")}'
+                            return JsonResponse({
+                                'success': True,
+                                'message': 'Usuário encontrado! Redirecionando para login...',
+                                'redirect_url': login_url
+                            })
+                except Exception as e_fallback:
+                    logger.error(f'Erro ao buscar usuário após erro crítico: {e_fallback}')
             
             # Preparar string de erro para verificação
             error_str = error_message.lower()
+            
+            # Verificar se é erro de importação (não necessário, os já está importado no topo)
+            # O módulo os já está importado na linha 16 do arquivo
             
             # Se for erro de tabela não existir, tentar criar a tabela ou apenas redirecionar
             # Só tentar verificar usuário se tivermos um email válido
             if email:
                 if 'no such table' in error_str or 'usuarioativo' in error_str or 'does not exist' in error_str:
-                    logger.warning(f'⚠️ Erro de tabela não existir detectado. Tentando verificar se usuário foi criado...')
+                    logger.warning(f'Erro de tabela não existir detectado. Tentando verificar se usuário foi criado...')
                     # Verificar se o usuário foi criado mesmo assim (case-insensitive)
                     try:
                         user = User.objects.filter(email__iexact=email).first()
                         if user:
-                            logger.info(f'✅ Usuário encontrado mesmo com erro de tabela. Redirecionando...')
+                            logger.info(f'Usuário encontrado mesmo com erro de tabela. Redirecionando...')
                             # Se o usuário existe, redirecionar mesmo sem a tabela UsuarioAtivo
                             login_url = reverse('login') + f'?demo=true&email={urllib.parse.quote(email)}&nome={urllib.parse.quote(nome_completo or "")}'
                             return JsonResponse({
@@ -273,7 +529,7 @@ def criar_usuario_demonstracao(request):
                                 'redirect_url': login_url
                             })
                     except Exception as e2:
-                        logger.error(f'❌ Erro ao verificar usuário existente: {e2}')
+                        logger.error(f'Erro ao verificar usuário existente: {e2}')
             
             # Se for erro de CSRF, retornar mensagem específica
             if 'csrf' in error_str or 'CSRF' in error_type or 'Forbidden' in error_type:
@@ -283,15 +539,40 @@ def criar_usuario_demonstracao(request):
                     'message': 'Erro de segurança. Por favor, recarregue a página e tente novamente.'
                 }, status=403)
             
+            # Se for erro de integridade (usuário já existe), tentar fazer login
+            if 'unique' in error_str or 'already exists' in error_str or 'duplicate' in error_str:
+                logger.warning(f'Usuário já existe. Tentando fazer login...')
+                try:
+                    user = User.objects.filter(email__iexact=email).first()
+                    if user:
+                        # Usar o import global de login (linha 4)
+                        login(request, user)
+                        demo_loading_url = reverse('demo_loading')
+                        return JsonResponse({
+                            'success': True,
+                            'message': 'Usuário já existe! Fazendo login...',
+                            'redirect_url': demo_loading_url
+                        })
+                except Exception as e2:
+                    logger.error(f'Erro ao fazer login com usuário existente: {e2}')
+            
             # Log do erro completo para debug
-            logger.error(f'❌ Falha completa no processamento. Tipo: {error_type}, Mensagem: {error_message}')
+            logger.error(f'Falha completa no processamento. Tipo: {error_type}, Mensagem: {error_message}')
+            
+            # Retornar mensagem mais específica se possível
+            mensagem_erro = 'Erro ao processar solicitação. Por favor, tente novamente.'
+            if 'database' in error_str or 'connection' in error_str:
+                mensagem_erro = 'Erro de conexão com o banco de dados. Verifique as configurações.'
+            elif 'permission' in error_str or 'permissão' in error_str:
+                mensagem_erro = 'Erro de permissão. Verifique as permissões do banco de dados.'
             
             return JsonResponse({
                 'success': False,
-                'message': 'Erro ao processar solicitação. Por favor, tente novamente.'
+                'message': mensagem_erro,
+                'error_type': error_type,  # Adicionar tipo de erro para debug (remover em produção se necessário)
             }, status=500)
     else:
-        logger.warning(f'⚠️ Método não permitido: {request.method}')
+        logger.warning(f'Método não permitido: {request.method}')
         return JsonResponse({
             'success': False,
             'message': 'Método não permitido.'
@@ -330,30 +611,36 @@ def contato_submit(request):
             # Adicionar email ao cache (30 dias)
             cache.set(cache_key, True, 60 * 60 * 24 * 30)
             
+            # DESABILITADO: Envio de email para demonstrações
+            # O envio de email foi desabilitado para evitar spam quando usuários criam contas de demonstração
+            # Se precisar reativar, descomente o código abaixo
+            # 
             # Enviar email ANTES de mostrar a página de cadastro
-            try:
-                assunto = f'Nova solicitação de demonstração - MONPEC'
-                corpo_email = f"""
-Nova solicitação de demonstração recebida através do formulário do site MONPEC:
-
-Nome: {nome}
-Email: {email}
-Telefone: {telefone}
-Empresa/Fazenda: {empresa or 'Não informado'}
-
----
-Esta mensagem foi enviada automaticamente através do formulário de demonstração do site MONPEC.
-"""
-                send_mail(
-                    subject=assunto,
-                    message=corpo_email,
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=['monpecnfe@gmail.com'],
-                    fail_silently=True,  # Não bloquear se houver erro
-                )
-                logger.info(f'Email de demonstração enviado com sucesso de {email}')
-            except Exception as e:
-                logger.error(f'Erro ao enviar email de demonstração: {str(e)}')
+            # try:
+            #     assunto = f'Nova solicitação de demonstração - MONPEC'
+            #     corpo_email = f"""
+            # Nova solicitação de demonstração recebida através do formulário do site MONPEC:
+            # 
+            # Nome: {nome}
+            # Email: {email}
+            # Telefone: {telefone}
+            # Empresa/Fazenda: {empresa or 'Não informado'}
+            # 
+            # ---
+            # Esta mensagem foi enviada automaticamente através do formulário de demonstração do site MONPEC.
+            # """
+            #     send_mail(
+            #         subject=assunto,
+            #         message=corpo_email,
+            #         from_email=settings.DEFAULT_FROM_EMAIL,
+            #         recipient_list=['monpecnfe@gmail.com'],
+            #         fail_silently=True,  # Não bloquear se houver erro
+            #     )
+            #     logger.info(f'Email de demonstração enviado com sucesso de {email}')
+            # except Exception as e:
+            #     logger.error(f'Erro ao enviar email de demonstração: {str(e)}')
+            
+            logger.info(f'Solicitação de demonstração recebida de {email} (email de notificação desabilitado)')
             
             # Mostrar página de cadastro realizado com os dados
             context = {
@@ -470,6 +757,7 @@ from .forms import (
 
 def login_view(request):
     """View para login do usuário com proteções de segurança"""
+    # Usar o import global de login (linha 4) para evitar conflitos de escopo
     from .security import (
         verificar_tentativas_login, 
         registrar_tentativa_login_falha,
@@ -505,7 +793,7 @@ def login_view(request):
             segundos = int(tempo_restante % 60)
             messages.error(
                 request, 
-                f'⚠️ <strong>Bloqueio por tentativas:</strong> Após 5 tentativas falhas, o sistema bloqueia por 1 minuto. '
+                f' <strong>Bloqueio por tentativas:</strong> Após 5 tentativas falhas, o sistema bloqueia por 1 minuto. '
                 f'Aguarde {minutos}min {segundos}s antes de tentar novamente. '
                 f'Possíveis causas: senha incorreta, conta desativada ou e-mail não verificado.'
             )
@@ -527,14 +815,14 @@ def login_view(request):
                 email_normalizado = username.lower().strip()
                 user_by_email = User.objects.filter(email__iexact=email_normalizado).first()
                 if user_by_email:
-                    logger.info(f'🔍 Usuário encontrado por email: username={user_by_email.username}, email={user_by_email.email}, is_active={user_by_email.is_active}')
+                    logger.info(f'Usuário encontrado por email: username={user_by_email.username}, email={user_by_email.email}, is_active={user_by_email.is_active}')
                     user = authenticate(request, username=user_by_email.username, password=password)
                     if user:
-                        logger.info(f'✅ Autenticação bem-sucedida com username: {user_by_email.username}')
+                        logger.info(f'Autenticação bem-sucedida com username: {user_by_email.username}')
                     else:
-                        logger.warning(f'⚠️ Autenticação falhou para username: {user_by_email.username} (senha incorreta ou usuário inativo)')
+                        logger.warning(f' Autenticação falhou para username: {user_by_email.username} (senha incorreta ou usuário inativo)')
                 else:
-                    logger.warning(f'⚠️ Nenhum usuário encontrado com email: {email_normalizado}')
+                    logger.warning(f' Nenhum usuário encontrado com email: {email_normalizado}')
             except Exception as e:
                 logger.error(f'Erro ao buscar usuário por email: {e}', exc_info=True)
         
@@ -546,7 +834,7 @@ def login_view(request):
                 # Verificar se existe usuário com esse username ou email
                 usuario_existe = User.objects.filter(username__iexact=username).exists() or User.objects.filter(email__iexact=username).exists()
                 
-                logger.info(f'🔍 Verificação de usuário: username={username}, usuario_existe={usuario_existe}')
+                logger.info(f'Verificação de usuário: username={username}, usuario_existe={usuario_existe}')
             except Exception as e:
                 logger.error(f'Erro ao verificar usuário: {e}', exc_info=True)
                 usuario_existe = False  # Se houver erro, assumir que não existe
@@ -608,7 +896,7 @@ def login_view(request):
                         if not verificacao.email_verificado:
                             messages.warning(
                                 request,
-                                '⚠️ <strong>Verificação de e-mail pendente:</strong> Por favor, verifique seu e-mail antes de fazer login. '
+                                ' <strong>Verificação de e-mail pendente:</strong> Por favor, verifique seu e-mail antes de fazer login. '
                                 'Verifique sua caixa de entrada e spam. <strong>Após 5 tentativas falhas, o sistema bloqueia por 1 minuto.</strong>'
                             )
                             registrar_tentativa_login_falha(username, ip_address)
@@ -645,7 +933,7 @@ def login_view(request):
                                    (demo_post and (demo_post.lower() == 'true' or demo_post == '1'))
                     
                     if is_demo_user:
-                        logger.info(f'✅ Usuário demo detectado no login: {user.username} (função centralizada)')
+                        logger.info(f'Usuário demo detectado no login: {user.username} (função centralizada)')
                     
                     # Log detalhado para debug
                     logger.info(f'[DEBUG LOGIN] - username={username}, is_demo_user={is_demo_user}, is_demo_param={is_demo_param}, demo_get={demo_get}, demo_post={demo_post}')
@@ -660,22 +948,19 @@ def login_view(request):
                     registrar_sessao_segura(user, request.session.session_key, ip_address, user_agent)
                     
                     # Atualizar registro de usuário ativo (se existir)
-                    from .models_auditoria import UsuarioAtivo
-                    from django.db import ProgrammingError
-                    usuario_ativo = None
-                    try:
-                        usuario_ativo = UsuarioAtivo.objects.get(usuario=user)
-                        usuario_ativo.ultimo_acesso = timezone.now()
-                        usuario_ativo.total_acessos += 1
-                        usuario_ativo.save()
-                        logger.info(f'✅ UsuarioAtivo atualizado para {user.username}: total_acessos={usuario_ativo.total_acessos}')
-                    except (UsuarioAtivo.DoesNotExist, ProgrammingError) as e:
-                        # Tabela não existe ou registro não encontrado - continuar normalmente
-                        logger.warning(f'Tabela UsuarioAtivo não acessível: {e}')
-                        usuario_ativo = None
-                        
-                        # Se for primeiro acesso, enviar convite para o grupo do WhatsApp
-                        if usuario_ativo.total_acessos == 1:
+                    from .helpers_db import obter_usuario_ativo_seguro
+                    usuario_ativo = obter_usuario_ativo_seguro(user)
+                    if usuario_ativo:
+                        try:
+                            usuario_ativo.ultimo_acesso = timezone.now()
+                            usuario_ativo.total_acessos += 1
+                            usuario_ativo.save()
+                            logger.info(f'UsuarioAtivo atualizado para {user.username}: total_acessos={usuario_ativo.total_acessos}')
+                        except Exception as e:
+                            logger.warning(f'Erro ao atualizar UsuarioAtivo: {e}')
+                    
+                    # Se usuario_ativo existe e for primeiro acesso, enviar convite para o grupo do WhatsApp
+                    if usuario_ativo and usuario_ativo.total_acessos == 1:
                             try:
                                 # Link de convite do grupo do WhatsApp (substitua pelo link real do seu grupo)
                                 # Formato: https://chat.whatsapp.com/CODIGO_DO_GRUPO
@@ -752,8 +1037,9 @@ Equipe MONPEC
                                     
                             except Exception as e:
                                 logger.error(f'Erro ao processar convite para grupo WhatsApp: {str(e)}')
-                        
-                        # Enviar email informando que o usuário acessou o sistema
+                    
+                    # Enviar email informando que o usuário acessou o sistema (apenas se usuario_ativo existir)
+                    if usuario_ativo:
                         try:
                             assunto = f'Usuário acessou o sistema - MONPEC'
                             corpo_email = f"""
@@ -779,9 +1065,6 @@ Esta mensagem foi enviada automaticamente pelo sistema MONPEC.
                             logger.info(f'Email de acesso enviado para l.moncaosilva@google.com - Usuário: {username}')
                         except Exception as e:
                             logger.error(f'Erro ao enviar email de acesso: {str(e)}')
-                    except (UsuarioAtivo.DoesNotExist, ProgrammingError):
-                        # Usuário não é de demonstração ou tabela não existe, não precisa enviar email
-                        pass
                     
                     # Registrar log
                     registrar_log_auditoria(
@@ -801,23 +1084,30 @@ Esta mensagem foi enviada automaticamente pelo sistema MONPEC.
                     if next_url:
                         return redirect(next_url)
                     
-                    # Para outros usuários, buscar primeira propriedade ou ir para dashboard
+                    # Para outros usuários, buscar primeira propriedade ou criar padrão se não existir
                     try:
+                        from .models import Propriedade
                         propriedade = Propriedade.objects.filter(
                             produtor__usuario_responsavel=user
                         ).first()
                         
+                        # Se não encontrou propriedade, garantir que existe produtor e propriedade padrão
+                        if not propriedade:
+                            propriedade = _garantir_produtor_e_propriedade_padrao(user)
+                        
                         if propriedade:
+                            # Redirecionar direto para a página inicial (módulos)
                             return redirect('propriedade_modulos', propriedade_id=propriedade.id)
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.error(f'Erro ao buscar/criar propriedade após login: {e}')
                     
+                    # Se mesmo assim não conseguir, ir para dashboard
                     return redirect('dashboard')
                 except Exception as e:
                     logger.error(f'Erro após autenticação bem-sucedida: {e}')
                     messages.error(
                         request,
-                        '⚠️ Login realizado, mas houve um erro ao iniciar a sessão. Por favor, tente novamente.'
+                        ' Login realizado, mas houve um erro ao iniciar a sessão. Por favor, tente novamente.'
                     )
                     return render(request, 'gestao_rural/login_clean.html')
         else:
@@ -932,63 +1222,61 @@ def logout_view(request):
 
 @login_required
 def dashboard(request):
-    """Dashboard principal - redireciona para a primeira propriedade disponível"""
-    # Verificar se usuário tem assinatura ativa - se tiver, sempre usar demo
-    from .models import AssinaturaCliente
-    try:
-        assinatura = AssinaturaCliente.objects.get(usuario=request.user)
-        if assinatura.status == AssinaturaCliente.Status.ATIVA:
-            # Usuário assinante - usar conta demo para demonstração
-            from django.contrib.auth.models import User
-            try:
-                demo_user = User.objects.get(username='demo')
-                # Buscar propriedades do demo
-                propriedades = Propriedade.objects.filter(produtor__usuario_responsavel=demo_user)
-            except User.DoesNotExist:
-                # Se não houver demo, usar propriedades do próprio usuário
-                propriedades = Propriedade.objects.filter(produtor__usuario_responsavel=request.user)
-        else:
-            # Usuário sem assinatura ativa - usar suas próprias propriedades
-            propriedades = Propriedade.objects.filter(produtor__usuario_responsavel=request.user)
-    except AssinaturaCliente.DoesNotExist:
-        # Usuário sem assinatura - usar suas próprias propriedades
-        propriedades = Propriedade.objects.filter(produtor__usuario_responsavel=request.user)
-    
-    # Buscar primeira propriedade disponível (priorizando Monpec1, Monpec2, Monpec3 do produtor)
-    propriedade_prioritaria = propriedades.filter(
-        nome_propriedade__iregex=r'^Monpec\d+$'
-    ).order_by('nome_propriedade').first()
-    
-    if not propriedade_prioritaria:
-        propriedade_prioritaria = propriedades.filter(
-            nome_propriedade__icontains='Monpec2'
-        ).first()
-    
-    if not propriedade_prioritaria:
-        propriedade_prioritaria = propriedades.filter(
-            nome_propriedade__icontains='Monpec3'
-        ).first()
-    
-    # Se não encontrou as prioritárias, pegar a primeira disponível
-    if not propriedade_prioritaria:
-        propriedade_prioritaria = propriedades.first()
-    
-    # Se encontrou uma propriedade, redirecionar para seus módulos
-    if propriedade_prioritaria:
-        return redirect('propriedade_modulos', propriedade_id=propriedade_prioritaria.id)
-    
-    # Se não houver propriedades, verificar se é demo e redirecionar para setup
-    # Verificar se é usuário demo usando função centralizada
+    """Dashboard principal - mostra lista de produtores ou redireciona para primeira propriedade"""
+    from .services.dashboard_service import DashboardService
     from .helpers_acesso import is_usuario_demo
-    is_demo_user = is_usuario_demo(request.user)
+    from django.db import ProgrammingError
     
-    if is_demo_user:
-        logger.info(f'🔴 Usuário demo sem propriedades. Redirecionando para demo_setup.')
-        return redirect('demo_setup')
-    
-    # Se não for demo, mostrar mensagem e redirecionar para cadastro
-    messages.info(request, 'Você ainda não possui propriedades cadastradas. Cadastre uma propriedade para começar.')
-    return redirect('produtor_novo')
+    try:
+        # Usar serviço para obter dados do dashboard
+        dados = DashboardService.obter_dados_dashboard(request.user)
+        
+        # Se encontrou uma propriedade prioritária, redirecionar
+        if dados['propriedade_prioritaria']:
+            return redirect('propriedade_modulos', propriedade_id=dados['propriedade_prioritaria'].id)
+        
+        # Se não houver propriedades, verificar se é demo
+        is_demo_user = is_usuario_demo(request.user)
+        
+        if is_demo_user:
+            logger.info(f'Usuário demo sem propriedades. Redirecionando para demo_setup.')
+            return redirect('demo_setup')
+        
+        # Se não houver propriedades e não for demo, criar produtor e propriedade padrão automaticamente
+        if dados['total_propriedades'] == 0:
+            propriedade_padrao = _garantir_produtor_e_propriedade_padrao(request.user)
+            if propriedade_padrao:
+                logger.info(f'Propriedade padrão criada/recuperada para usuário {request.user.username}. Redirecionando para módulos.')
+                return redirect('propriedade_modulos', propriedade_id=propriedade_padrao.id)
+        
+        # Renderizar dashboard com lista de produtores
+        context = {
+            'produtores': dados['produtores'],
+            'total_propriedades': dados['total_propriedades'],
+            'total_area': dados['total_area'],
+        }
+        
+        return render(request, 'dashboard_navegacao.html', context)
+        
+    except ProgrammingError as e:
+        logger.warning(f'Erro de programação no dashboard: {e}')
+        # Fallback para comportamento seguro
+        from .models import ProdutorRural, Propriedade
+        produtores = ProdutorRural.objects.filter(usuario_responsavel=request.user).only('id', 'nome', 'cpf_cnpj').order_by('nome')
+        context = {
+            'produtores': produtores,
+            'total_propriedades': 0,
+            'total_area': Decimal('0.00'),
+        }
+        return render(request, 'dashboard_navegacao.html', context)
+    except Exception as e:
+        logger.error(f'Erro inesperado no dashboard: {e}', exc_info=True)
+        messages.error(request, 'Erro ao carregar dashboard. Por favor, tente novamente.')
+        return render(request, 'dashboard_navegacao.html', {
+            'produtores': [],
+            'total_propriedades': 0,
+            'total_area': Decimal('0.00'),
+        })
 
 
 @login_required
@@ -1001,15 +1289,43 @@ def produtor_novo(request):
     
     # Se for usuário demo, redirecionar IMEDIATAMENTE para setup automático (que cria tudo)
     if is_demo_user:
-        logger.info(f'🔴 Usuário demo tentou acessar cadastro de produtor. Redirecionando para demo_setup.')
+        logger.info(f'Usuário demo tentou acessar cadastro de produtor. Redirecionando para demo_setup.')
         return redirect('demo_setup')
     
     if request.method == 'POST':
         form = ProdutorRuralForm(request.POST)
         if form.is_valid():
-            produtor = form.save(commit=False)
-            produtor.usuario_responsavel = request.user
-            produtor.save()
+            # Tentar salvar normalmente primeiro
+            from django.db import ProgrammingError
+            try:
+                produtor = form.save(commit=False)
+                produtor.usuario_responsavel = request.user
+                produtor.save()
+            except ProgrammingError as e:
+                # Se houver erro (coluna não existe), criar manualmente apenas com campos básicos
+                logger.warning(f'Erro ao salvar produtor (coluna faltando): {e}. Criando apenas com campos básicos.')
+                from .models import ProdutorRural
+                # Obter dados do formulário validado
+                dados = form.cleaned_data
+                campos_basicos = {
+                    'nome': dados.get('nome'),
+                    'cpf_cnpj': dados.get('cpf_cnpj'),
+                    'usuario_responsavel': request.user,
+                    'documento_identidade': dados.get('documento_identidade'),
+                    'data_nascimento': dados.get('data_nascimento'),
+                    'anos_experiencia': dados.get('anos_experiencia'),
+                    'telefone': dados.get('telefone'),
+                    'email': dados.get('email'),
+                }
+                # Tentar adicionar endereco se estiver presente
+                if 'endereco' in dados and dados.get('endereco'):
+                    try:
+                        produtor = ProdutorRural.objects.create(**campos_basicos, endereco=dados.get('endereco'))
+                    except ProgrammingError:
+                        # Se endereco também não existir, criar sem ele
+                        produtor = ProdutorRural.objects.create(**campos_basicos)
+                else:
+                    produtor = ProdutorRural.objects.create(**campos_basicos)
             
             # Se for usuário de demonstração, criar automaticamente a propriedade Monpec1 (ou Monpec2, Monpec3, etc.)
             if is_demo_user:
@@ -1039,7 +1355,7 @@ def produtor_novo(request):
                             proximo_numero = 2
                         
                         nome_propriedade = f'Monpec{proximo_numero}'
-                        logger.info(f'📝 Propriedade Monpec1 já existe para este produtor. Usando {nome_propriedade}')
+                        logger.info(f' Propriedade Monpec1 já existe para este produtor. Usando {nome_propriedade}')
                     else:
                         nome_propriedade = 'Monpec1'
                     
@@ -1054,7 +1370,7 @@ def produtor_novo(request):
                         tipo_propriedade='PROPRIA',
                         valor_hectare_proprio=Decimal('10000.00'),
                     )
-                    logger.info(f'✅ Propriedade {nome_propriedade} criada automaticamente para usuário de demonstração {request.user.username}')
+                    logger.info(f'Propriedade {nome_propriedade} criada automaticamente para usuário de demonstração {request.user.username}')
                     
                     # Redirecionar para a propriedade criada
                     messages.success(request, f'Produtor e propriedade {nome_propriedade} cadastrados com sucesso! Bem-vindo à demonstração!')
@@ -1086,17 +1402,84 @@ def produtor_novo(request):
         form = ProdutorRuralForm(initial=initial_data)
     
     # Buscar lista de produtores cadastrados para exibir discretamente
+    # Admin: todos os produtores | Assinante/Usuário normal: apenas os que ele cadastrou
     # Incluir contagem de propriedades para otimizar a query
-    if _is_usuario_assinante(request.user):
-        produtores = ProdutorRural.objects.annotate(
-            propriedades_count=Count('propriedade')
-        ).order_by('nome')
-    else:
-        produtores = ProdutorRural.objects.filter(
-            usuario_responsavel=request.user
-        ).annotate(
-            propriedades_count=Count('propriedade')
-        ).order_by('nome')
+    # Usar only() para buscar apenas colunas básicas que certamente existem (sem certificado_digital)
+    from django.db import ProgrammingError, DatabaseError, OperationalError
+    produtores = []
+    try:
+        # Verificar primeiro se é admin
+        if request.user.is_superuser or request.user.is_staff:
+            # Admin: mostrar TODOS os produtores cadastrados
+            produtores = ProdutorRural.objects.annotate(
+                propriedades_count=Count('propriedade')
+            ).only('id', 'nome', 'cpf_cnpj', 'email', 'telefone', 'usuario_responsavel_id', 'data_cadastro').order_by('nome')
+        else:
+            # Verificar se é assinante
+            try:
+                from .models import AssinaturaCliente, TenantUsuario
+                
+                # Buscar assinatura do usuário
+                assinatura = None
+                if hasattr(request.user, 'assinatura'):
+                    assinatura = request.user.assinatura
+                elif hasattr(request.user, 'tenant_profile'):
+                    assinatura = request.user.tenant_profile.assinatura
+                else:
+                    # Tentar buscar diretamente
+                    assinatura = AssinaturaCliente.objects.filter(usuario=request.user).first()
+                
+                if assinatura and assinatura.ativa:
+                    # Assinante: buscar todos os usuários da mesma assinatura (equipe)
+                    usuarios_tenant = TenantUsuario.objects.filter(
+                        assinatura=assinatura,
+                        ativo=True
+                    ).select_related('usuario')
+                    
+                    # Obter IDs dos usuários da equipe
+                    usuarios_ids = [tu.usuario.id for tu in usuarios_tenant]
+                    
+                    # Também incluir o próprio usuário
+                    usuarios_ids.append(request.user.id)
+                    
+                    # Filtrar produtores cadastrados por esses usuários (equipe do assinante)
+                    produtores = ProdutorRural.objects.filter(
+                        usuario_responsavel__id__in=usuarios_ids
+                    ).annotate(
+                        propriedades_count=Count('propriedade')
+                    ).only('id', 'nome', 'cpf_cnpj', 'email', 'telefone', 'usuario_responsavel_id', 'data_cadastro').order_by('nome')
+                else:
+                    # Usuário normal ou assinante inativo: apenas os produtores que ele cadastrou
+                    produtores = ProdutorRural.objects.filter(
+                        usuario_responsavel=request.user
+                    ).annotate(
+                        propriedades_count=Count('propriedade')
+                    ).only('id', 'nome', 'cpf_cnpj', 'email', 'telefone', 'usuario_responsavel_id', 'data_cadastro').order_by('nome')
+            except Exception:
+                # Em caso de erro, comportamento seguro: apenas seus próprios produtores
+                produtores = ProdutorRural.objects.filter(
+                    usuario_responsavel=request.user
+                ).annotate(
+                    propriedades_count=Count('propriedade')
+                ).only('id', 'nome', 'cpf_cnpj', 'email', 'telefone', 'usuario_responsavel_id', 'data_cadastro').order_by('nome')
+    except (ProgrammingError, DatabaseError, OperationalError) as e:
+        # Se houver erro (alguma coluna não existe), usar apenas colunas básicas essenciais
+        logger.warning(f'Erro ao buscar produtores com annotate: {e}. Tentando query simplificada.')
+        try:
+            if request.user.is_superuser or request.user.is_staff:
+                # Admin: todos os produtores
+                produtores = ProdutorRural.objects.only('id', 'nome', 'cpf_cnpj', 'usuario_responsavel_id').order_by('nome')
+            else:
+                # Assinante ou usuário normal: apenas os que ele cadastrou
+                produtores = ProdutorRural.objects.filter(
+                    usuario_responsavel=request.user
+                ).only('id', 'nome', 'cpf_cnpj', 'usuario_responsavel_id').order_by('nome')
+        except Exception as e2:
+            logger.error(f'Erro ao buscar produtores mesmo com query simplificada: {e2}')
+            produtores = []
+    except Exception as e:
+        logger.error(f'Erro inesperado ao buscar produtores: {e}', exc_info=True)
+        produtores = []
     
     context = {
         'form': form,
@@ -1170,13 +1553,17 @@ def propriedades_lista(request, produtor_id):
 
 @login_required
 def propriedade_nova(request, produtor_id=None):
-    """Cadastro de nova propriedade"""
+    """Cadastro de nova propriedade - sempre permite seleção de produtor"""
     produtor = None
     
-    # Se produtor_id foi fornecido na URL, buscar o produtor
+    # Se produtor_id foi fornecido na URL, buscar o produtor (apenas para pré-selecionar)
+    # Mas o campo sempre será exibido para permitir alteração
     if produtor_id:
+        # Admin pode acessar qualquer produtor
+        if request.user.is_superuser or request.user.is_staff:
+            produtor = get_object_or_404(ProdutorRural, id=produtor_id)
         # Se for assinante, pode acessar qualquer produtor
-        if _is_usuario_assinante(request.user):
+        elif _is_usuario_assinante(request.user):
             produtor = get_object_or_404(ProdutorRural, id=produtor_id)
         else:
             produtor = get_object_or_404(ProdutorRural, id=produtor_id, usuario_responsavel=request.user)
@@ -1678,7 +2065,7 @@ def pecuaria_projecao(request, propriedade_id):
                     'periodicidade': 'MENSAL',
                 }
             )
-            logger.info(f'✅ Parâmetros de projeção criados automaticamente para usuário demo: {request.user.username}')
+            logger.info(f'Parâmetros de projeção criados automaticamente para usuário demo: {request.user.username}')
         else:
             # Para usuários não-demo, redirecionar para configurar parâmetros
             messages.error(request, 'É necessário configurar os parâmetros de projeção primeiro.')
@@ -4636,13 +5023,13 @@ def propriedade_modulos(request, propriedade_id):
     # Verificar se é usuário demo padrão
     if request.user.username in ['demo', 'demo_monpec']:
         is_demo_user = True
-        logger.info(f'✅ USUÁRIO DEMO PADRÃO: {request.user.username}')
+        logger.info(f'USUÁRIO DEMO PADRÃO: {request.user.username}')
     else:
         # Verificar se é usuário de demonstração (do popup)
         try:
             UsuarioAtivo.objects.get(usuario=request.user)
             is_demo_user = True
-            logger.info(f'✅ USUÁRIO DEMO (POPUP): {request.user.username}')
+            logger.info(f'USUÁRIO DEMO (POPUP): {request.user.username}')
         except:
             pass
     
@@ -4654,10 +5041,13 @@ def propriedade_modulos(request, propriedade_id):
         
         if produtor:
             # Buscar propriedade Monpec (Monpec1, Monpec2, etc.) do produtor do usuário
-            monpec1 = Propriedade.objects.filter(
-                produtor=produtor,
-                nome_propriedade__iregex=r'^Monpec\d+$'
-            ).order_by('nome_propriedade').first()
+            try:
+                monpec1 = Propriedade.objects.filter(
+                    produtor=produtor,
+                    nome_propriedade__iregex=r'^Monpec\d+$'
+                ).order_by('nome_propriedade').first()
+            except ProgrammingError:
+                monpec1 = Propriedade.objects.filter(produtor=produtor).first()
         
         # Se não encontrar, buscar qualquer propriedade do produtor
         if not monpec1 and produtor:
@@ -4665,7 +5055,7 @@ def propriedade_modulos(request, propriedade_id):
         
         # Se não encontrou propriedade, redirecionar para setup (que cria tudo automaticamente)
         if not monpec1:
-            logger.warning(f'⚠️ Propriedade Monpec não encontrada para usuário demo {request.user.username}. Redirecionando para demo_setup.')
+            logger.warning(f' Propriedade Monpec não encontrada para usuário demo {request.user.username}. Redirecionando para demo_setup.')
             return redirect('demo_setup')
         
         # Se o ID solicitado NÃO for a propriedade Monpec do produtor, redirecionar IMEDIATAMENTE
@@ -4675,7 +5065,7 @@ def propriedade_modulos(request, propriedade_id):
         
         # Se chegou aqui, é a propriedade Monpec do produtor - usar diretamente (SEM verificação de permissão)
         propriedade = monpec1
-        logger.info(f'✅ DEMO ACESSANDO {propriedade.nome_propriedade} (ID: {propriedade.id})')
+        logger.info(f'DEMO ACESSANDO {propriedade.nome_propriedade} (ID: {propriedade.id})')
     else:
         # Usuário normal - verificar permissão
         try:
@@ -4687,10 +5077,13 @@ def propriedade_modulos(request, propriedade_id):
                 # É demo! Redirecionar para propriedade Monpec do produtor
                 produtor = ProdutorRural.objects.filter(usuario_responsavel=request.user).first()
                 if produtor:
-                    monpec1 = Propriedade.objects.filter(
-                        produtor=produtor,
-                        nome_propriedade__iregex=r'^Monpec\d+$'
-                    ).order_by('nome_propriedade').first()
+                    try:
+                        monpec1 = Propriedade.objects.filter(
+                            produtor=produtor,
+                            nome_propriedade__iregex=r'^Monpec\d+$'
+                        ).order_by('nome_propriedade').first()
+                    except ProgrammingError:
+                        monpec1 = Propriedade.objects.filter(produtor=produtor).first()
                     if monpec1:
                         logger.info(f'🔄 Usuário identificado como demo após erro. Redirecionando para {monpec1.nome_propriedade}')
                         return redirect('propriedade_modulos', propriedade_id=monpec1.id)

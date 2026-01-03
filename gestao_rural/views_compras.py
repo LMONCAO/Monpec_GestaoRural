@@ -132,10 +132,23 @@ def obter_historico_preco_item(ordem, item):
     Retorna informações da última compra (mesmo fornecedor e geral)
     para comparação de preços.
     """
+    # Verificar se o item tem insumo
+    if not hasattr(item, 'insumo') or not item.insumo:
+        return {
+            'fornecedor': None,
+            'geral': None,
+            'dif_fornecedor_valor': None,
+            'dif_fornecedor_percentual': None,
+            'dif_geral_valor': None,
+            'dif_geral_percentual': None,
+        }
+    
+    nome_insumo = item.insumo.nome
+    
     base_qs = ItemOrdemCompra.objects.filter(
         ordem_compra__propriedade=ordem.propriedade,
-        descricao__iexact=item.descricao,
-    ).exclude(pk=item.pk).select_related('ordem_compra__fornecedor')
+        insumo__nome__iexact=nome_insumo,
+    ).exclude(pk=item.pk).select_related('ordem_compra__fornecedor', 'insumo')
 
     ultimo_mesmo_fornecedor = base_qs.filter(
         ordem_compra__fornecedor=ordem.fornecedor
@@ -249,89 +262,147 @@ def validar_orcamento_para_valor(propriedade, setor, data_emissao, valor, ignora
 @login_required
 def compras_dashboard(request, propriedade_id):
     """Dashboard consolidado de Compras"""
-    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
+    try:
+        propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
+    except Exception as e:
+        logger.error(f'Erro ao obter propriedade {propriedade_id}: {e}', exc_info=True)
+        from django.http import Http404
+        raise Http404("Propriedade não encontrada ou você não tem permissão para acessá-la.")
     
-    # Fornecedores
-    fornecedores = Fornecedor.objects.filter(
-        Q(propriedade=propriedade) | Q(propriedade__isnull=True)
-    ).order_by('nome')[:10]
-    total_fornecedores = Fornecedor.objects.filter(
-        Q(propriedade=propriedade) | Q(propriedade__isnull=True)
-    ).count()
+    try:
+        # Fornecedores
+        fornecedores = Fornecedor.objects.filter(
+            Q(propriedade=propriedade) | Q(propriedade__isnull=True)
+        ).order_by('nome')[:10]
+        total_fornecedores = Fornecedor.objects.filter(
+            Q(propriedade=propriedade) | Q(propriedade__isnull=True)
+        ).count()
+    except Exception as e:
+        logger.warning(f'Erro ao buscar fornecedores: {e}')
+        fornecedores = []
+        total_fornecedores = 0
     
-    # Ordens de Compra
-    ordens_pendentes = OrdemCompra.objects.filter(
-        propriedade=propriedade,
-        status__in=['RASCUNHO', 'APROVADA', 'ENVIADA']
-    ).count()
+    try:
+        # Ordens de Compra
+        ordens_pendentes = OrdemCompra.objects.filter(
+            propriedade=propriedade,
+            status__in=['RASCUNHO', 'APROVADA', 'ENVIADA']
+        ).count()
+        
+        ordens_recentes = OrdemCompra.objects.filter(
+            propriedade=propriedade
+        ).select_related('fornecedor').order_by('-data_emissao')[:10]
+    except Exception as e:
+        logger.warning(f'Erro ao buscar ordens de compra: {e}')
+        ordens_pendentes = 0
+        ordens_recentes = []
     
-    ordens_recentes = OrdemCompra.objects.filter(
-        propriedade=propriedade
-    ).select_related('fornecedor').order_by('-data_emissao')[:10]
+    try:
+        # Notas Fiscais
+        mes_atual = date.today().replace(day=1)
+        # Usar apenas select_related de fornecedor (cliente pode não existir se migração não aplicada)
+        nfes_mes = NotaFiscal.objects.filter(
+            propriedade=propriedade,
+            data_emissao__gte=mes_atual
+        ).select_related('fornecedor')
+        valor_compras_mes = sum(nf.valor_total for nf in nfes_mes if nf.tipo == TIPO_NFE_ENTRADA) if nfes_mes.exists() else Decimal('0.00')
+    except Exception as e:
+        logger.warning(f'Erro ao buscar notas fiscais: {e}')
+        valor_compras_mes = Decimal('0.00')
     
-    # Notas Fiscais
-    mes_atual = date.today().replace(day=1)
-    # Usar apenas select_related de fornecedor (cliente pode não existir se migração não aplicada)
-    nfes_mes = NotaFiscal.objects.filter(
-        propriedade=propriedade,
-        data_emissao__gte=mes_atual
-    ).select_related('fornecedor')
-    valor_compras_mes = sum(nf.valor_total for nf in nfes_mes if nf.tipo == TIPO_NFE_ENTRADA)
+    try:
+        # Orçamento Mensal - Calculado por parcelas (ContaPagar) com vencimento no mês
+        hoje = date.today()
+        orcamento_mes = _buscar_orcamento(propriedade, None, hoje)
+        valor_orcamento_mes = Decimal('0.00')
+        valor_comprometido_mes = Decimal('0.00')
+        saldo_disponivel_mes = Decimal('0.00')
+        percentual_utilizado_mes = 0
+        
+        if orcamento_mes:
+            try:
+                valor_orcamento_mes = orcamento_mes.total_limite
+                valor_comprometido_mes = orcamento_mes.valor_utilizado()
+                saldo_disponivel_mes = orcamento_mes.saldo_disponivel()
+                percentual_utilizado_mes = orcamento_mes.percentual_utilizado()
+            except Exception as e:
+                logger.warning(f'Erro ao calcular valores do orçamento: {e}')
+    except Exception as e:
+        logger.warning(f'Erro ao buscar orçamento: {e}')
+        orcamento_mes = None
+        valor_orcamento_mes = Decimal('0.00')
+        valor_comprometido_mes = Decimal('0.00')
+        saldo_disponivel_mes = Decimal('0.00')
+        percentual_utilizado_mes = 0
     
-    # Orçamento Mensal - Calculado por parcelas (ContaPagar) com vencimento no mês
-    hoje = date.today()
-    orcamento_mes = _buscar_orcamento(propriedade, None, hoje)
-    valor_orcamento_mes = Decimal('0.00')
-    valor_comprometido_mes = Decimal('0.00')
-    saldo_disponivel_mes = Decimal('0.00')
-    percentual_utilizado_mes = 0
-    
-    if orcamento_mes:
-        valor_orcamento_mes = orcamento_mes.total_limite
-        valor_comprometido_mes = orcamento_mes.valor_utilizado()
-        saldo_disponivel_mes = orcamento_mes.saldo_disponivel()
-        percentual_utilizado_mes = orcamento_mes.percentual_utilizado()
-    
-    # Estatísticas
-    nfes_pendentes = NotaFiscal.objects.filter(
-        propriedade=propriedade,
-        status='PENDENTE'
-    ).select_related('fornecedor').count()
+    try:
+        # Estatísticas
+        nfes_pendentes = NotaFiscal.objects.filter(
+            propriedade=propriedade,
+            status='PENDENTE'
+        ).select_related('fornecedor').count()
+    except Exception as e:
+        logger.warning(f'Erro ao buscar NFes pendentes: {e}')
+        nfes_pendentes = 0
 
-    setores = SetorPropriedade.objects.filter(propriedade=propriedade)
-    total_setores = setores.count()
-    setores_inativos = setores.filter(ativo=False).count()
-    setores_sem_responsavel = setores.filter(responsavel__isnull=True).count()
+    try:
+        setores = SetorPropriedade.objects.filter(propriedade=propriedade)
+        total_setores = setores.count()
+        # Nota: O modelo SetorPropriedade não possui campos 'ativo' e 'responsavel'
+        setores_inativos = 0
+        setores_sem_responsavel = 0
+    except Exception as e:
+        logger.warning(f'Erro ao buscar setores: {e}')
+        total_setores = 0
+        setores_inativos = 0
+        setores_sem_responsavel = 0
     
-    convites_queryset = ConviteCotacaoFornecedor.objects.filter(
-        requisicao__propriedade=propriedade
-    )
-    timezone_now = timezone.now()
-    convites_abertos = convites_queryset.filter(status='ENVIADO').count()
-    convites_respondidos = convites_queryset.filter(status='RESPONDIDO').count()
-    convites_expirados = convites_queryset.filter(status='EXPIRADO').count()
-    convites_expirando = convites_queryset.filter(
-        status='ENVIADO',
-        data_expiracao__isnull=False,
-        data_expiracao__gt=timezone_now,
-        data_expiracao__lte=timezone_now + timedelta(days=2),
-    ).count()
-    convites_total = convites_queryset.count()
+    try:
+        convites_queryset = ConviteCotacaoFornecedor.objects.filter(
+            requisicao__propriedade=propriedade
+        )
+        timezone_now = timezone.now()
+        convites_abertos = convites_queryset.filter(status='ENVIADO').count()
+        convites_respondidos = convites_queryset.filter(status='RESPONDIDO').count()
+        convites_expirados = convites_queryset.filter(status='EXPIRADO').count()
+        convites_expirando = convites_queryset.filter(
+            status='ENVIADO',
+            data_expiracao__isnull=False,
+            data_expiracao__gt=timezone_now,
+            data_expiracao__lte=timezone_now + timedelta(days=2),
+        ).count()
+        convites_total = convites_queryset.count()
+    except Exception as e:
+        logger.warning(f'Erro ao buscar convites: {e}')
+        convites_abertos = 0
+        convites_respondidos = 0
+        convites_expirados = 0
+        convites_expirando = 0
+        convites_total = 0
 
-    requisicoes_pendentes = RequisicaoCompra.objects.filter(
-        propriedade=propriedade,
-        status__in=['ENVIADA', 'APROVADA_GERENCIA', 'EM_COTACAO', 'AGUARDANDO_APROVACAO_COMPRAS'],
-    ).count()
-    ordens_autorizacao_pendente = OrdemCompra.objects.filter(
-        propriedade=propriedade,
-        autorizacao_setor_status='PENDENTE',
-    ).count()
+    try:
+        requisicoes_pendentes = RequisicaoCompra.objects.filter(
+            propriedade=propriedade,
+            status__in=['ENVIADA', 'APROVADA_GERENCIA', 'EM_COTACAO', 'AGUARDANDO_APROVACAO_COMPRAS'],
+        ).count()
+        ordens_autorizacao_pendente = OrdemCompra.objects.filter(
+            propriedade=propriedade,
+            autorizacao_setor_status='PENDENTE',
+        ).count()
+    except Exception as e:
+        logger.warning(f'Erro ao buscar requisições e ordens: {e}')
+        requisicoes_pendentes = 0
+        ordens_autorizacao_pendente = 0
     
-    # Cotações recebidas
-    cotacoes_recebidas = CotacaoFornecedor.objects.filter(
-        requisicao__propriedade=propriedade,
-        status='RECEBIDA'
-    ).count()
+    try:
+        # Cotações recebidas
+        cotacoes_recebidas = CotacaoFornecedor.objects.filter(
+            requisicao__propriedade=propriedade,
+            status='RECEBIDA'
+        ).count()
+    except Exception as e:
+        logger.warning(f'Erro ao buscar cotações: {e}')
+        cotacoes_recebidas = 0
     
     context = {
         'propriedade': propriedade,
@@ -792,9 +863,9 @@ def setores_compra_lista(request, propriedade_id):
 
     setores = SetorPropriedade.objects.filter(
         propriedade=propriedade
-    ).select_related('responsavel')
-    if not mostrar_inativos:
-        setores = setores.filter(ativo=True)
+    )
+    # Nota: O modelo SetorPropriedade não possui campos 'ativo' e 'responsavel'
+    # A filtragem de inativos foi removida
 
     setores = setores.annotate(
         total_requisicoes=Count('requisicoes', distinct=True)
