@@ -44,12 +44,33 @@ jobs:
           IMAGE_LATEST="${IMAGE_NAME}:latest"
           
           echo "🔨 Building image: $IMAGE_TAG"
-          gcloud builds submit \
-            --tag $IMAGE_TAG \
-            --tag $IMAGE_LATEST \
-            --timeout=1800s \
-            --machine-type=E2_HIGHCPU_8 \
-            .
+          
+          # Tentar build com retry em caso de quota excedida
+          MAX_RETRIES=3
+          RETRY_DELAY=30
+          
+          for i in $(seq 1 $MAX_RETRIES); do
+            echo "Tentativa $i de $MAX_RETRIES..."
+            
+            if gcloud builds submit \
+              --tag $IMAGE_TAG \
+              --tag $IMAGE_LATEST \
+              --timeout=1800s \
+              --machine-type=E2_HIGHCPU_8 \
+              .; then
+              echo "✅ Build concluído com sucesso!"
+              break
+            else
+              if [ $i -lt $MAX_RETRIES ]; then
+                echo "⚠️ Build falhou. Aguardando $RETRY_DELAY segundos antes de tentar novamente..."
+                sleep $RETRY_DELAY
+              else
+                echo "❌ Build falhou após $MAX_RETRIES tentativas"
+                echo "💡 Se o erro foi de quota, aguarde alguns minutos e tente novamente"
+                exit 1
+              fi
+            fi
+          done
           
           echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
           echo "IMAGE_LATEST=$IMAGE_LATEST" >> $GITHUB_ENV
