@@ -68,30 +68,55 @@ jobs:
           echo "Aguardando conclusão do build..."
           echo "Você pode acompanhar em: https://console.cloud.google.com/cloud-build/builds/$BUILD_ID?project=${PROJECT_ID}"
           
-          # Aguardar build completar (até 30 minutos)
-          MAX_WAIT=1800
+          # Aguardar build completar (até 35 minutos, já que o build tem timeout de 1800s = 30min)
+          MAX_WAIT=2100
           ELAPSED=0
+          LAST_STATUS=""
           
           while [ $ELAPSED -lt $MAX_WAIT ]; do
             STATUS=$(gcloud builds describe $BUILD_ID --format="value(status)" 2>/dev/null || echo "UNKNOWN")
             
-            if [ "$STATUS" = "SUCCESS" ]; then
-              echo "✅ Build concluído com sucesso!"
-              break
-            elif [ "$STATUS" = "FAILURE" ] || [ "$STATUS" = "CANCELLED" ] || [ "$STATUS" = "EXPIRED" ]; then
-              echo "❌ Build falhou com status: $STATUS"
-              echo "Verifique os logs em: https://console.cloud.google.com/cloud-build/builds/$BUILD_ID?project=${PROJECT_ID}"
-              exit 1
-            elif [ "$STATUS" != "UNKNOWN" ]; then
-              echo "Build em progresso... Status: $STATUS (${ELAPSED}s)"
+            # Log apenas quando status mudar
+            if [ "$STATUS" != "$LAST_STATUS" ]; then
+              echo "Status do build: $STATUS (${ELAPSED}s)"
+              LAST_STATUS=$STATUS
             fi
+            
+            case "$STATUS" in
+              "SUCCESS")
+                echo "✅ Build concluído com sucesso!"
+                break
+                ;;
+              "FAILURE"|"CANCELLED"|"EXPIRED"|"TIMEOUT")
+                echo "❌ Build falhou com status: $STATUS"
+                echo "🔍 Obtendo informações do build..."
+                gcloud builds describe $BUILD_ID --format="yaml" 2>/dev/null | head -50 || true
+                echo ""
+                echo "Verifique os logs completos em: https://console.cloud.google.com/cloud-build/builds/$BUILD_ID?project=${PROJECT_ID}"
+                exit 1
+                ;;
+              "WORKING"|"QUEUED")
+                # Build ainda em progresso
+                if [ $((ELAPSED % 60)) -eq 0 ]; then
+                  echo "⏳ Build ainda em progresso... (${ELAPSED}s)"
+                fi
+                ;;
+              "UNKNOWN")
+                echo "⚠️ Status desconhecido, tentando novamente..."
+                ;;
+            esac
             
             sleep 10
             ELAPSED=$((ELAPSED + 10))
           done
           
-          if [ "$STATUS" != "SUCCESS" ]; then
-            echo "❌ Timeout aguardando build completar"
+          # Verificar status final
+          FINAL_STATUS=$(gcloud builds describe $BUILD_ID --format="value(status)" 2>/dev/null || echo "UNKNOWN")
+          if [ "$FINAL_STATUS" != "SUCCESS" ]; then
+            echo "❌ Timeout ou falha aguardando build completar"
+            echo "Status final: $FINAL_STATUS"
+            echo "Tempo decorrido: ${ELAPSED}s"
+            echo "Verifique os logs em: https://console.cloud.google.com/cloud-build/builds/$BUILD_ID?project=${PROJECT_ID}"
             exit 1
           fi
           
