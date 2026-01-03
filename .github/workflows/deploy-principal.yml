@@ -52,22 +52,69 @@ jobs:
           for i in $(seq 1 $MAX_RETRIES); do
             echo "Tentativa $i de $MAX_RETRIES..."
             
-            if gcloud builds submit \
+            # Executar build de forma assíncrona e verificar status
+            BUILD_ID=$(gcloud builds submit \
               --tag $IMAGE_TAG \
               --tag $IMAGE_LATEST \
               --timeout=1800s \
               --machine-type=E2_HIGHCPU_8 \
-              .; then
-              echo "✅ Build concluído com sucesso!"
-              break
-            else
-              if [ $i -lt $MAX_RETRIES ]; then
-                echo "⚠️ Build falhou. Aguardando $RETRY_DELAY segundos antes de tentar novamente..."
-                sleep $RETRY_DELAY
+              --format="value(id)" \
+              --async \
+              . 2>&1 | grep -oP 'builds/\K[^/]+' || echo "")
+            
+            if [ -z "$BUILD_ID" ]; then
+              # Se não conseguiu criar build assíncrono, tenta síncrono sem stream
+              echo "Tentando build síncrono..."
+              if gcloud builds submit \
+                --tag $IMAGE_TAG \
+                --tag $IMAGE_LATEST \
+                --timeout=1800s \
+                --machine-type=E2_HIGHCPU_8 \
+                --quiet \
+                .; then
+                echo "✅ Build concluído com sucesso!"
+                break
               else
-                echo "❌ Build falhou após $MAX_RETRIES tentativas"
-                echo "💡 Se o erro foi de quota, aguarde alguns minutos e tente novamente"
-                exit 1
+                if [ $i -lt $MAX_RETRIES ]; then
+                  echo "⚠️ Build falhou. Aguardando $RETRY_DELAY segundos antes de tentar novamente..."
+                  sleep $RETRY_DELAY
+                else
+                  echo "❌ Build falhou após $MAX_RETRIES tentativas"
+                  exit 1
+                fi
+              fi
+            else
+              echo "Build iniciado com ID: $BUILD_ID"
+              echo "Aguardando conclusão do build..."
+              
+              # Aguardar build completar
+              for j in {1..1800}; do
+                STATUS=$(gcloud builds describe $BUILD_ID --format="value(status)" 2>/dev/null || echo "UNKNOWN")
+                
+                if [ "$STATUS" = "SUCCESS" ]; then
+                  echo "✅ Build concluído com sucesso!"
+                  break
+                elif [ "$STATUS" = "FAILURE" ] || [ "$STATUS" = "CANCELLED" ] || [ "$STATUS" = "EXPIRED" ]; then
+                  echo "❌ Build falhou com status: $STATUS"
+                  if [ $i -lt $MAX_RETRIES ]; then
+                    echo "⚠️ Aguardando $RETRY_DELAY segundos antes de tentar novamente..."
+                    sleep $RETRY_DELAY
+                    break
+                  else
+                    echo "❌ Build falhou após $MAX_RETRIES tentativas"
+                    exit 1
+                  fi
+                elif [ "$STATUS" = "UNKNOWN" ]; then
+                  echo "⚠️ Status do build não disponível, tentando build síncrono..."
+                  break
+                else
+                  echo "Build em progresso... Status: $STATUS (${j}s)"
+                  sleep 5
+                fi
+              done
+              
+              if [ "$STATUS" = "SUCCESS" ]; then
+                break
               fi
             fi
           done
