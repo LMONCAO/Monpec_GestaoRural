@@ -1,0 +1,49 @@
+========================================
+COMANDO RÁPIDO PARA EXECUTAR NO CLOUD SHELL
+========================================
+
+Execute estes comandos na sequência:
+
+# 1. Navegar até o projeto
+cd ~/Monpec_GestaoRural
+
+# 2. Verificar se está no lugar certo
+ls manage.py Dockerfile.prod
+
+# 3. Executar o script corrigido
+bash ~/DEPLOY_CORRECOES_DEMO.sh
+
+========================================
+OU EXECUTE DIRETAMENTE OS COMANDOS:
+========================================
+
+cd ~/Monpec_GestaoRural
+
+PROJECT_ID="monpec-sistema-rural"
+SERVICE_NAME="monpec"
+REGION="us-central1"
+IMAGE_NAME="gcr.io/$PROJECT_ID/sistema-rural"
+CLOUD_SQL_CONN="$PROJECT_ID:$REGION:monpec-db"
+SECRET_KEY="django-insecure-monpec-sistema-rural-2025-producao-segura-L6171r12@@-YrJOs823th_HB2BP6Uz9A0NVvzL0Fif-t-Rfub5BXgVtE0LxXIWEPQIFqYvI8UNiZKE"
+DB_PASSWORD="L6171r12@@jjms"
+DJANGO_SUPERUSER_PASSWORD="L6171r12@@"
+
+# Build
+gcloud builds submit --tag $IMAGE_NAME:latest --timeout=1800s .
+
+# Deploy
+gcloud run deploy $SERVICE_NAME \
+    --image $IMAGE_NAME:latest \
+    --region=$REGION \
+    --platform managed \
+    --allow-unauthenticated \
+    --add-cloudsql-instances=$CLOUD_SQL_CONN \
+    --set-env-vars "DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,DEBUG=False,SECRET_KEY=$SECRET_KEY,CLOUD_SQL_CONNECTION_NAME=$CLOUD_SQL_CONN,DB_NAME=monpec_db,DB_USER=monpec_user,DB_PASSWORD=$DB_PASSWORD,DJANGO_SUPERUSER_PASSWORD=$DJANGO_SUPERUSER_PASSWORD,GOOGLE_CLOUD_PROJECT=$PROJECT_ID,DEMO_USER_PASSWORD=monpec" \
+    --memory=2Gi \
+    --cpu=2 \
+    --timeout=600 \
+    --max-instances=10 \
+    --min-instances=0
+
+========================================
+

@@ -1,0 +1,217 @@
+{% extends "base_modulos_unificado.html" %}
+{% load formatacao_br %}
+
+{% block title %}Animal {{ animal.numero_brinco }} - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'rastreabilidade_dashboard' propriedade.id %}">Rastreabilidade</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'animais_individuais_lista' propriedade.id %}">Animais</a></li>
+            <li class="breadcrumb-item active">{{ animal.numero_brinco }}</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+        <div>
+            <h2 class="mb-0"><i class="bi bi-cow text-primary me-2"></i>{{ animal.numero_brinco }}</h2>
+            <small class="text-muted">Registro oficial PNIB/SISBOV</small>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{% url 'movimentacao_individual_nova' propriedade.id animal.id %}" class="btn btn-success">
+                <i class="bi bi-arrows-move me-1"></i>Registrar Movimentação
+            </a>
+            <a href="{% url 'animal_individual_editar' propriedade.id animal.id %}" class="btn btn-outline-secondary">
+                <i class="bi bi-pencil me-1"></i>Editar Cadastro
+            </a>
+            <a href="{% url 'animais_individuais_lista' propriedade.id %}" class="btn btn-outline-secondary">
+                Voltar
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-4">
+            <div class="card h-100">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0"><i class="bi bi-card-list me-2"></i>Identificação Oficial</h6>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0 small">
+                        <dt class="col-sm-5">Brinco</dt>
+                        <dd class="col-sm-7 fw-semibold">{{ animal.numero_brinco }}</dd>
+
+                        <dt class="col-sm-5">Código SISBOV</dt>
+                        <dd class="col-sm-7">{{ animal.codigo_sisbov|default:"-" }}</dd>
+
+                        <dt class="col-sm-5">Código Eletrônico</dt>
+                        <dd class="col-sm-7">{{ animal.codigo_eletronico|default:"-" }}</dd>
+
+                        <dt class="col-sm-5">Tipo de Brinco</dt>
+                        <dd class="col-sm-7">{{ animal.get_tipo_brinco_display }}</dd>
+
+                        <dt class="col-sm-5">Categoria SISBOV</dt>
+                        <dd class="col-sm-7">{{ animal.categoria.nome }}</dd>
+
+                        <dt class="col-sm-5">Sexo</dt>
+                        <dd class="col-sm-7">{% if animal.sexo == 'F' %}Fêmea{% else %}Macho{% endif %}</dd>
+
+                        <dt class="col-sm-5">Data Identificação</dt>
+                        <dd class="col-sm-7">{{ animal.data_identificacao|date:"d/m/Y"|default:"-" }}</dd>
+
+                        <dt class="col-sm-5">Data Nascimento</dt>
+                        <dd class="col-sm-7">{{ animal.data_nascimento|date:"d/m/Y"|default:"-" }}</dd>
+
+                        <dt class="col-sm-5">Idade</dt>
+                        <dd class="col-sm-7">
+                            {% if animal.idade_anos %}
+                                {{ animal.idade_anos }} ano(s)
+                            {% elif animal.idade_meses %}
+                                {{ animal.idade_meses }} mês(es)
+                            {% else %}-{% endif %}
+                        </dd>
+
+                        <dt class="col-sm-5">Peso Atual</dt>
+                        <dd class="col-sm-7">{{ animal.peso_atual_kg|numero_br:1|default:"-" }} kg</dd>
+
+                        <dt class="col-sm-5">Raça</dt>
+                        <dd class="col-sm-7">{{ animal.raca|default:"-" }}</dd>
+
+                        <dt class="col-sm-5">Status SISBOV</dt>
+                        <dd class="col-sm-7">
+                            <span class="badge bg-{% if animal.status == 'ATIVO' %}success{% elif animal.status == 'VENDIDO' %}warning{% elif animal.status == 'MORTO' %}danger{% elif animal.status == 'TRANSFERIDO' %}primary{% else %}secondary{% endif %}">
+                                {{ animal.get_status_display }}
+                            </span>
+                        </dd>
+
+                        <dt class="col-sm-5">Status Sanitário</dt>
+                        <dd class="col-sm-7">
+                            <span class="badge bg-{% if animal.status_sanitario == 'APTO' %}success{% elif animal.status_sanitario == 'QUARENTENA' %}warning{% elif animal.status_sanitario == 'POSITIVO' %}danger{% else %}secondary{% endif %}">
+                                {{ animal.get_status_sanitario_display }}
+                            </span>
+                        </dd>
+
+                        <dt class="col-sm-5">Propriedade Atual</dt>
+                        <dd class="col-sm-7">{{ propriedade.nome_propriedade }}</dd>
+
+                        <dt class="col-sm-5">Origem</dt>
+                        <dd class="col-sm-7">{{ animal.propriedade_origem.nome_propriedade|default:"Cadastro local" }}</dd>
+
+                        <dt class="col-sm-5">Lote Atual</dt>
+                        <dd class="col-sm-7">
+                            {% if animal.lote_atual %}
+                                {{ animal.lote_atual.nome }}
+                                <div class="small text-muted">{{ animal.lote_atual.sessao.nome }}</div>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </dd>
+
+                        <dt class="col-sm-5">Data de Saída</dt>
+                        <dd class="col-sm-7">{{ animal.data_saida|date:"d/m/Y"|default:"-" }}</dd>
+
+                        <dt class="col-sm-5">Motivo da Saída</dt>
+                        <dd class="col-sm-7">{{ animal.motivo_saida|default:"-" }}</dd>
+
+                        <dt class="col-sm-5">Responsável Técnico</dt>
+                        <dd class="col-sm-7">
+                            {% if animal.responsavel_tecnico %}
+                                {{ animal.responsavel_tecnico.get_full_name|default:animal.responsavel_tecnico.username }}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </dd>
+
+                        <dt class="col-sm-5">Observações</dt>
+                        <dd class="col-sm-7">{{ animal.observacoes|default:"-" }}</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="card h-100">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0"><i class="bi bi-clock-history me-2"></i>Histórico de Movimentações</h6>
+                    <span class="badge bg-primary">{{ movimentacoes.count }} registros</span>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Tipo</th>
+                                    <th>Origem / Destino</th>
+                                    <th>Categoria</th>
+                                    <th>Qtd</th>
+                                    <th>Peso (kg)</th>
+                                    <th>Documento</th>
+                                    <th>Responsável</th>
+                                    <th>Observações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for mov in movimentacoes %}
+                                <tr>
+                                    <td>{{ mov.data_movimentacao|date:"d/m/Y" }}</td>
+                                    <td><span class="badge bg-secondary">{{ mov.get_tipo_movimentacao_display }}</span></td>
+                                    <td>
+                                        {% if mov.propriedade_origem %}
+                                            <div class="small">Origem: {{ mov.propriedade_origem.nome_propriedade }}</div>
+                                        {% endif %}
+                                        {% if mov.propriedade_destino %}
+                                            <div class="small">Destino: {{ mov.propriedade_destino.nome_propriedade }}</div>
+                                        {% endif %}
+                                        {% if not mov.propriedade_origem and not mov.propriedade_destino %}
+                                            <span class="text-muted small">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if mov.categoria_anterior %}
+                                            <div class="small text-muted">De: {{ mov.categoria_anterior.nome }}</div>
+                                        {% endif %}
+                                        {% if mov.categoria_nova %}
+                                            <div class="small">Para: {{ mov.categoria_nova.nome }}</div>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ mov.quantidade_animais }}</td>
+                                    <td>{{ mov.peso_kg|numero_br:1|default:"-" }}</td>
+                                    <td>
+                                        <div>{% if mov.numero_documento %}<strong>Nº Doc:</strong> {{ mov.numero_documento }}{% else %}<em>Documento não informado</em>{% endif %}</div>
+                                        <div>{% if mov.documento_emissor %}<strong>Emissor:</strong> {{ mov.documento_emissor }}{% endif %}</div>
+                                        <div>{% if mov.data_documento %}<strong>Data:</strong> {{ mov.data_documento|date:'d/m/Y' }}{% endif %}</div>
+                                    </td>
+                                    <td>
+                                        {% if mov.responsavel %}
+                                            {{ mov.responsavel.get_full_name|default:mov.responsavel.username }}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="small text-muted">{{ mov.motivo_detalhado|default:"-" }}</div>
+                                        <div class="small">{{ mov.observacoes|default:"-" }}</div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="10" class="text-center text-muted py-4">Nenhuma movimentação registrada.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="alert alert-info small mb-0">
+                        <i class="bi bi-info-circle me-1"></i>Guarde os documentos comprobatórios (GTA, Nota Fiscal, laudos) vinculados a cada movimentação para auditorias SISBOV.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

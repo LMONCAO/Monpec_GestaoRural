@@ -1,0 +1,258 @@
+{% extends "base_modulos_unificado.html" %}
+{% load formatacao_br %}
+
+{% block title %}Operações - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item active">Operações</li>
+        </ol>
+    </nav>
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1"><i class="bi bi-gear text-secondary me-2"></i>Operações e Manutenção</h2>
+            <p class="text-muted mb-0">{{ propriedade.nome_propriedade }}</p>
+        </div>
+        <div>
+            <a href="{% url 'configuracoes_modulo' propriedade.id 'operacoes' %}" class="btn btn-outline-secondary btn-sm" title="Configurações do Módulo">
+                <i class="bi bi-gear me-1"></i>Configurações
+            </a>
+        </div>
+    </div>
+
+    <!-- Cards de Estatísticas -->
+    <div class="row mb-4">
+        <!-- Combustível -->
+        <div class="col-md-3 mb-3">
+            <div class="card border h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Estoque Combustível</h6>
+                            <h3 class="mb-0">{{ estoque_total_combustivel|numero_br:2 }}L</h3>
+                        </div>
+                        <div class="text-warning">
+                            <i class="bi bi-fuel-pump fs-1"></i>
+                        </div>
+                    </div>
+                    <p class="text-muted small mb-0 mt-2">Consumo Mês: {{ total_consumo_mes|numero_br:2 }}L</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Manutenção -->
+        <div class="col-md-3 mb-3">
+            <div class="card border h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Manutenções Pendentes</h6>
+                            <h3 class="mb-0">{{ manutencoes_pendentes|numero_br }}</h3>
+                        </div>
+                        <div class="text-danger">
+                            <i class="bi bi-tools fs-1"></i>
+                        </div>
+                    </div>
+                    <p class="text-muted small mb-0 mt-2">Equipamentos: {{ equipamentos|length }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Funcionários -->
+        <div class="col-md-3 mb-3">
+            <div class="card border h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Funcionários Ativos</h6>
+                            <h3 class="mb-0">{{ funcionarios_ativos|numero_br }}</h3>
+                        </div>
+                        <div class="text-info">
+                            <i class="bi bi-people fs-1"></i>
+                        </div>
+                    </div>
+                    <p class="text-muted small mb-0 mt-2">Folha: {{ folha_mensal|moeda_br }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Empreiteiros -->
+        <div class="col-md-3 mb-3">
+            <div class="card border h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Serviços Ativos</h6>
+                            <h3 class="mb-0">{{ servicos_ativos|numero_br }}</h3>
+                        </div>
+                        <div class="text-primary">
+                            <i class="bi bi-briefcase fs-1"></i>
+                        </div>
+                    </div>
+                    <p class="text-muted small mb-0 mt-2">Empreiteiros</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Seções -->
+    <div class="row">
+        <!-- Combustível -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="bi bi-fuel-pump me-2"></i>Combustível</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span><strong>Estoque Total:</strong></span>
+                            <span>{{ estoque_total_combustivel|numero_br:2 }} litros</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span><strong>Consumo do Mês:</strong></span>
+                            <span>{{ total_consumo_mes|numero_br:2 }} litros</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span><strong>Valor Consumido:</strong></span>
+                            <span class="text-danger">{{ valor_consumo_mes|moeda_br }}</span>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <a href="{% url 'combustivel_lista' propriedade.id %}" class="btn btn-warning btn-sm">
+                            <i class="bi bi-list-ul me-1"></i>Ver Tanques
+                        </a>
+                        <a href="{% url 'consumo_combustivel_novo' propriedade.id %}" class="btn btn-outline-warning btn-sm">
+                            <i class="bi bi-plus-circle me-1"></i>Registrar Consumo
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Manutenção -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="bi bi-tools me-2"></i>Manutenção</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span><strong>Equipamentos:</strong></span>
+                            <span>{{ equipamentos|length }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span><strong>Manutenções Pendentes:</strong></span>
+                            <span class="badge bg-danger">{{ manutencoes_pendentes }}</span>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <a href="{% url 'equipamentos_lista' propriedade.id %}" class="btn btn-danger btn-sm">
+                            <i class="bi bi-list-ul me-1"></i>Ver Equipamentos
+                        </a>
+                        <a href="{% url 'manutencao_nova' propriedade.id %}" class="btn btn-outline-danger btn-sm">
+                            <i class="bi bi-plus-circle me-1"></i>Nova Manutenção
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Funcionários -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="bi bi-people me-2"></i>Funcionários</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span><strong>Funcionários Ativos:</strong></span>
+                            <span>{{ funcionarios_ativos }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span><strong>Folha Mensal:</strong></span>
+                            <span class="text-info"><strong>{{ folha_mensal|moeda_br }}</strong></span>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <a href="{% url 'funcionarios_dashboard' propriedade.id %}" class="btn btn-info btn-sm">
+                            <i class="bi bi-graph-up me-1"></i>Dashboard
+                        </a>
+                        <a href="{% url 'funcionarios_lista' propriedade.id %}" class="btn btn-outline-info btn-sm">
+                            <i class="bi bi-list-ul me-1"></i>Ver Funcionários
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Empreiteiros -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-briefcase me-2"></i>Empreiteiros</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span><strong>Serviços Ativos:</strong></span>
+                            <span class="badge bg-primary">{{ servicos_ativos }}</span>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <a href="{% url 'operacoes_dashboard' propriedade.id %}" class="btn btn-primary btn-sm">
+                            <i class="bi bi-list-ul me-1"></i>Ver Serviços
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ações Rápidas -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-lightning-charge me-2"></i>Ações Rápidas</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-2">
+                            <a href="{% url 'consumo_combustivel_novo' propriedade.id %}" class="btn btn-warning w-100">
+                                <i class="bi bi-fuel-pump me-1"></i>Consumo Combustível
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <a href="{% url 'manutencao_nova' propriedade.id %}" class="btn btn-danger w-100">
+                                <i class="bi bi-tools me-1"></i>Nova Manutenção
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <a href="{% url 'funcionario_novo' propriedade.id %}" class="btn btn-info w-100">
+                                <i class="bi bi-person-plus me-1"></i>Novo Funcionário
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <a href="{% url 'folha_pagamento_processar' propriedade.id %}" class="btn btn-outline-info w-100">
+                                <i class="bi bi-file-earmark-text me-1"></i>Processar Folha
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+

@@ -1,0 +1,130 @@
+{% extends "base_modulos_unificado.html" %}
+
+{% block title %}Requisições de Compra - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'compras_dashboard' propriedade.id %}">Compras</a></li>
+            <li class="breadcrumb-item active">Requisições</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
+        <div>
+            <h2 class="mb-0"><i class="bi bi-clipboard-check text-primary me-2"></i>Requisições de Compra</h2>
+            <small class="text-muted">Acompanhe todas as solicitações de compra da fazenda</small>
+        </div>
+        <a href="{% url 'requisicao_compra_nova' propriedade.id %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle me-1"></i>Nova Requisição
+        </a>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-4 col-sm-6">
+                    <label class="form-label text-muted small mb-1">Filtrar por status</label>
+                    <select name="status" class="form-select">
+                        <option value="">Todos</option>
+                        {% for codigo, nome in status_choices %}
+                        <option value="{{ codigo }}" {% if status_filtro == codigo %}selected{% endif %}>{{ nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2 col-sm-3">
+                    <button type="submit" class="btn btn-outline-primary w-100">
+                        <i class="bi bi-funnel me-1"></i>Aplicar
+                    </button>
+                </div>
+                {% if status_filtro %}
+                <div class="col-md-2 col-sm-3">
+                    <a href="{% url 'requisicoes_compra_lista' propriedade.id %}" class="btn btn-light w-100">
+                        Limpar
+                    </a>
+                </div>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>#</th>
+                            <th>Título</th>
+                            <th>Criada em</th>
+                            <th>Solicitante</th>
+                            <th>Prioridade</th>
+                            <th>Status</th>
+                            <th class="text-end">Total Estimado (R$)</th>
+                            <th class="text-center">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for requisicao in requisicoes %}
+                        <tr>
+                            <td><span class="fw-semibold">{{ requisicao.numero }}</span></td>
+                            <td>
+                                <strong>{{ requisicao.titulo }}</strong>
+                                {% if requisicao.setor %}
+                                <div class="small text-muted">Setor: {{ requisicao.setor.nome }}</div>
+                                {% endif %}
+                                {% if requisicao.equipamento %}
+                                <div class="small text-muted">Equip.: {{ requisicao.equipamento.nome }}</div>
+                                {% endif %}
+                                {% if requisicao.centro_custo_display %}
+                                <div class="small text-muted">Centro custo: {{ requisicao.centro_custo_display }}</div>
+                                {% endif %}
+                                {% if requisicao.plano_conta %}
+                                <div class="small text-muted">Plano conta: {{ requisicao.plano_conta }}</div>
+                                {% endif %}
+                            </td>
+                            <td>{{ requisicao.criado_em|date:"d/m/Y H:i" }}</td>
+                            <td>{{ requisicao.solicitante.get_full_name|default:requisicao.solicitante.username }}</td>
+                            <td>
+                                <span class="badge bg-{% if requisicao.prioridade == 'URGENTE' %}danger{% elif requisicao.prioridade == 'ALTA' %}warning text-dark{% elif requisicao.prioridade == 'MEDIA' %}primary{% else %}secondary{% endif %}">
+                                    {{ requisicao.get_prioridade_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge rounded-pill bg-light text-dark border">
+                                    {{ requisicao.get_status_display }}
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                R$ {{ requisicao.total_estimado|floatformat:2 }}
+                            </td>
+                            <td class="text-center">
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="{% url 'requisicao_compra_detalhes' propriedade.id requisicao.id %}" class="btn btn-outline-primary">
+                                        Ver detalhes
+                                    </a>
+                                    {% if requisicao.status == 'APROVADA_COMPRAS' %}
+                                    <a href="{% url 'ordem_compra_nova' propriedade.id %}?requisicao={{ requisicao.id }}" class="btn btn-outline-success">
+                                        Emitir OC
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-4">
+                                Nenhuma requisição lançada até o momento.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

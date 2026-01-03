@@ -1,0 +1,424 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}IA Avançada - Parâmetros Pecuária{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-robot text-primary"></i> IA Avançada - Análise de Fazenda</h2>
+                <a href="{% url 'pecuaria_inventario' propriedade.id %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> Voltar ao Inventário
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card Principal da IA -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4><i class="fas fa-brain"></i> Sistema de Inteligência Artificial para Pecuária</h4>
+                    <p class="mb-0">Análise inteligente do perfil da sua fazenda e projeção otimizada</p>
+                </div>
+                <div class="card-body">
+                    <!-- Status da IA -->
+                    <div id="statusIA" class="alert alert-success">
+                        <i class="fas fa-check-circle"></i> IA pronta para análise
+                    </div>
+
+                    <!-- Botão de Análise -->
+                    <div class="text-center mb-4">
+                        <button id="btnIA" class="btn btn-primary btn-lg" onclick="detectarPerfilEConfigurar()">
+                            <i class="fas fa-robot"></i> Analisar Fazenda com IA
+                        </button>
+                    </div>
+
+                    <!-- Resultado da IA -->
+                    <div id="resultadoIA"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Informações sobre Perfis de Fazenda -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-info-circle"></i> Tipos de Fazendas Pecuárias</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-primary">
+                                <div class="card-header bg-primary text-white">
+                                    <h6><i class="fas fa-seedling"></i> Só Cria</h6>
+                                </div>
+                                <div class="card-body">
+                                    <p>Especializada na reprodução e venda de bezerros</p>
+                                    <ul class="list-unstyled">
+                                        <li><i class="fas fa-check text-success"></i> Foco em reprodução</li>
+                                        <li><i class="fas fa-check text-success"></i> Receita rápida</li>
+                                        <li><i class="fas fa-check text-success"></i> Baixo risco</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-success">
+                                <div class="card-header bg-success text-white">
+                                    <h6><i class="fas fa-chart-line"></i> Só Engorda</h6>
+                                </div>
+                                <div class="card-body">
+                                    <p>Compra animais para engorda e abate</p>
+                                    <ul class="list-unstyled">
+                                        <li><i class="fas fa-check text-success"></i> Rotação rápida</li>
+                                        <li><i class="fas fa-check text-success"></i> Alta produtividade</li>
+                                        <li><i class="fas fa-check text-success"></i> Foco em eficiência</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-warning">
+                                <div class="card-header bg-warning text-dark">
+                                    <h6><i class="fas fa-sync"></i> Ciclo Completo</h6>
+                                </div>
+                                <div class="card-body">
+                                    <p>Realiza todo o ciclo: cria, recria e engorda</p>
+                                    <ul class="list-unstyled">
+                                        <li><i class="fas fa-check text-success"></i> Diversificação</li>
+                                        <li><i class="fas fa-check text-success"></i> Controle total</li>
+                                        <li><i class="fas fa-check text-success"></i> Maior lucratividade</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-info">
+                                <div class="card-header bg-info text-white">
+                                    <h6><i class="fas fa-arrows-alt-h"></i> Só Recria</h6>
+                                </div>
+                                <div class="card-body">
+                                    <p>Compra bezerros e recria até idade de engorda</p>
+                                    <ul class="list-unstyled">
+                                        <li><i class="fas fa-check text-success"></i> Ganho de peso</li>
+                                        <li><i class="fas fa-check text-success"></i> Rotação média</li>
+                                        <li><i class="fas fa-check text-success"></i> Eficiência moderada</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-danger">
+                                <div class="card-header bg-danger text-white">
+                                    <h6><i class="fas fa-building"></i> Confinamento</h6>
+                                </div>
+                                <div class="card-body">
+                                    <p>Sistema intensivo de engorda</p>
+                                    <ul class="list-unstyled">
+                                        <li><i class="fas fa-check text-success"></i> Alta produtividade</li>
+                                        <li><i class="fas fa-check text-success"></i> Controle total</li>
+                                        <li><i class="fas fa-check text-success"></i> Investimento alto</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-secondary">
+                                <div class="card-header bg-secondary text-white">
+                                    <h6><i class="fas fa-link"></i> Recria + Engorda</h6>
+                                </div>
+                                <div class="card-body">
+                                    <p>Recria bezerros e engorda até abate</p>
+                                    <ul class="list-unstyled">
+                                        <li><i class="fas fa-check text-success"></i> Controle de qualidade</li>
+                                        <li><i class="fas fa-check text-success"></i> Receita diversificada</li>
+                                        <li><i class="fas fa-check text-success"></i> Eficiência média</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // IA Avançada para Projeção Pecuária
+    let iaAnalisando = false;
+    
+    // Simulação de dados do inventário (em produção, viria do backend)
+    function obterInventarioAtual() {
+        return {
+            'Multíparas (>36m)': 150,
+            'Primíparas (24-36m)': 80,
+            'Novilhas (12-24m)': 120,
+            'Bezerras (0-12m)': 90,
+            'Bezerros (0-12m)': 85,
+            'Garrotes (12-24m)': 110,
+            'Bois (24-36m)': 95,
+            'Bois Magros (24-36m)': 60,
+            'Touros': 8,
+            'Vacas de Descarte': 25
+        };
+    }
+    
+    // Função principal da IA
+    function detectarPerfilEConfigurar() {
+        if (iaAnalisando) return;
+        
+        iaAnalisando = true;
+        const btnIA = document.getElementById('btnIA');
+        const statusIA = document.getElementById('statusIA');
+        const resultadoIA = document.getElementById('resultadoIA');
+        
+        btnIA.disabled = true;
+        btnIA.innerHTML = '<i class="fas fa-spinner fa-spin"></i> IA Analisando...';
+        statusIA.innerHTML = 'IA analisando sua propriedade...';
+        statusIA.className = 'alert alert-info';
+        
+        try {
+            // Simular delay de análise
+            setTimeout(() => {
+                const inventario = obterInventarioAtual();
+                const totalAnimais = Object.values(inventario).reduce((a, b) => a + b, 0);
+                
+                // Análise avançada com perfis de fazenda
+                const analise = analisarPerfilFazenda(inventario, totalAnimais);
+                
+                // Mostrar resultado
+                mostrarResultadoAvancado(analise);
+                
+            }, 2000);
+            
+        } catch (error) {
+            console.error('Erro na IA:', error);
+            statusIA.innerHTML = 'Erro na análise. Tente novamente.';
+            statusIA.className = 'alert alert-danger';
+        } finally {
+            setTimeout(() => {
+                iaAnalisando = false;
+                btnIA.disabled = false;
+                btnIA.innerHTML = '<i class="fas fa-robot"></i> Analisar Fazenda com IA';
+                statusIA.innerHTML = 'IA pronta para análise';
+                statusIA.className = 'alert alert-success';
+            }, 3000);
+            }
+    }
+    
+    // Análise avançada de perfil de fazenda
+    function analisarPerfilFazenda(inventario, totalAnimais) {
+        // Calcular percentuais por categoria
+        const percentuais = {};
+        for (const [categoria, quantidade] of Object.entries(inventario)) {
+            percentuais[categoria] = quantidade / totalAnimais;
+        }
+        
+        // Detectar perfil baseado nos percentuais
+        let perfil = 'Ciclo Completo';
+        let descricao = 'Fazenda que realiza todo o ciclo pecuário: cria, recria e engorda';
+        let estrategia = 'Estratégia Balanceada';
+        let caracteristicas = [
+            'Mantém matrizes para reprodução',
+            'Recria bezerros até idade de abate',
+            'Engorda animais para mercado',
+            'Alta diversificação de receitas'
+        ];
+        
+        if (percentuais['Multíparas (>36m)'] > 0.4 && percentuais['Bezerros (0-12m)'] > 0.3) {
+            perfil = 'Fazenda Só Cria';
+            descricao = 'Fazenda especializada apenas na criação de bezerros';
+            estrategia = 'Foco em Reprodução';
+            caracteristicas = [
+                'Foco exclusivo na reprodução',
+                'Vende bezerros para outras fazendas',
+                'Baixo investimento em infraestrutura',
+                'Receita rápida e constante'
+            ];
+        } else if (percentuais['Bezerros (0-12m)'] > 0.4 && percentuais['Garrotes (12-24m)'] > 0.3) {
+            perfil = 'Fazenda Só Recria';
+            descricao = 'Fazenda que compra bezerros e os recria até idade de engorda';
+            estrategia = 'Foco em Recria';
+            caracteristicas = [
+                'Compra bezerros de fazendas de cria',
+                'Recria animais até 18-24 meses',
+                'Vende para fazendas de engorda',
+                'Foco em ganho de peso eficiente'
+            ];
+        } else if (percentuais['Garrotes (12-24m)'] > 0.4 && percentuais['Bois (24-36m)'] > 0.3) {
+            perfil = 'Fazenda Só Engorda';
+            descricao = 'Fazenda que compra animais para engorda e abate';
+            estrategia = 'Foco em Engorda';
+            caracteristicas = [
+                'Compra animais de 18-24 meses',
+                'Engorda até peso de abate',
+                'Foco em eficiência alimentar',
+                'Rotação rápida de capital'
+            ];
+        } else if (percentuais['Garrotes (12-24m)'] > 0.5 && percentuais['Bois (24-36m)'] > 0.4) {
+            perfil = 'Fazenda Confinamento';
+            descricao = 'Fazenda especializada em confinamento intensivo';
+            estrategia = 'Foco em Confinamento';
+            caracteristicas = [
+                'Sistema intensivo de engorda',
+                'Alta produtividade por hectare',
+                'Controle total da alimentação',
+                'Rotação rápida de animais'
+            ];
+        }
+        
+        // Calcular projeção financeira
+        const receitaAnual = totalAnimais * 2500; // R$ 2.500 por animal/ano
+        const despesaAnual = totalAnimais * 1800; // R$ 1.800 por animal/ano
+        const lucroAnual = receitaAnual - despesaAnual;
+        const margemLucro = (lucroAnual / receitaAnual) * 100;
+        
+        // Crescimento do rebanho
+        const crescimentoRebanho = 15; // 15% ao ano
+        
+        return {
+            perfil,
+            descricao,
+            estrategia,
+            caracteristicas,
+            inventario,
+            totalAnimais,
+            receitaAnual,
+            despesaAnual,
+            lucroAnual,
+            margemLucro,
+            crescimentoRebanho
+        };
+    }
+    
+    // Função para mostrar resultado avançado
+    function mostrarResultadoAvancado(analise) {
+        const resultadoIA = document.getElementById('resultadoIA');
+        
+        let html = `
+            <div class="card mt-3">
+                <div class="card-header bg-success text-white">
+                    <h5><i class="fas fa-check-circle"></i> Análise IA Concluída</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-warehouse"></i> Perfil Detectado</h6>
+                            <p><strong>${analise.perfil}</strong></p>
+                            <p><em>${analise.descricao}</em></p>
+                            
+                            <h6><i class="fas fa-cogs"></i> Características</h6>
+                            <ul class="list-unstyled">
+        `;
+        
+        for (const caracteristica of analise.caracteristicas) {
+            html += `<li><i class="fas fa-check text-success"></i> ${caracteristica}</li>`;
+        }
+        
+        html += `
+                            </ul>
+                            
+                            <h6><i class="fas fa-chart-bar"></i> Inventário Atual</h6>
+                            <p><strong>Total de Animais:</strong> ${analise.totalAnimais}</p>
+                            <ul class="list-unstyled">
+        `;
+        
+        for (const [categoria, quantidade] of Object.entries(analise.inventario)) {
+            if (quantidade > 0) {
+                html += `<li><i class="fas fa-cow"></i> ${categoria}: ${quantidade}</li>`;
+            }
+        }
+        
+        html += `
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-chart-line"></i> Projeção Financeira Anual</h6>
+                            <div class="alert alert-success">
+                                <h6><i class="fas fa-arrow-up"></i> Receita Anual</h6>
+                                <h4>R$ ${analise.receitaAnual.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</h4>
+                            </div>
+                            <div class="alert alert-danger">
+                                <h6><i class="fas fa-arrow-down"></i> Despesa Anual</h6>
+                                <h4>R$ ${analise.despesaAnual.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</h4>
+                            </div>
+                            <div class="alert alert-primary">
+                                <h6><i class="fas fa-coins"></i> Lucro Anual</h6>
+                                <h4>R$ ${analise.lucroAnual.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</h4>
+                                <small>Margem: ${analise.margemLucro.toFixed(1)}%</small>
+                            </div>
+                            <div class="alert alert-info">
+                                <h6><i class="fas fa-seedling"></i> Crescimento do Rebanho</h6>
+                                <h4>${analise.crescimentoRebanho}% ao ano</h4>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <h6><i class="fas fa-lightbulb"></i> Recomendações Específicas</h6>
+                            <div class="alert alert-warning">
+        `;
+        
+        // Recomendações baseadas no perfil
+        if (analise.perfil === 'Fazenda Só Cria') {
+            html += `
+                                <ul class="mb-0">
+                                    <li>Foque na seleção genética das matrizes</li>
+                                    <li>Mantenha alta taxa de natalidade (90%)</li>
+                                    <li>Venda bezerros com 8-10 meses</li>
+                                    <li>Invista em pastagens de qualidade</li>
+                                </ul>
+            `;
+        } else if (analise.perfil === 'Fazenda Só Engorda') {
+            html += `
+                                <ul class="mb-0">
+                                    <li>Otimize a eficiência alimentar</li>
+                                    <li>Mantenha rotação rápida de animais</li>
+                                    <li>Monitore ganho de peso diário</li>
+                                    <li>Invista em suplementação estratégica</li>
+                                </ul>
+            `;
+        } else if (analise.perfil === 'Fazenda Confinamento') {
+            html += `
+                                <ul class="mb-0">
+                                    <li>Controle rigoroso da alimentação</li>
+                                    <li>Monitore saúde dos animais</li>
+                                    <li>Otimize custos de ração</li>
+                                    <li>Mantenha alta produtividade</li>
+                                </ul>
+            `;
+        } else {
+            html += `
+                                <ul class="mb-0">
+                                    <li>Mantenha equilíbrio entre cria, recria e engorda</li>
+                                    <li>Diversifique as receitas</li>
+                                    <li>Controle de qualidade em todo o ciclo</li>
+                                    <li>Otimize a eficiência produtiva</li>
+                                </ul>
+            `;
+        }
+        
+        html += `
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        resultadoIA.innerHTML = html;
+    }
+</script>
+{% endblock %}
+
+

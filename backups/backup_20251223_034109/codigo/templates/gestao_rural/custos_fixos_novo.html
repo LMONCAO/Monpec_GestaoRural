@@ -1,0 +1,306 @@
+{% extends 'base_modulos_unificado.html' %}
+{% load static %}
+
+{% block title %}Novo Custo Fixo - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Cabeçalho -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-success">
+                <div class="card-header bg-success text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h4 class="mb-0">
+                                <i class="bi bi-plus-circle"></i> Novo Custo Fixo
+                            </h4>
+                            <small>{{ propriedade.nome_propriedade }}</small>
+                        </div>
+                        <div>
+                            <a href="{% url 'custos_fixos_lista' propriedade.id %}" class="btn btn-light btn-sm">
+                                <i class="bi bi-arrow-left"></i> Voltar
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulário -->
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-form"></i> Dados do Custo Fixo
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.nome_custo.id_for_label }}" class="form-label">
+                                    <i class="bi bi-tag"></i> {{ form.nome_custo.label }} *
+                                </label>
+                                {{ form.nome_custo }}
+                                {% if form.nome_custo.errors %}
+                                    <div class="text-danger">{{ form.nome_custo.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.tipo_custo.id_for_label }}" class="form-label">
+                                    <i class="bi bi-list-ul"></i> {{ form.tipo_custo.label }} *
+                                </label>
+                                {{ form.tipo_custo }}
+                                {% if form.tipo_custo.errors %}
+                                    <div class="text-danger">{{ form.tipo_custo.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.valor_mensal.id_for_label }}" class="form-label">
+                                    <i class="bi bi-currency-dollar"></i> {{ form.valor_mensal.label }} *
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text">R$</span>
+                                    {{ form.valor_mensal }}
+                                </div>
+                                {% if form.valor_mensal.errors %}
+                                    <div class="text-danger">{{ form.valor_mensal.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.tipo_periodo.id_for_label }}" class="form-label">
+                                    <i class="bi bi-calendar"></i> {{ form.tipo_periodo.label }} *
+                                </label>
+                                {{ form.tipo_periodo }}
+                                {% if form.tipo_periodo.errors %}
+                                    <div class="text-danger">{{ form.tipo_periodo.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Campos condicionais baseados no tipo de período -->
+                        <div id="meses-especificos" class="row mb-3" style="display: none;">
+                            <div class="col-12">
+                                <label class="form-label">
+                                    <i class="bi bi-calendar-month"></i> Selecione os meses aplicáveis:
+                                </label>
+                                <div class="row">
+                                    {% for mes_num, mes_nome in meses_choices %}
+                                    <div class="col-md-3 col-sm-4 mb-2">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" 
+                                                   name="meses_aplicaveis" value="{{ mes_num }}" 
+                                                   id="mes_{{ mes_num }}">
+                                            <label class="form-check-label" for="mes_{{ mes_num }}">
+                                                {{ mes_nome }}
+                                            </label>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="periodo-especifico" class="row mb-3" style="display: none;">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.data_inicio.id_for_label }}" class="form-label">
+                                    <i class="bi bi-calendar-date"></i> {{ form.data_inicio.label }}
+                                </label>
+                                {{ form.data_inicio }}
+                                {% if form.data_inicio.errors %}
+                                    <div class="text-danger">{{ form.data_inicio.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.data_fim.id_for_label }}" class="form-label">
+                                    <i class="bi bi-calendar-date"></i> {{ form.data_fim.label }}
+                                </label>
+                                {{ form.data_fim }}
+                                {% if form.data_fim.errors %}
+                                    <div class="text-danger">{{ form.data_fim.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.ativo.id_for_label }}" class="form-label">
+                                    <i class="bi bi-toggle-on"></i> {{ form.ativo.label }}
+                                </label>
+                                <div class="form-check form-switch">
+                                    {{ form.ativo }}
+                                    <label class="form-check-label" for="{{ form.ativo.id_for_label }}">
+                                        Custo ativo
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <div class="card border-info">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title text-info">Custo Total Anual</h6>
+                                        <h4 class="text-info" id="custo-total-anual">R$ 0,00</h4>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.descricao.id_for_label }}" class="form-label">
+                                <i class="bi bi-text-paragraph"></i> {{ form.descricao.label }}
+                            </label>
+                            {{ form.descricao }}
+                            {% if form.descricao.errors %}
+                                <div class="text-danger">{{ form.descricao.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-check"></i> Salvar Custo
+                            </button>
+                            <a href="{% url 'custos_fixos_lista' propriedade.id %}" class="btn btn-secondary">
+                                <i class="bi bi-x"></i> Cancelar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Informações auxiliares -->
+        <div class="col-md-4">
+            <div class="card border-info">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0">
+                        <i class="bi bi-info-circle"></i> Tipos de Custos Fixos
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li><strong>Maquinário:</strong> Tratores, implementos</li>
+                        <li><strong>Infraestrutura:</strong> Cercas, currais, galpões</li>
+                        <li><strong>Pessoal:</strong> Salários, encargos</li>
+                        <li><strong>Administrativo:</strong> Contabilidade, licenças</li>
+                        <li><strong>Financeiro:</strong> Juros, seguros</li>
+                        <li><strong>Outros:</strong> Demais custos fixos</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="card border-warning mt-3">
+                <div class="card-header bg-warning text-dark">
+                    <h6 class="mb-0">
+                        <i class="bi bi-lightbulb"></i> Dicas
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li>• Use nomes descritivos</li>
+                        <li>• Inclua todos os custos mensais</li>
+                        <li>• Considere depreciação de equipamentos</li>
+                        <li>• Mantenha custos organizados por tipo</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.form-control:focus {
+    border-color: var(--navy);
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+.form-check-input:checked {
+    background-color: #198754;
+    border-color: #198754;
+}
+</style>
+
+<script>
+function togglePeriodoFields() {
+    const tipoPeriodo = document.getElementById('id_tipo_periodo').value;
+    const mesesEspecificos = document.getElementById('meses-especificos');
+    const periodoEspecifico = document.getElementById('periodo-especifico');
+    
+    // Esconder todos os campos condicionais
+    mesesEspecificos.style.display = 'none';
+    periodoEspecifico.style.display = 'none';
+    
+    // Mostrar campos baseados na seleção
+    if (tipoPeriodo === 'MESES_ESPECIFICOS') {
+        mesesEspecificos.style.display = 'block';
+    } else if (tipoPeriodo === 'PERIODO_ESPECIFICO') {
+        periodoEspecifico.style.display = 'block';
+    }
+    
+    calcularCustoTotal();
+}
+
+function calcularCustoTotal() {
+    const valorMensal = parseFloat(document.getElementById('id_valor_mensal').value) || 0;
+    const tipoPeriodo = document.getElementById('id_tipo_periodo').value;
+    let totalAnual = 0;
+    
+    if (tipoPeriodo === 'MENSAL') {
+        totalAnual = valorMensal * 12;
+    } else if (tipoPeriodo === 'MESES_ESPECIFICOS') {
+        const mesesSelecionados = document.querySelectorAll('input[name="meses_aplicaveis"]:checked');
+        totalAnual = valorMensal * mesesSelecionados.length;
+    } else if (tipoPeriodo === 'PERIODO_ESPECIFICO') {
+        const dataInicio = document.getElementById('id_data_inicio').value;
+        const dataFim = document.getElementById('id_data_fim').value;
+        
+        if (dataInicio && dataFim) {
+            const inicio = new Date(dataInicio);
+            const fim = new Date(dataFim);
+            const meses = (fim.getFullYear() - inicio.getFullYear()) * 12 + (fim.getMonth() - inicio.getMonth()) + 1;
+            totalAnual = valorMensal * meses;
+        }
+    }
+    
+    document.getElementById('custo-total-anual').textContent = 'R$ ' + totalAnual.toFixed(2).replace('.', ',');
+}
+
+// Event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    // Configurar meses choices
+    const mesesChoices = [
+        [1, 'Janeiro'], [2, 'Fevereiro'], [3, 'Março'], [4, 'Abril'],
+        [5, 'Maio'], [6, 'Junho'], [7, 'Julho'], [8, 'Agosto'],
+        [9, 'Setembro'], [10, 'Outubro'], [11, 'Novembro'], [12, 'Dezembro']
+    ];
+    
+    // Adicionar event listeners
+    document.getElementById('id_valor_mensal').addEventListener('input', calcularCustoTotal);
+    document.getElementById('id_tipo_periodo').addEventListener('change', togglePeriodoFields);
+    
+    // Event listeners para checkboxes de meses
+    document.addEventListener('change', function(e) {
+        if (e.target.name === 'meses_aplicaveis') {
+            calcularCustoTotal();
+        }
+    });
+    
+    // Event listeners para datas
+    document.getElementById('id_data_inicio').addEventListener('change', calcularCustoTotal);
+    document.getElementById('id_data_fim').addEventListener('change', calcularCustoTotal);
+    
+    // Inicializar
+    togglePeriodoFields();
+});
+</script>
+{% endblock %}

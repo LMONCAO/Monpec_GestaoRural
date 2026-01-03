@@ -1,0 +1,189 @@
+{% extends "base_modulos_unificado.html" %}
+
+{% block title %}Nova Ordem de Compra - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'compras_dashboard' propriedade.id %}">Compras</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'ordens_compra_lista' propriedade.id %}">Ordens de Compra</a></li>
+            <li class="breadcrumb-item active">Nova ordem</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-file-earmark-text me-2"></i>Dados da ordem</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" class="row g-3">
+                        {% csrf_token %}
+                        {% if requisicao %}
+                        <input type="hidden" name="requisicao_id" value="{{ requisicao.id }}">
+                        <div class="col-12">
+                            <div class="alert alert-info">
+                                <i class="bi bi-link-45deg me-1"></i>
+                                Esta OC será vinculada à requisição <strong>{{ requisicao.numero }}</strong> ({{ requisicao.titulo }}).
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% if form.non_field_errors %}
+                        <div class="col-12">
+                            <div class="alert alert-danger">
+                                {{ form.non_field_errors }}
+                            </div>
+                        </div>
+                        {% endif %}
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.fornecedor.label }}{% if form.fornecedor.field.required %} *{% endif %}</label>
+                            {{ form.fornecedor }}
+                            {% for error in form.fornecedor.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">{{ form.numero_ordem.label }}{% if form.numero_ordem.field.required %} *{% endif %}</label>
+                            {{ form.numero_ordem }}
+                            {% for error in form.numero_ordem.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">{{ form.data_emissao.label }}{% if form.data_emissao.field.required %} *{% endif %}</label>
+                            {{ form.data_emissao }}
+                            {% for error in form.data_emissao.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">{{ form.data_entrega_prevista.label }}</label>
+                            {{ form.data_entrega_prevista }}
+                            {% for error in form.data_entrega_prevista.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">{{ form.valor_produtos.label }}</label>
+                            {{ form.valor_produtos }}
+                            {% for error in form.valor_produtos.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">{{ form.valor_frete.label }}</label>
+                            {{ form.valor_frete }}
+                            {% for error in form.valor_frete.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">{{ form.setor.label }}</label>
+                            {{ form.setor }}
+                            {% for error in form.setor.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">{{ form.plano_conta.label }}</label>
+                            {{ form.plano_conta }}
+                            {% for error in form.plano_conta.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.centro_custo.label }}</label>
+                            {{ form.centro_custo }}
+                            {% for error in form.centro_custo.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.centro_custo_descricao.label }}</label>
+                            {{ form.centro_custo_descricao }}
+                            {% if form.centro_custo_descricao.help_text %}
+                            <div class="form-text">{{ form.centro_custo_descricao.help_text }}</div>
+                            {% endif %}
+                            {% for error in form.centro_custo_descricao.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.condicoes_pagamento.label }}</label>
+                            {{ form.condicoes_pagamento }}
+                            {% for error in form.condicoes_pagamento.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">{{ form.forma_pagamento.label }}</label>
+                            {{ form.forma_pagamento }}
+                            {% for error in form.forma_pagamento.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">{{ form.observacoes.label }}</label>
+                            {{ form.observacoes }}
+                            {% for error in form.observacoes.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-12 d-flex gap-2">
+                            <button type="submit" class="btn btn-primary"><i class="bi bi-check-circle me-1"></i>Salvar e cadastrar itens</button>
+                            <a href="{% url 'ordens_compra_lista' propriedade.id %}" class="btn btn-outline-secondary">Cancelar</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-speedometer2 me-2"></i>Status do orçamento</h6>
+                </div>
+                <div class="card-body small">
+                    {% if orcamento_info %}
+                    <p class="mb-1"><strong>Periodo:</strong> {{ orcamento_info.orcamento.get_mes_display }}/{{ orcamento_info.orcamento.ano }}{% if orcamento_info.orcamento.setor %} • {{ orcamento_info.orcamento.setor.nome }}{% else %} • Geral{% endif %}</p>
+                    <p class="mb-1"><strong>Limite base:</strong> R$ {{ orcamento_info.valor_limite|floatformat:2 }}</p>
+                    <p class="mb-1"><strong>Limite extra:</strong> R$ {{ orcamento_info.limite_extra|floatformat:2 }}</p>
+                    <p class="mb-1"><strong>Utilizado:</strong> R$ {{ orcamento_info.valor_utilizado|floatformat:2 }}</p>
+                    <p class="mb-2"><strong>Disponível:</strong> R$ {{ orcamento_info.saldo_disponivel|floatformat:2 }}</p>
+                    <div class="progress" style="height: 8px;">
+                        {% with perc=orcamento_info.percentual_utilizado %}
+                        <div class="progress-bar {% if perc > 100 %}bg-danger{% elif perc > 80 %}bg-warning{% else %}bg-success{% endif %}" role="progressbar" style="width: {{ perc|floatformat:0 }}%;" aria-valuenow="{{ perc|floatformat:0 }}" aria-valuemin="0" aria-valuemax="100"></div>
+                        {% endwith %}
+                    </div>
+                    {% if orcamento_info.saldo_disponivel <= 0 %}
+                    <div class="alert alert-warning mt-3 mb-0">
+                        Orçamento esgotado. Solicite limite extra emergencial antes de emitir nova ordem.
+                    </div>
+                    {% endif %}
+                    {% else %}
+                    <div class="alert alert-warning mb-0">
+                        Nenhum orçamento configurado para o período selecionado. <a class="alert-link" href="{% url 'orcamentos_compra_lista' propriedade.id %}">Defina o limite mensal</a> para controlar os gastos.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Dicas</h6>
+                </div>
+                <div class="card-body small text-muted">
+                    <ul class="mb-0">
+                        <li>Cadastre os itens da ordem após salvar esta etapa.</li>
+                        <li>Confirme se o centro de custo e plano de contas estão corretos.</li>
+                        <li>Defina condições de pagamento alinhadas ao fluxo financeiro.</li>
+                        <li>Monitore o orçamento mensal da fazenda antes de confirmar novos pedidos.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

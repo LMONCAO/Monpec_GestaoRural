@@ -1,0 +1,22 @@
+# COMANDO PARA CORRIGIR SENHA DE ASSINANTE NO CLOUD RUN
+# Execute este comando no Cloud Shell do Google Cloud
+
+# Substitua:
+# - SEU_PROJECT_ID pelo ID do seu projeto
+# - SEU_USERNAME pelo username do assinante (ou use 'admin')
+# - SUA_SENHA pela senha desejada
+
+gcloud run jobs execute corrigir-senha-assinante \
+  --region=us-central1 \
+  --args -c,"import os,django;os.environ.setdefault('DJANGO_SETTINGS_MODULE','sistema_rural.settings_gcp');django.setup();from django.contrib.auth import get_user_model,authenticate;User=get_user_model();username='admin';user=User.objects.filter(username=username).first();print(f'Usuário encontrado: {user.username if user else None}');user.set_password('L6171r12@@') if user else None;user.save() if user else None;auth_test=authenticate(username=user.username,password='L6171r12@@') if user else None;print('✅ Senha corrigida e testada!' if auth_test else '❌ Falha na autenticação')"
+
+# OU para usar com variáveis de ambiente:
+
+export USERNAME="admin"
+export SENHA="L6171r12@@"
+
+gcloud run jobs execute corrigir-senha-assinante \
+  --region=us-central1 \
+  --args -c,"import os,django;os.environ.setdefault('DJANGO_SETTINGS_MODULE','sistema_rural.settings_gcp');django.setup();from django.contrib.auth import get_user_model,authenticate;User=get_user_model();username=os.getenv('USERNAME','admin');senha=os.getenv('SENHA','L6171r12@@');user=User.objects.filter(username=username).first();user.set_password(senha) if user else None;user.save() if user else None;auth_test=authenticate(username=user.username,password=senha) if user else None;print('✅ Senha corrigida!' if auth_test else '❌ Falha')"
+
+

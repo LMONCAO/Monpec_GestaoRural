@@ -1,0 +1,2331 @@
+{% load static %}
+{% load formatacao_br %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}MONPEC - MONITOR DA PECUÁRIA{% endblock %}</title>
+    <!-- Favicon com "M" verde -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%2328a745'/><text x='50' y='70' font-size='60' font-weight='bold' fill='white' text-anchor='middle' font-family='Arial, sans-serif'>M</text></svg>">
+    <link rel="shortcut icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%2328a745'/><text x='50' y='70' font-size='60' font-weight='bold' fill='white' text-anchor='middle' font-family='Arial, sans-serif'>M</text></svg>">
+    
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    
+    <!-- Font Awesome (para ícone do WhatsApp) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts - Padrão Unificado MONPEC -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Tipografia Unificada -->
+    <link rel="stylesheet" href="{% static 'css/tipografia_unificada.css' %}">
+    
+    <style>
+        :root {
+            --azul-marinho: #6495ed;
+            --cinza-claro: #f5f7fb;
+            --marrom-terra: #8b6f47;
+            --verde-sage: #8a9a88;
+            --verde-escuro: #4a5d4a;
+            --navy: #6495ed;
+            --navy-light: #8cb5ff;
+            --brown: #8b6f47;
+            --brown-light: #a68a5c;
+            --sage-green: #8a9a88;
+            --sage-green-light: #a5b5a3;
+            --gray-bg: #f2f4f8;
+            --gray-border: #e1e6f0;
+            --text-dark: #1a1a1a;
+            --text-light: #1a1a1a;
+            --white: #ffffff;
+            --sidebar-width: 240px;
+            --sidebar-bg: rgba(255,255,255,0.98);
+            --sidebar-border: rgba(31,42,68,0.12);
+            --sidebar-text: #1a1a1a;
+            --sidebar-muted: #1a1a1a;
+            --sidebar-highlight: #6495ed;
+            --sidebar-accent: #7f2d4b;
+            --bs-primary: #6495ed;
+            --bs-primary-rgb: 100, 149, 237;
+        }
+
+        body {
+            --bs-primary: #6495ed;
+            --bs-primary-rgb: 100, 149, 237;
+        }
+
+        .btn-primary,
+        .btn-primary:focus,
+        .btn-primary:active,
+        .btn-primary.disabled,
+        .btn-primary:disabled {
+            background-color: #6495ed !important;
+            border-color: #6495ed !important;
+            box-shadow: none;
+        }
+
+        .btn-primary:hover {
+            background-color: #3d6fd8 !important;
+            border-color: #3d6fd8 !important;
+        }
+
+        .btn-outline-primary {
+            color: #6495ed !important;
+            border-color: #6495ed !important;
+        }
+
+        .btn-outline-primary:hover,
+        .btn-outline-primary:focus,
+        .btn-outline-primary:active {
+            color: #ffffff !important;
+            background-color: #6495ed !important;
+            border-color: #6495ed !important;
+        }
+
+        .text-primary {
+            color: #6495ed !important;
+        }
+
+        .bg-primary {
+            background-color: #6495ed !important;
+        }
+
+        .badge.bg-primary,
+        .badge.text-bg-primary {
+            background-color: #6495ed !important;
+        }
+
+        body {
+            font-family: 'Poppins', 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-size: 0.95rem;
+            background: var(--gray-bg);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            color: #1a1a1a;
+            overflow-x: hidden;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+        
+        /* Texto padrão mais escuro para todo o sistema */
+        body p:not(.text-primary):not(.text-info):not(.text-success):not(.text-warning):not(.text-danger),
+        body span:not(.text-primary):not(.text-info):not(.text-success):not(.text-warning):not(.text-danger):not(.badge):not(.btn),
+        body div:not(.text-primary):not(.text-info):not(.text-success):not(.text-warning):not(.text-danger),
+        body td:not(.text-primary):not(.text-info):not(.text-success):not(.text-warning):not(.text-danger),
+        body th:not(.text-primary):not(.text-info):not(.text-success):not(.text-warning):not(.text-danger),
+        body label:not(.text-primary):not(.text-info):not(.text-success):not(.text-warning):not(.text-danger),
+        body small:not(.text-primary):not(.text-info):not(.text-success):not(.text-warning):not(.text-danger),
+        .text-muted:not(.text-primary):not(.text-info):not(.text-success):not(.text-warning):not(.text-danger),
+        .text-secondary:not(.text-primary):not(.text-info):not(.text-success):not(.text-warning):not(.text-danger) {
+            color: #1a1a1a !important;
+        }
+
+        body.sidebar-open {
+            overflow: hidden;
+        }
+        
+        /* Esconder sidebar em modo demo */
+        {% if DEMO_MODE %}
+        .sidebar {
+            display: none !important;
+        }
+        .main-content {
+            margin-left: 0 !important;
+            width: 100% !important;
+        }
+        .btn-menu-mobile {
+            display: none !important;
+        }
+        {% endif %}
+        
+        /* Títulos reduzidos */
+        h1 { font-size: 1.75rem; }
+        h2 { font-size: 1.5rem; }
+        h3 { font-size: 1.35rem; }
+        h4 { font-size: 1.2rem; }
+        h5 { font-size: 1.05rem; }
+        h6 { font-size: 0.95rem; }
+        
+        /* Tabelas menores */
+        .table {
+            font-size: 0.9rem;
+        }
+        
+        .table th {
+            font-size: 0.85rem;
+            font-weight: 600;
+            padding: 0.65rem 0.75rem;
+        }
+        
+        .table td {
+            padding: 0.6rem 0.75rem;
+        }
+        
+        /* Cards menores */
+        .card {
+            border-radius: 10px;
+        }
+        
+        .card-body {
+            padding: 1rem;
+        }
+        
+        .card-header {
+            padding: 0.85rem 1rem;
+            font-size: 0.95rem;
+        }
+        
+        /* Badges menores */
+        .badge {
+            font-size: 0.75rem;
+            padding: 0.35rem 0.65rem;
+        }
+        
+        /* Inputs menores */
+        .form-control, .form-select {
+            font-size: 0.9rem;
+            padding: 0.5rem 0.75rem;
+        }
+
+        .form-control:focus,
+        .form-select:focus,
+        .form-check-input:focus {
+            border-color: rgba(100, 149, 237, 0.5);
+            box-shadow: 0 0 0 0.15rem rgba(100, 149, 237, 0.25);
+        }
+        
+        .form-label {
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-bottom: 0.4rem;
+        }
+
+        /* Header fixo */
+        .header-fixo {
+            background: linear-gradient(135deg, var(--azul-marinho) 0%, #2c5282 100%);
+            color: white;
+            padding: 0.6rem 0.9rem;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 100%;
+            gap: 1rem;
+            position: relative;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        .btn-menu-mobile,
+        .btn-close-sidebar {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            background: rgba(255,255,255,0.15);
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        .btn-menu-mobile:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .btn-menu-mobile:hover:not(:disabled),
+        .btn-close-sidebar:hover {
+            background: rgba(255,255,255,0.25);
+            transform: scale(1.05);
+        }
+
+        .btn-menu-mobile:focus-visible,
+        .btn-close-sidebar:focus-visible,
+        .sidebar .nav-link:focus-visible,
+        .nav-link-submenu:focus-visible,
+        .accordion-button:focus-visible {
+            outline: 3px solid rgba(100, 149, 237, 0.5);
+            outline-offset: 2px;
+        }
+
+        .sidebar-mobile-actions {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.85rem 1rem 0.65rem;
+            border-bottom: 1px solid var(--sidebar-border);
+            color: var(--sidebar-muted);
+        }
+
+        .sidebar-mobile-title {
+            font-weight: 600;
+            letter-spacing: 0.05em;
+        }
+
+        .sidebar-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(2px);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease;
+            z-index: 998;
+        }
+
+        body.sidebar-open .sidebar-overlay {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .logo-sistema {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: white;
+            text-decoration: none;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+
+        .logo-sistema:hover {
+            opacity: 0.85;
+            transform: translateY(-1px);
+        }
+
+        .usuario-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Informações da propriedade no header */
+        .header-info-propriedade {
+            display: none !important;
+            visibility: hidden !important;
+        }
+
+        .header-info-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+            text-align: center;
+            min-width: 100px;
+        }
+
+        .header-info-item .label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 500;
+        }
+
+        .header-info-item .value {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: white;
+            line-height: 1.2;
+        }
+
+        @media (max-width: 1200px) {
+            .header-info-propriedade {
+                gap: 1rem;
+            }
+            .header-info-item {
+                min-width: 80px;
+            }
+            .header-info-item .label {
+                font-size: 0.65rem;
+            }
+            .header-info-item .value {
+                font-size: 0.85rem;
+            }
+        }
+
+        @media (max-width: 992px) {
+            .header-info-propriedade {
+                display: none;
+            }
+        }
+        
+        .status-propriedade-header {
+            background: rgba(255,255,255,0.15);
+            padding: 0.35rem 0.85rem;
+            border-radius: 16px;
+            font-size: 0.8rem;
+            color: white;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        #seletor-propriedade {
+            background: rgba(255,255,255,0.2) !important;
+            border: 1px solid rgba(255,255,255,0.3) !important;
+            color: white !important;
+            border-radius: 8px;
+            padding: 0.35rem 0.75rem;
+            font-size: 0.8rem;
+            min-width: 250px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        #seletor-propriedade:hover {
+            background: rgba(255,255,255,0.25) !important;
+            border-color: rgba(255,255,255,0.4) !important;
+        }
+        
+        #seletor-propriedade:focus {
+            background: rgba(255,255,255,0.3) !important;
+            border-color: rgba(255,255,255,0.5) !important;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(255,255,255,0.2);
+        }
+        
+        #seletor-propriedade option {
+            background: #2c5282;
+            color: white;
+            padding: 0.5rem;
+        }
+
+        /* Sidebar Moderno */
+        .sidebar {
+            position: fixed;
+            top: 54px;
+            left: 0;
+            width: var(--sidebar-width);
+            height: calc(100vh - 54px);
+            background: var(--sidebar-bg);
+            backdrop-filter: blur(8px);
+            color: #1a1a1a;
+            overflow-y: auto;
+            overflow-x: hidden;
+            z-index: 999;
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 12px 0 32px rgba(31, 42, 68, 0.12);
+            border-right: 2px solid var(--sidebar-border);
+            transform: translateX(0);
+        }
+
+        .sidebar.disabled {
+            pointer-events: none;
+            opacity: 0.55;
+        }
+        
+        /* Custom scrollbar for sidebar - Mais visível */
+        .sidebar {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(100, 149, 237, 0.6) rgba(255, 255, 255, 0.1);
+        }
+        
+        .sidebar::-webkit-scrollbar {
+            width: 10px;
+        }
+        
+        .sidebar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            margin: 5px 0;
+        }
+        
+        .sidebar::-webkit-scrollbar-thumb {
+            background: rgba(100, 149, 237, 0.6);
+            border-radius: 5px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .sidebar::-webkit-scrollbar-thumb:hover {
+            background: rgba(100, 149, 237, 0.8);
+        }
+        
+        .sidebar::-webkit-scrollbar-thumb:active {
+            background: rgba(100, 149, 237, 1);
+        }
+
+        .sidebar-header {
+            padding: 1rem 0.9rem;
+            border-bottom: 2px solid var(--sidebar-border);
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: #1a1a1a;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            background: linear-gradient(135deg, rgba(100, 149, 237, 0.05) 0%, rgba(100, 149, 237, 0.1) 100%);
+        }
+
+        .sidebar-nav {
+            padding: 0.5rem 0;
+        }
+
+        .nav-section {
+            margin-bottom: 0.5rem;
+        }
+
+        .nav-section-title {
+            padding: 0.4rem 0.9rem;
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #1a1a1a;
+            background: rgba(100, 149, 237, 0.03);
+            border-bottom: 1px solid rgba(31, 42, 68, 0.12);
+            margin-bottom: 0.15rem;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0;
+            margin: 0.25rem 0;
+            border-radius: 8px;
+        }
+        
+        .nav-item i {
+            font-size: 1rem;
+            width: 18px;
+            text-align: center;
+            flex-shrink: 0;
+            color: var(--sidebar-muted);
+        }
+        
+        /* Ícones coloridos e modernos para cada módulo */
+        .modulo-pecuaria .accordion-button i:first-child {
+            color: #10b981 !important; /* Verde esmeralda - crescimento */
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05));
+            padding: 4px 6px;
+            border-radius: 6px;
+        }
+        
+        .modulo-agricultura .accordion-button i:first-child {
+            color: #8b6f47 !important; /* Marrom terra */
+            background: linear-gradient(135deg, rgba(139, 111, 71, 0.1), rgba(139, 111, 71, 0.05));
+            padding: 4px 6px;
+            border-radius: 6px;
+        }
+        
+        .modulo-patrimonio .accordion-button i:first-child {
+            color: #6366f1 !important; /* Índigo - patrimônio */
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(99, 102, 241, 0.05));
+            padding: 4px 6px;
+            border-radius: 6px;
+        }
+        
+        .modulo-financeiro .accordion-button i:first-child {
+            color: #f59e0b !important; /* Âmbar - dinheiro */
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(245, 158, 11, 0.05));
+            padding: 4px 6px;
+            border-radius: 6px;
+        }
+        
+        .modulo-cadastro .accordion-button i:first-child {
+            color: #6366f1 !important; /* Índigo - cadastros */
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(99, 102, 241, 0.05));
+            padding: 4px 6px;
+            border-radius: 6px;
+        }
+        
+        .modulo-operacoes .accordion-button i:first-child {
+            color: #3b82f6 !important; /* Azul - operações */
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.05));
+            padding: 4px 6px;
+            border-radius: 6px;
+        }
+        
+        .modulo-compras .accordion-button i:first-child {
+            color: #ec4899 !important; /* Rosa - compras */
+            background: linear-gradient(135deg, rgba(236, 72, 153, 0.1), rgba(236, 72, 153, 0.05));
+            padding: 4px 6px;
+            border-radius: 6px;
+        }
+        
+        .modulo-nutricao .accordion-button i:first-child {
+            color: #f97316 !important; /* Laranja - nutrição */
+            background: linear-gradient(135deg, rgba(249, 115, 22, 0.1), rgba(249, 115, 22, 0.05));
+            padding: 4px 6px;
+            border-radius: 6px;
+        }
+        
+        .modulo-projetos .accordion-button i:first-child {
+            color: #14b8a6 !important; /* Ciano - projetos */
+            background: linear-gradient(135deg, rgba(20, 184, 166, 0.1), rgba(20, 184, 166, 0.05));
+            padding: 4px 6px;
+            border-radius: 6px;
+        }
+        
+        .modulo-relatorios .accordion-button i:first-child {
+            color: #8b5cf6 !important; /* Roxo - relatórios */
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(139, 92, 246, 0.05));
+            padding: 4px 6px;
+            border-radius: 6px;
+        }
+        
+        .modulo-categorias .nav-link i {
+            color: #06b6d4 !important; /* Ciano claro - categorias */
+            background: linear-gradient(135deg, rgba(6, 182, 212, 0.1), rgba(6, 182, 212, 0.05));
+            padding: 4px 6px;
+            border-radius: 6px;
+        }
+        
+        .modulo-configuracoes .nav-link i {
+            color: #64748b !important; /* Cinza - configurações */
+            background: linear-gradient(135deg, rgba(100, 116, 139, 0.1), rgba(100, 116, 139, 0.05));
+            padding: 4px 6px;
+            border-radius: 6px;
+        }
+        
+        /* Hover effects nos ícones */
+        .accordion-button:hover i:first-child,
+        .nav-link:hover i {
+            transform: scale(1.15);
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .nav-item.active .accordion-button i:first-child,
+        .nav-item.active .nav-link i {
+            filter: brightness(1.15);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+        
+        /* Classe nav-link no contexto do sidebar */
+        .sidebar .nav-link {
+            display: flex !important;
+            align-items: center;
+            gap: 0.65rem;
+            padding: 0.65rem 0.9rem !important;
+            color: #1a1a1a !important;
+            text-decoration: none !important;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            width: 100%;
+            position: relative;
+        }
+        
+        .sidebar .nav-link::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: var(--sidebar-accent);
+            transform: scaleY(0);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 0 3px 3px 0;
+        }
+        
+        .sidebar .nav-link:hover::before {
+            transform: scaleY(1);
+        }
+        
+        .sidebar .nav-link:hover {
+            background: rgba(127, 45, 75, 0.08) !important;
+            color: var(--sidebar-highlight) !important;
+            transform: translateX(4px);
+        }
+
+        .sidebar .nav-link:hover i {
+            color: var(--sidebar-accent);
+        }
+        
+        .nav-item.active .nav-link {
+            background: rgba(31, 42, 68, 0.08) !important;
+            color: var(--sidebar-highlight) !important;
+            box-shadow: none;
+        }
+
+        .nav-item.active .nav-link::before {
+            transform: scaleY(1);
+        }
+
+        .nav-item.active .nav-link i {
+            color: var(--sidebar-accent);
+        }
+        
+        /* Link "Voltar aos Módulos" destacado */
+        .nav-item-destaque {
+            margin: 0.5rem 0.75rem 1rem !important;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .nav-link-destaque {
+            background: linear-gradient(135deg, #6495ed 0%, #3d6fd8 100%) !important;
+            color: #ffffff !important;
+            font-weight: 700 !important;
+            padding: 0.85rem 1rem !important;
+            border-radius: 10px !important;
+            box-shadow: 0 4px 12px rgba(100, 149, 237, 0.3) !important;
+            text-align: center !important;
+            justify-content: center !important;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 0.5rem !important;
+        }
+        
+        .nav-link-destaque i {
+            color: #ffffff !important;
+            font-size: 1.2rem !important;
+            background: rgba(255, 255, 255, 0.2) !important;
+            padding: 6px 8px !important;
+            border-radius: 8px !important;
+            flex-shrink: 0 !important;
+        }
+        
+        .nav-link-destaque span {
+            text-align: center !important;
+            flex: 1 !important;
+        }
+        
+        .nav-link-destaque:hover {
+            background: linear-gradient(135deg, #3d6fd8 0%, #2c5282 100%) !important;
+            transform: translateY(-2px) !important;
+            box-shadow: 0 6px 16px rgba(100, 149, 237, 0.4) !important;
+        }
+        
+        .nav-link-destaque:hover i {
+            background: rgba(255, 255, 255, 0.3) !important;
+            transform: scale(1.1) !important;
+        }
+        
+        .nav-link-destaque.active {
+            background: linear-gradient(135deg, #3d6fd8 0%, #2c5282 100%) !important;
+            box-shadow: 0 4px 16px rgba(100, 149, 237, 0.5) !important;
+        }
+
+        /* Accordion Profissional - Layout Vertical */
+        .accordion-item {
+            border: none !important;
+            background: transparent !important;
+            margin: 0.25rem 0 !important;
+            width: 100% !important;
+        }
+
+        .accordion-item .nav-item {
+            width: 100%;
+            display: flex !important;
+            flex-direction: column !important;
+        }
+
+        .accordion-button {
+            background: transparent !important;
+            border: none !important;
+            color: #1a1a1a !important;
+            padding: 0.65rem 0.9rem !important;
+            text-align: left !important;
+            width: 100% !important;
+            display: flex !important;
+            align-items: center;
+            gap: 0.65rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            border-radius: 8px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: none !important;
+            position: relative !important;
+        }
+
+        .accordion-button::before,
+        .accordion-button::after {
+            display: none !important;
+        }
+
+        .accordion-button i:first-child {
+            font-size: 1rem;
+            width: 18px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .accordion-button span {
+            flex: 1;
+            margin-left: 0.5rem;
+        }
+
+        .accordion-button .chevron-icon {
+            margin-left: auto;
+            font-size: 0.65rem;
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+            flex-shrink: 0;
+            opacity: 0.6;
+            color: var(--sidebar-muted);
+        }
+
+        .accordion-button:hover {
+            background: rgba(127, 45, 75, 0.08) !important;
+            color: var(--sidebar-highlight) !important;
+            transform: translateX(2px);
+        }
+
+        .accordion-button:hover .chevron-icon {
+            opacity: 0.9;
+            color: var(--sidebar-highlight);
+        }
+
+        .accordion-button:not(.collapsed) {
+            background: rgba(31, 42, 68, 0.1) !important;
+            color: var(--sidebar-highlight) !important;
+            box-shadow: none;
+            border-left: 3px solid var(--sidebar-accent);
+        }
+
+        .accordion-button:not(.collapsed) .chevron-icon {
+            transform: rotate(90deg) scale(1.1);
+            opacity: 1;
+            color: var(--sidebar-highlight);
+        }
+
+        .accordion-button:focus {
+            box-shadow: none !important;
+            outline: none !important;
+        }
+        
+        .accordion-collapse {
+            width: 100% !important;
+            position: relative !important;
+            left: 0 !important;
+            top: 0 !important;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .nav-submenu {
+            background: rgba(31, 42, 68, 0.03) !important;
+            padding: 0.5rem 0 !important;
+            display: block !important;
+            width: 100% !important;
+            margin: 0 !important;
+            border-left: 2px solid rgba(127, 45, 75, 0.15);
+            margin-left: 0.5rem !important;
+        }
+
+        .nav-submenu-divider {
+            border-top: 1px solid rgba(31, 42, 68, 0.08);
+            margin: 0.35rem 1rem;
+        }
+
+        .nav-subsection-toggle {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: transparent;
+            border: none;
+            color: #1a1a1a;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            padding: 0.35rem 0.9rem;
+            margin-top: 0.4rem;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .nav-subsection-toggle:hover {
+            background: rgba(127, 45, 75, 0.08);
+            color: var(--sidebar-highlight);
+        }
+
+        .nav-subsection-toggle .chevron {
+            transition: transform 0.2s ease;
+            font-size: 0.8rem;
+            color: var(--sidebar-muted);
+        }
+
+        .nav-subsection-toggle[aria-expanded="true"] {
+            color: var(--sidebar-highlight);
+        }
+
+        .nav-subsection-toggle[aria-expanded="true"] .chevron {
+            transform: rotate(90deg);
+            color: var(--sidebar-accent);
+        }
+
+        .nav-subsection-links {
+            display: none;
+            padding-top: 0.25rem;
+        }
+
+        .nav-subsection-links.show {
+            display: block;
+        }
+
+        .accordion-collapse:not(.show) {
+            display: none !important;
+        }
+
+        .accordion-collapse.show .nav-submenu {
+            display: block !important;
+        }
+
+        .nav-link-submenu {
+            display: flex !important;
+            align-items: center !important;
+            gap: 0.65rem !important;
+            padding: 0.55rem 0.9rem 0.55rem 2rem !important;
+            color: #1a1a1a !important;
+            text-decoration: none !important;
+            font-size: 0.85rem !important;
+            font-weight: 500;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 6px;
+            margin: 0.1rem 0.5rem !important;
+            background: transparent;
+            width: auto !important;
+            position: relative !important;
+        }
+
+        .nav-link-submenu i {
+            font-size: 0.85rem;
+            width: 16px;
+            text-align: center;
+            flex-shrink: 0;
+            opacity: 0.65;
+            color: var(--sidebar-muted);
+        }
+
+        .nav-link-submenu:hover {
+            background: rgba(127, 45, 75, 0.1) !important;
+            color: var(--sidebar-highlight) !important;
+            transform: translateX(6px);
+            padding-left: 2.3rem !important;
+        }
+        
+        .nav-link-disabled {
+            opacity: 0.5 !important;
+            cursor: not-allowed !important;
+            pointer-events: auto !important;
+        }
+        
+        .nav-link-disabled:hover {
+            background: rgba(127, 45, 75, 0.05) !important;
+            color: var(--sidebar-muted) !important;
+            transform: none !important;
+            padding-left: 2rem !important;
+        }
+        
+        .nav-link-disabled i:last-child {
+            opacity: 0.6;
+        }
+        
+        .nav-link-submenu::before {
+            content: '';
+            position: absolute;
+            left: 1.35rem;
+            top: 50%;
+            transform: translateY(-50%) scale(0);
+            width: 4px;
+            height: 4px;
+            background: var(--sidebar-accent);
+            border-radius: 50%;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .nav-link-submenu:hover::before {
+            transform: translateY(-50%) scale(1);
+        }
+
+        .nav-link-submenu:hover i {
+            opacity: 0.9;
+            color: var(--sidebar-accent);
+        }
+
+        .nav-link-submenu.active {
+            background: rgba(100, 149, 237, 0.12) !important;
+            color: var(--sidebar-highlight) !important;
+            font-weight: 600 !important;
+            box-shadow: none;
+        }
+
+        .nav-link-submenu.active i {
+            opacity: 0.9;
+            color: var(--sidebar-accent);
+        }
+
+        .nav-link-curral {
+            background: linear-gradient(135deg, #6495ed, #8cb5ff) !important;
+            color: #ffffff !important;
+            font-weight: 600 !important;
+            margin: 0.35rem 0.75rem 0.5rem !important;
+            padding: 0.65rem 1rem !important;
+            border-radius: 10px;
+            box-shadow: 0 6px 18px rgba(100, 149, 237, 0.25);
+        }
+
+        .nav-link-curral i {
+            color: rgba(255,255,255,0.9) !important;
+            opacity: 1 !important;
+        }
+
+        .nav-link-curral:hover {
+            transform: translateX(4px);
+            box-shadow: 0 8px 22px rgba(100, 149, 237, 0.35);
+        }
+
+        .nav-link-curral.active {
+            background: linear-gradient(135deg, #6495ed, #3d4f80) !important;
+        }
+
+        /* Conteúdo principal */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            margin-top: 54px;
+            min-height: calc(100vh - 54px);
+            background: var(--gray-bg);
+            padding-bottom: 2rem;
+            padding-top: 0 !important;
+            transition: margin-left 0.3s ease;
+        }
+        
+        /* Ajuste do main-content para usuários demo (sem banner fixo) */
+        {% if request.user.username == 'demo_monpec' or request.user.username == 'demo' %}
+        .main-content {
+            margin-top: 54px; /* Apenas o header */
+            padding-top: 0 !important;
+        }
+        {% endif %}
+        
+        /* Estilo do modal de demonstração */
+        #modal-demonstracao .modal-header {
+            background: linear-gradient(135deg, #ffc107 0%, #ffb300 100%);
+            color: #856404;
+            border-bottom: none;
+            padding-top: 2.5rem;
+            padding-bottom: 1rem;
+        }
+        
+        #modal-demonstracao .modal-dialog {
+            margin-top: 2rem;
+        }
+        
+        #modal-demonstracao .modal-body {
+            padding: 1.5rem;
+        }
+        
+        /* Texto justificado no modal */
+        #modal-demonstracao .modal-body p {
+            text-align: justify !important;
+            text-justify: inter-word;
+            hyphens: auto;
+        }
+        
+        #modal-demonstracao .btn-redirecionar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            font-weight: 600;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        #modal-demonstracao .btn-redirecionar:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        /* Reduzir padding superior dos containers dentro do main-content */
+        .main-content .container-fluid,
+        .main-content .container {
+            padding-top: 0.5rem !important;
+        }
+
+        /* Quando sidebar está escondido (página fullscreen) */
+        body.no-sidebar .sidebar {
+            display: none !important;
+        }
+
+        body.no-sidebar .main-content {
+            margin-left: 0 !important;
+            width: 100% !important;
+        }
+
+        body.no-sidebar .header-fixo {
+            left: 0 !important;
+            width: 100% !important;
+        }
+
+        .container-fluid {
+            padding: 1.35rem 1.5rem 2rem;
+        }
+
+        /* Breadcrumbs Melhorados */
+        .breadcrumb-inteligente {
+            background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(248,249,250,0.95) 100%);
+            padding: 0.85rem 1.2rem;
+            margin-bottom: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            border: 1px solid rgba(0,0,0,0.05);
+            backdrop-filter: blur(10px);
+        }
+
+        .breadcrumb {
+            background: transparent;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .breadcrumb-item {
+            font-size: 0.85rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+        }
+        
+        .breadcrumb-item + .breadcrumb-item::before {
+            content: "›";
+            color: rgba(0,0,0,0.3);
+            padding: 0 0.75rem;
+            font-size: 1.2rem;
+            font-weight: 300;
+        }
+
+        .breadcrumb-item a {
+            color: var(--navy);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s ease;
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+        }
+        
+        .breadcrumb-item a i {
+            font-size: 0.85rem;
+            opacity: 0.7;
+        }
+
+        .breadcrumb-item a:hover {
+            color: var(--navy-light);
+            background: rgba(59, 130, 246, 0.1);
+            transform: translateX(2px);
+        }
+
+        .breadcrumb-separator {
+            color: #bdc3c7;
+            margin: 0 0.5rem;
+        }
+
+        .breadcrumb-item.active {
+            color: #1a1a1a;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .breadcrumb-item.active i {
+            font-size: 0.9rem;
+            color: var(--navy);
+        }
+
+        /* Page Header Padronizado */
+        .submenu-page-header {
+            background: linear-gradient(135deg, rgba(30, 58, 95, 0.05) 0%, rgba(45, 80, 130, 0.08) 100%);
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(0,0,0,0.05);
+            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+        }
+        
+        .submenu-page-icon {
+            width: 65px;
+            height: 65px;
+            background: linear-gradient(135deg, rgba(100, 149, 237, 0.15) 0%, rgba(100, 149, 237, 0.25) 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(100, 149, 237, 0.15);
+        }
+        
+        .submenu-page-icon i {
+            font-size: 2rem;
+            color: var(--navy);
+        }
+        
+        .submenu-page-title {
+            font-size: 1.65rem;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 0.4rem;
+        }
+        
+        .submenu-page-description {
+            color: #1a1a1a;
+            font-size: 0.9rem;
+            margin-bottom: 0;
+        }
+        
+        /* Content Cards Padronizados */
+        .content-card {
+            background: white;
+            border: 1px solid var(--gray-border);
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            transition: all 0.3s ease;
+            margin-bottom: 1.5rem;
+        }
+        
+        .content-card:hover {
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+        
+        .content-card-header {
+            padding: 1rem 1.2rem;
+            border-bottom: 1px solid var(--gray-border);
+            background: linear-gradient(135deg, rgba(248,249,250,1) 0%, rgba(255,255,255,1) 100%);
+            border-radius: 12px 12px 0 0;
+        }
+        
+        .content-card-body {
+            padding: 1.2rem;
+        }
+        
+        /* Cards */
+        .card-moderno {
+            background: white;
+            border: 1px solid var(--gray-border);
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .card-moderno:hover {
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            transform: translateY(-2px);
+        }
+
+        .card-body-moderno {
+            padding: 1.2rem;
+        }
+
+        /* Botões */
+        .btn-moderno {
+            background: var(--navy);
+            color: white;
+            border: none;
+            padding: 0.65rem 1.2rem;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            transition: all 0.2s ease;
+        }
+
+        .btn-moderno:hover {
+            background: var(--navy-light);
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        .btn-outline-light {
+            background: transparent;
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 0.45rem 0.9rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+
+        .btn-outline-light:hover {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border-color: rgba(255,255,255,0.5);
+        }
+        
+        /* Responsivo */
+        @media (max-width: 992px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            body.sidebar-open .sidebar {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .container-fluid {
+                padding: 1rem 1.1rem 1.5rem;
+            }
+
+            .usuario-info {
+                gap: 0.75rem;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .header-content {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.6rem;
+            }
+
+            .usuario-info {
+                width: 100%;
+                justify-content: space-between;
+                flex-wrap: wrap;
+            }
+
+            .usuario-info span {
+                font-size: 0.85rem;
+            }
+
+            .container-fluid {
+                padding: 0.85rem;
+            }
+
+            .table-responsive {
+                border-radius: 10px;
+            }
+
+            .table {
+                font-size: 0.85rem;
+                white-space: nowrap;
+            }
+
+            .table-responsive::-webkit-scrollbar {
+                height: 6px;
+            }
+
+            .table-responsive::-webkit-scrollbar-thumb {
+                background: rgba(30, 41, 59, 0.25);
+                border-radius: 3px;
+            }
+
+            .card-body,
+            .content-card-body {
+                padding: 0.95rem;
+            }
+
+            .card-header,
+            .content-card-header {
+                padding: 0.85rem 0.95rem;
+            }
+        }
+
+        /* Animações */
+        .fade-in {
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Status da propriedade - removido (agora está no header) */
+        .nav-link-atalho:hover,
+        .nav-link-atalho.active {
+            background: linear-gradient(135deg, #6495ed, #3d4f80) !important;
+            color: #ffffff !important;
+            border-color: transparent !important;
+            box-shadow: 0 10px 25px rgba(22, 32, 54, 0.25);
+        }
+
+        .header-resumo .resumo-card {
+            background: rgba(100, 149, 237, 0.12);
+        }
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body{% block body_attrs %}{% endblock %}>
+    <!-- Header Fixo -->
+    <header class="header-fixo">
+        <div class="header-content">
+            <div class="header-left">
+                {% if not DEMO_MODE %}
+                <button type="button" class="btn-menu-mobile d-lg-none" data-toggle-sidebar aria-label="Abrir menu lateral" {% if not propriedade %}disabled{% endif %}>
+                    <i class="bi bi-list"></i>
+                </button>
+                {% endif %}
+                {% if request.user.username == 'demo_monpec' or request.user.username == 'demo' %}
+                <a href="{% url 'assinaturas_dashboard' %}" class="btn btn-sm btn-success btn-assinatura-demo" style="padding: 0.4rem 1rem; font-size: 0.85rem; font-weight: 600; border-radius: 6px; text-decoration: none; display: inline-flex; align-items: center; gap: 0.4rem; white-space: nowrap;">
+                    <i class="bi bi-credit-card"></i>
+                    Garanta sua assinatura agora
+                </a>
+                {% else %}
+                <a href="{% url 'dashboard' %}" class="logo-sistema">
+                    MONPEC
+                </a>
+                {% endif %}
+            </div>
+            {% block header_info_propriedade %}{% endblock %}
+            <div class="usuario-info">
+                {% if propriedade and todas_propriedades %}
+                <div class="status-propriedade-header" style="position: relative;">
+                    <i class="bi bi-house-door me-2"></i>
+                    <select id="seletor-propriedade" class="form-select form-select-sm" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; border-radius: 8px; padding: 0.25rem 0.5rem; font-size: 0.8rem; min-width: 200px; cursor: pointer;" onchange="trocarPropriedade(this.value)">
+                        {% for prop in todas_propriedades %}
+                            <option value="{{ prop.id }}" {% if prop.id == propriedade.id %}selected{% endif %} style="background: #2c5282; color: white;">
+                                {{ prop.produtor.nome }} - {{ prop.nome_propriedade }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% elif propriedade %}
+                <div class="status-propriedade-header">
+                    <i class="bi bi-house-door me-2"></i>
+                    Propriedade: {{ propriedade.nome_propriedade }}
+                </div>
+                {% endif %}
+                <span>Olá, {{ user.get_full_name|default:user.username }}</span>
+                <a href="{% url 'logout' %}" class="btn btn-outline-light btn-sm">Sair</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Modal de Demonstração (apenas para usuários demo) -->
+    {% if request.user.username == 'demo_monpec' or request.user.username == 'demo' %}
+    <div class="modal fade" id="modal-demonstracao" tabindex="-1" aria-labelledby="modalDemonstracaoLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow-lg border-0">
+                <div class="modal-header position-relative">
+                    <!-- Ícone de redirecionamento no topo -->
+                    <div class="position-absolute top-0 start-50 translate-middle" style="margin-top: -30px;">
+                        <div class="bg-white rounded-circle p-3 shadow-lg" style="width: 60px; height: 60px; display: flex; align-items: center; justify-content: center;">
+                            <i class="bi bi-arrow-right-circle-fill text-warning" style="font-size: 2.5rem;"></i>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 w-100">
+                        <h5 class="modal-title mb-0" id="modalDemonstracaoLabel">
+                            <strong>Versão Demonstração</strong>
+                        </h5>
+                        <button type="button" class="btn-close btn-close-dark ms-auto" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                    </div>
+                </div>
+                <div class="modal-body">
+                    <div class="d-flex align-items-start gap-3 mb-3">
+                        <i class="bi bi-info-circle-fill text-warning fs-3"></i>
+                        <div>
+                            <p class="mb-2">
+                                <strong>Licença de Pré-Lançamento</strong>
+                            </p>
+                            <p class="mb-2">
+                                Esta é uma <strong>licença de pré-lançamento</strong> exclusiva para os <strong>primeiros 50 assinantes</strong>. O sistema completo será disponibilizado para uso a partir de <strong>01 de fevereiro de 2026</strong>.
+                            </p>
+                            <p class="mb-0">
+                                Os primeiros assinantes terão acesso completo ao sistema pagando somente <strong>uma mensalidade por 12 meses</strong>.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="text-center mt-4">
+                        <a href="{% url 'assinaturas_dashboard' %}" class="btn btn-redirecionar">
+                            <i class="bi bi-arrow-right-circle me-2"></i>
+                            Garantir Minha Assinatura Agora
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        // Gerenciar exibição do modal de demonstração
+        document.addEventListener('DOMContentLoaded', function() {
+            const modalElement = document.getElementById('modal-demonstracao');
+            if (!modalElement) return;
+            
+            const modal = new bootstrap.Modal(modalElement);
+            const STORAGE_KEY = 'monpec_modal_ultima_exibicao';
+            const INTERVALO_EXIBICAO = 10 * 60 * 1000; // 10 minutos em milissegundos
+            const TEMPO_VISIBILIDADE = 15 * 1000; // 15 segundos em milissegundos
+            
+            function mostrarModal() {
+                modal.show();
+                
+                // Fechar automaticamente após 15 segundos
+                setTimeout(function() {
+                    modal.hide();
+                    // Salvar timestamp da última exibição
+                    localStorage.setItem(STORAGE_KEY, Date.now().toString());
+                }, TEMPO_VISIBILIDADE);
+            }
+            
+            function verificarTempoExibicao() {
+                const ultimaExibicao = localStorage.getItem(STORAGE_KEY);
+                const agora = Date.now();
+                
+                if (!ultimaExibicao) {
+                    // Primeira vez - mostrar após 10 segundos
+                    setTimeout(mostrarModal, 10000);
+                } else {
+                    const tempoDecorrido = agora - parseInt(ultimaExibicao);
+                    
+                    if (tempoDecorrido >= INTERVALO_EXIBICAO) {
+                        // Já passaram 10 minutos - mostrar imediatamente
+                        mostrarModal();
+                    } else {
+                        // Ainda não passaram 10 minutos - agendar para quando completar
+                        const tempoRestante = INTERVALO_EXIBICAO - tempoDecorrido;
+                        setTimeout(mostrarModal, tempoRestante);
+                    }
+                }
+            }
+            
+            // Verificar e agendar exibição inicial
+            verificarTempoExibicao();
+            
+            // Configurar intervalo para verificar a cada minuto se já passaram 10 minutos
+            setInterval(function() {
+                const ultimaExibicao = localStorage.getItem(STORAGE_KEY);
+                if (!ultimaExibicao) return;
+                
+                const tempoDecorrido = Date.now() - parseInt(ultimaExibicao);
+                if (tempoDecorrido >= INTERVALO_EXIBICAO) {
+                    // Verificar se o modal não está visível antes de mostrar
+                    const modalInstance = bootstrap.Modal.getInstance(modalElement);
+                    if (!modalInstance || !modalElement.classList.contains('show')) {
+                        mostrarModal();
+                    }
+                }
+            }, 60000); // Verificar a cada 1 minuto
+        });
+        
+        // Função para abrir modal de compra (usada por Nutrição, Projetos Bancários e Relatórios)
+        window.abrirModalCompra = function() {
+            const modalElement = document.getElementById('modal-demonstracao');
+            if (modalElement) {
+                const modal = new bootstrap.Modal(modalElement);
+                modal.show();
+            } else {
+                // Se o modal não existir, redirecionar para página de assinaturas
+                {% if request.user.username == 'demo_monpec' or request.user.username == 'demo' %}
+                // Para usuários demo, tentar redirecionar para página de assinaturas
+                window.location.href = '{% url "assinaturas_dashboard" %}';
+                {% else %}
+                // Para outros usuários, redirecionar para página de assinaturas
+                window.location.href = '{% url "assinaturas_dashboard" %}';
+                {% endif %}
+            }
+            return false;
+        };
+    </script>
+    {% else %}
+    <!-- Função para abrir modal de compra (para usuários não-demo) -->
+    <script>
+        window.abrirModalCompra = function() {
+            // Para usuários não-demo, redirecionar diretamente para página de assinaturas
+            window.location.href = '{% url "assinaturas_dashboard" %}';
+            return false;
+        };
+    </script>
+    {% endif %}
+
+    <!-- Watermark de Demonstração (apenas para usuários demo) -->
+    {% if request.user.username == 'demo_monpec' or request.user.username == 'demo' %}
+    <style>
+        body::before {
+            content: 'VERSÃO DEMONSTRAÇÃO - MONPEC (MONITOR DA PECUÁRIA)';
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            font-size: 4rem;
+            font-weight: 900;
+            color: rgba(255, 193, 7, 0.08);
+            z-index: -1;
+            pointer-events: none;
+            white-space: nowrap;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            font-family: 'Poppins', sans-serif;
+        }
+        
+        @media (max-width: 768px) {
+            body::before {
+                font-size: 2rem;
+            }
+        }
+    </style>
+    {% endif %}
+
+    <!-- Sidebar -->
+    {% load static %}
+    {% if not DEMO_MODE %}
+    <nav class="sidebar {% if not propriedade %}disabled{% endif %}" role="navigation" aria-label="Menu principal">
+        <div class="sidebar-mobile-actions d-lg-none">
+            <button type="button" class="btn-close-sidebar" data-toggle-sidebar aria-label="Fechar menu">
+                <i class="bi bi-x-lg"></i>
+            </button>
+            <span class="sidebar-mobile-title">Menu</span>
+        </div>
+        <div class="sidebar-header">
+            {% if propriedade %}
+                Módulos - {{ propriedade.nome_propriedade }}
+            {% else %}
+                Módulos (Indisponíveis)
+            {% endif %}
+        </div>
+
+        {% if propriedade %}
+            <!-- Link para Voltar aos Módulos - Destacado -->
+            <div class="nav-item nav-item-destaque">
+                <a href="{% url 'propriedade_modulos' propriedade.id %}" class="nav-link nav-link-destaque {% if 'modulos' in request.path and 'pecuaria' not in request.path and 'agricultura' not in request.path %}active{% endif %}">
+                    <i class="bi bi-grid-3x3-gap"></i> 
+                    <span style="flex: 1; text-align: center;">Módulos</span>
+                </a>
+            </div>
+            
+            <!-- Módulos habilitados quando dentro da propriedade -->
+            <div class="accordion accordion-flush" id="sidebarAccordion">
+                {% with current_url=request.resolver_match.url_name %}
+                
+                <!-- 1. Dashboard Pecuária -->
+                {% if propriedade.tipo_operacao == 'PECUARIA' %}
+                <div class="nav-item modulo-pecuaria {% if request.resolver_match.url_name == 'pecuaria_dashboard' %}active{% endif %}">
+                    <a href="{% url 'pecuaria_dashboard' propriedade.id %}" 
+                       class="nav-link {% if request.resolver_match.url_name == 'pecuaria_dashboard' %}active{% endif %}">
+                        <i class="bi bi-graph-up-arrow"></i> <span style="margin-left: 0.5rem;">1. Dashboard Pecuária</span>
+                    </a>
+                </div>
+                
+                <!-- 2. Tela Curral -->
+                <div class="nav-item modulo-pecuaria {% if request.resolver_match.url_name == 'curral_painel' or request.resolver_match.url_name == 'curral_dashboard' or request.resolver_match.url_name == 'curral_dashboard_v3' or request.resolver_match.url_name == 'curral_dashboard_v4' or 'curral' in request.path %}active{% endif %}">
+                    <a href="{% url 'curral_dashboard_v4' propriedade.id %}" 
+                       target="_blank"
+                       class="nav-link nav-link-curral {% if request.resolver_match.url_name == 'curral_painel' or request.resolver_match.url_name == 'curral_dashboard' or request.resolver_match.url_name == 'curral_dashboard_v3' or request.resolver_match.url_name == 'curral_dashboard_v4' or 'curral' in request.path %}active{% endif %}">
+                        <i class="bi bi-cpu"></i> <span style="margin-left: 0.5rem;">2. Tela Curral</span>
+                    </a>
+                </div>
+                {% endif %}
+                
+                <!-- 3. Cadastro -->
+                <div class="accordion-item">
+                    <div class="nav-item modulo-cadastro {% if 'cadastro' in request.path or 'produtor' in request.path and 'propriedade' not in request.path or request.resolver_match.url_name == 'propriedades_lista' or request.resolver_match.url_name == 'propriedade_nova' or 'fornecedor' in request.path or 'cliente' in request.path or request.resolver_match.url_name == 'funcionario_novo' or request.resolver_match.url_name == 'categoria_nova' %}active{% endif %}">
+                        <button class="accordion-button {% if 'cadastro' not in request.path and 'produtor' not in request.path and request.resolver_match.url_name != 'propriedades_lista' and request.resolver_match.url_name != 'propriedade_nova' and 'fornecedor' not in request.path and 'cliente' not in request.path and request.resolver_match.url_name != 'funcionario_novo' and request.resolver_match.url_name != 'categoria_nova' %}collapsed{% endif %}" type="button" 
+                                data-bs-toggle="collapse" data-bs-target="#submenu-cadastro" 
+                                aria-expanded="{% if 'cadastro' in request.path or 'produtor' in request.path and 'propriedade' not in request.path or request.resolver_match.url_name == 'propriedades_lista' or request.resolver_match.url_name == 'propriedade_nova' or 'fornecedor' in request.path or 'cliente' in request.path or request.resolver_match.url_name == 'funcionario_novo' or request.resolver_match.url_name == 'categoria_nova' %}true{% else %}false{% endif %}" 
+                                aria-controls="submenu-cadastro">
+                            <i class="bi bi-journal-text"></i>
+                            <span style="flex: 1; margin-left: 0.5rem;">3. Cadastro</span>
+                            <i class="bi bi-chevron-right chevron-icon"></i>
+                        </button>
+                        <div id="submenu-cadastro" class="accordion-collapse collapse {% if 'cadastro' in request.path or 'produtor' in request.path and 'propriedade' not in request.path or request.resolver_match.url_name == 'propriedades_lista' or request.resolver_match.url_name == 'propriedade_nova' or 'fornecedor' in request.path or 'cliente' in request.path or request.resolver_match.url_name == 'funcionario_novo' or request.resolver_match.url_name == 'categoria_nova' %}show{% endif %}" 
+                             data-bs-parent="#sidebarAccordion">
+                            <div class="nav-submenu">
+                                <!-- Cadastros Globais -->
+                                <a href="{% url 'produtor_novo' %}" 
+                                   class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'produtor_novo' or request.resolver_match.url_name == 'produtor_editar' %}active{% endif %}">
+                                    <i class="bi bi-person-badge"></i> Produtor Rural (Proprietário)
+                                </a>
+                                
+                                <!-- Cadastros por Propriedade -->
+                                <a href="{% url 'propriedades_lista' propriedade.produtor.id %}" 
+                                   class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'propriedades_lista' or request.resolver_match.url_name == 'propriedade_nova' or request.resolver_match.url_name == 'propriedade_editar' %}active{% endif %}">
+                                    <i class="bi bi-house-door"></i> Fazenda/Propriedade
+                                </a>
+                                <a href="{% url 'fornecedores_lista' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'fornecedor' in request.path %}active{% endif %}">
+                                    <i class="bi bi-truck"></i> Fornecedores
+                                </a>
+                                <a href="{% url 'funcionarios_lista' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'funcionario' in request.path and 'lista' in request.path or request.resolver_match.url_name == 'funcionario_novo' or 'funcionario' in request.path and 'editar' in request.path %}active{% endif %}">
+                                    <i class="bi bi-people"></i> Funcionários
+                                </a>
+                                {% comment %}TODO: Implementar view clientes_lista antes de descomentar
+                                <a href="{% url 'clientes_lista' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'cliente' in request.path %}active{% endif %}">
+                                    <i class="bi bi-person-check"></i> Clientes
+                                </a>
+                                {% endcomment %}
+                                
+                                <!-- Categorias de Animais (último item) -->
+                                <a href="{% url 'categoria_nova' %}" 
+                                   class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'categoria_nova' or request.resolver_match.url_name == 'categorias_lista' or request.resolver_match.url_name == 'categoria_editar' %}active{% endif %}">
+                                    <i class="bi bi-bookmark-star"></i> Categorias de Animais
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 4. Planejamento -->
+                {% if propriedade.tipo_operacao == 'PECUARIA' %}
+                <div class="accordion-item">
+                    <div class="nav-item modulo-planejamento {% if 'planejamento' in request.path and 'pecuaria' not in request.path %}active{% endif %}">
+                        <button class="accordion-button {% if 'planejamento' not in request.path or 'pecuaria' in request.path %}collapsed{% endif %}" type="button" 
+                                data-bs-toggle="collapse" data-bs-target="#submenu-planejamento" 
+                                aria-expanded="{% if 'planejamento' in request.path and 'pecuaria' not in request.path %}true{% else %}false{% endif %}" 
+                                aria-controls="submenu-planejamento">
+                            <i class="bi bi-calendar3-range"></i>
+                            <span style="flex: 1; margin-left: 0.5rem;">4. Planejamento</span>
+                            <i class="bi bi-chevron-right chevron-icon"></i>
+                        </button>
+                        <div id="submenu-planejamento" class="accordion-collapse collapse {% if 'planejamento' in request.path and 'pecuaria' not in request.path %}show{% endif %}" 
+                             data-bs-parent="#sidebarAccordion">
+                            <div class="nav-submenu">
+                                <a href="{% url 'pecuaria_planejamento_dashboard' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'pecuaria_planejamento_dashboard' %}active{% endif %}">
+                                    <i class="bi bi-speedometer2"></i> Dashboard
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- 5. Pecuária com Submenu -->
+                {% if propriedade.tipo_operacao == 'PECUARIA' %}
+                <div class="accordion-item">
+                    <div class="nav-item modulo-pecuaria {% if 'pecuaria' in request.path or 'nutricao' in request.path %}active{% endif %}">
+                        <button class="accordion-button {% if 'pecuaria' not in request.path and 'nutricao' not in request.path %}collapsed{% endif %}" type="button" 
+                                data-bs-toggle="collapse" data-bs-target="#submenu-pecuaria" 
+                                aria-expanded="{% if 'pecuaria' in request.path or 'nutricao' in request.path %}true{% else %}false{% endif %}" 
+                                aria-controls="submenu-pecuaria">
+                            <i class="bi bi-graph-up-arrow"></i>
+                            <span style="flex: 1; margin-left: 0.5rem;">5. Pecuária</span>
+                            <i class="bi bi-chevron-right chevron-icon"></i>
+                        </button>
+                        <div id="submenu-pecuaria" class="accordion-collapse collapse {% if 'pecuaria' in request.path or 'nutricao' in request.path %}show{% endif %}" 
+                             data-bs-parent="#sidebarAccordion">
+                            <div class="nav-submenu">
+                                <button type="button" class="nav-subsection-toggle" data-submenu-target="rastreabilidade-submenu" aria-expanded="{% if current_url == 'rastreabilidade_dashboard' or current_url == 'animais_individuais_lista' or current_url == 'animal_individual_novo' or current_url == 'importar_bnd_sisbov' or 'brincos' in request.path %}true{% else %}false{% endif %}">
+                                    <span>Rastreabilidade</span>
+                                    <i class="bi bi-chevron-right chevron"></i>
+                                </button>
+                                <div id="rastreabilidade-submenu" class="nav-subsection-links {% if current_url == 'rastreabilidade_dashboard' or current_url == 'animais_individuais_lista' or current_url == 'animal_individual_novo' or current_url == 'importar_bnd_sisbov' or 'brincos' in request.path %}show{% endif %}">
+                                    <a href="{% url 'rastreabilidade_dashboard' propriedade.id %}" target="_blank"
+                                       class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'rastreabilidade_dashboard' %}active{% endif %}">
+                                        <i class="bi bi-tags"></i> Painel PNIB
+                                    </a>
+                                    <a href="{% url 'importar_bnd_sisbov' propriedade.id %}" target="_blank"
+                                       class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'importar_bnd_sisbov' %}active{% endif %}">
+                                        <i class="bi bi-cloud-arrow-down"></i> Importar BND/SISBOV
+                                    </a>
+                                    <a href="{% url 'animais_individuais_lista' propriedade.id %}" target="_blank"
+                                       class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'animais_individuais_lista' or request.resolver_match.url_name == 'animal_individual_novo' or request.resolver_match.url_name == 'animal_individual_detalhes' or request.resolver_match.url_name == 'animal_individual_editar' %}active{% endif %}">
+                                        <i class="bi bi-list-check"></i> Cadastro Animais
+                                    </a>
+                                    <a href="{% url 'brincos_lista' propriedade.id %}" target="_blank"
+                                       class="nav-link nav-link-submenu {% if 'brincos' in request.path %}active{% endif %}">
+                                        <i class="bi bi-tag"></i> Estoque de Brincos
+                                    </a>
+                                </div>
+
+                                <button type="button" class="nav-subsection-toggle" data-submenu-target="reproducao-submenu" aria-expanded="{% if 'reproducao' in request.path or current_url == 'touros_lista' or current_url == 'touro_novo' or current_url == 'estacao_monta_nova' or current_url == 'iatf_nova' or 'iatf' in request.path or 'whatsapp' in request.path %}true{% else %}false{% endif %}">
+                                    <span>Reprodução</span>
+                                    <i class="bi bi-chevron-right chevron"></i>
+                                </button>
+                                <div id="reproducao-submenu" class="nav-subsection-links {% if 'reproducao' in request.path or current_url == 'touros_lista' or current_url == 'touro_novo' or current_url == 'estacao_monta_nova' or current_url == 'iatf_nova' or 'iatf' in request.path or 'whatsapp' in request.path %}show{% endif %}">
+                                    <a href="{% url 'iatf_dashboard' propriedade.id %}" target="_blank"
+                                       class="nav-link nav-link-submenu {% if 'reproducao' in request.path or 'iatf' in request.path %}active{% endif %}">
+                                        <i class="bi bi-heart-pulse"></i> Reprodução
+                                    </a>
+                                    <a href="{% url 'iatf_dashboard' propriedade.id %}" target="_blank"
+                                       class="nav-link nav-link-submenu {% if 'iatf' in request.path %}active{% endif %}">
+                                        <i class="bi bi-bullseye"></i> Touros
+                                    </a>
+                                    <a href="{% url 'iatf_dashboard' propriedade.id %}" target="_blank"
+                                       class="nav-link nav-link-submenu {% if 'iatf' in request.path %}active{% endif %}">
+                                        <i class="bi bi-calendar2-heart"></i> Estação de Monta
+                                    </a>
+                                    <a href="{% url 'lotes_iatf_lista' propriedade.id %}" target="_blank"
+                                       class="nav-link nav-link-submenu {% if 'iatf' in request.path %}active{% endif %}">
+                                        <i class="bi bi-droplet-half"></i> Registrar IATF
+                                    </a>
+                                    <a href="{% url 'iatf_dashboard' propriedade.id %}"
+                                       class="nav-link nav-link-submenu {% if 'iatf' in request.path %}active{% endif %}">
+                                        <i class="bi bi-activity"></i> IATF Completo
+                                    </a>
+                                    <a href="{% url 'whatsapp_mensagens_lista' propriedade.id %}"
+                                       class="nav-link nav-link-submenu {% if 'whatsapp' in request.path %}active{% endif %}">
+                                        <i class="fab fa-whatsapp text-success"></i> Mensagens WhatsApp
+                                    </a>
+                                </div>
+
+                                <button type="button" class="nav-subsection-toggle" data-submenu-target="pesagem-submenu" aria-expanded="{% if current_url == 'pesagem_dashboard' or current_url == 'pesagem_nova' %}true{% else %}false{% endif %}">
+                                    <span>Pesagem</span>
+                                    <i class="bi bi-chevron-right chevron"></i>
+                                </button>
+                                <div id="pesagem-submenu" class="nav-subsection-links {% if current_url == 'pesagem_dashboard' or current_url == 'pesagem_nova' %}show{% endif %}">
+                                    <a href="{% url 'pesagem_dashboard' propriedade.id %}" target="_blank"
+                                       class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'pesagem_dashboard' %}active{% endif %}">
+                                        <i class="bi bi-speedometer2"></i> Painel de Pesagem
+                                    </a>
+                                    <a href="{% url 'pesagem_nova' propriedade.id %}" target="_blank"
+                                       class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'pesagem_nova' %}active{% endif %}">
+                                        <i class="bi bi-plus-circle"></i> Registrar Pesagem
+                                    </a>
+                                </div>
+
+                                <button type="button" class="nav-subsection-toggle" data-submenu-target="movimentacoes-submenu" aria-expanded="{% if 'transferencias' in request.path %}true{% else %}false{% endif %}">
+                                    <span>Movimentações</span>
+                                    <i class="bi bi-chevron-right chevron"></i>
+                                </button>
+                                <div id="movimentacoes-submenu" class="nav-subsection-links {% if 'transferencias' in request.path %}show{% endif %}">
+                                    <a href="{% url 'transferencias_lista' %}" target="_blank"
+                                       class="nav-link nav-link-submenu {% if 'transferencias' in request.path %}active{% endif %}">
+                                        <i class="bi bi-arrow-left-right"></i> Transferências
+                                    </a>
+                                </div>
+
+                                <button type="button" class="nav-subsection-toggle" data-submenu-target="relatorios-rastreabilidade" aria-expanded="{% if current_url == 'relatorio_final' or current_url == 'relatorio_inventario' or current_url == 'relatorio_financeiro' or current_url == 'relatorio_custos' or current_url == 'relatorio_endividamento' or current_url == 'relatorio_consolidado' or 'relatorios-customizados' in request.path %}true{% else %}false{% endif %}">
+                                    <span>Relatórios</span>
+                                    <i class="bi bi-chevron-right chevron"></i>
+                                </button>
+                                <div id="relatorios-rastreabilidade" class="nav-subsection-links {% if current_url == 'relatorio_final' or current_url == 'relatorio_inventario' or current_url == 'relatorio_financeiro' or current_url == 'relatorio_custos' or current_url == 'relatorio_endividamento' or current_url == 'relatorio_consolidado' or 'relatorios-customizados' in request.path %}show{% endif %}">
+                                    <a href="{% url 'relatorios_customizados_lista' propriedade.id %}"
+                                       class="nav-link nav-link-submenu {% if 'relatorios-customizados' in request.path %}active{% endif %}">
+                                        <i class="bi bi-magic"></i> Criador de Relatórios
+                                        <span class="badge bg-primary-subtle text-primary ms-auto">novo</span>
+                                    </a>
+                                    <a href="{% url 'relatorio_final' propriedade.id %}"
+                                       class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'relatorio_final' %}active{% endif %}">
+                                        <i class="bi bi-file-earmark-text"></i> Relatório Final
+                                    </a>
+                                    <a href="{% url 'relatorio_inventario' propriedade.id %}"
+                                       class="nav-link nav-link-submenu {% if 'inventario' in request.path and 'relatorio' in request.path %}active{% endif %}">
+                                        <i class="bi bi-clipboard-data"></i> Inventário
+                                    </a>
+                                    <a href="{% url 'relatorio_financeiro' propriedade.id %}"
+                                       class="nav-link nav-link-submenu {% if 'financeiro' in request.path and 'relatorio' in request.path %}active{% endif %}">
+                                        <i class="bi bi-cash-stack"></i> Financeiro
+                                    </a>
+                                    <a href="{% url 'relatorio_custos' propriedade.id %}"
+                                       class="nav-link nav-link-submenu {% if 'custos' in request.path and 'relatorio' in request.path %}active{% endif %}">
+                                        <i class="bi bi-calculator"></i> Custos
+                                    </a>
+                                    <a href="{% url 'relatorio_endividamento' propriedade.id %}"
+                                       class="nav-link nav-link-submenu {% if 'endividamento' in request.path and 'relatorio' in request.path %}active{% endif %}">
+                                        <i class="bi bi-credit-card"></i> Endividamento
+                                    </a>
+                                    <a href="{% url 'relatorio_consolidado' propriedade.id %}"
+                                       class="nav-link nav-link-submenu {% if 'consolidado' in request.path %}active{% endif %}">
+                                        <i class="bi bi-file-earmark-pdf"></i> Consolidado
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- 6. Bens e Patrimônio -->
+                <div class="accordion-item">
+                    <div class="nav-item modulo-patrimonio {% if 'patrimonio' in request.path or 'imobilizado' in request.path %}active{% endif %}">
+                        <button class="accordion-button {% if 'patrimonio' not in request.path and 'imobilizado' not in request.path %}collapsed{% endif %}" type="button" 
+                                data-bs-toggle="collapse" data-bs-target="#submenu-patrimonio" 
+                                aria-expanded="{% if 'patrimonio' in request.path or 'imobilizado' in request.path %}true{% else %}false{% endif %}" 
+                                aria-controls="submenu-patrimonio">
+                            <i class="bi bi-box-seam"></i>
+                            <span style="flex: 1; margin-left: 0.5rem;">6. Bens e Patrimônio</span>
+                            <i class="bi bi-chevron-right chevron-icon"></i>
+                        </button>
+                        <div id="submenu-patrimonio" class="accordion-collapse collapse {% if 'patrimonio' in request.path or 'imobilizado' in request.path %}show{% endif %}" 
+                             data-bs-parent="#sidebarAccordion">
+                            <div class="nav-submenu">
+                                <a href="{% url 'imobilizado_dashboard' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'imobilizado_dashboard' %}active{% endif %}">
+                                    <i class="bi bi-speedometer2"></i> Dashboard
+                                </a>
+                                <a href="{% url 'bens_lista' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'bens' in request.path and 'lista' in request.path %}active{% endif %}">
+                                    <i class="bi bi-list-ul"></i> Lista de Bens
+                                </a>
+                                <a href="{% url 'bem_novo' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'bem' in request.path and 'novo' in request.path %}active{% endif %}">
+                                    <i class="bi bi-plus-circle"></i> Novo Bem
+                                </a>
+                                <a href="{% url 'calcular_depreciacao_automatica' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'depreciacao' in request.path %}active{% endif %}">
+                                    <i class="bi bi-calculator"></i> Depreciação
+                                </a>
+                                <a href="{% url 'relatorio_imobilizado' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'relatorio' in request.path and 'imobilizado' in request.path %}active{% endif %}">
+                                    <i class="bi bi-file-earmark-pdf"></i> Relatório
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 7. Nutrição (abre modal de compra) -->
+                <div class="accordion-item">
+                    <div class="nav-item modulo-nutricao {% if 'nutricao' in request.path %}active{% endif %}">
+                        <button class="accordion-button collapsed" type="button" 
+                                data-bs-toggle="collapse" data-bs-target="#submenu-nutricao" 
+                                aria-expanded="false" 
+                                aria-controls="submenu-nutricao"
+                                onclick="event.preventDefault(); event.stopPropagation(); abrirModalCompra();">
+                            <i class="bi bi-cup-straw"></i>
+                            <span style="flex: 1; margin-left: 0.5rem;">7. Nutrição</span>
+                            <i class="bi bi-chevron-right chevron-icon"></i>
+                        </button>
+                        <div id="submenu-nutricao" class="accordion-collapse collapse" 
+                             data-bs-parent="#sidebarAccordion" style="display: none;">
+                            <div class="nav-submenu">
+                                <!-- Submenu oculto - não será usado -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 8. Compras -->
+                <div class="accordion-item">
+                    <div class="nav-item modulo-compras {% if 'compras' in request.path %}active{% endif %}">
+                        <button class="accordion-button {% if 'compras' not in request.path %}collapsed{% endif %}" type="button" 
+                                data-bs-toggle="collapse" data-bs-target="#submenu-compras" 
+                                aria-expanded="{% if 'compras' in request.path %}true{% else %}false{% endif %}" 
+                                aria-controls="submenu-compras">
+                            <i class="bi bi-bag-check"></i>
+                            <span style="flex: 1; margin-left: 0.5rem;">8. Compras</span>
+                            <i class="bi bi-chevron-right chevron-icon"></i>
+                        </button>
+                        <div id="submenu-compras" class="accordion-collapse collapse {% if 'compras' in request.path %}show{% endif %}" 
+                             data-bs-parent="#sidebarAccordion">
+                            <div class="nav-submenu">
+                                <a href="{% url 'compras_dashboard' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'compras_dashboard' %}active{% endif %}">
+                                    <i class="bi bi-speedometer2"></i> Dashboard
+                                </a>
+                                <a href="#" 
+                                   class="nav-link nav-link-submenu nav-link-disabled" 
+                                   onclick="event.preventDefault(); abrirModalCompra(); return false;">
+                                    <i class="bi bi-journal-text"></i> Requisições
+                                    <i class="bi bi-lock-fill ms-auto text-muted" style="font-size: 0.75rem;"></i>
+                                </a>
+                                <a href="#" 
+                                   class="nav-link nav-link-submenu nav-link-disabled" 
+                                   onclick="event.preventDefault(); abrirModalCompra(); return false;"
+                                   style="opacity: 0.5; cursor: not-allowed;">
+                                    <i class="bi bi-journal-plus"></i> Nova Requisição
+                                    <i class="bi bi-lock-fill ms-auto text-muted" style="font-size: 0.75rem;"></i>
+                                </a>
+                                <a href="#" 
+                                   class="nav-link nav-link-submenu nav-link-disabled" 
+                                   onclick="event.preventDefault(); abrirModalCompra(); return false;"
+                                   style="opacity: 0.5; cursor: not-allowed;">
+                                    <i class="bi bi-diagram-3"></i> Setores
+                                    <i class="bi bi-lock-fill ms-auto text-muted" style="font-size: 0.75rem;"></i>
+                                </a>
+                                <a href="#" 
+                                   class="nav-link nav-link-submenu nav-link-disabled" 
+                                   onclick="event.preventDefault(); abrirModalCompra(); return false;"
+                                   style="opacity: 0.5; cursor: not-allowed;">
+                                    <i class="bi bi-people"></i> Fornecedores
+                                    <i class="bi bi-lock-fill ms-auto text-muted" style="font-size: 0.75rem;"></i>
+                                </a>
+                                <a href="#" 
+                                   class="nav-link nav-link-submenu nav-link-disabled" 
+                                   onclick="event.preventDefault(); abrirModalCompra(); return false;"
+                                   style="opacity: 0.5; cursor: not-allowed;">
+                                    <i class="bi bi-person-plus"></i> Novo Fornecedor
+                                    <i class="bi bi-lock-fill ms-auto text-muted" style="font-size: 0.75rem;"></i>
+                                </a>
+                                <a href="#" 
+                                   class="nav-link nav-link-submenu nav-link-disabled" 
+                                   onclick="event.preventDefault(); abrirModalCompra(); return false;"
+                                   style="opacity: 0.5; cursor: not-allowed;">
+                                    <i class="bi bi-file-earmark-text"></i> Ordens / Contas a Pagar
+                                    <i class="bi bi-lock-fill ms-auto text-muted" style="font-size: 0.75rem;"></i>
+                                </a>
+                                <a href="#" 
+                                   class="nav-link nav-link-submenu nav-link-disabled" 
+                                   onclick="event.preventDefault(); abrirModalCompra(); return false;"
+                                   style="opacity: 0.5; cursor: not-allowed;">
+                                    <i class="bi bi-receipt-cutoff"></i> Notas Fiscais
+                                    <i class="bi bi-lock-fill ms-auto text-muted" style="font-size: 0.75rem;"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 9. Operações -->
+                <div class="accordion-item">
+                    <div class="nav-item modulo-operacoes {% if 'operacoes' in request.path %}active{% endif %}">
+                        <button class="accordion-button {% if 'operacoes' not in request.path %}collapsed{% endif %}" type="button" 
+                                data-bs-toggle="collapse" data-bs-target="#submenu-operacoes" 
+                                aria-expanded="{% if 'operacoes' in request.path %}true{% else %}false{% endif %}" 
+                                aria-controls="submenu-operacoes">
+                            <i class="bi bi-tools"></i>
+                            <span style="flex: 1; margin-left: 0.5rem;">9. Operações</span>
+                            <i class="bi bi-chevron-right chevron-icon"></i>
+                        </button>
+                        <div id="submenu-operacoes" class="accordion-collapse collapse {% if 'operacoes' in request.path %}show{% endif %}" 
+                             data-bs-parent="#sidebarAccordion">
+                            <div class="nav-submenu">
+                                <a href="{% url 'operacoes_dashboard' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'operacoes_dashboard' %}active{% endif %}">
+                                    <i class="bi bi-speedometer2"></i> Dashboard
+                                </a>
+                                <a href="#" 
+                                   class="nav-link nav-link-submenu nav-link-disabled" 
+                                   onclick="event.preventDefault(); abrirModalCompra(); return false;"
+>
+                                    <i class="bi bi-fuel-pump"></i> Combustível
+                                    <i class="bi bi-lock-fill ms-auto text-muted" style="font-size: 0.75rem;"></i>
+                                </a>
+                                <a href="#" 
+                                   class="nav-link nav-link-submenu nav-link-disabled" 
+                                   onclick="event.preventDefault(); abrirModalCompra(); return false;"
+                                   style="opacity: 0.5; cursor: not-allowed;">
+                                    <i class="bi bi-tools"></i> Equipamentos
+                                    <i class="bi bi-lock-fill ms-auto text-muted" style="font-size: 0.75rem;"></i>
+                                </a>
+                                <a href="#" 
+                                   class="nav-link nav-link-submenu nav-link-disabled" 
+                                   onclick="event.preventDefault(); abrirModalCompra(); return false;"
+                                   style="opacity: 0.5; cursor: not-allowed;">
+                                    <i class="bi bi-wrench"></i> Manutenção
+                                    <i class="bi bi-lock-fill ms-auto text-muted" style="font-size: 0.75rem;"></i>
+                                </a>
+                                <a href="#" 
+                                   class="nav-link nav-link-submenu nav-link-disabled" 
+                                   onclick="event.preventDefault(); abrirModalCompra(); return false;"
+                                   style="opacity: 0.5; cursor: not-allowed;">
+                                    <i class="bi bi-people"></i> Funcionários
+                                    <i class="bi bi-lock-fill ms-auto text-muted" style="font-size: 0.75rem;"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 10. Financeiro -->
+                <div class="accordion-item">
+                    <div class="nav-item modulo-financeiro {% if 'financeiro' in request.path %}active{% endif %}">
+                        <button class="accordion-button {% if 'financeiro' not in request.path %}collapsed{% endif %}" type="button" 
+                                data-bs-toggle="collapse" data-bs-target="#submenu-financeiro" 
+                                aria-expanded="{% if 'financeiro' in request.path %}true{% else %}false{% endif %}" 
+                                aria-controls="submenu-financeiro">
+                            <i class="bi bi-wallet2"></i>
+                            <span style="flex: 1; margin-left: 0.5rem;">10. Financeiro</span>
+                            <i class="bi bi-chevron-right chevron-icon"></i>
+                        </button>
+                        <div id="submenu-financeiro" class="accordion-collapse collapse {% if 'financeiro' in request.path %}show{% endif %}" 
+                             data-bs-parent="#sidebarAccordion">
+                            <div class="nav-submenu">
+                                <button type="button" class="nav-subsection-toggle" data-submenu-target="financeiro-centro-submenu" aria-expanded="false">
+                                    <span>Centro Financeiro</span>
+                                    <i class="bi bi-chevron-right chevron"></i>
+                                </button>
+                                <div id="financeiro-centro-submenu" class="nav-subsection-links">
+                                    <a href="{% url 'financeiro_dashboard' propriedade.id %}"
+                                       class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'financeiro_dashboard' %}active{% endif %}">
+                                        <i class="bi bi-cash-coin"></i> Financeiro Completo
+                                    </a>
+                                    <a href="#" 
+                                       class="nav-link nav-link-submenu nav-link-disabled" 
+                                       onclick="event.preventDefault(); abrirModalCompra(); return false;"
+    >
+                                        <i class="bi bi-cash-stack"></i> Fluxo de Caixa
+                                        <i class="bi bi-lock-fill ms-auto text-muted" style="font-size: 0.75rem;"></i>
+                                    </a>
+                                    <a href="#" 
+                                       class="nav-link nav-link-submenu nav-link-disabled" 
+                                       onclick="event.preventDefault(); abrirModalCompra(); return false;"
+                                       style="opacity: 0.5; cursor: not-allowed;">
+                                        <i class="bi bi-arrow-down-circle"></i> Contas a Pagar
+                                        <i class="bi bi-lock-fill ms-auto text-muted" style="font-size: 0.75rem;"></i>
+                                    </a>
+                                    <a href="#" 
+                                       class="nav-link nav-link-submenu nav-link-disabled" 
+                                       onclick="event.preventDefault(); abrirModalCompra(); return false;"
+                                       style="opacity: 0.5; cursor: not-allowed;">
+                                        <i class="bi bi-arrow-up-circle"></i> Contas a Receber
+                                        <i class="bi bi-lock-fill ms-auto text-muted" style="font-size: 0.75rem;"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 10. Projetos Bancários (abre modal de compra) -->
+                <div class="accordion-item">
+                    <div class="nav-item modulo-projetos {% if 'projetos_bancarios' in request.path or 'projeto_bancario' in request.path or 'projetos-bancarios' in request.path %}active{% endif %}">
+                        <button class="accordion-button collapsed" type="button" 
+                                data-bs-toggle="collapse" data-bs-target="#submenu-projetos" 
+                                aria-expanded="false" 
+                                aria-controls="submenu-projetos"
+                                onclick="event.preventDefault(); event.stopPropagation(); abrirModalCompra();">
+                            <i class="bi bi-briefcase"></i>
+                            <span style="flex: 1; margin-left: 0.5rem;">10. Projetos Bancários</span>
+                            <i class="bi bi-chevron-right chevron-icon"></i>
+                        </button>
+                        <div id="submenu-projetos" class="accordion-collapse collapse" 
+                             data-bs-parent="#sidebarAccordion" style="display: none;">
+                            <div class="nav-submenu">
+                                <!-- Submenu oculto - não será usado -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 11. Relatórios (abre modal de compra) -->
+                <div class="accordion-item">
+                    <div class="nav-item modulo-relatorios {% if 'relatorios' in request.path or 'relatorio' in request.path %}active{% endif %}">
+                        <button class="accordion-button collapsed" type="button" 
+                                data-bs-toggle="collapse" data-bs-target="#submenu-relatorios" 
+                                aria-expanded="false" 
+                                aria-controls="submenu-relatorios"
+                                onclick="event.preventDefault(); event.stopPropagation(); abrirModalCompra();">
+                            <i class="bi bi-file-text"></i>
+                            <span style="flex: 1; margin-left: 0.5rem;">11. Relatórios</span>
+                            <i class="bi bi-chevron-right chevron-icon"></i>
+                        </button>
+                        <div id="submenu-relatorios" class="accordion-collapse collapse" 
+                             data-bs-parent="#sidebarAccordion" style="display: none;">
+                            <div class="nav-submenu">
+                                <!-- Submenu oculto - não será usado -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 12. Categorias -->
+                {% if propriedade.tipo_operacao == 'PECUARIA' %}
+                <div class="nav-item modulo-categorias {% if 'categorias' in request.path %}active{% endif %}">
+                    <a href="{% url 'categorias_lista' %}" class="nav-link">
+                        <i class="bi bi-bookmark-star"></i> <span style="margin-left: 0.5rem;">12. Categorias</span>
+                    </a>
+                </div>
+                {% endif %}
+
+                <!-- Configurações -->
+                <div class="nav-item modulo-configuracoes {% if 'editar' in request.path and 'propriedade' in request.path %}active{% endif %}">
+                    <a href="{% url 'propriedade_editar' propriedade.id %}" class="nav-link">
+                        <i class="bi bi-sliders"></i> <span style="margin-left: 0.5rem;">Configurações</span>
+                    </a>
+                </div>
+                {% endwith %}
+            </div>
+        {% else %}
+            <!-- Módulos desabilitados quando fora da propriedade -->
+            <div class="nav-item">
+                <div class="nav-link text-muted">
+                    <i class="bi bi-lock"></i> Selecione uma propriedade para acessar os módulos
+                </div>
+            </div>
+        {% endif %}
+    </nav>
+    {% endif %}
+    <div class="sidebar-overlay" aria-hidden="true"></div>
+
+    <!-- Conteúdo Principal -->
+    <main class="main-content fade-in">
+        <!-- Breadcrumbs Inteligentes -->
+        <nav aria-label="breadcrumb" class="breadcrumb-inteligente">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item">
+                    <a href="{% url 'dashboard' %}">
+                        <i class="bi bi-house-door"></i>
+                        Dashboard
+                    </a>
+                </li>
+                {% if produtor %}
+                    <li class="breadcrumb-item">
+                        <a href="{% url 'propriedades_lista' produtor.id %}">
+                            <i class="bi bi-person-badge"></i>
+                            {{ produtor.nome }}
+                        </a>
+                    </li>
+                {% endif %}
+                {% if propriedade %}
+                    <li class="breadcrumb-item">
+                        <a href="{% url 'propriedade_modulos' propriedade.id %}">
+                            <i class="bi bi-grid-3x3"></i>
+                            {{ propriedade.nome_propriedade }}
+                        </a>
+                    </li>
+                {% endif %}
+                {% block breadcrumb_extra %}{% endblock %}
+            </ol>
+        </nav>
+
+        <!-- Área de Conteúdo -->
+        <div class="content-area">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const body = document.body;
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.querySelector('.sidebar-overlay');
+            const toggleButtons = document.querySelectorAll('[data-toggle-sidebar]');
+            const closeLinks = sidebar ? sidebar.querySelectorAll('.nav-link, .nav-link-submenu') : [];
+            const sidebarFocusable = sidebar ? sidebar.querySelectorAll('a, button, [tabindex]') : [];
+
+            const closeSidebar = () => {
+                body.classList.remove('sidebar-open');
+                if (overlay) {
+                    overlay.setAttribute('aria-hidden', 'true');
+                }
+                if (sidebar) {
+                    sidebar.setAttribute('aria-hidden', window.innerWidth < 992 ? 'true' : 'false');
+                }
+            };
+
+            const openSidebar = () => {
+                if (!sidebar || window.innerWidth >= 992) {
+                    return;
+                }
+                body.classList.add('sidebar-open');
+                if (overlay) {
+                    overlay.setAttribute('aria-hidden', 'false');
+                }
+                sidebar.setAttribute('aria-hidden', 'false');
+                const firstFocusable = sidebarFocusable.length ? sidebarFocusable[0] : null;
+                if (firstFocusable) {
+                    firstFocusable.focus({ preventScroll: true });
+                }
+            };
+
+            toggleButtons.forEach(function (button) {
+                button.addEventListener('click', function () {
+                    if (body.classList.contains('sidebar-open')) {
+                        closeSidebar();
+                    } else {
+                        openSidebar();
+                    }
+                });
+            });
+
+            if (overlay) {
+                overlay.addEventListener('click', closeSidebar);
+            }
+
+            closeLinks.forEach(function (link) {
+                link.addEventListener('click', function () {
+                    if (window.innerWidth < 992) {
+                        closeSidebar();
+                    }
+                });
+            });
+
+            document.addEventListener('keydown', function (event) {
+                if (event.key === 'Escape' && body.classList.contains('sidebar-open')) {
+                    closeSidebar();
+                }
+            });
+
+            window.addEventListener('resize', function () {
+                if (window.innerWidth >= 992) {
+                    closeSidebar();
+                } else if (sidebar) {
+                    sidebar.setAttribute('aria-hidden', body.classList.contains('sidebar-open') ? 'false' : 'true');
+                }
+            });
+
+            if (sidebar) {
+                sidebar.setAttribute('aria-hidden', window.innerWidth < 992 ? 'true' : 'false');
+            }
+
+            const subsectionToggles = document.querySelectorAll('.nav-subsection-toggle');
+            subsectionToggles.forEach(function (toggle) {
+                const targetId = toggle.getAttribute('data-submenu-target');
+                const target = targetId ? document.getElementById(targetId) : null;
+                if (!target) {
+                    return;
+                }
+
+                const isExpanded = toggle.getAttribute('aria-expanded') === 'true';
+                target.classList.toggle('show', isExpanded);
+
+                toggle.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    const expanded = toggle.getAttribute('aria-expanded') === 'true';
+                    toggle.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+                    target.classList.toggle('show', !expanded);
+                });
+            });
+        });
+        
+        // Manter item "Tela Curral" ativo quando necessário
+        document.addEventListener('DOMContentLoaded', function() {
+            const navLinkCurral = document.querySelector('.nav-link-curral');
+            const navItemCurral = navLinkCurral?.closest('.nav-item');
+            
+            // Verificar localStorage para manter estado ativo
+            if (localStorage.getItem('curral_active') === 'true') {
+                if (navLinkCurral && navItemCurral) {
+                    navLinkCurral.classList.add('active');
+                    navItemCurral.classList.add('active');
+                }
+            }
+            
+            // Quando clicar no link do menu, marcar como ativo
+            if (navLinkCurral) {
+                navLinkCurral.addEventListener('click', function() {
+                    localStorage.setItem('curral_active', 'true');
+                    if (navItemCurral) {
+                        navItemCurral.classList.add('active');
+                    }
+                });
+            }
+        });
+        
+        // Função para trocar de propriedade
+        function trocarPropriedade(propriedadeId) {
+            if (propriedadeId) {
+                window.location.href = '/propriedade/' + propriedadeId + '/modulos/';
+            }
+        }
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
+
+
+
+
+
+

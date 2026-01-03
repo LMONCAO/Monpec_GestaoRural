@@ -1,0 +1,778 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}IA Inteligente - Configuração Automática de Projeção{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header com informações da propriedade -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-gradient-primary text-white">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h2 class="mb-1">
+                                <i class="fas fa-robot me-2"></i>
+                                IA Inteligente de Configuração Automática
+                            </h2>
+                            <p class="mb-0 opacity-75">Analise seu inventário e configure automaticamente parâmetros para máxima rentabilidade e crescimento</p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <div class="d-flex justify-content-end">
+                                <div class="me-3">
+                                    <h4 class="mb-0">{{ propriedade.nome }}</h4>
+                                    <small class="opacity-75">Propriedade Rural</small>
+                                </div>
+                                <div class="avatar-lg bg-white bg-opacity-20 rounded-circle d-flex align-items-center justify-content-center">
+                                    <i class="fas fa-tractor fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Seção de Análise do Inventário -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>
+                        Análise do Inventário Atual
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5>Dados do Inventário</h5>
+                            <div id="inventario-resumo" class="alert alert-info">
+                                <i class="fas fa-spinner fa-spin me-2"></i>
+                                Analisando inventário...
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>Estatísticas</h5>
+                            <div class="row text-center">
+                                <div class="col-4">
+                                    <div class="bg-primary text-white p-3 rounded">
+                                        <h3 id="total-animais" class="mb-0">-</h3>
+                                        <small>Total Animais</small>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="bg-success text-white p-3 rounded">
+                                        <h3 id="valor-total" class="mb-0">-</h3>
+                                        <small>Valor Total (R$)</small>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="bg-warning text-white p-3 rounded">
+                                        <h3 id="categorias" class="mb-0">-</h3>
+                                        <small>Categorias</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botão Principal de Configuração Automática -->
+    <div class="row mb-4">
+        <div class="col-12 text-center">
+            <button id="btn-configurar-ia" class="btn btn-success btn-lg px-5 py-3" onclick="iniciarConfiguracaoIA()">
+                <i class="fas fa-magic me-2"></i>
+                <span class="btn-text">CONFIGURAR AUTOMATICAMENTE COM IA</span>
+                <i class="fas fa-spinner fa-spin d-none ms-2" id="loading-spinner"></i>
+            </button>
+            <p class="text-muted mt-2">
+                A IA analisará seu inventário e configurará todos os parâmetros para máxima rentabilidade e crescimento do rebanho
+            </p>
+        </div>
+    </div>
+
+    <!-- Área de Resultados da IA -->
+    <div id="resultado-ia" class="d-none">
+        <!-- Será preenchido dinamicamente pelo JavaScript -->
+    </div>
+
+    <!-- Seção de Parâmetros Manuais (Opcional) -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="fas fa-cogs me-2"></i>
+                        Configuração Manual (Opcional)
+                    </h4>
+                    <small class="text-muted">Ajuste parâmetros específicos se necessário</small>
+                </div>
+                <div class="card-body">
+                    <form method="post" id="form-parametros">
+                        {% csrf_token %}
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Natalidade (%)</label>
+                                    <input type="number" class="form-control" name="natalidade" id="natalidade" step="0.01" min="0" max="100" value="85">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Mortalidade Bezerros (%)</label>
+                                    <input type="number" class="form-control" name="mortalidade_bezerros" id="mortalidade_bezerros" step="0.01" min="0" max="100" value="5">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Mortalidade Adultos (%)</label>
+                                    <input type="number" class="form-control" name="mortalidade_adultos" id="mortalidade_adultos" step="0.01" min="0" max="100" value="2">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Periodicidade</label>
+                                    <select class="form-select" name="periodicidade" id="periodicidade">
+                                        <option value="MENSAL">Mensal</option>
+                                        <option value="BIMESTRAL">Bimestral</option>
+                                        <option value="TRIMESTRAL">Trimestral</option>
+                                        <option value="SEMESTRAL">Semestral</option>
+                                        <option value="ANUAL">Anual</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Anos de Projeção</label>
+                                    <select class="form-select" name="anos_projecao" id="anos_projecao">
+                                        <option value="1">1 Ano</option>
+                                        <option value="3">3 Anos</option>
+                                        <option value="5" selected>5 Anos</option>
+                                        <option value="10">10 Anos</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>
+                                Salvar Parâmetros
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Seção de Ações -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5 class="mb-3">Próximos Passos</h5>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <a href="{% url 'pecuaria_inventario_tabela_nova' propriedade.id %}" class="btn btn-outline-primary btn-lg w-100 mb-3">
+                                <i class="fas fa-table me-2"></i>
+                                Ver Inventário
+                            </a>
+                        </div>
+                        <div class="col-md-4">
+                            <a href="{% url 'pecuaria_projecao' propriedade.id %}" class="btn btn-outline-success btn-lg w-100 mb-3" id="btn-gerar-projecao">
+                                <i class="fas fa-chart-line me-2"></i>
+                                Gerar Projeção
+                            </a>
+                        </div>
+                        <div class="col-md-4">
+                            <button class="btn btn-outline-info btn-lg w-100 mb-3" onclick="exportarConfiguracao()">
+                                <i class="fas fa-download me-2"></i>
+                                Exportar Config
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Configuração da IA -->
+<div class="modal fade" id="modal-ia-config" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-robot me-2"></i>
+                    IA Configurando Parâmetros
+                </h5>
+            </div>
+            <div class="modal-body">
+                <div class="text-center">
+                    <div class="spinner-border text-success mb-3" role="status">
+                        <span class="visually-hidden">Analisando...</span>
+                    </div>
+                    <h5 id="status-ia">Analisando seu inventário...</h5>
+                    <p class="text-muted" id="descricao-ia">A IA está processando os dados para criar a configuração ideal</p>
+                    
+                    <div class="progress mb-3">
+                        <div class="progress-bar bg-success progress-bar-striped progress-bar-animated" 
+                             role="progressbar" style="width: 0%" id="progress-ia">
+                        </div>
+                    </div>
+                    
+                    <div id="detalhes-analise" class="text-start">
+                        <!-- Será preenchido dinamicamente -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.avatar-lg {
+    width: 80px;
+    height: 80px;
+}
+
+.btn-lg {
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.card {
+    border: none;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    transition: all 0.15s ease-in-out;
+}
+
+.card:hover {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+#resultado-ia {
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.status-step {
+    padding: 10px 15px;
+    margin: 5px 0;
+    border-radius: 8px;
+    background: #f8f9fa;
+    border-left: 4px solid #dee2e6;
+    transition: all 0.3s ease;
+}
+
+.status-step.active {
+    background: #d1ecf1;
+    border-left-color: #17a2b8;
+}
+
+.status-step.completed {
+    background: #d4edda;
+    border-left-color: #28a745;
+}
+</style>
+
+<script>
+// Variáveis globais
+let inventarioData = [];
+let configuracaoIA = null;
+
+// Função para obter dados do inventário
+async function obterInventarioAtual() {
+    try {
+        const response = await fetch(`/propriedade/{{ propriedade.id }}/pecuaria/inventario/dados/`);
+        if (response.ok) {
+            const data = await response.json();
+            inventarioData = data.inventario || [];
+            atualizarResumoInventario();
+            return inventarioData;
+        } else {
+            throw new Error('Erro ao carregar inventário');
+        }
+    } catch (error) {
+        console.error('Erro:', error);
+        // Usar dados simulados para demonstração
+        inventarioData = [
+            { categoria: { nome: 'Bezerros (0-12m)' }, quantidade: 50, valor_unitario: 2000 },
+            { categoria: { nome: 'Bezerras (0-12m)' }, quantidade: 45, valor_unitario: 1800 },
+            { categoria: { nome: 'Garrotes (12-24m)' }, quantidade: 30, valor_unitario: 3500 },
+            { categoria: { nome: 'Novilhas (12-24m)' }, quantidade: 25, valor_unitario: 4000 },
+            { categoria: { nome: 'Multíparas (>36m)' }, quantidade: 80, valor_unitario: 4000 },
+            { categoria: { nome: 'Primíparas (24-36m)' }, quantidade: 20, valor_unitario: 4500 },
+            { categoria: { nome: 'Bois (24-36m)' }, quantidade: 15, valor_unitario: 4500 },
+            { categoria: { nome: 'Touros' }, quantidade: 3, valor_unitario: 6000 },
+        ];
+        atualizarResumoInventario();
+        return inventarioData;
+    }
+}
+
+// Função para atualizar resumo do inventário
+function atualizarResumoInventario() {
+    const totalAnimais = inventarioData.reduce((sum, item) => sum + item.quantidade, 0);
+    const valorTotal = inventarioData.reduce((sum, item) => sum + (item.quantidade * item.valor_unitario), 0);
+    const categorias = inventarioData.length;
+    
+    document.getElementById('total-animais').textContent = totalAnimais.toLocaleString();
+    document.getElementById('valor-total').textContent = `R$ ${valorTotal.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+    document.getElementById('categorias').textContent = categorias;
+    
+    // Atualizar resumo detalhado
+    let html = '<div class="table-responsive"><table class="table table-sm">';
+    html += '<thead><tr><th>Categoria</th><th>Quantidade</th><th>Valor Unitário</th><th>Valor Total</th></tr></thead><tbody>';
+    
+    inventarioData.forEach(item => {
+        const valorTotal = item.quantidade * item.valor_unitario;
+        html += `<tr>
+            <td>${item.categoria.nome}</td>
+            <td>${item.quantidade}</td>
+            <td>R$ ${item.valor_unitario.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+            <td>R$ ${valorTotal.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+        </tr>`;
+    });
+    
+    html += '</tbody></table></div>';
+    document.getElementById('inventario-resumo').innerHTML = html;
+}
+
+// Função principal para iniciar configuração da IA
+async function iniciarConfiguracaoIA() {
+    const btn = document.getElementById('btn-configurar-ia');
+    const spinner = document.getElementById('loading-spinner');
+    const btnText = document.querySelector('.btn-text');
+    
+    // Mostrar loading
+    btn.disabled = true;
+    spinner.classList.remove('d-none');
+    btnText.textContent = 'ANALISANDO COM IA...';
+    
+    // Mostrar modal
+    const modal = new bootstrap.Modal(document.getElementById('modal-ia-config'));
+    modal.show();
+    
+    try {
+        // Simular processo de análise
+        await simularAnaliseIA();
+        
+        // Obter configuração da IA
+        const resultado = await obterConfiguracaoIA();
+        
+        // Mostrar resultados
+        mostrarResultadosIA(resultado);
+        
+        // Esconder modal
+        modal.hide();
+        
+    } catch (error) {
+        console.error('Erro na configuração da IA:', error);
+        alert('Erro ao configurar com IA. Tente novamente.');
+    } finally {
+        // Restaurar botão
+        btn.disabled = false;
+        spinner.classList.add('d-none');
+        btnText.textContent = 'CONFIGURAR AUTOMATICAMENTE COM IA';
+    }
+}
+
+// Função para simular análise da IA
+async function simularAnaliseIA() {
+    const statuses = [
+        { status: 'Analisando inventário...', desc: 'Processando dados dos animais', progress: 20 },
+        { status: 'Detectando perfil da fazenda...', desc: 'Identificando tipo de produção', progress: 40 },
+        { status: 'Calculando estratégias...', desc: 'Otimizando vendas e compras', progress: 60 },
+        { status: 'Configurando parâmetros...', desc: 'Ajustando natalidade e mortalidade', progress: 80 },
+        { status: 'Finalizando configuração...', desc: 'Gerando relatório final', progress: 100 }
+    ];
+    
+    for (let i = 0; i < statuses.length; i++) {
+        const status = statuses[i];
+        
+        document.getElementById('status-ia').textContent = status.status;
+        document.getElementById('descricao-ia').textContent = status.desc;
+        document.getElementById('progress-ia').style.width = status.progress + '%';
+        
+        // Adicionar detalhes da análise
+        const detalhes = document.getElementById('detalhes-analise');
+        detalhes.innerHTML += `<div class="status-step ${i === 0 ? 'active' : ''}" id="step-${i}">
+            <strong>${status.status}</strong><br>
+            <small class="text-muted">${status.desc}</small>
+        </div>`;
+        
+        // Marcar step anterior como completo
+        if (i > 0) {
+            document.getElementById(`step-${i-1}`).classList.remove('active');
+            document.getElementById(`step-${i-1}`).classList.add('completed');
+        }
+        
+        // Marcar step atual como ativo
+        document.getElementById(`step-${i}`).classList.add('active');
+        
+        await new Promise(resolve => setTimeout(resolve, 1500));
+    }
+}
+
+// Função para obter configuração da IA (simulada)
+async function obterConfiguracaoIA() {
+    // Simular dados da IA baseados no inventário
+    const totalAnimais = inventarioData.reduce((sum, item) => sum + item.quantidade, 0);
+    const totalFemeas = inventarioData.filter(item => 
+        item.categoria.nome.includes('Bezerra') || 
+        item.categoria.nome.includes('Novilha') || 
+        item.categoria.nome.includes('Multípara') || 
+        item.categoria.nome.includes('Primípara')
+    ).reduce((sum, item) => sum + item.quantidade, 0);
+    
+    // Detectar perfil baseado no inventário
+    let perfil = 'CICLO_COMPLETO';
+    if (totalFemeas / totalAnimais > 0.7) {
+        perfil = 'SO_CRIA';
+    } else if (inventarioData.some(item => item.categoria.nome.includes('Boi'))) {
+        perfil = 'SO_ENGORDA';
+    }
+    
+    return {
+        perfil_detectado: perfil,
+        nome_perfil: getNomePerfil(perfil),
+        descricao: getDescricaoPerfil(perfil),
+        total_animais: totalAnimais,
+        configuracao_otimizada: {
+            natalidade: 85,
+            mortalidade_bezerros: 5,
+            mortalidade_adultos: 2,
+            periodicidade: 'MENSAL',
+            anos_projecao: 5,
+            vendas_automaticas: gerarVendasAutomaticas(),
+            compras_automaticas: gerarComprasAutomaticas(),
+            objetivo_receita_anual: totalAnimais * 2000,
+            objetivo_custo_anual: totalAnimais * 800,
+            objetivo_lucro_anual: totalAnimais * 1200,
+            margem_lucro_objetivo: 60,
+            crescimento_rebanho_objetivo: 15,
+            crescimento_receita_objetivo: 20
+        },
+        projecao_rentabilidade: gerarProjecaoRentabilidade(totalAnimais)
+    };
+}
+
+// Funções auxiliares
+function getNomePerfil(perfil) {
+    const perfis = {
+        'SO_CRIA': 'Só Cria',
+        'SO_RECRIA': 'Só Recria', 
+        'SO_ENGORDA': 'Só Engorda',
+        'CICLO_COMPLETO': 'Ciclo Completo',
+        'CONFINAMENTO': 'Confinamento'
+    };
+    return perfis[perfil] || 'Ciclo Completo';
+}
+
+function getDescricaoPerfil(perfil) {
+    const descricoes = {
+        'SO_CRIA': 'Fazenda focada na produção de bezerros para venda',
+        'SO_RECRIA': 'Fazenda especializada em recria de animais jovens',
+        'SO_ENGORDA': 'Fazenda focada na engorda e terminação de animais',
+        'CICLO_COMPLETO': 'Fazenda que realiza todo o ciclo pecuário',
+        'CONFINAMENTO': 'Fazenda com sistema de confinamento'
+    };
+    return descricoes[perfil] || 'Fazenda com ciclo completo de produção';
+}
+
+function gerarVendasAutomaticas() {
+    return inventarioData.filter(item => {
+        const nome = item.categoria.nome;
+        return nome.includes('Boi') || nome.includes('Bezerro') || nome.includes('Vaca de Descarte');
+    }).map(item => ({
+        categoria: item.categoria.nome,
+        quantidade: Math.max(1, Math.floor(item.quantidade * 0.3)),
+        frequencia: 'BIMESTRAL',
+        valor_unitario: item.valor_unitario * 1.1,
+        justificativa: 'Venda estratégica para otimização'
+    }));
+}
+
+function gerarComprasAutomaticas() {
+    const totalAnimais = inventarioData.reduce((sum, item) => sum + item.quantidade, 0);
+    return [
+        {
+            categoria: 'Novilhas (12-24m)',
+            quantidade: Math.max(5, Math.floor(totalAnimais * 0.1)),
+            frequencia: 'ANUAL',
+            valor_unitario: 4000,
+            justificativa: 'Reposição de matrizes'
+        }
+    ];
+}
+
+function gerarProjecaoRentabilidade(totalAnimais) {
+    const anos = [];
+    let rebanho = totalAnimais;
+    let receitaAcumulada = 0;
+    let custoAcumulado = 0;
+    
+    for (let ano = 1; ano <= 5; ano++) {
+        const crescimento = rebanho * 0.15;
+        rebanho += crescimento;
+        
+        const receita = rebanho * 2000 * (1.05 ** ano);
+        const custo = rebanho * 800 * (1.05 ** ano);
+        const lucro = receita - custo;
+        
+        receitaAcumulada += receita;
+        custoAcumulado += custo;
+        
+        anos.push({
+            ano: ano,
+            rebanho: Math.floor(rebanho),
+            receita: receita,
+            custo: custo,
+            lucro: lucro,
+            margem: (lucro / receita) * 100
+        });
+    }
+    
+    return {
+        anos: anos,
+        total_receita: receitaAcumulada,
+        total_custo: custoAcumulado,
+        total_lucro: receitaAcumulada - custoAcumulado,
+        crescimento_final: ((rebanho - totalAnimais) / totalAnimais) * 100
+    };
+}
+
+// Função para mostrar resultados da IA
+function mostrarResultadosIA(resultado) {
+    const resultadoDiv = document.getElementById('resultado-ia');
+    
+    let html = `
+    <div class="card">
+        <div class="card-header bg-success text-white">
+            <h4><i class="fas fa-robot"></i> Configuração Automática - ${resultado.nome_perfil}</h4>
+            <p class="mb-0">IA configurou automaticamente para rentabilidade e crescimento</p>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5><i class="fas fa-cogs"></i> Parâmetros Configurados</h5>
+                    <ul class="list-unstyled">
+                        <li><strong>Natalidade:</strong> ${resultado.configuracao_otimizada.natalidade}%</li>
+                        <li><strong>Mortalidade Bezerros:</strong> ${resultado.configuracao_otimizada.mortalidade_bezerros}%</li>
+                        <li><strong>Mortalidade Adultos:</strong> ${resultado.configuracao_otimizada.mortalidade_adultos}%</li>
+                        <li><strong>Periodicidade:</strong> ${resultado.configuracao_otimizada.periodicidade}</li>
+                        <li><strong>Anos de Projeção:</strong> ${resultado.configuracao_otimizada.anos_projecao}</li>
+                    </ul>
+                    
+                    <h5><i class="fas fa-chart-line"></i> Objetivos Financeiros</h5>
+                    <ul class="list-unstyled">
+                        <li><strong>Receita Anual:</strong> R$ ${resultado.configuracao_otimizada.objetivo_receita_anual.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</li>
+                        <li><strong>Custo Anual:</strong> R$ ${resultado.configuracao_otimizada.objetivo_custo_anual.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</li>
+                        <li><strong>Lucro Anual:</strong> R$ ${resultado.configuracao_otimizada.objetivo_lucro_anual.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</li>
+                        <li><strong>Margem de Lucro:</strong> ${resultado.configuracao_otimizada.margem_lucro_objetivo}%</li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h5><i class="fas fa-seedling"></i> Crescimento do Rebanho</h5>
+                    <ul class="list-unstyled">
+                        <li><strong>Crescimento Anual:</strong> ${resultado.configuracao_otimizada.crescimento_rebanho_objetivo}%</li>
+                        <li><strong>Crescimento Receita:</strong> ${resultado.configuracao_otimizada.crescimento_receita_objetivo}%</li>
+                        <li><strong>Total de Animais:</strong> ${resultado.total_animais}</li>
+                    </ul>
+                    
+                    <h5><i class="fas fa-calendar"></i> Projeção 5 Anos</h5>
+                    <ul class="list-unstyled">
+                        <li><strong>Receita Total:</strong> R$ ${resultado.projecao_rentabilidade.total_receita.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</li>
+                        <li><strong>Custo Total:</strong> R$ ${resultado.projecao_rentabilidade.total_custo.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</li>
+                        <li><strong>Lucro Total:</strong> R$ ${resultado.projecao_rentabilidade.total_lucro.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</li>
+                        <li><strong>Crescimento Final:</strong> ${resultado.projecao_rentabilidade.crescimento_final.toFixed(1)}%</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="row mt-3">
+                <div class="col-12">
+                    <h5><i class="fas fa-shopping-cart"></i> Vendas Configuradas</h5>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Categoria</th>
+                                    <th>Quantidade</th>
+                                    <th>Frequência</th>
+                                    <th>Valor Unitário</th>
+                                    <th>Justificativa</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+    `;
+    
+    resultado.configuracao_otimizada.vendas_automaticas.forEach(venda => {
+        html += `
+                                <tr>
+                                    <td>${venda.categoria}</td>
+                                    <td>${venda.quantidade}</td>
+                                    <td>${venda.frequencia}</td>
+                                    <td>R$ ${venda.valor_unitario.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                                    <td>${venda.justificativa}</td>
+                                </tr>
+        `;
+    });
+    
+    html += `
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row mt-3">
+                <div class="col-12">
+                    <h5><i class="fas fa-shopping-bag"></i> Compras Configuradas</h5>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Categoria</th>
+                                    <th>Quantidade</th>
+                                    <th>Frequência</th>
+                                    <th>Valor Unitário</th>
+                                    <th>Justificativa</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+    `;
+    
+    resultado.configuracao_otimizada.compras_automaticas.forEach(compra => {
+        html += `
+                                <tr>
+                                    <td>${compra.categoria}</td>
+                                    <td>${compra.quantidade}</td>
+                                    <td>${compra.frequencia}</td>
+                                    <td>R$ ${compra.valor_unitario.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+                                    <td>${compra.justificativa}</td>
+                                </tr>
+        `;
+    });
+    
+    html += `
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="alert alert-success mt-3">
+                <h6><i class="fas fa-check-circle"></i> Configuração Aplicada com Sucesso!</h6>
+                <p class="mb-0">A IA configurou automaticamente todos os parâmetros para garantir rentabilidade e crescimento do rebanho baseado no seu inventário inicial.</p>
+            </div>
+            
+            <div class="text-center mt-3">
+                <button class="btn btn-success btn-lg" onclick="aplicarConfiguracaoIA()">
+                    <i class="fas fa-magic me-2"></i>
+                    APLICAR CONFIGURAÇÃO DA IA
+                </button>
+            </div>
+        </div>
+    </div>
+    `;
+    
+    resultadoDiv.innerHTML = html;
+    resultadoDiv.classList.remove('d-none');
+    
+    // Atualizar campos do formulário
+    document.getElementById('natalidade').value = resultado.configuracao_otimizada.natalidade;
+    document.getElementById('mortalidade_bezerros').value = resultado.configuracao_otimizada.mortalidade_bezerros;
+    document.getElementById('mortalidade_adultos').value = resultado.configuracao_otimizada.mortalidade_adultos;
+    document.getElementById('periodicidade').value = resultado.configuracao_otimizada.periodicidade;
+    document.getElementById('anos_projecao').value = resultado.configuracao_otimizada.anos_projecao;
+    
+    // Salvar configuração para uso posterior
+    configuracaoIA = resultado;
+}
+
+// Função para aplicar configuração da IA
+async function aplicarConfiguracaoIA() {
+    if (!configuracaoIA) {
+        alert('Nenhuma configuração da IA disponível');
+        return;
+    }
+    
+    try {
+        // Aqui você pode implementar a lógica para salvar a configuração no backend
+        // Por enquanto, vamos apenas mostrar uma mensagem de sucesso
+        
+        const btn = event.target;
+        const originalText = btn.innerHTML;
+        
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>APLICANDO...';
+        btn.disabled = true;
+        
+        // Simular aplicação
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        btn.innerHTML = '<i class="fas fa-check me-2"></i>CONFIGURAÇÃO APLICADA!';
+        btn.classList.remove('btn-success');
+        btn.classList.add('btn-outline-success');
+        
+        // Habilitar botão de gerar projeção
+        document.getElementById('btn-gerar-projecao').classList.remove('disabled');
+        
+        alert('Configuração da IA aplicada com sucesso! Agora você pode gerar a projeção.');
+        
+    } catch (error) {
+        console.error('Erro ao aplicar configuração:', error);
+        alert('Erro ao aplicar configuração. Tente novamente.');
+    }
+}
+
+// Função para exportar configuração
+function exportarConfiguracao() {
+    if (!configuracaoIA) {
+        alert('Nenhuma configuração disponível para exportar');
+        return;
+    }
+    
+    const data = {
+        timestamp: new Date().toISOString(),
+        propriedade: '{{ propriedade.nome }}',
+        configuracao: configuracaoIA
+    };
+    
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `configuracao-ia-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+// Inicialização
+document.addEventListener('DOMContentLoaded', function() {
+    obterInventarioAtual();
+});
+</script>
+{% endblock %}
+
+
+

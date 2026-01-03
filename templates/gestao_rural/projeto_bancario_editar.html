@@ -1,0 +1,26 @@
+{% extends 'gestao_rural/submenu_page_base.html' %}
+
+{% block title %}Editar Projeto Bancário - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% with module_name='Projetos Bancários' module_icon='bi-clipboard-data' module_dashboard_url='projeto_bancario_dashboard' page_icon='bi-pencil-square' page_title='Editar Projeto Bancário' %}
+{% endwith %}
+
+{% block page_description %}
+Atualize as informações do projeto bancário.
+{% endblock %}
+
+{% block page_content %}
+<form method="post" enctype="multipart/form-data" class="content-card">
+    <div class="content-card-header"><strong>Dados do projeto</strong></div>
+    <div class="content-card-body">
+        {% csrf_token %}
+        {{ form.as_p }}
+    </div>
+    <div class="content-card-body pt-0">
+        <button type="submit" class="btn btn-primary"><i class="bi bi-check2"></i> Salvar</button>
+        <a href="{% url 'projeto_bancario_dashboard' propriedade.id %}" class="btn btn-light">Cancelar</a>
+    </div>
+</form>
+{% endblock %}
+
+

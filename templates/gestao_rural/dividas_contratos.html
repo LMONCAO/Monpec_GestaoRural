@@ -1,0 +1,54 @@
+{% extends 'gestao_rural/submenu_page_base.html' %}
+
+{% block title %}Contratos - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% with module_name='Dívidas Financeiras' module_icon='bi-credit-card' module_dashboard_url='dividas_dashboard' page_icon='bi-file-earmark-text' page_title='Contratos de Dívida' %}
+{% endwith %}
+
+{% block page_description %}
+Listagem e consulta dos contratos financeiros vinculados.
+{% endblock %}
+
+{% block page_content %}
+<div class="content-card">
+    <div class="content-card-header"><strong>Contratos</strong></div>
+    <div class="content-card-body">
+        {% if contratos %}
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead><tr><th>Banco</th><th>Número</th><th>Saldo</th></tr></thead>
+                <tbody>
+                    {% for c in contratos %}
+                    <tr>
+                        <td>{{ c.banco|default:'-' }}</td>
+                        <td>{{ c.numero_contrato|default:'-' }}</td>
+                        <td>R$ {{ c.saldo_atual|floatformat:2 }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="bi bi-inbox empty-state-icon"></i>
+            <h3 class="empty-state-title">Nenhum contrato</h3>
+            <p class="empty-state-description">Importe ou cadastre contratos para visualizar aqui.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+
+
+
+
+
+
+
+
+
+
+
+
+

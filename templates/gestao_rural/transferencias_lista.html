@@ -1,0 +1,111 @@
+{% extends "base_modulos_unificado.html" %}
+{% load formatacao_br %}
+
+{% block title %}Transferências{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item active">Transferências</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1"><i class="bi bi-arrow-left-right text-primary me-2"></i>Transferências Entre Propriedades</h2>
+            <p class="text-muted mb-0">Controle todas as movimentações de animais entre fazendas</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'transferencia_nova' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle me-1"></i>Nova Transferência
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-list-ul me-2"></i>Histórico de Transferências</h5>
+            <span class="badge bg-light text-primary">{{ transferencias|length }} registro(s)</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-striped align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Data</th>
+                            <th>Origem</th>
+                            <th>Destino</th>
+                            <th>Categoria</th>
+                            <th class="text-end">Quantidade</th>
+                            <th>Status</th>
+                            <th>Observações</th>
+                            <th class="text-end">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for transferencia in transferencias %}
+                        <tr>
+                            <td>{{ transferencia.data_transferencia|date:"d/m/Y" }}</td>
+                            <td>
+                                <strong>{{ transferencia.propriedade_origem.nome_propriedade }}</strong><br>
+                                <small class="text-muted">{{ transferencia.propriedade_origem.produtor.nome }}</small>
+                            </td>
+                            <td>
+                                <strong>{{ transferencia.propriedade_destino.nome_propriedade }}</strong><br>
+                                <small class="text-muted">{{ transferencia.propriedade_destino.produtor.nome }}</small>
+                            </td>
+                            <td>{{ transferencia.categoria.nome }}</td>
+                            <td class="text-end">{{ transferencia.quantidade|numero_br }}</td>
+                            <td>
+                                {% if transferencia.status == "REALIZADA" %}
+                                    <span class="badge bg-success">Realizada</span>
+                                {% elif transferencia.status == "AGENDADA" %}
+                                    <span class="badge bg-warning text-dark">Agendada</span>
+                                {% elif transferencia.status == "CANCELADA" %}
+                                    <span class="badge bg-danger">Cancelada</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ transferencia.get_status_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if transferencia.observacao %}
+                                    <span class="text-nowrap d-inline-block" style="max-width: 220px;" title="{{ transferencia.observacao }}">
+                                        {{ transferencia.observacao }}
+                                    </span>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="{% url 'transferencia_editar' transferencia.id %}" class="btn btn-outline-primary">
+                                        <i class="bi bi-pencil-square"></i>
+                                    </a>
+                                    <a href="{% url 'transferencia_excluir' transferencia.id %}" class="btn btn-outline-danger">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-4">
+                                Nenhuma transferência registrada até o momento.
+                                <a href="{% url 'transferencia_nova' %}">Cadastre a primeira transferência</a>.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+
+

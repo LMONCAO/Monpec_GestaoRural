@@ -1,0 +1,100 @@
+{% extends "base_modulos_unificado.html" %}
+
+{% block title %}Compra de Suplementação - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'nutricao_dashboard' propriedade.id %}">Nutrição</a></li>
+            <li class="breadcrumb-item active">Registrar Compra</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-cart-plus me-2"></i>Nova Compra de Suplementação</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" class="row g-3" novalidate>
+                        {% csrf_token %}
+
+                        {% if form.errors %}
+                        <div class="col-12">
+                            <div class="alert alert-danger" role="alert">
+                                <strong>Corrija os campos destacados abaixo:</strong>
+                                <ul class="mb-0 mt-2">
+                                    {% for field in form %}
+                                        {% for error in field.errors %}
+                                        <li>{{ error }}</li>
+                                        {% endfor %}
+                                    {% endfor %}
+                                    {% for error in form.non_field_errors %}
+                                    <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <div class="col-md-6">
+                            <label class="form-label" for="{{ form.estoque.id_for_label }}">Estoque *</label>
+                            {{ form.estoque }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="{{ form.data.id_for_label }}">Data *</label>
+                            {{ form.data }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="{{ form.fornecedor.id_for_label }}">Fornecedor</label>
+                            {{ form.fornecedor }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="{{ form.numero_nota_fiscal.id_for_label }}">Nota Fiscal</label>
+                            {{ form.numero_nota_fiscal }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="{{ form.quantidade.id_for_label }}">Quantidade *</label>
+                            <div class="input-group">
+                                {{ form.quantidade }}
+                                <span class="input-group-text">un.</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="{{ form.preco_unitario.id_for_label }}">Preço Unitário (R$) *</label>
+                            {{ form.preco_unitario }}
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="{{ form.observacoes.id_for_label }}">Observações</label>
+                            {{ form.observacoes|default_if_none:'' }}
+                        </div>
+                        <div class="col-12 d-flex gap-2">
+                            <button type="submit" class="btn btn-success"><i class="bi bi-check-circle me-1"></i>Salvar</button>
+                            <a href="{% url 'nutricao_dashboard' propriedade.id %}" class="btn btn-outline-secondary">Cancelar</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Dicas</h6>
+                </div>
+                <div class="card-body small text-muted">
+                    <ul class="mb-0">
+                        <li>Cadastre primeiro o estoque na tela de Nutrição se ainda não existir.</li>
+                        <li>Use o campo nota fiscal para vincular ao módulo de compras/financeiro.</li>
+                        <li>O custo médio é recalculado automaticamente após salvar.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

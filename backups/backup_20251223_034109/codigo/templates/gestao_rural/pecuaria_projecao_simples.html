@@ -1,0 +1,280 @@
+{% extends 'base.html' %}
+
+{% block title %}Projeção - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block page_title %}Projeção do Rebanho{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2>Projeção do Rebanho</h2>
+                <p class="text-muted">Propriedade: {{ propriedade.nome_propriedade }}</p>
+            </div>
+            <a href="{% url 'pecuaria_dashboard' propriedade.id %}" class="btn btn-secondary">
+                ← Voltar
+            </a>
+        </div>
+        
+        <!-- Gerar Projeção -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Gerar Nova Projeção</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label for="anos_projecao" class="form-label">Anos de Projeção</label>
+                            <select class="form-select" id="anos_projecao" name="anos_projecao" required>
+                                <option value="1">1 ano</option>
+                                <option value="2">2 anos</option>
+                                <option value="3">3 anos</option>
+                                <option value="4">4 anos</option>
+                                <option value="5" selected>5 anos</option>
+                                <option value="10">10 anos</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary">
+                                Gerar Projeção
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Resumo do Inventário Inicial -->
+        <div class="card mb-4">
+            <div class="card-header" style="background: #1e3a8a; color: white;">
+                <h5 class="mb-0">Inventário Inicial</h5>
+            </div>
+            <div class="card-body">
+                <!-- Resumo por Sexo -->
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <h6 class="text-muted">Fêmeas (FE)</h6>
+                                <h3 class="text-primary fw-bold">{{ total_femeas }}</h3>
+                                <small class="text-muted">cabeças</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <h6 class="text-muted">Machos (MA)</h6>
+                                <h3 class="text-primary fw-bold">{{ total_machos }}</h3>
+                                <small class="text-muted">cabeças</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <h6 class="text-muted">Saldo Total</h6>
+                                <h3 class="text-success fw-bold">{{ total_geral }}</h3>
+                                <small class="text-muted">cabeças</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Detalhamento por Categoria -->
+                <div class="row">
+                    {% for item in inventario %}
+                    <div class="col-md-3 mb-2">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <h6>{{ item.categoria.nome }}</h6>
+                                <h4 class="text-primary">{{ item.quantidade }}</h4>
+                                <small class="text-muted">cabeças</small>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Parâmetros Utilizados -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Parâmetros Utilizados</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <p><strong>Natalidade:</strong> {{ parametros.taxa_natalidade_anual }}%</p>
+                    </div>
+                    <div class="col-md-3">
+                        <p><strong>Mortalidade Bezerros:</strong> {{ parametros.taxa_mortalidade_bezerros_anual }}%</p>
+                    </div>
+                    <div class="col-md-3">
+                        <p><strong>Mortalidade Adultos:</strong> {{ parametros.taxa_mortalidade_adultos_anual }}%</p>
+                    </div>
+                    <div class="col-md-3">
+                        <p><strong>Periodicidade:</strong> {{ parametros.get_periodicidade_display }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Evolução Detalhada do Rebanho -->
+        {% if evolucao_detalhada %}
+        <div class="card mb-4">
+            <div class="card-header" style="background: #1e3a8a; color: white;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Evolução Detalhada do Rebanho</h5>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-sm btn-outline-light" onclick="filtrarPeriodo('mensal')" id="btn-mensal">Mensal</button>
+                        <button type="button" class="btn btn-sm btn-outline-light" onclick="filtrarPeriodo('trimestral')" id="btn-trimestral">Trimestral</button>
+                        <button type="button" class="btn btn-sm btn-outline-light" onclick="filtrarPeriodo('semestral')" id="btn-semestral">Semestral</button>
+                        <button type="button" class="btn btn-sm btn-outline-light" onclick="filtrarPeriodo('anual')" id="btn-anual">Anual</button>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-striped mb-0" id="tabela-evolucao-detalhada">
+                        <thead style="background: #1e3a8a; color: white;">
+                            <tr>
+                                <th rowspan="2" class="align-middle text-center" style="border-right: 1px solid rgba(255,255,255,0.3);">Categoria</th>
+                                <th rowspan="2" class="align-middle text-center" style="border-right: 1px solid rgba(255,255,255,0.3);">Saldo Inicial</th>
+                                <th colspan="5" class="text-center" style="border-right: 1px solid rgba(255,255,255,0.3);">Movimentações</th>
+                                <th rowspan="2" class="align-middle text-center" style="border-right: 1px solid rgba(255,255,255,0.3);">Evolução</th>
+                                <th rowspan="2" class="align-middle text-center">Saldo Final</th>
+                            </tr>
+                            <tr>
+                                <th class="text-center" style="border-right: 1px solid rgba(255,255,255,0.2);">Nascimentos</th>
+                                <th class="text-center" style="border-right: 1px solid rgba(255,255,255,0.2);">Compras</th>
+                                <th class="text-center" style="border-right: 1px solid rgba(255,255,255,0.2);">Vendas</th>
+                                <th class="text-center" style="border-right: 1px solid rgba(255,255,255,0.2);">Transferências</th>
+                                <th class="text-center" style="border-right: 1px solid rgba(255,255,255,0.3);">Mortes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for categoria, dados in evolucao_detalhada.items %}
+                            <tr>
+                                <td class="fw-bold" style="border-right: 1px solid #dee2e6;">{{ categoria }}</td>
+                                <td class="text-center" style="border-right: 1px solid #dee2e6;">{{ dados.saldo_inicial|default:0 }}</td>
+                                <td class="text-center" style="border-right: 1px solid #dee2e6;">{{ dados.nascimentos|default:0 }}</td>
+                                <td class="text-center" style="border-right: 1px solid #dee2e6;">{{ dados.compras|default:0 }}</td>
+                                <td class="text-center" style="border-right: 1px solid #dee2e6;">{{ dados.vendas|default:0 }}</td>
+                                <td class="text-center" style="border-right: 1px solid #dee2e6;">
+                                    {% if dados.transferencias_entrada > 0 or dados.transferencias_saida > 0 %}
+                                        +{{ dados.transferencias_entrada|default:0 }}/-{{ dados.transferencias_saida|default:0 }}
+                                    {% else %}
+                                        0
+                                    {% endif %}
+                                </td>
+                                <td class="text-center" style="border-right: 1px solid #dee2e6;">{{ dados.mortes|default:0 }}</td>
+                                <td class="text-center" style="border-right: 1px solid #dee2e6;">{{ dados.evolucao_categoria|default:"-" }}</td>
+                                <td class="text-center fw-bold">{{ dados.saldo_final|default:0 }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Resumo da Projeção por Ano -->
+        {% if resumo_projecao_por_ano %}
+        <div class="card mb-4">
+            <div class="card-header" style="background: #1e3a8a; color: white;">
+                <h5 class="mb-0">Resumo da Projeção por Ano</h5>
+            </div>
+            <div class="card-body">
+                {% for ano, dados in resumo_projecao_por_ano.items %}
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h6 class="mb-0">Ano {{ ano }}</h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-sm mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Saldo Inicial</th>
+                                        <th>Nascimentos</th>
+                                        <th>Vendas</th>
+                                        <th>Mortes</th>
+                                        <th>Transferências</th>
+                                        <th>Saldo Final</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>{{ dados.saldo_inicial|default:0 }}</td>
+                                        <td>F: {{ dados.nascimentos_femeas|default:0 }}, M: {{ dados.nascimentos_machos|default:0 }}</td>
+                                        <td>F: {{ dados.vendas_femeas|default:0 }}, M: {{ dados.vendas_machos|default:0 }}</td>
+                                        <td>F: {{ dados.mortes_femeas|default:0 }}, M: {{ dados.mortes_machos|default:0 }}</td>
+                                        <td>E: {{ dados.transferencias_entrada_femeas|default:0|add:dados.transferencias_entrada_machos|default:0 }}, S: {{ dados.transferencias_saida_femeas|default:0|add:dados.transferencias_saida_machos|default:0 }}</td>
+                                        <td class="fw-bold">{{ dados.saldo_final|default:0 }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Movimentações Detalhadas -->
+        {% if movimentacoes %}
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Movimentações Detalhadas</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Tipo</th>
+                                <th>Categoria</th>
+                                <th>Quantidade</th>
+                                <th>Observação</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for mov in movimentacoes %}
+                            <tr>
+                                <td>{{ mov.data_movimentacao|date:"d/m/Y" }}</td>
+                                <td>{{ mov.get_tipo_movimentacao_display }}</td>
+                                <td>{{ mov.categoria.nome }}</td>
+                                <td class="text-center">{{ mov.quantidade }}</td>
+                                <td>{{ mov.observacao|default:"-" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <h3 class="text-muted">Nenhuma projeção gerada</h3>
+            <p class="text-muted">Configure o inventário inicial e os parâmetros, depois gere uma nova projeção.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function filtrarPeriodo(periodo) {
+    // Implementar filtro de período se necessário
+    console.log('Filtrar por período:', periodo);
+}
+</script>
+{% endblock %}
+

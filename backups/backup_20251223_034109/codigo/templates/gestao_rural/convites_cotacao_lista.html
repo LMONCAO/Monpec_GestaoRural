@@ -1,0 +1,154 @@
+{% extends "base_modulos_unificado.html" %}
+
+{% block title %}Convites de Cotação - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'compras_dashboard' propriedade.id %}">Compras</a></li>
+            <li class="breadcrumb-item active">Convites de Cotação</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
+        <div>
+            <h2 class="mb-0"><i class="bi bi-envelope-paper text-primary me-2"></i>Convites de Cotação</h2>
+            <small class="text-muted">Acompanhe os convites enviados aos fornecedores e o status das respostas.</small>
+        </div>
+        <div class="btn-group">
+            <a href="{% url 'requisicoes_compra_lista' propriedade.id %}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-card-checklist me-1"></i>Requisições
+            </a>
+            <a href="{% url 'convite_cotacao_novo' propriedade.id %}?requisicao={{ request.GET.requisicao|default_if_none:'' }}" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus-circle me-1"></i>Novo convite
+            </a>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-4 col-sm-6">
+                    <label class="form-label text-muted small mb-1">Filtrar por status</label>
+                    <select name="status" class="form-select">
+                        <option value="">Todos</option>
+                        {% for codigo, nome in status_choices %}
+                        <option value="{{ codigo }}" {% if status_filtro == codigo %}selected{% endif %}>{{ nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2 col-sm-3">
+                    <button type="submit" class="btn btn-outline-primary w-100">
+                        <i class="bi bi-funnel me-1"></i>Aplicar
+                    </button>
+                </div>
+                {% if status_filtro %}
+                <div class="col-md-2 col-sm-3">
+                    <a href="{% url 'convites_cotacao_lista' propriedade.id %}" class="btn btn-light w-100">Limpar</a>
+                </div>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Fornecedor</th>
+                            <th>Requisição</th>
+                            <th>Status</th>
+                            <th class="text-nowrap">Expira em</th>
+                            <th>Token / Link</th>
+                            <th>Responsável</th>
+                            <th class="text-end">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for convite in convites %}
+                        <tr class="{% if convite.expirado and convite.status != 'RESPONDIDO' %}table-warning{% endif %}">
+                            <td>{{ convite.fornecedor.nome }}</td>
+                            <td>
+                                <a href="{% url 'requisicao_compra_detalhes' propriedade.id convite.requisicao.id %}">
+                                    {{ convite.requisicao.numero }} - {{ convite.requisicao.titulo }}
+                                </a>
+                            </td>
+                            <td>
+                                <span class="badge bg-{% if convite.status == 'RESPONDIDO' %}success{% elif convite.status == 'CANCELADO' %}secondary{% elif convite.expirado %}danger{% else %}warning text-dark{% endif %}">
+                                    {{ convite.get_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if convite.data_expiracao %}
+                                    {{ convite.data_expiracao|date:"d/m/Y H:i" }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="small text-muted">Token:</div>
+                                <code>{{ convite.token }}</code>
+                                <div class="mt-1">
+                                    <input type="text" readonly class="form-control form-control-sm"
+                                           value="{{ request.scheme }}://{{ request.get_host }}{% url 'cotacao_fornecedor_responder_token' convite.token %}"
+                                           onclick="this.select();" />
+                                </div>
+                            </td>
+                            <td>
+                                {% if convite.enviado_por %}
+                                {{ convite.enviado_por.get_full_name|default:convite.enviado_por.username }}
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <div class="btn-group btn-group-sm" role="group">
+                                    {% if convite.email_destinatario %}
+                                    <form method="post" action="{% url 'convite_cotacao_reenviar' propriedade.id convite.id %}" style="display: inline;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-outline-primary">
+                                            <i class="bi bi-envelope me-1"></i>Reenviar
+                                        </button>
+                                    </form>
+                                    {% else %}
+                                    <a href="{% url 'convite_cotacao_novo' propriedade.id %}?requisicao={{ convite.requisicao.id }}&fornecedor={{ convite.fornecedor.id }}" class="btn btn-outline-primary">
+                                        <i class="bi bi-envelope me-1"></i>Reenviar
+                                    </a>
+                                    {% endif %}
+                                    {% if convite.status != 'CANCELADO' and convite.status != 'RESPONDIDO' %}
+                                    <form method="post" action="{% url 'convite_cotacao_cancelar' propriedade.id convite.id %}" style="display: inline;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-outline-danger">Cancelar</button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">
+                                Nenhum convite registrado até o momento.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+
+
+
+
+
+

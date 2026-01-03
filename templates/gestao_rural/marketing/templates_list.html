@@ -1,0 +1,139 @@
+{% extends "gestao_rural/base.html" %}
+{% load static %}
+
+{% block title %}Templates de Posts{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="h3 mb-0">📄 Templates de Posts</h1>
+                <p class="text-muted">Gerencie seus templates para geração de posts</p>
+            </div>
+            <div>
+                <a href="{% url 'marketing_template_create' %}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle"></i> Novo Template
+                </a>
+                <form method="post" action="{% url 'marketing_popular_templates' %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-info">
+                        <i class="bi bi-download"></i> Popular Templates Iniciais
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Tipo</label>
+                    <select name="tipo_post" class="form-select">
+                        <option value="">Todos</option>
+                        {% for value, label in tipos_post %}
+                        <option value="{{ value }}" {% if request.GET.tipo_post == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Rede Social</label>
+                    <select name="rede_social" class="form-select">
+                        <option value="">Todas</option>
+                        {% for value, label in redes_sociais %}
+                        <option value="{{ value }}" {% if request.GET.rede_social == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">Filtrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Lista de Templates -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            {% if templates %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Tipo</th>
+                            <th>Rede</th>
+                            <th>Status</th>
+                            <th>Criado em</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for template in templates %}
+                        <tr>
+                            <td><strong>{{ template.nome }}</strong></td>
+                            <td><span class="badge bg-info">{{ template.get_tipo_post_display }}</span></td>
+                            <td><span class="badge bg-secondary">{{ template.get_rede_social_display }}</span></td>
+                            <td>
+                                {% if template.ativo %}
+                                <span class="badge bg-success">Ativo</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Inativo</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ template.criado_em|date:"d/m/Y" }}</td>
+                            <td>
+                                <a href="{% url 'marketing_template_edit' template.id %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-pencil"></i> Editar
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-center text-muted py-5">
+                Nenhum template encontrado. <a href="{% url 'marketing_template_create' %}">Criar primeiro template</a> ou 
+                <form method="post" action="{% url 'marketing_popular_templates' %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-link p-0">popular templates iniciais</button>
+                </form>
+            </p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

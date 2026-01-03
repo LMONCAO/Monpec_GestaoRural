@@ -1,0 +1,2876 @@
+{% extends "base_modulos_unificado.html" %}
+{% load formatacao_br %}
+
+{% block title %}Dashboard Completo - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Estilo Power BI */
+    .powerbi-card {
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        transition: box-shadow 0.2s;
+        background: white;
+        overflow: hidden;
+    }
+    
+    .powerbi-card:hover {
+        box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+    }
+    
+    .metric-card {
+        background: #4a5568; /* Cor neutra padrão */
+        color: white;
+        padding: 1rem 1.25rem;
+        border-radius: 8px;
+        position: relative;
+        overflow: hidden;
+        border: 1px solid rgba(0,0,0,0.1);
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+    
+    /* Cores simplificadas e neutras */
+    .metric-card.primary { 
+        background: #4a5568; /* Cinza escuro neutro */
+    }
+    .metric-card.success { 
+        background: #2d5016; /* Verde escuro suave */
+    }
+    .metric-card.warning { 
+        background: #7c2d12; /* Vermelho escuro suave */
+    }
+    .metric-card.info { 
+        background: #1e3a5f; /* Azul escuro suave */
+    }
+    .metric-card.danger { 
+        background: #7c2d12; /* Vermelho escuro suave */
+    }
+    .metric-card.secondary { 
+        background: #4a5568; /* Cinza grafite */
+    }
+    
+    .metric-value {
+        font-size: 1.75rem;
+        font-weight: 600;
+        margin: 0.25rem 0;
+        line-height: 1.2;
+    }
+    
+    .metric-label {
+        font-size: 0.8rem;
+        opacity: 0.9;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.25rem;
+    }
+    
+    .metric-icon {
+        position: absolute;
+        right: 1rem;
+        top: 1rem;
+        font-size: 1.5rem;
+        opacity: 0.15;
+    }
+    
+    .chart-container {
+        position: relative;
+        height: 250px;
+        padding: 0.75rem;
+    }
+    
+    .chart-container-full-width {
+        position: relative;
+        height: 400px;
+        padding: 0.75rem;
+    }
+    
+    /* Cards com altura uniforme */
+    .h-100 {
+        height: 100%;
+    }
+    
+    .insight-card {
+        border-left: 4px solid #667eea;
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+    }
+    
+    .module-section {
+        margin-bottom: 2rem;
+    }
+    
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #e9ecef;
+    }
+    
+    .section-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #495057;
+        margin: 0;
+    }
+    
+    .trend-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        font-size: 0.75rem;
+        padding: 0.2rem 0.4rem;
+        border-radius: 4px;
+    }
+    
+    .trend-up {
+        background: rgba(40, 167, 69, 0.1);
+        color: #28a745;
+    }
+    
+    .trend-down {
+        background: rgba(220, 53, 69, 0.1);
+        color: #dc3545;
+    }
+    
+    /* Timeline de Atividades */
+    .timeline-activities {
+        max-height: 700px;
+        overflow-y: auto;
+    }
+    
+    .timeline-container {
+        position: relative;
+        padding-left: 1rem;
+    }
+    
+    .activity-item {
+        transition: all 0.3s ease;
+        position: relative;
+        margin-left: 1.5rem;
+    }
+    
+    .activity-item::before {
+        content: '';
+        position: absolute;
+        left: -1.75rem;
+        top: 1.5rem;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: var(--bs-primary);
+        border: 3px solid white;
+        box-shadow: 0 0 0 2px var(--bs-primary);
+    }
+    
+    .activity-item::after {
+        content: '';
+        position: absolute;
+        left: -1.25rem;
+        top: 2.25rem;
+        bottom: -1rem;
+        width: 2px;
+        background: linear-gradient(to bottom, var(--bs-primary), transparent);
+        opacity: 0.3;
+    }
+    
+    .activity-item:last-child::after {
+        display: none;
+    }
+    
+    .activity-item:hover {
+        transform: translateX(8px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        border-left-width: 5px !important;
+    }
+    
+    .activity-icon {
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.02) 100%);
+        border-radius: 12px;
+        flex-shrink: 0;
+        border: 2px solid rgba(0,0,0,0.05);
+    }
+    
+    .activity-item:hover .activity-icon {
+        transform: scale(1.1);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .timeline-activities::-webkit-scrollbar {
+        width: 6px;
+    }
+    
+    .timeline-activities::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+    
+    .timeline-activities::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 10px;
+    }
+    
+    .timeline-activities::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+    
+    /* Estilos para Cards de Módulos Organizados */
+    .modules-grid-container {
+        margin-top: 2rem;
+    }
+    
+    .section-title-modules {
+        font-size: 1.25rem;
+        color: #495057;
+        font-weight: 600;
+        margin-bottom: 1rem;
+    }
+    
+    .modules-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    
+    @media (max-width: 992px) {
+        .modules-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .modules-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    .module-card-clean {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        transition: box-shadow 0.2s;
+        border: 1px solid #e9ecef;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    
+    .module-card-clean:hover {
+        box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+        border-color: #dee2e6;
+    }
+    
+    .module-card-header {
+        padding: 1rem;
+        border-bottom: 1px solid #f0f0f0;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    .module-card-icon {
+        width: 45px;
+        height: 45px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    
+    .module-card-icon i {
+        font-size: 22px;
+        color: white;
+    }
+    
+    .module-card-icon.bg-primary {
+        background: #4a5568; /* Cinza neutro */
+    }
+    
+    .module-card-icon.bg-success {
+        background: #4a5568; /* Cinza neutro */
+    }
+    
+    .module-card-icon.bg-secondary {
+        background: #4a5568; /* Cinza neutro */
+    }
+    
+    .module-card-icon.bg-warning {
+        background: #4a5568; /* Cinza neutro */
+    }
+    
+    .module-card-icon.bg-warning i {
+        color: #fff;
+    }
+    
+    .module-card-icon.bg-info {
+        background: #4a5568; /* Cinza neutro */
+    }
+    
+    .module-card-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #212529;
+        margin: 0;
+    }
+    
+    .module-card-body {
+        padding: 1rem;
+        flex-grow: 1;
+    }
+    
+    .module-metrics {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .module-metric-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #f8f9fa;
+    }
+    
+    .module-metric-item:last-child {
+        border-bottom: none;
+    }
+    
+    .module-metric-item .metric-label {
+        font-size: 0.8rem;
+        color: #6c757d;
+        font-weight: 500;
+    }
+    
+    .module-metric-item .metric-value {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #212529;
+    }
+    
+    .module-alert {
+        padding: 0.5rem;
+        background: #fff3cd;
+        border-left: 3px solid #ffc107;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        color: #856404;
+        margin-top: 0.5rem;
+    }
+    
+    .module-card-footer {
+        padding: 0.75rem 1rem;
+        background: #f8f9fa;
+        border-top: 1px solid #e9ecef;
+    }
+    
+    .btn-module-link {
+        display: inline-flex;
+        align-items: center;
+        color: #0d6efd;
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 0.85rem;
+        transition: all 0.2s ease;
+    }
+    
+    .btn-module-link:hover {
+        color: #0a58ca;
+        transform: translateX(4px);
+    }
+    
+    .btn-module-link i {
+        font-size: 0.8rem;
+    }
+    
+    /* Estilos para Alertas e Melhorias */
+    .alert-item {
+        border-left: 3px solid;
+        transition: all 0.2s ease;
+    }
+    
+    .alert-item:hover {
+        transform: translateX(4px);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .trend-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 0.25rem 0.5rem;
+        border-radius: 12px;
+        white-space: nowrap;
+    }
+    
+    .trend-up {
+        background: rgba(40, 167, 69, 0.15);
+        color: #28a745;
+    }
+    
+    .trend-down {
+        background: rgba(220, 53, 69, 0.15);
+        color: #dc3545;
+    }
+    
+    #ultimaAtualizacao {
+        font-size: 0.75rem;
+    }
+    
+    /* Estilos para impressão/exportação - Aplicados apenas quando exportarComoPDF() é chamada */
+    /* Estes estilos base são para impressão normal */
+    @media print {
+        @page {
+            margin: 0.8cm;
+        }
+        
+        body {
+            background: white !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+        }
+        
+        /* Esconder elementos desnecessários na impressão */
+        .sidebar,
+        .btn-close,
+        button[onclick*="exportar"],
+        button[onclick*="Atualizar"],
+        #ultimaAtualizacao,
+        .btn-module-link,
+        .btn-outline-primary,
+        .btn-outline-success,
+        .btn-outline-warning,
+        .btn-outline-secondary,
+        .btn-outline-info,
+        .btn-group {
+            display: none !important;
+        }
+        
+        /* Manter cores dos cards */
+        .metric-card {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+        
+        .powerbi-card {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+        
+        .module-card-clean {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+        
+        /* Garantir que gráficos sejam visíveis */
+        canvas {
+            max-width: 100% !important;
+            height: auto !important;
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+        
+        .chart-container {
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+        
+        /* Ajustar layout para impressão */
+        .container-fluid {
+            padding: 0 !important;
+            max-width: 100% !important;
+            background: white !important;
+        }
+        
+        .row {
+            margin: 0 !important;
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+        
+        /* Manter gradientes */
+        .metric-card.primary,
+        .metric-card.success,
+        .metric-card.warning,
+        .metric-card.info {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+        }
+        
+        /* Controlar quebras de página */
+        .print-page-break-before {
+            page-break-before: always !important;
+            break-before: page !important;
+        }
+        
+        .print-page-break-after {
+            page-break-after: always !important;
+            break-after: page !important;
+        }
+        
+        /* Evitar quebras dentro de seções importantes */
+        .section-header {
+            page-break-after: avoid;
+            break-after: avoid;
+        }
+        
+        /* Reduzir espaçamentos para aproveitar melhor o espaço */
+        .mb-4,
+        .mb-3,
+        .mt-4,
+        .mt-3 {
+            margin-bottom: 0.8rem !important;
+            margin-top: 0.8rem !important;
+        }
+        
+        /* Ajustar tamanhos de fonte para impressão */
+        h1 { font-size: 1.5rem !important; }
+        h2 { font-size: 1.3rem !important; }
+        h3 { font-size: 1.1rem !important; }
+        h4 { font-size: 1rem !important; }
+        h5 { font-size: 0.9rem !important; }
+        h6 { font-size: 0.85rem !important; }
+        
+        /* Ajustar padding dos cards */
+        .card-body {
+            padding: 0.8rem !important;
+        }
+        
+        .card-header {
+            padding: 0.6rem 0.8rem !important;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 pt-2 pb-3" style="background: #f8f9fa; min-height: 100vh;">
+    <!-- Header com Filtros e Ações -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h1 class="h4 mb-1"><i class="bi bi-speedometer2 text-secondary me-2"></i>Dashboard Pecuária</h1>
+                    <p class="text-muted small mb-0">{{ propriedade.nome_propriedade }}</p>
+                </div>
+                <div class="d-flex gap-2 align-items-center">
+                    <button class="btn btn-sm btn-outline-secondary" onclick="exportarDashboard()" title="Exportar dashboard">
+                        <i class="bi bi-download"></i> Exportar
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="window.location.reload()" title="Atualizar dados">
+                        <i class="bi bi-arrow-clockwise"></i> Atualizar
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Filtros de Data Personalizada -->
+            <div class="card mb-3 border-0 shadow-sm">
+                <div class="card-body py-2">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-4">
+                            <label class="form-label small text-muted mb-1">
+                                <i class="bi bi-calendar-event me-1"></i>Data Inicial:
+                            </label>
+                            <input type="date" class="form-control form-control-sm" id="filtroDataInicio" value="{{ data_inicio|date:'Y-m-d' }}" onchange="aplicarFiltrosData()">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small text-muted mb-1">
+                                <i class="bi bi-calendar-check me-1"></i>Data Final:
+                            </label>
+                            <input type="date" class="form-control form-control-sm" id="filtroDataFim" value="{{ data_fim|date:'Y-m-d' }}" onchange="aplicarFiltrosData()">
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <button class="btn btn-sm btn-outline-secondary" onclick="limparFiltrosData()" title="Limpar filtros de data">
+                                <i class="bi bi-x-circle me-1"></i>Limpar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alertas Críticos -->
+    {% if alertas_criticos %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-{{ alertas_criticos.0.cor }} alert-dismissible fade show border-start border-4" role="alert">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1">
+                        <h5 class="alert-heading mb-2">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                            {{ total_alertas }} Alerta(s) Requerem Atenção
+                        </h5>
+                        <div class="row g-2">
+                            {% for alerta in alertas_criticos %}
+                            <div class="col-md-6">
+                                <div class="alert-item p-2 bg-white rounded mb-2">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi {{ alerta.icone }} text-{{ alerta.cor }} me-2 fs-5"></i>
+                                        <div class="flex-grow-1">
+                                            <strong class="d-block">{{ alerta.titulo }}</strong>
+                                            <small class="text-muted">{{ alerta.descricao }}</small>
+                                        </div>
+                                        {% if alerta.url %}
+                                        <a href="{{ alerta.url }}" class="btn btn-sm btn-{{ alerta.cor }} ms-2">
+                                            <i class="bi bi-arrow-right"></i>
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+
+    <!-- Métricas Principais - Layout Compacto -->
+    <div class="row g-2 mb-3">
+        <!-- Total Animais -->
+        <div class="col-lg-3 col-md-6 col-sm-6">
+            <div class="metric-card primary">
+                <div class="metric-label">Total de Animais</div>
+                <div class="metric-value">{{ total_animais_inventario|numero_br }}</div>
+                <div class="d-flex justify-content-between align-items-center mt-1">
+                    <div class="small opacity-75" style="font-size: 0.7rem;">Valor: {{ valor_total_rebanho|moeda_br }}</div>
+                    {% if tendencia_animais != 0 %}
+                    <div class="trend-indicator {% if tendencia_animais > 0 %}trend-up{% else %}trend-down{% endif %}">
+                        <i class="bi {% if tendencia_animais > 0 %}bi-arrow-up{% else %}bi-arrow-down{% endif %}"></i>
+                        <span>{{ percentual_animais_abs|floatformat:1 }}%</span>
+                    </div>
+                    {% endif %}
+                </div>
+                <i class="bi bi-cow metric-icon"></i>
+            </div>
+        </div>
+        
+        <!-- Receitas do Mês -->
+        <div class="col-lg-3 col-md-6 col-sm-6">
+            <div class="metric-card success">
+                <div class="metric-label">Receitas (Mês)</div>
+                <div class="metric-value">{{ receitas_mes|moeda_br }}</div>
+                <div class="d-flex justify-content-between align-items-center mt-1">
+                    <div class="small opacity-75" style="font-size: 0.7rem;">Saldo: {{ saldo_mes|moeda_br }}</div>
+                    {% if tendencia_receitas != 0 %}
+                    <div class="trend-indicator {% if tendencia_receitas > 0 %}trend-up{% else %}trend-down{% endif %}">
+                        <i class="bi {% if tendencia_receitas > 0 %}bi-arrow-up{% else %}bi-arrow-down{% endif %}"></i>
+                        <span>{{ percentual_receitas_abs|floatformat:1 }}%</span>
+                    </div>
+                    {% endif %}
+                </div>
+                <i class="bi bi-arrow-up-circle metric-icon"></i>
+            </div>
+        </div>
+        
+        <!-- Despesas do Mês -->
+        <div class="col-lg-3 col-md-6 col-sm-6">
+            <div class="metric-card warning">
+                <div class="metric-label">Despesas (Mês)</div>
+                <div class="metric-value">{{ despesas_mes|moeda_br }}</div>
+                <div class="d-flex justify-content-between align-items-center mt-1">
+                    <div class="small opacity-75" style="font-size: 0.7rem;">Margem: {{ margem_lucro|floatformat:1 }}%</div>
+                    {% if tendencia_despesas != 0 %}
+                    <div class="trend-indicator {% if tendencia_despesas < 0 %}trend-up{% else %}trend-down{% endif %}">
+                        <i class="bi {% if tendencia_despesas < 0 %}bi-arrow-down{% else %}bi-arrow-up{% endif %}"></i>
+                        <span>{{ percentual_despesas_abs|floatformat:1 }}%</span>
+                    </div>
+                    {% endif %}
+                </div>
+                <i class="bi bi-arrow-down-circle metric-icon"></i>
+            </div>
+        </div>
+        
+        <!-- Custos Operacionais -->
+        <div class="col-lg-3 col-md-6 col-sm-6">
+            <div class="metric-card info">
+                <div class="metric-label">Custos Operacionais</div>
+                <div class="metric-value">{{ total_custos_operacionais|moeda_br }}</div>
+                <div class="d-flex justify-content-between align-items-center mt-1">
+                    <div class="small opacity-75" style="font-size: 0.65rem;">Combustível + Folha + Suplementação</div>
+                    {% if tendencia_custos != 0 %}
+                    <div class="trend-indicator {% if tendencia_custos < 0 %}trend-up{% else %}trend-down{% endif %}">
+                        <i class="bi {% if tendencia_custos < 0 %}bi-arrow-down{% else %}bi-arrow-up{% endif %}"></i>
+                        <span>{{ percentual_custos_abs|floatformat:1 }}%</span>
+                    </div>
+                    {% endif %}
+                </div>
+                <i class="bi bi-gear metric-icon"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Seção de Rentabilidade - Compacta -->
+    {% if indicadores_rentabilidade %}
+    <div class="row g-2 mt-2 mb-3">
+        <div class="col-12">
+            <div class="section-header mb-2">
+                <h3 class="section-title" style="font-size: 1.1rem;">
+                    <i class="bi bi-graph-up-arrow me-2 text-secondary"></i>
+                    Análise de Rentabilidade
+                </h3>
+                <div class="btn-group btn-group-sm">
+                    <a href="?periodo_rentabilidade=90" class="btn btn-outline-secondary {% if periodo_rentabilidade == 90 %}active{% endif %}">3M</a>
+                    <a href="?periodo_rentabilidade=180" class="btn btn-outline-secondary {% if periodo_rentabilidade == 180 %}active{% endif %}">6M</a>
+                    <a href="?periodo_rentabilidade=365" class="btn btn-outline-secondary {% if periodo_rentabilidade == 365 %}active{% endif %}">1A</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Custo por Animal -->
+        <div class="col-lg-4 col-md-6">
+            <div class="powerbi-card h-100">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <h6 class="text-muted mb-1" style="font-size: 0.75rem;">Custo por Animal</h6>
+                            <h4 class="mb-0 text-primary" style="font-size: 1.5rem;">
+                                {{ indicadores_rentabilidade.custo_por_animal.custo_por_animal|floatformat:2|moeda_br }}
+                            </h4>
+                            <small class="text-muted" style="font-size: 0.7rem;">{{ periodo_rentabilidade }} dias</small>
+                        </div>
+                        <i class="bi bi-cash-stack text-muted" style="font-size: 1.5rem; opacity: 0.3;"></i>
+                    </div>
+                    <hr class="my-2">
+                    <div class="small" style="font-size: 0.75rem;">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Mensal:</span>
+                            <strong>{{ indicadores_rentabilidade.custo_por_animal.custo_por_animal_mes|floatformat:2|moeda_br }}/mês</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Animais:</span>
+                            <strong>{{ indicadores_rentabilidade.custo_por_animal.total_animais }}</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Custo por Arroba -->
+        <div class="col-lg-4 col-md-6">
+            <div class="powerbi-card h-100">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <h6 class="text-muted mb-1" style="font-size: 0.75rem;">Custo por Arroba</h6>
+                            <h4 class="mb-0 text-success" style="font-size: 1.5rem;">
+                                {{ indicadores_rentabilidade.custo_por_arroba.custo_por_arroba|floatformat:2|moeda_br }}/@
+                            </h4>
+                            <small class="text-muted" style="font-size: 0.7rem;">{{ indicadores_rentabilidade.custo_por_arroba.arrobas_totais|floatformat:1 }} @</small>
+                        </div>
+                        <i class="bi bi-speedometer2 text-muted" style="font-size: 1.5rem; opacity: 0.3;"></i>
+                    </div>
+                    <hr class="my-2">
+                    <div class="small" style="font-size: 0.75rem;">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Peso Total:</span>
+                            <strong>{{ indicadores_rentabilidade.custo_por_arroba.peso_total_kg|floatformat:0 }} kg</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Custo Total:</span>
+                            <strong>{{ indicadores_rentabilidade.custo_por_arroba.custo_total|floatformat:2|moeda_br }}</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lucratividade Real -->
+        <div class="col-lg-4 col-md-6">
+            <div class="powerbi-card h-100">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <h6 class="text-muted mb-1" style="font-size: 0.75rem;">Lucratividade Real</h6>
+                            <h4 class="mb-0 {% if indicadores_rentabilidade.lucratividade.lucro >= 0 %}text-success{% else %}text-danger{% endif %}" style="font-size: 1.5rem;">
+                                {{ indicadores_rentabilidade.lucratividade.lucro|floatformat:2|moeda_br }}
+                            </h4>
+                            <small class="text-muted" style="font-size: 0.7rem;">Margem: {{ indicadores_rentabilidade.lucratividade.margem_lucro|floatformat:1 }}%</small>
+                        </div>
+                        <i class="bi bi-{% if indicadores_rentabilidade.lucratividade.lucro >= 0 %}trending-up{% else %}trending-down{% endif %} text-{% if indicadores_rentabilidade.lucratividade.lucro >= 0 %}success{% else %}danger{% endif %}" style="font-size: 1.5rem; opacity: 0.3;"></i>
+                    </div>
+                    <hr class="my-2">
+                    <div class="small" style="font-size: 0.75rem;">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>ROI:</span>
+                            <strong class="{% if indicadores_rentabilidade.lucratividade.roi >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                {{ indicadores_rentabilidade.lucratividade.roi|floatformat:2 }}%
+                            </strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Receita:</span>
+                            <strong class="text-success">{{ indicadores_rentabilidade.lucratividade.receita_total|floatformat:2|moeda_br }}</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detalhamento de Custos - Compacto -->
+        <div class="col-12 mt-2">
+            <div class="powerbi-card">
+                <div class="card-header bg-light py-2">
+                    <h6 class="mb-0" style="font-size: 0.9rem;">
+                        <i class="bi bi-list-ul me-2"></i>Detalhamento de Custos
+                    </h6>
+                </div>
+                <div class="card-body p-3">
+                    <div class="row g-2">
+                        <div class="col-lg-3 col-md-4 col-sm-6">
+                            <div class="text-center p-2 border rounded">
+                                <small class="text-muted d-block mb-1" style="font-size: 0.7rem;">Custos Fixos</small>
+                                <strong style="font-size: 0.9rem;">{{ indicadores_rentabilidade.custo_por_animal.custos_detalhados.fixos|floatformat:2|moeda_br }}</strong>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-4 col-sm-6">
+                            <div class="text-center p-2 border rounded">
+                                <small class="text-muted d-block mb-1" style="font-size: 0.7rem;">Custos Variáveis</small>
+                                <strong style="font-size: 0.9rem;">{{ indicadores_rentabilidade.custo_por_animal.custos_detalhados.variaveis|floatformat:2|moeda_br }}</strong>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-4 col-sm-6">
+                            <div class="text-center p-2 border rounded">
+                                <small class="text-muted d-block mb-1" style="font-size: 0.7rem;">Combustível</small>
+                                <strong style="font-size: 0.9rem;">{{ indicadores_rentabilidade.custo_por_animal.custos_detalhados.combustivel|floatformat:2|moeda_br }}</strong>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-4 col-sm-6">
+                            <div class="text-center p-2 border rounded">
+                                <small class="text-muted d-block mb-1" style="font-size: 0.7rem;">Folha</small>
+                                <strong style="font-size: 0.9rem;">{{ indicadores_rentabilidade.custo_por_animal.custos_detalhados.folha|floatformat:2|moeda_br }}</strong>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-4 col-sm-6">
+                            <div class="text-center p-2 border rounded">
+                                <small class="text-muted d-block mb-1" style="font-size: 0.7rem;">Manutenção</small>
+                                <strong style="font-size: 0.9rem;">{{ indicadores_rentabilidade.custo_por_animal.custos_detalhados.manutencao|floatformat:2|moeda_br }}</strong>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-4 col-sm-6">
+                            <div class="text-center p-2 border rounded">
+                                <small class="text-muted d-block mb-1" style="font-size: 0.7rem;">Financeiro</small>
+                                <strong style="font-size: 0.9rem;">{{ indicadores_rentabilidade.custo_por_animal.custos_detalhados.financeiro|floatformat:2|moeda_br }}</strong>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-4 col-sm-6">
+                            <div class="text-center p-2 border rounded">
+                                <small class="text-muted d-block mb-1" style="font-size: 0.7rem;">Nutrição</small>
+                                <strong style="font-size: 0.9rem;">{{ indicadores_rentabilidade.custo_por_animal.custos_detalhados.nutricao|floatformat:2|moeda_br }}</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Gráficos Principais -->
+    <div class="row g-3 mb-3">
+        <!-- Gráfico Financeiro -->
+        <div class="col-lg-8">
+            <div class="powerbi-card">
+                <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-graph-up me-2"></i>Fluxo Financeiro</h5>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-outline-secondary active" onclick="alterarTipoGrafico('financeiro', 'line', this)">
+                            <i class="bi bi-graph-up"></i> Linha
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="alterarTipoGrafico('financeiro', 'bar', this)">
+                            <i class="bi bi-bar-chart"></i> Barras
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="graficoFinanceiro"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Gráfico Inventário por Categoria - Oculto se não houver dados -->
+        {% if inventario_por_categoria %}
+        <div class="col-lg-4">
+            <div class="powerbi-card">
+                <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-pie-chart me-2"></i>Inventário por Categoria</h5>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-outline-secondary active" onclick="alterarTipoGrafico('inventario', 'doughnut', this)">
+                            <i class="bi bi-circle"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="alterarTipoGrafico('inventario', 'pie', this)">
+                            <i class="bi bi-pie-chart"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="graficoInventario"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Novos Gráficos Avançados - Apenas se houver dados relevantes -->
+    {% if total_animais_inventario > 0 or total_custos_operacionais > 0 %}
+    <div class="row g-3 mb-4">
+        <!-- Evolução de Animais ao Longo do Tempo - Apenas se houver animais suficientes -->
+        {% if total_animais_inventario > 5 %}
+        <div class="col-12">
+            <div class="powerbi-card">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0"><i class="bi bi-graph-up-arrow me-2"></i>Evolução do Rebanho (Últimos 12 Meses)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container-full-width">
+                        <canvas id="graficoEvolucaoRebanho"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Distribuição de Custos - Apenas se houver custos -->
+        {% if total_custos_operacionais > 0 %}
+        <div class="col-lg-6">
+            <div class="powerbi-card print-page-break-after">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0"><i class="bi bi-pie-chart-fill me-2"></i>Distribuição de Custos Operacionais</h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="graficoDistribuicaoCustos"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- KPIs e Comparação Consolidados - Layout Compacto -->
+    <div class="row g-2 mb-3 print-page-break-before">
+        <div class="col-12">
+            <div class="section-header mb-2">
+                <h3 class="section-title" style="font-size: 1.1rem;">
+                    <i class="bi bi-speedometer2 text-secondary me-2"></i>
+                    Indicadores de Performance
+                </h3>
+            </div>
+        </div>
+
+        <!-- KPIs Compactos em Grid - Todos na mesma linha -->
+        <div class="col-lg col-md-6 col-sm-6">
+            <div class="powerbi-card h-100">
+                <div class="card-body p-2">
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <div>
+                            <h6 class="text-muted mb-0" style="font-size: 0.7rem;">ROI Anual</h6>
+                            <h4 class="mb-0 {% if margem_lucro > 0 %}text-success{% else %}text-danger{% endif %}" style="font-size: 1.3rem;">
+                                {% if receitas_mes > 0 %}{{ margem_lucro|floatformat:1 }}%{% else %}0.0%{% endif %}
+                            </h4>
+                        </div>
+                        <i class="bi bi-cash-stack text-muted" style="font-size: 1.2rem; opacity: 0.3;"></i>
+                    </div>
+                    <small class="text-muted" style="font-size: 0.65rem;">Retorno sobre Investimento</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg col-md-6 col-sm-6">
+            <div class="powerbi-card h-100">
+                <div class="card-body p-2">
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <div>
+                            <h6 class="text-muted mb-0" style="font-size: 0.7rem;">Receita/Animal</h6>
+                            <h4 class="mb-0 text-primary" style="font-size: 1.3rem;">
+                                {% if total_animais_inventario > 0 %}
+                                    {% widthratio receitas_mes total_animais_inventario 1 as receita_por_animal %}
+                                    {{ receita_por_animal|floatformat:2|moeda_br }}
+                                {% else %}R$ 0,00{% endif %}
+                            </h4>
+                        </div>
+                        <i class="bi bi-graph-up text-muted" style="font-size: 1.2rem; opacity: 0.3;"></i>
+                    </div>
+                    <small class="text-muted" style="font-size: 0.65rem;">Média anual</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg col-md-6 col-sm-6">
+            <div class="powerbi-card h-100">
+                <div class="card-body p-2">
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <div>
+                            <h6 class="text-muted mb-0" style="font-size: 0.7rem;">Custo/Animal</h6>
+                            <h4 class="mb-0 text-warning" style="font-size: 1.3rem;">
+                                {% if total_animais_inventario > 0 %}
+                                    {% widthratio total_custos_operacionais total_animais_inventario 1 as custo_por_animal %}
+                                    {{ custo_por_animal|floatformat:2|moeda_br }}
+                                {% else %}R$ 0,00{% endif %}
+                            </h4>
+                        </div>
+                        <i class="bi bi-calculator text-muted" style="font-size: 1.2rem; opacity: 0.3;"></i>
+                    </div>
+                    <small class="text-muted" style="font-size: 0.65rem;">Média anual</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg col-md-6 col-sm-6">
+            <div class="powerbi-card h-100">
+                <div class="card-body p-2">
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <div>
+                            <h6 class="text-muted mb-0" style="font-size: 0.7rem;">Custo @ produzida</h6>
+                            <h4 class="mb-0 text-info" style="font-size: 1.3rem;">
+                                {% if indicadores_rentabilidade and indicadores_rentabilidade.custo_por_arroba and indicadores_rentabilidade.custo_por_arroba.custo_por_arroba > 0 %}
+                                    R$ {{ indicadores_rentabilidade.custo_por_arroba.custo_por_arroba|floatformat:2 }}
+                                {% else %}R$ 0,00{% endif %}
+                            </h4>
+                        </div>
+                        <i class="bi bi-speedometer2 text-muted" style="font-size: 1.2rem; opacity: 0.3;"></i>
+                    </div>
+                    <small class="text-muted" style="font-size: 0.65rem;">
+                        {% if indicadores_rentabilidade and indicadores_rentabilidade.custo_por_arroba %}
+                            {{ indicadores_rentabilidade.custo_por_arroba.arrobas_totais|floatformat:1 }} @ total
+                        {% else %}
+                            Média anual
+                        {% endif %}
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg col-md-6 col-sm-6">
+            <div class="powerbi-card h-100">
+                <div class="card-body p-2">
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <div>
+                            <h6 class="text-muted mb-0" style="font-size: 0.7rem;">Crescimento</h6>
+                            <h4 class="mb-0 {% if percentual_animais > 0 %}text-success{% elif percentual_animais < 0 %}text-danger{% else %}text-muted{% endif %}" style="font-size: 1.3rem;">
+                                {% if percentual_animais != 0 %}{{ percentual_animais|floatformat:1 }}%{% else %}0.0%{% endif %}
+                            </h4>
+                        </div>
+                        <i class="bi bi-arrow-up-circle text-muted" style="font-size: 1.2rem; opacity: 0.3;"></i>
+                    </div>
+                    <small class="text-muted" style="font-size: 0.65rem;">Rebanho (vs anterior)</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Comparação com Período Anterior - Compacta -->
+    {% if tendencia_receitas != 0 or tendencia_despesas != 0 or tendencia_saldo != 0 or tendencia_custos != 0 %}
+    <div class="row g-2 mb-3">
+        <div class="col-12">
+            <div class="powerbi-card">
+                <div class="card-header bg-white border-bottom py-2">
+                    <h6 class="mb-0" style="font-size: 0.9rem;"><i class="bi bi-arrow-left-right me-2"></i>Comparação com Período Anterior</h6>
+                </div>
+                <div class="card-body p-3">
+                    <div class="row g-2">
+                        <div class="col-lg-3 col-md-6 col-sm-6">
+                            <div class="text-center p-2 border rounded">
+                                <small class="text-muted d-block mb-1" style="font-size: 0.7rem;">Receitas</small>
+                                <h5 class="mb-1 {% if tendencia_receitas >= 0 %}text-success{% else %}text-danger{% endif %}" style="font-size: 1.1rem;">
+                                    {{ tendencia_receitas|moeda_br }}
+                                </h5>
+                                <small class="{% if percentual_receitas >= 0 %}text-success{% else %}text-danger{% endif %}" style="font-size: 0.7rem;">
+                                    <i class="bi {% if percentual_receitas >= 0 %}bi-arrow-up{% else %}bi-arrow-down{% endif %}"></i>
+                                    {{ percentual_receitas_abs|floatformat:1 }}%
+                                </small>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6 col-sm-6">
+                            <div class="text-center p-2 border rounded">
+                                <small class="text-muted d-block mb-1" style="font-size: 0.7rem;">Despesas</small>
+                                <h5 class="mb-1 {% if tendencia_despesas <= 0 %}text-success{% else %}text-danger{% endif %}" style="font-size: 1.1rem;">
+                                    {{ tendencia_despesas|moeda_br }}
+                                </h5>
+                                <small class="{% if tendencia_despesas <= 0 %}text-success{% else %}text-danger{% endif %}" style="font-size: 0.7rem;">
+                                    <i class="bi {% if tendencia_despesas <= 0 %}bi-arrow-down{% else %}bi-arrow-up{% endif %}"></i>
+                                    {{ percentual_despesas_abs|floatformat:1 }}%
+                                </small>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6 col-sm-6">
+                            <div class="text-center p-2 border rounded">
+                                <small class="text-muted d-block mb-1" style="font-size: 0.7rem;">Saldo</small>
+                                <h5 class="mb-1 {% if tendencia_saldo >= 0 %}text-success{% else %}text-danger{% endif %}" style="font-size: 1.1rem;">
+                                    {{ tendencia_saldo|moeda_br }}
+                                </h5>
+                                <small class="text-muted" style="font-size: 0.7rem;">Variação</small>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6 col-sm-6">
+                            <div class="text-center p-2 border rounded">
+                                <small class="text-muted d-block mb-1" style="font-size: 0.7rem;">Custos Oper.</small>
+                                <h5 class="mb-1 {% if tendencia_custos <= 0 %}text-success{% else %}text-danger{% endif %}" style="font-size: 1.1rem;">
+                                    {{ tendencia_custos|moeda_br }}
+                                </h5>
+                                <small class="{% if tendencia_custos <= 0 %}text-success{% else %}text-danger{% endif %}" style="font-size: 0.7rem;">
+                                    <i class="bi {% if tendencia_custos <= 0 %}bi-arrow-down{% else %}bi-arrow-up{% endif %}"></i>
+                                    {{ percentual_custos_abs|floatformat:1 }}%
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Módulos Organizados em Grid -->
+    <div class="modules-grid-container mt-4">
+        <h2 class="section-title-modules mb-4">
+            <i class="bi bi-grid-3x3-gap-fill text-primary me-2"></i>Módulos de Gestão
+        </h2>
+        
+        <div class="modules-grid">
+            <!-- Módulo: Pecuária -->
+            <div class="module-card-clean">
+                <div class="module-card-header">
+                    <div class="module-card-icon bg-primary">
+                        <i class="bi bi-cow"></i>
+                    </div>
+                    <h3 class="module-card-title">Pecuária</h3>
+                </div>
+                <div class="module-card-body">
+                    <div class="module-metrics">
+                        <div class="module-metric-item">
+                            <span class="metric-label">Animais Rastreados</span>
+                            <span class="metric-value">{{ animais_rastreados|numero_br }}</span>
+                        </div>
+                        <div class="module-metric-item">
+                            <span class="metric-label">Touros Aptos</span>
+                            <span class="metric-value">{{ touros_aptos|numero_br }}</span>
+                        </div>
+                        <div class="module-metric-item">
+                            <span class="metric-label">IATFs Pendentes</span>
+                            <span class="metric-value">{{ iatfs_pendentes|numero_br }}</span>
+                        </div>
+                        <div class="module-metric-item">
+                            <span class="metric-label">Nascimentos (Mês)</span>
+                            <span class="metric-value">{{ nascimentos_mes|numero_br }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="module-card-footer">
+                    <a href="{% url 'pecuaria_dashboard' propriedade.id %}" class="btn-module-link">
+                        <i class="bi bi-arrow-right me-1"></i>Ver Detalhes
+                    </a>
+                </div>
+            </div>
+
+            <!-- Módulo: Nutrição -->
+            <div class="module-card-clean">
+                <div class="module-card-header">
+                    <div class="module-card-icon bg-success">
+                        <i class="bi bi-bucket"></i>
+                    </div>
+                    <h3 class="module-card-title">Nutrição</h3>
+                </div>
+                <div class="module-card-body">
+                    <div class="module-metrics">
+                        <div class="module-metric-item">
+                            <span class="metric-label">Valor Total Estoque</span>
+                            <span class="metric-value">{{ valor_total_estoque|moeda_br }}</span>
+                        </div>
+                        <div class="module-metric-item">
+                            <span class="metric-label">Distribuído (Mês)</span>
+                            <span class="metric-value">{{ total_distribuido_mes|numero_br:2 }}</span>
+                        </div>
+                        <div class="module-metric-item">
+                            <span class="metric-label">Cochos Ativos</span>
+                            <span class="metric-value">{{ cochos_ativos|numero_br }}</span>
+                        </div>
+                        {% if estoques_baixo > 0 %}
+                        <div class="module-alert">
+                            <i class="bi bi-exclamation-triangle me-1"></i>
+                            {{ estoques_baixo }} estoque(s) baixo(s)
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="module-card-footer">
+                    <a href="{% url 'nutricao_dashboard' propriedade.id %}" class="btn-module-link">
+                        <i class="bi bi-arrow-right me-1"></i>Ver Detalhes
+                    </a>
+                </div>
+            </div>
+
+            <!-- Módulo: Operações -->
+            <div class="module-card-clean">
+                <div class="module-card-header">
+                    <div class="module-card-icon bg-secondary">
+                        <i class="bi bi-gear"></i>
+                    </div>
+                    <h3 class="module-card-title">Operações</h3>
+                </div>
+                <div class="module-card-body">
+                    <div class="module-metrics">
+                        <div class="module-metric-item">
+                            <span class="metric-label">Estoque Combustível</span>
+                            <span class="metric-value">{{ estoque_total_combustivel|numero_br:2 }}L</span>
+                        </div>
+                        <div class="module-metric-item">
+                            <span class="metric-label">Equipamentos Ativos</span>
+                            <span class="metric-value">{{ equipamentos_ativos|numero_br }}</span>
+                        </div>
+                        <div class="module-metric-item">
+                            <span class="metric-label">Funcionários Ativos</span>
+                            <span class="metric-value">{{ funcionarios_ativos|numero_br }}</span>
+                        </div>
+                        <div class="module-metric-item">
+                            <span class="metric-label">Consumo Combustível</span>
+                            <span class="metric-value">{{ valor_consumo_mes|moeda_br }}</span>
+                        </div>
+                        {% if manutencoes_pendentes > 0 %}
+                        <div class="module-alert">
+                            <i class="bi bi-exclamation-triangle me-1"></i>
+                            {{ manutencoes_pendentes }} manutenção(ões) pendente(s)
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="module-card-footer">
+                    <a href="{% url 'operacoes_dashboard' propriedade.id %}" class="btn-module-link">
+                        <i class="bi bi-arrow-right me-1"></i>Ver Detalhes
+                    </a>
+                </div>
+            </div>
+
+            <!-- Módulo: Financeiro -->
+            <div class="module-card-clean">
+                <div class="module-card-header">
+                    <div class="module-card-icon bg-success">
+                        <i class="bi bi-cash-coin"></i>
+                    </div>
+                    <h3 class="module-card-title">Financeiro</h3>
+                </div>
+                <div class="module-card-body">
+                    <div class="module-metrics">
+                        <div class="module-metric-item">
+                            <span class="metric-label">Receitas (Mês)</span>
+                            <span class="metric-value text-success">{{ receitas_mes|moeda_br }}</span>
+                        </div>
+                        <div class="module-metric-item">
+                            <span class="metric-label">Despesas (Mês)</span>
+                            <span class="metric-value text-danger">{{ despesas_mes|moeda_br }}</span>
+                        </div>
+                        <div class="module-metric-item">
+                            <span class="metric-label">Saldo (Mês)</span>
+                            <span class="metric-value {% if saldo_mes >= 0 %}text-success{% else %}text-danger{% endif %}">{{ saldo_mes|moeda_br }}</span>
+                        </div>
+                        <div class="module-metric-item">
+                            <span class="metric-label">Margem de Lucro</span>
+                            <span class="metric-value">{{ margem_lucro|floatformat:1 }}%</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="module-card-footer">
+                    <a href="{% url 'financeiro_dashboard' propriedade.id %}" class="btn-module-link">
+                        <i class="bi bi-arrow-right me-1"></i>Ver Detalhes
+                    </a>
+                </div>
+            </div>
+
+            <!-- Módulo: Compras -->
+            <div class="module-card-clean">
+                <div class="module-card-header">
+                    <div class="module-card-icon bg-warning">
+                        <i class="bi bi-cart"></i>
+                    </div>
+                    <h3 class="module-card-title">Compras</h3>
+                </div>
+                <div class="module-card-body">
+                    <div class="module-metrics">
+                        <div class="module-metric-item">
+                            <span class="metric-label">Requisições Pendentes</span>
+                            <span class="metric-value">{{ requisicoes_pendentes|numero_br }}</span>
+                        </div>
+                        <div class="module-metric-item">
+                            <span class="metric-label">Ordens Pendentes</span>
+                            <span class="metric-value">{{ ordens_pendentes|numero_br }}</span>
+                        </div>
+                        <div class="module-metric-item">
+                            <span class="metric-label">Valor Ordens</span>
+                            <span class="metric-value">{{ valor_ordens_pendentes|moeda_br }}</span>
+                        </div>
+                        <div class="module-metric-item">
+                            <span class="metric-label">Fornecedores</span>
+                            <span class="metric-value">{{ total_fornecedores|numero_br }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="module-card-footer">
+                    <a href="{% url 'compras_dashboard' propriedade.id %}" class="btn-module-link">
+                        <i class="bi bi-arrow-right me-1"></i>Ver Detalhes
+                    </a>
+                </div>
+            </div>
+
+            <!-- Módulo: Bens e Patrimônio -->
+            <div class="module-card-clean">
+                <div class="module-card-header">
+                    <div class="module-card-icon" style="background: linear-gradient(135deg, #d69e2e 0%, #b8821f 100%);">
+                        <i class="bi bi-building"></i>
+                    </div>
+                    <h3 class="module-card-title">Bens e Patrimônio</h3>
+                </div>
+                <div class="module-card-body">
+                    <div class="module-metrics">
+                        <div class="module-metric-item">
+                            <span class="metric-label">Total de Bens</span>
+                            <span class="metric-value">{{ total_bens|default:0|numero_br }}</span>
+                        </div>
+                        <div class="module-metric-item">
+                            <span class="metric-label">Valor Total</span>
+                            <span class="metric-value">{{ valor_total_bens|default:0|moeda_br }}</span>
+                        </div>
+                        <div class="module-metric-item">
+                            <span class="metric-label">Valor Depreciado</span>
+                            <span class="metric-value">{{ valor_depreciado_bens|default:0|moeda_br }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="module-card-footer">
+                    <a href="{% url 'imobilizado_dashboard' propriedade.id %}" class="btn-module-link">
+                        <i class="bi bi-arrow-right me-1"></i>Ver Detalhes
+                    </a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Resumo dos Principais Indicadores -->
+    <div class="row g-3 mt-4 mb-4">
+        <div class="col-12">
+            <div class="powerbi-card">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0">
+                        <i class="bi bi-speedometer2 text-primary me-2"></i>Resumo dos Principais Indicadores
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-lg-3 col-md-6">
+                            <div class="text-center p-3 border rounded">
+                                <div class="text-muted small mb-2">Rebanho Atual</div>
+                                <h3 class="mb-0 text-primary">{{ total_animais_inventario|numero_br }}</h3>
+                                <small class="text-muted">cabeças</small>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6">
+                            <div class="text-center p-3 border rounded">
+                                <div class="text-muted small mb-2">Receitas (Mês)</div>
+                                <h3 class="mb-0 text-success">{{ receitas_mes|moeda_br }}</h3>
+                                <small class="text-muted">último mês</small>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6">
+                            <div class="text-center p-3 border rounded">
+                                <div class="text-muted small mb-2">Despesas (Mês)</div>
+                                <h3 class="mb-0 text-danger">{{ despesas_mes|moeda_br }}</h3>
+                                <small class="text-muted">último mês</small>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6">
+                            <div class="text-center p-3 border rounded">
+                                <div class="text-muted small mb-2">Margem de Lucro</div>
+                                <h3 class="mb-0 {% if margem_lucro >= 0 %}text-success{% else %}text-danger{% endif %}">{{ margem_lucro|floatformat:1 }}%</h3>
+                                <small class="text-muted">mês atual</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Consulta Interativa - Assistente de BI -->
+    <div class="row g-3 mt-4">
+        <div class="col-12">
+            <div class="powerbi-card">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0"><i class="bi bi-chat-dots text-primary me-2"></i>Assistente de BI - Faça sua Pergunta</h5>
+                </div>
+                <div class="card-body">
+                    <div class="input-group mb-3">
+                        <input type="text" id="perguntaInput" class="form-control form-control-lg" 
+                               placeholder="Ex: Mostre o inventário, Qual a situação financeira?, Como está a nutrição?, Mostre projeções..."
+                               onkeypress="if(event.key === 'Enter') fazerConsulta()">
+                        <button class="btn btn-primary" type="button" onclick="fazerConsulta()">
+                            <i class="bi bi-search me-1"></i>Consultar
+                        </button>
+                    </div>
+                    <div id="resultadoConsulta" class="mt-3"></div>
+                    <div id="visualizacoesDinamicas" class="mt-4"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Insights e Análises -->
+    <div class="row g-3 mt-4">
+        <div class="col-12">
+            <div class="powerbi-card">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0"><i class="bi bi-lightbulb text-warning me-2"></i>Insights e Análises</h5>
+                </div>
+                <div class="card-body">
+                    {% if estoques_baixo > 0 %}
+                    <div class="insight-card">
+                        <strong><i class="bi bi-exclamation-triangle text-warning me-2"></i>Atenção:</strong> 
+                        {{ estoques_baixo }} estoque(s) de suplementação está(ão) abaixo do mínimo recomendado. 
+                        <a href="{% url 'nutricao_dashboard' propriedade.id %}">Ver detalhes</a>
+                    </div>
+                    {% endif %}
+                    
+                    {% if manutencoes_pendentes > 0 %}
+                    <div class="insight-card">
+                        <strong><i class="bi bi-tools text-warning me-2"></i>Manutenção:</strong> 
+                        {{ manutencoes_pendentes }} manutenção(ões) de equipamento(s) pendente(s). 
+                        <a href="{% url 'operacoes_dashboard' propriedade.id %}">Ver detalhes</a>
+                    </div>
+                    {% endif %}
+                    
+                    {% if iatfs_pendentes > 0 %}
+                    <div class="insight-card">
+                        <strong><i class="bi bi-calendar-check text-info me-2"></i>Reprodução:</strong> 
+                        {{ iatfs_pendentes }} IATF(s) programada(s) aguardando execução. 
+                        <a href="{% url 'reproducao_dashboard' propriedade.id %}">Ver detalhes</a>
+                    </div>
+                    {% endif %}
+                    
+                    {% if saldo_mes < 0 %}
+                    <div class="insight-card">
+                        <strong><i class="bi bi-exclamation-circle text-danger me-2"></i>Financeiro:</strong> 
+                        Saldo negativo no mês atual. Considere revisar despesas ou aumentar receitas. 
+                        <a href="{% url 'financeiro_dashboard' propriedade.id %}">Ver detalhes</a>
+                    </div>
+                    {% elif margem_lucro > 20 %}
+                    <div class="insight-card">
+                        <strong><i class="bi bi-check-circle text-success me-2"></i>Excelente:</strong> 
+                        Margem de lucro de {{ margem_lucro|floatformat:1 }}% está acima da média do setor. Parabéns!
+                    </div>
+                    {% endif %}
+                    
+                    {% if requisicoes_pendentes > 0 %}
+                    <div class="insight-card">
+                        <strong><i class="bi bi-cart text-warning me-2"></i>Compras:</strong> 
+                        {{ requisicoes_pendentes }} requisição(ões) de compra aguardando aprovação. 
+                        <a href="{% url 'compras_dashboard' propriedade.id %}">Ver detalhes</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Timeline de Atividades Recentes (Colapsável) -->
+    <div class="row g-3 mt-4 mb-4">
+        <div class="col-12">
+            <div class="powerbi-card">
+                <div class="card-header bg-white border-bottom">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="flex-grow-1">
+                            <button class="btn btn-link text-decoration-none p-0 text-start w-100" type="button" 
+                                    data-bs-toggle="collapse" data-bs-target="#timelineCollapse" 
+                                    aria-expanded="false" aria-controls="timelineCollapse"
+                                    onclick="toggleTimelineIcon(this)">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h5 class="mb-0">
+                                            <i class="bi bi-clock-history text-primary me-2"></i>Timeline de Atividades Recentes
+                                            <i class="bi bi-chevron-down ms-2" id="timelineIcon"></i>
+                                        </h5>
+                                        <small class="text-muted">Atividades realizadas nos últimos {{ periodo_dias }} dias</small>
+                                    </div>
+                                    <span class="badge bg-primary">{{ atividades_recentes|length }} atividades</span>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="collapse" id="timelineCollapse">
+                    <div class="card-body border-top">
+                        <!-- Filtros -->
+                        <div class="row g-2 mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label small text-muted">Período:</label>
+                                <select class="form-select form-select-sm" id="filtroPeriodo" onchange="aplicarFiltros()">
+                                    <option value="7" {% if periodo_dias == 7 %}selected{% endif %}>Últimos 7 dias</option>
+                                    <option value="15" {% if periodo_dias == 15 %}selected{% endif %}>Últimos 15 dias</option>
+                                    <option value="30" {% if periodo_dias == 30 %}selected{% endif %}>Últimos 30 dias</option>
+                                    <option value="60" {% if periodo_dias == 60 %}selected{% endif %}>Últimos 60 dias</option>
+                                    <option value="90" {% if periodo_dias == 90 %}selected{% endif %}>Últimos 90 dias</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small text-muted">Módulo:</label>
+                                <select class="form-select form-select-sm" id="filtroModulo" onchange="aplicarFiltros()">
+                                    <option value="">Todos os módulos</option>
+                                    {% for modulo in modulos_disponiveis %}
+                                    <option value="{{ modulo|upper }}" {% if modulo_filtro == modulo|upper %}selected{% endif %}>{{ modulo }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small text-muted">&nbsp;</label>
+                                <button class="btn btn-sm btn-outline-secondary w-100" onclick="limparFiltros()">
+                                    <i class="bi bi-x-circle me-1"></i>Limpar Filtros
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Conteúdo da Timeline -->
+                        <div class="timeline-activities">
+                            {% if atividades_recentes %}
+                                <div class="timeline-container">
+                                    {% for atividade in atividades_recentes %}
+                                    <div class="activity-item mb-3 p-3 border-start border-4 border-{{ atividade.cor }} bg-light rounded shadow-sm">
+                                        <div class="d-flex align-items-start">
+                                            <div class="activity-icon me-3">
+                                                <i class="bi {{ atividade.icone }} fs-5 text-{{ atividade.cor }}"></i>
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                                    <div class="flex-grow-1">
+                                                        <h6 class="mb-1">
+                                                            <span class="badge bg-{{ atividade.cor }} me-2">{{ atividade.modulo }}</span>
+                                                            {{ atividade.titulo }}
+                                                        </h6>
+                                                        <p class="text-muted small mb-0">{{ atividade.descricao }}</p>
+                                                    </div>
+                                                    <div class="text-end ms-3">
+                                                        <small class="text-muted d-block">
+                                                            <i class="bi bi-calendar3 me-1"></i>
+                                                            {% now "Y-m-d" as hoje %}
+                                                            {% if atividade.data|date:"Y-m-d" == hoje %}
+                                                                <span class="badge bg-success">Hoje</span>
+                                                            {% else %}
+                                                                {{ atividade.data|date:"d/m/Y" }}
+                                                            {% endif %}
+                                                        </small>
+                                                        {% if atividade.valor %}
+                                                        <strong class="text-{{ atividade.cor }} d-block mt-1">
+                                                            {{ atividade.valor|moeda_br }}
+                                                        </strong>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                                {% if atividade.url %}
+                                                <a href="{{ atividade.url }}" class="btn btn-sm btn-outline-{{ atividade.cor }}">
+                                                    <i class="bi bi-arrow-right me-1"></i>Ver Detalhes
+                                                </a>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="text-center text-muted py-5">
+                                    <i class="bi bi-inbox fs-1 d-block mb-3 opacity-50"></i>
+                                    <p class="mb-0">Nenhuma atividade recente encontrada nos últimos {{ periodo_dias }} dias</p>
+                                    <small>As atividades aparecerão aqui conforme você usar o sistema</small>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" onerror="console.error('Erro ao carregar Chart.js do CDN');"></script>
+<!-- html2canvas para exportação -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha512-sNX/4zFHgD2LO9Zib5IqhU8fRb3iG4K+7eeykNsPNnPjK9WK5KNQW+T2HrhmoJypUo47x/qz3QxDxfE4K+LKcg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+<script>
+// Função para inicializar gráficos
+function inicializarGraficos() {
+    // Verificar se Chart está disponível
+    if (typeof Chart === 'undefined') {
+        console.error('Chart.js não foi carregado! Verifique a conexão com a internet ou o CDN.');
+        // Mostrar mensagens de erro nos containers dos gráficos
+        const containers = document.querySelectorAll('.chart-container');
+        containers.forEach(container => {
+            const canvas = container.querySelector('canvas');
+            if (!canvas || !canvas.getContext) {
+                container.innerHTML = '<div class="alert alert-warning text-center py-4"><i class="bi bi-exclamation-triangle me-2"></i>Chart.js não foi carregado. Verifique sua conexão com a internet.</div>';
+            }
+        });
+        return;
+    }
+    
+    // Inicializar objeto de instâncias antes de criar gráficos
+    if (!window.chartInstances) {
+        window.chartInstances = {};
+    }
+    
+    // Gráfico Financeiro
+    const ctxFinanceiro = document.getElementById('graficoFinanceiro');
+    if (ctxFinanceiro) {
+        try {
+            const mesesData = {{ meses_grafico|safe }};
+            const receitasData = {{ receitas_grafico|safe }};
+            const despesasData = {{ despesas_grafico|safe }};
+            
+            // Verificar se há dados para exibir
+            if (mesesData && mesesData.length > 0 && receitasData && receitasData.length > 0) {
+                window.chartInstances.financeiro = new Chart(ctxFinanceiro, {
+                type: 'line',
+                data: {
+                    labels: mesesData,
+                    datasets: [{
+                        label: 'Receitas',
+                        data: receitasData,
+                        borderColor: 'rgb(34, 197, 94)',
+                        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        borderWidth: 2
+                    }, {
+                        label: 'Despesas',
+                        data: despesasData,
+                        borderColor: 'rgb(239, 68, 68)',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 15
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': R$ ' + context.parsed.y.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    if (value >= 1000) {
+                                        return 'R$ ' + (value / 1000).toFixed(1) + 'k';
+                                    }
+                                    return 'R$ ' + value.toLocaleString('pt-BR');
+                                },
+                                font: {
+                                    size: 11
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+                });
+            } else {
+                // Mostrar mensagem quando não há dados
+                // Ocultar o card inteiro quando não há dados
+                const cardFinanceiro = ctxFinanceiro.closest('.powerbi-card');
+                if (cardFinanceiro) {
+                    cardFinanceiro.style.display = 'none';
+                }
+            }
+        } catch (error) {
+            console.error('Erro ao criar gráfico financeiro:', error);
+            ctxFinanceiro.parentElement.innerHTML = '<div class="alert alert-danger text-center py-3"><i class="bi bi-exclamation-triangle me-2"></i>Erro ao carregar gráfico: ' + error.message + '</div>';
+        }
+    }
+    
+    // Gráfico Inventário por Categoria
+    const ctxInventario = document.getElementById('graficoInventario');
+    if (ctxInventario) {
+        try {
+            const categorias = [
+                {% for item in inventario_por_categoria %}
+                '{{ item.categoria__nome|default:"Sem categoria" }}',
+                {% empty %}
+                'Sem dados'
+                {% endfor %}
+            ];
+            const quantidades = [
+                {% for item in inventario_por_categoria %}
+                {{ item.total }},
+                {% empty %}
+                0
+                {% endfor %}
+            ];
+            
+            // Cores dinâmicas para o gráfico
+            const cores = [
+                'rgba(102, 126, 234, 0.8)',
+                'rgba(118, 75, 162, 0.8)',
+                'rgba(17, 153, 142, 0.8)',
+                'rgba(56, 239, 125, 0.8)',
+                'rgba(250, 112, 154, 0.8)',
+                'rgba(254, 225, 64, 0.8)',
+                'rgba(79, 172, 254, 0.8)',
+                'rgba(0, 242, 254, 0.8)',
+                'rgba(255, 159, 64, 0.8)',
+                'rgba(153, 102, 255, 0.8)',
+            ];
+            
+            // Repetir cores se necessário
+            const coresCompletas = [];
+            for (let i = 0; i < categorias.length; i++) {
+                coresCompletas.push(cores[i % cores.length]);
+            }
+            
+            if (categorias.length > 0 && quantidades.some(q => q > 0)) {
+                if (!window.chartInstances) {
+                    window.chartInstances = {};
+                }
+                
+                window.chartInstances.inventario = new Chart(ctxInventario, {
+                    type: 'doughnut',
+                    data: {
+                        labels: categorias,
+                        datasets: [{
+                            data: quantidades,
+                            backgroundColor: coresCompletas,
+                            borderWidth: 2,
+                            borderColor: '#fff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    usePointStyle: true,
+                                    padding: 12,
+                                    font: {
+                                        size: 11
+                                    }
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const label = context.label || '';
+                                        const value = context.parsed || 0;
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                        return label + ': ' + value.toLocaleString('pt-BR') + ' (' + percentage + '%)';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            } else {
+                // Ocultar o card inteiro quando não há dados
+                const cardInventario = ctxInventario.closest('.powerbi-card');
+                if (cardInventario) {
+                    cardInventario.style.display = 'none';
+                }
+            }
+        } catch (error) {
+            console.error('Erro ao criar gráfico de inventário:', error);
+            if (ctxInventario && ctxInventario.parentElement) {
+                ctxInventario.parentElement.innerHTML = '<div class="alert alert-danger text-center py-3"><i class="bi bi-exclamation-triangle me-2"></i>Erro ao carregar gráfico: ' + error.message + '</div>';
+            }
+        }
+    }
+    
+    // Gráfico de Evolução do Rebanho
+    const ctxEvolucaoRebanho = document.getElementById('graficoEvolucaoRebanho');
+    if (ctxEvolucaoRebanho) {
+        try {
+            const totalAnimaisAtual = {{ total_animais_inventario|default:0 }};
+            
+            // Gerar dados dos últimos 12 meses (simulado - em produção viria do backend)
+            const meses = [];
+            const totalAnimais = [];
+            const hoje = new Date();
+            
+            for (let i = 11; i >= 0; i--) {
+                const data = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+                meses.push(data.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }));
+                // Simulação: usar total atual com variação aleatória pequena
+                const base = totalAnimaisAtual || 0;
+                totalAnimais.push(Math.max(0, base + Math.floor(Math.random() * 20 - 10)));
+            }
+            
+            if (meses.length > 0 && totalAnimais.length > 0) {
+                if (!window.chartInstances.evolucaoRebanho) {
+                    window.chartInstances.evolucaoRebanho = new Chart(ctxEvolucaoRebanho, {
+                type: 'line',
+                data: {
+                    labels: meses,
+                    datasets: [{
+                        label: 'Total de Animais',
+                        data: totalAnimais,
+                        borderColor: 'rgb(74, 85, 104)',
+                        backgroundColor: 'rgba(74, 85, 104, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        borderWidth: 3,
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + context.parsed.y.toLocaleString('pt-BR') + ' animais';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toLocaleString('pt-BR');
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+                    });
+                }
+            } else {
+                // Ocultar o card inteiro quando não há dados relevantes
+                const cardEvolucao = ctxEvolucaoRebanho.closest('.powerbi-card');
+                if (cardEvolucao) {
+                    cardEvolucao.style.display = 'none';
+                }
+            }
+        } catch (error) {
+            console.error('Erro ao criar gráfico de evolução:', error);
+            if (ctxEvolucaoRebanho && ctxEvolucaoRebanho.parentElement) {
+                ctxEvolucaoRebanho.parentElement.innerHTML = '<div class="alert alert-danger text-center py-3"><i class="bi bi-exclamation-triangle me-2"></i>Erro ao carregar gráfico: ' + error.message + '</div>';
+            }
+        }
+    }
+    
+    // Gráfico de Distribuição de Custos
+    const ctxDistribuicaoCustos = document.getElementById('graficoDistribuicaoCustos');
+    if (ctxDistribuicaoCustos) {
+        try {
+            const combustivel = parseFloat({{ valor_consumo_mes|default:0 }}) || 0;
+            const folha = parseFloat({{ folha_mensal|default:0 }}) || 0;
+            const suplementacao = parseFloat({{ valor_distribuido_mes|default:0 }}) || 0;
+            
+            const totalCustos = combustivel + folha + suplementacao;
+            
+            if (totalCustos > 0) {
+                const dadosCustos = {
+                    labels: ['Combustível', 'Folha de Pagamento', 'Suplementação'],
+                    datasets: [{
+                        data: [combustivel, folha, suplementacao],
+                        backgroundColor: [
+                            'rgba(74, 85, 104, 0.8)',   // Cinza escuro
+                            'rgba(113, 128, 150, 0.8)', // Cinza médio
+                            'rgba(148, 163, 184, 0.8)'  // Cinza claro
+                        ],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                };
+                
+                if (!window.chartInstances.distribuicaoCustos) {
+                    window.chartInstances.distribuicaoCustos = new Chart(ctxDistribuicaoCustos, {
+                type: 'pie',
+                data: dadosCustos,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 15,
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                    return label + ': R$ ' + value.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' (' + percentage + '%)';
+                                }
+                            }
+                        }
+                    }
+                }
+                    });
+                }
+            } else {
+                // Ocultar o card inteiro quando não há dados
+                const cardCustos = ctxDistribuicaoCustos.closest('.powerbi-card');
+                if (cardCustos) {
+                    cardCustos.style.display = 'none';
+                }
+            }
+        } catch (error) {
+            console.error('Erro ao criar gráfico de distribuição de custos:', error);
+            if (ctxDistribuicaoCustos && ctxDistribuicaoCustos.parentElement) {
+                ctxDistribuicaoCustos.parentElement.innerHTML = '<div class="alert alert-danger text-center py-3"><i class="bi bi-exclamation-triangle me-2"></i>Erro ao carregar gráfico: ' + error.message + '</div>';
+            }
+        }
+    }
+    
+    // Log de status dos gráficos criados
+    console.log('Gráficos carregados:', Object.keys(window.chartInstances || {}));
+}
+
+// Aguardar carregamento completo do Chart.js e do DOM
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+        // Aguardar um pouco mais para garantir que Chart.js foi carregado
+        setTimeout(inicializarGraficos, 100);
+    });
+} else {
+    // DOM já está carregado, verificar se Chart.js também está
+    if (typeof Chart !== 'undefined') {
+        inicializarGraficos();
+    } else {
+        // Aguardar Chart.js carregar
+        let tentativas = 0;
+        const verificarChart = setInterval(function() {
+            tentativas++;
+            if (typeof Chart !== 'undefined') {
+                clearInterval(verificarChart);
+                inicializarGraficos();
+            } else if (tentativas > 50) {
+                clearInterval(verificarChart);
+                console.error('Chart.js não foi carregado após 5 segundos');
+                inicializarGraficos(); // Tentar mesmo assim
+            }
+        }, 100);
+    }
+}
+
+// Função para alternar ícone do botão de expandir/recolher Timeline
+function toggleTimelineIcon(button) {
+    const icon = document.getElementById('timelineIcon');
+    if (icon) {
+        setTimeout(() => {
+            const collapse = document.getElementById('timelineCollapse');
+            const isExpanded = collapse.classList.contains('show');
+            if (isExpanded) {
+                icon.classList.remove('bi-chevron-down');
+                icon.classList.add('bi-chevron-up');
+            } else {
+                icon.classList.remove('bi-chevron-up');
+                icon.classList.add('bi-chevron-down');
+            }
+        }, 150);
+    }
+}
+
+// Event listener para atualizar ícone quando o collapse mudar
+document.addEventListener('DOMContentLoaded', function() {
+    const collapseElement = document.getElementById('timelineCollapse');
+    if (collapseElement) {
+        collapseElement.addEventListener('shown.bs.collapse', function() {
+            const icon = document.getElementById('timelineIcon');
+            if (icon) {
+                icon.classList.remove('bi-chevron-down');
+                icon.classList.add('bi-chevron-up');
+            }
+        });
+        collapseElement.addEventListener('hidden.bs.collapse', function() {
+            const icon = document.getElementById('timelineIcon');
+            if (icon) {
+                icon.classList.remove('bi-chevron-up');
+                icon.classList.add('bi-chevron-down');
+            }
+        });
+    }
+    
+    // Rolar para o topo quando a página carregar
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    
+    // Garantir que o scroll está no topo após um pequeno delay
+    setTimeout(function() {
+        window.scrollTo({ top: 0, behavior: 'instant' });
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+    }, 100);
+});
+
+// Garantir scroll no topo quando a página estiver completamente carregada
+window.addEventListener('load', function() {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+});
+
+// Filtros Globais
+function aplicarFiltrosData() {
+    const dataInicio = document.getElementById('filtroDataInicio').value;
+    const dataFim = document.getElementById('filtroDataFim').value;
+    const url = new URL(window.location);
+    
+    if (dataInicio) {
+        url.searchParams.set('data_inicio', dataInicio);
+    } else {
+        url.searchParams.delete('data_inicio');
+    }
+    
+    if (dataFim) {
+        url.searchParams.set('data_fim', dataFim);
+    } else {
+        url.searchParams.delete('data_fim');
+    }
+    
+    // Remover parâmetros antigos
+    url.searchParams.delete('periodo_dias');
+    url.searchParams.delete('modulo_filtro');
+    
+    window.location.href = url.toString();
+}
+
+function limparFiltrosData() {
+    const url = new URL(window.location);
+    url.searchParams.delete('data_inicio');
+    url.searchParams.delete('data_fim');
+    url.searchParams.delete('periodo_dias');
+    url.searchParams.delete('modulo_filtro');
+    window.location.href = url.toString();
+}
+
+// Função antiga mantida para compatibilidade (se ainda existir em algum lugar)
+function aplicarFiltrosGlobais() {
+    const periodo = document.getElementById('filtroPeriodoGlobal');
+    const modulo = document.getElementById('filtroModuloGlobal');
+    if (!periodo && !modulo) {
+        aplicarFiltrosData();
+        return;
+    }
+    const periodoValue = periodo ? periodo.value : '';
+    const moduloValue = modulo ? modulo.value : '';
+    const url = new URL(window.location);
+    
+    if (periodo) {
+        url.searchParams.set('periodo_dias', periodo);
+    } else {
+        url.searchParams.delete('periodo_dias');
+    }
+    
+    if (modulo) {
+        url.searchParams.set('modulo', modulo);
+    } else {
+        url.searchParams.delete('modulo');
+    }
+    
+    window.location.href = url.toString();
+}
+
+function limparFiltrosGlobais() {
+    const url = new URL(window.location);
+    url.searchParams.delete('periodo_dias');
+    url.searchParams.delete('modulo');
+    window.location.href = url.toString();
+}
+
+// Filtros da Timeline de Atividades
+function aplicarFiltros() {
+    const periodo = document.getElementById('filtroPeriodo').value;
+    const modulo = document.getElementById('filtroModulo').value;
+    const url = new URL(window.location);
+    
+    if (periodo) {
+        url.searchParams.set('periodo_dias', periodo);
+    } else {
+        url.searchParams.delete('periodo_dias');
+    }
+    
+    if (modulo) {
+        url.searchParams.set('modulo', modulo);
+    } else {
+        url.searchParams.delete('modulo');
+    }
+    
+    window.location.href = url.toString();
+}
+
+function limparFiltros() {
+    const url = new URL(window.location);
+    url.searchParams.delete('periodo_dias');
+    url.searchParams.delete('modulo');
+    window.location.href = url.toString();
+}
+
+// Atualizar timestamp de última atualização
+document.addEventListener('DOMContentLoaded', function() {
+    const agora = new Date();
+    const hora = agora.getHours().toString().padStart(2, '0');
+    const minuto = agora.getMinutes().toString().padStart(2, '0');
+    const elemento = document.getElementById('ultimaAtualizacao');
+    if (elemento) {
+        elemento.innerHTML = `<i class="bi bi-clock"></i> Atualizado às ${hora}:${minuto}`;
+    }
+    
+    // Sincronizar filtros globais com filtros da timeline
+    const periodoGlobal = document.getElementById('filtroPeriodoGlobal');
+    const moduloGlobal = document.getElementById('filtroModuloGlobal');
+    const periodoTimeline = document.getElementById('filtroPeriodo');
+    const moduloTimeline = document.getElementById('filtroModulo');
+    
+    if (periodoGlobal && periodoTimeline) {
+        periodoGlobal.value = periodoTimeline.value || '30';
+    }
+    if (moduloGlobal && moduloTimeline) {
+        moduloGlobal.value = moduloTimeline.value || '';
+    }
+});
+
+// Sistema de Consulta Interativa
+let contadorVisualizacoes = 0;
+
+function fazerConsulta() {
+    const pergunta = document.getElementById('perguntaInput').value.trim();
+    if (!pergunta) {
+        alert('Por favor, digite uma pergunta');
+        return;
+    }
+    
+    const resultadoDiv = document.getElementById('resultadoConsulta');
+    resultadoDiv.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Carregando...</span></div></div>';
+    
+    fetch('{% url "dashboard_consulta_api" propriedade.id %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({ pergunta: pergunta })
+    })
+    .then(response => response.json())
+    .then(data => {
+        exibirResultado(data);
+        adicionarVisualizacao(data);
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        resultadoDiv.innerHTML = '<div class="alert alert-danger">Erro ao processar consulta. Tente novamente.</div>';
+    });
+}
+
+function exibirResultado(data) {
+    const resultadoDiv = document.getElementById('resultadoConsulta');
+    let html = `<div class="alert alert-info">
+        <h6><i class="bi bi-info-circle me-2"></i>${data.titulo}</h6>`;
+    
+    if (data.insights && data.insights.length > 0) {
+        html += '<ul class="mb-0">';
+        data.insights.forEach(insight => {
+            html += `<li>${insight}</li>`;
+        });
+        html += '</ul>';
+    }
+    
+    html += '</div>';
+    
+    if (data.dados && data.dados.length > 0) {
+        html += '<div class="table-responsive"><table class="table table-sm table-hover">';
+        
+        // Cabeçalho da tabela
+        const primeiroItem = data.dados[0];
+        html += '<thead><tr>';
+        Object.keys(primeiroItem).forEach(key => {
+            html += `<th>${key.charAt(0).toUpperCase() + key.slice(1).replace('_', ' ')}</th>`;
+        });
+        html += '</tr></thead><tbody>';
+        
+        // Dados
+        data.dados.forEach(item => {
+            html += '<tr>';
+            Object.values(item).forEach(valor => {
+                if (typeof valor === 'number') {
+                    if (valor >= 1000) {
+                        html += `<td class="text-end">${valor.toLocaleString('pt-BR')}</td>`;
+                    } else {
+                        html += `<td class="text-end">${valor.toFixed(2)}</td>`;
+                    }
+                } else {
+                    html += `<td>${valor}</td>`;
+                }
+            });
+            html += '</tr>';
+        });
+        
+        html += '</tbody></table></div>';
+    }
+    
+    resultadoDiv.innerHTML = html;
+}
+
+function adicionarVisualizacao(data) {
+    if (!data.grafico) return;
+    
+    contadorVisualizacoes++;
+    const visualizacoesDiv = document.getElementById('visualizacoesDinamicas');
+    
+    const cardId = `viz-${contadorVisualizacoes}`;
+    const canvasId = `canvas-${contadorVisualizacoes}`;
+    
+    const cardHtml = `
+        <div class="powerbi-card mb-3" id="${cardId}">
+            <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+                <h6 class="mb-0"><i class="bi bi-graph-up me-2"></i>${data.grafico.titulo}</h6>
+                <button class="btn btn-sm btn-outline-danger" onclick="removerVisualizacao('${cardId}')">
+                    <i class="bi bi-x"></i>
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="${canvasId}"></canvas>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    visualizacoesDiv.insertAdjacentHTML('beforeend', cardHtml);
+    
+    // Criar gráfico
+    setTimeout(() => {
+        criarGrafico(canvasId, data.grafico, data.dados);
+    }, 100);
+}
+
+function criarGrafico(canvasId, config, dados) {
+    const ctx = document.getElementById(canvasId);
+    if (!ctx) return;
+    
+    let labels = [];
+    let datasets = [];
+    
+    if (config.tipo === 'bar' || config.tipo === 'line') {
+        labels = dados.map(item => item[config.eixo_x]);
+        
+        if (Array.isArray(config.eixo_y)) {
+            config.eixo_y.forEach((campo, index) => {
+                const cores = [
+                    'rgba(102, 126, 234, 0.8)',
+                    'rgba(239, 68, 68, 0.8)',
+                    'rgba(34, 197, 94, 0.8)',
+                    'rgba(250, 204, 21, 0.8)'
+                ];
+                datasets.push({
+                    label: campo,
+                    data: dados.map(item => item[campo] || 0),
+                    backgroundColor: config.tipo === 'bar' ? cores[index % cores.length] : 'transparent',
+                    borderColor: cores[index % cores.length],
+                    borderWidth: 2,
+                    fill: config.tipo === 'line'
+                });
+            });
+        } else {
+            datasets.push({
+                label: config.eixo_y,
+                data: dados.map(item => item[config.eixo_y] || 0),
+                backgroundColor: config.tipo === 'bar' ? 'rgba(102, 126, 234, 0.8)' : 'transparent',
+                borderColor: 'rgba(102, 126, 234, 1)',
+                borderWidth: 2,
+                fill: config.tipo === 'line'
+            });
+        }
+    } else if (config.tipo === 'doughnut') {
+        labels = dados.map(item => item[config.eixo_x]);
+        datasets.push({
+            data: dados.map(item => item[config.eixo_y] || 0),
+            backgroundColor: [
+                'rgba(102, 126, 234, 0.8)',
+                'rgba(118, 75, 162, 0.8)',
+                'rgba(17, 153, 142, 0.8)',
+                'rgba(56, 239, 125, 0.8)',
+            ]
+        });
+    }
+    
+    new Chart(ctx, {
+        type: config.tipo,
+        data: { labels, datasets },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'top' }
+            },
+            scales: config.tipo !== 'doughnut' ? {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            if (value >= 1000) {
+                                return value.toLocaleString('pt-BR');
+                            }
+                            return value;
+                        }
+                    }
+                }
+            } : {}
+        }
+    });
+}
+
+function removerVisualizacao(cardId) {
+    document.getElementById(cardId).remove();
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Função para alterar tipo de gráfico
+function alterarTipoGrafico(tipo, novoTipo, buttonElement) {
+    if (!window.chartInstances) {
+        window.chartInstances = {};
+    }
+    
+    if (tipo === 'financeiro') {
+        const ctx = document.getElementById('graficoFinanceiro');
+        if (!ctx || !window.chartInstances.financeiro) return;
+        
+        // Destruir gráfico anterior
+        window.chartInstances.financeiro.destroy();
+        
+        // Atualizar botões
+        const card = ctx.closest('.powerbi-card');
+        if (card) {
+            card.querySelectorAll('.btn-group button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+        }
+        if (buttonElement) {
+            buttonElement.classList.add('active');
+        }
+        
+        // Recriar com novo tipo
+        const mesesData = {{ meses_grafico|safe }};
+        const receitasData = {{ receitas_grafico|safe }};
+        const despesasData = {{ despesas_grafico|safe }};
+        
+        window.chartInstances.financeiro = new Chart(ctx, {
+            type: novoTipo,
+            data: {
+                labels: mesesData,
+                datasets: [{
+                    label: 'Receitas',
+                    data: receitasData,
+                    borderColor: 'rgb(34, 197, 94)',
+                    backgroundColor: novoTipo === 'bar' ? 'rgba(34, 197, 94, 0.8)' : 'rgba(34, 197, 94, 0.1)',
+                    tension: novoTipo === 'line' ? 0.4 : 0,
+                    fill: novoTipo === 'line',
+                    borderWidth: 2
+                }, {
+                    label: 'Despesas',
+                    data: despesasData,
+                    borderColor: 'rgb(239, 68, 68)',
+                    backgroundColor: novoTipo === 'bar' ? 'rgba(239, 68, 68, 0.8)' : 'rgba(239, 68, 68, 0.1)',
+                    tension: novoTipo === 'line' ? 0.4 : 0,
+                    fill: novoTipo === 'line',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 15
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': R$ ' + context.parsed.y.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                            }
+                        }
+                    }
+                },
+                scales: novoTipo === 'bar' ? {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                if (value >= 1000) {
+                                    return 'R$ ' + (value / 1000).toFixed(1) + 'k';
+                                }
+                                return 'R$ ' + value.toLocaleString('pt-BR');
+                            },
+                            font: {
+                                size: 11
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                } : {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                if (value >= 1000) {
+                                    return 'R$ ' + (value / 1000).toFixed(1) + 'k';
+                                }
+                                return 'R$ ' + value.toLocaleString('pt-BR');
+                            },
+                            font: {
+                                size: 11
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    }
+                }
+            }
+        });
+    } else if (tipo === 'inventario') {
+        const ctx = document.getElementById('graficoInventario');
+        if (!ctx || !window.chartInstances.inventario) return;
+        
+        // Destruir gráfico anterior
+        window.chartInstances.inventario.destroy();
+        
+        // Atualizar botões
+        const card = ctx.closest('.powerbi-card');
+        if (card) {
+            card.querySelectorAll('.btn-group button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+        }
+        if (buttonElement) {
+            buttonElement.classList.add('active');
+        }
+        
+        // Recriar com novo tipo
+        const categorias = [
+            {% for item in inventario_por_categoria %}
+            '{{ item.categoria__nome|default:"Sem categoria" }}',
+            {% endfor %}
+        ];
+        const quantidades = [
+            {% for item in inventario_por_categoria %}
+            {{ item.total }},
+            {% endfor %}
+        ];
+        
+        const cores = [
+            'rgba(102, 126, 234, 0.8)',
+            'rgba(118, 75, 162, 0.8)',
+            'rgba(17, 153, 142, 0.8)',
+            'rgba(56, 239, 125, 0.8)',
+            'rgba(250, 112, 154, 0.8)',
+            'rgba(254, 225, 64, 0.8)',
+            'rgba(79, 172, 254, 0.8)',
+            'rgba(0, 242, 254, 0.8)',
+        ];
+        
+        const coresCompletas = [];
+        for (let i = 0; i < categorias.length; i++) {
+            coresCompletas.push(cores[i % cores.length]);
+        }
+        
+        window.chartInstances.inventario = new Chart(ctx, {
+            type: novoTipo,
+            data: {
+                labels: categorias,
+                datasets: [{
+                    data: quantidades,
+                    backgroundColor: coresCompletas,
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 12
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.parsed || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                return label + ': ' + value.toLocaleString('pt-BR') + ' (' + percentage + '%)';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+}
+
+// Função para exportar dashboard
+function exportarDashboard() {
+    // Primeiro, tentar carregar html2canvas dinamicamente se não estiver disponível
+    if (typeof html2canvas === 'undefined') {
+        // Carregar html2canvas dinamicamente
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+        script.onload = function() {
+            exportarComoImagem();
+        };
+        script.onerror = function() {
+            exportarComoPDF();
+        };
+        document.head.appendChild(script);
+    } else {
+        // Perguntar ao usuário o formato desejado
+        const formato = confirm('Exportar dashboard:\n\nOK = PDF (impressão)\nCancelar = Imagem PNG');
+        if (formato) {
+            exportarComoPDF();
+        } else {
+            exportarComoImagem();
+        }
+    }
+}
+
+// Função para exportar como imagem PNG
+function exportarComoImagem() {
+    // Identificar o elemento principal do dashboard (não incluir sidebar)
+    const mainContent = document.querySelector('.container-fluid') || document.body;
+    
+    // Esconder elementos que não devem aparecer na exportação
+    const sidebar = document.querySelector('.sidebar, [class*="sidebar"]');
+    const botoes = document.querySelectorAll('button[onclick*="exportar"], button[onclick*="Atualizar"]');
+    
+    const elementosEscondidos = [];
+    if (sidebar) {
+        elementosEscondidos.push({element: sidebar, display: sidebar.style.display});
+        sidebar.style.display = 'none';
+    }
+    
+    botoes.forEach(btn => {
+        elementosEscondidos.push({element: btn, display: btn.style.display});
+        btn.style.display = 'none';
+    });
+    
+    // Usar html2canvas para capturar
+    html2canvas(mainContent, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+        windowWidth: mainContent.scrollWidth,
+        windowHeight: mainContent.scrollHeight,
+        onclone: function(clonedDoc) {
+            // Garantir que todos os estilos sejam aplicados no clone
+            const clonedBody = clonedDoc.body;
+            clonedBody.style.backgroundColor = '#ffffff';
+            clonedBody.style.width = mainContent.scrollWidth + 'px';
+        }
+    }).then(canvas => {
+        // Restaurar elementos escondidos
+        elementosEscondidos.forEach(item => {
+            item.element.style.display = item.display || '';
+        });
+        
+        // Criar link de download
+        canvas.toBlob(function(blob) {
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            const filename = 'dashboard_monpec_' + new Date().toISOString().split('T')[0] + '.png';
+            link.download = filename;
+            link.href = url;
+            link.click();
+            URL.revokeObjectURL(url);
+        }, 'image/png', 1.0);
+    }).catch(error => {
+        console.error('Erro ao exportar como imagem:', error);
+        alert('Erro ao exportar. Tentando exportar como PDF...');
+        exportarComoPDF();
+    });
+}
+
+// Função para exportar como PDF usando impressão
+function exportarComoPDF() {
+    // Esconder elementos que não devem aparecer na impressão
+    const sidebar = document.querySelector('.sidebar, [class*="sidebar"]');
+    const botoes = document.querySelectorAll('button[onclick*="exportar"], button[onclick*="Atualizar"], #ultimaAtualizacao, .btn-group');
+    
+    const elementosEscondidos = [];
+    if (sidebar) {
+        elementosEscondidos.push({element: sidebar, display: sidebar.style.display});
+        sidebar.style.display = 'none';
+    }
+    
+    botoes.forEach(btn => {
+        elementosEscondidos.push({element: btn, display: btn.style.display});
+        btn.style.display = 'none';
+    });
+    
+    // Adicionar classe para impressão
+    document.body.classList.add('printing');
+    
+    // Criar estilos de impressão específicos se não existirem
+    let printStyles = document.getElementById('print-styles-export');
+    if (!printStyles) {
+        printStyles = document.createElement('style');
+        printStyles.id = 'print-styles-export';
+        printStyles.setAttribute('media', 'print');
+        printStyles.textContent = `
+            @page {
+                size: A4 landscape !important;
+                margin: 0.8cm !important;
+            }
+            
+            @media print {
+                body {
+                    background: white !important;
+                    -webkit-print-color-adjust: exact !important;
+                    print-color-adjust: exact !important;
+                    color-adjust: exact !important;
+                }
+                
+                /* Esconder elementos desnecessários */
+                .sidebar,
+                .btn-close,
+                button[onclick*="exportar"],
+                button[onclick*="Atualizar"],
+                #ultimaAtualizacao,
+                .btn-module-link,
+                .btn-outline-primary,
+                .btn-outline-success,
+                .btn-outline-warning,
+                .btn-outline-secondary,
+                .btn-outline-info,
+                .btn-group {
+                    display: none !important;
+                }
+                
+                /* Manter cores dos cards */
+                .metric-card,
+                .powerbi-card,
+                .module-card-clean {
+                    -webkit-print-color-adjust: exact !important;
+                    print-color-adjust: exact !important;
+                    color-adjust: exact !important;
+                    page-break-inside: avoid !important;
+                    break-inside: avoid !important;
+                }
+                
+                /* Garantir que gráficos sejam visíveis */
+                canvas {
+                    max-width: 100% !important;
+                    height: auto !important;
+                    page-break-inside: avoid !important;
+                    break-inside: avoid !important;
+                }
+                
+                .chart-container {
+                    page-break-inside: avoid !important;
+                    break-inside: avoid !important;
+                }
+                
+                /* Ajustar layout para impressão */
+                .container-fluid {
+                    padding: 0 !important;
+                    max-width: 100% !important;
+                    background: white !important;
+                }
+                
+                .row {
+                    margin: 0 !important;
+                    page-break-inside: avoid !important;
+                    break-inside: avoid !important;
+                }
+                
+                /* Controlar quebras de página */
+                .print-page-break-before {
+                    page-break-before: always !important;
+                    break-before: page !important;
+                }
+                
+                .print-page-break-after {
+                    page-break-after: always !important;
+                    break-after: page !important;
+                }
+                
+                /* Evitar quebras dentro de seções importantes */
+                .section-header {
+                    page-break-after: avoid !important;
+                    break-after: avoid !important;
+                }
+                
+                /* Reduzir espaçamentos para aproveitar melhor o espaço */
+                .mb-4, .mb-3, .mt-4, .mt-3 {
+                    margin-bottom: 0.8rem !important;
+                    margin-top: 0.8rem !important;
+                }
+                
+                /* Ajustar tamanhos de fonte para impressão */
+                h1 { font-size: 1.5rem !important; }
+                h2 { font-size: 1.3rem !important; }
+                h3 { font-size: 1.1rem !important; }
+                h4 { font-size: 1rem !important; }
+                h5 { font-size: 0.9rem !important; }
+                h6 { font-size: 0.85rem !important; }
+                
+                /* Ajustar padding dos cards */
+                .card-body {
+                    padding: 0.8rem !important;
+                }
+                
+                .card-header {
+                    padding: 0.6rem 0.8rem !important;
+                }
+            }
+        `;
+        document.head.appendChild(printStyles);
+    }
+    
+    // Garantir que todos os gráficos estejam renderizados
+    setTimeout(function() {
+        // Configurar opções de impressão automaticamente
+        // Tentar aplicar configurações antes de abrir o diálogo
+        window.print();
+        
+        // Restaurar elementos após impressão
+        setTimeout(function() {
+            elementosEscondidos.forEach(item => {
+                item.element.style.display = item.display || '';
+            });
+            document.body.classList.remove('printing');
+            
+            // Remover estilos de impressão após um tempo
+            if (printStyles) {
+                setTimeout(function() {
+                    printStyles.remove();
+                }, 2000);
+            }
+        }, 1000);
+    }, 500);
+}
+</script>
+{% endblock %}
+
+
+
+
+
+
+

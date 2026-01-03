@@ -1,0 +1,107 @@
+{% extends 'base_navegacao_inteligente.html' %}
+{% load formatacao_br %}
+
+{% block title %}Editar Categoria de Imobilizado{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item">
+    <a href="{% url 'dashboard' %}">Dashboard</a>
+</li>
+<li class="breadcrumb-item">
+    <a href="{% url 'categorias_imobilizado_lista' %}">Categorias</a>
+</li>
+<li class="breadcrumb-item active">Editar</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card-moderno">
+                <div class="card-header-moderno">
+                    <h5 class="mb-0">
+                        <i class="bi bi-pencil"></i> Editar Categoria de Imobilizado
+                    </h5>
+                </div>
+                <div class="card-body-moderno">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {% if message.tags == 'success' %}
+                                    <i class="bi bi-check-circle"></i>
+                                {% else %}
+                                    <i class="bi bi-exclamation-triangle"></i>
+                                {% endif %}
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <form method="POST">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="{{ form.nome.id_for_label }}" class="form-label">Nome da Categoria *</label>
+                            {{ form.nome }}
+                            {% if form.nome.errors %}
+                                <div class="text-danger">{{ form.nome.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.vida_util_anos.id_for_label }}" class="form-label">Vida Útil (anos) *</label>
+                                {{ form.vida_util_anos }}
+                                {% if form.vida_util_anos.errors %}
+                                    <div class="text-danger">{{ form.vida_util_anos.errors }}</div>
+                                {% endif %}
+                                <small class="form-text text-muted">Ex: 10 anos</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.taxa_depreciacao.id_for_label }}" class="form-label">Taxa de Depreciação (%) *</label>
+                                {{ form.taxa_depreciacao }}
+                                {% if form.taxa_depreciacao.errors %}
+                                    <div class="text-danger">{{ form.taxa_depreciacao.errors }}</div>
+                                {% endif %}
+                                <small class="form-text text-muted">Ex: 10,00% ao ano</small>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.descricao.id_for_label }}" class="form-label">Descrição</label>
+                            {{ form.descricao }}
+                            {% if form.descricao.errors %}
+                                <div class="text-danger">{{ form.descricao.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn-moderno flex-fill">
+                                <i class="bi bi-check-circle"></i> Salvar Alterações
+                            </button>
+                            <a href="{% url 'categorias_imobilizado_lista' %}" class="btn-moderno btn-outline-secondary flex-fill">
+                                <i class="bi bi-x-circle"></i> Cancelar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

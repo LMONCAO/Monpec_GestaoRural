@@ -1,0 +1,602 @@
+{% extends "base_modulos_unificado.html" %}
+
+{% block title %}{% if form_type == 'editar' %}Editar Cliente{% else %}Novo Cliente{% endif %} - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'clientes_lista' propriedade.id %}">Clientes</a></li>
+            <li class="breadcrumb-item active">{% if form_type == 'editar' %}Editar{% else %}Novo{% endif %}</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-lg-10">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-person-check me-2"></i>
+                        {% if form_type == 'editar' %}Editar Cliente{% else %}Novo Cliente{% endif %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" class="row g-3">
+                        {% csrf_token %}
+                        
+                        <!-- Dados Principais -->
+                        <div class="col-12">
+                            <h6 class="border-bottom pb-2 mb-3">Dados Principais</h6>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="{{ form.nome.id_for_label }}" class="form-label">Nome/Razão Social *</label>
+                            {{ form.nome }}
+                            {% if form.nome.errors %}
+                                <div class="text-danger small">{{ form.nome.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="{{ form.nome_fantasia.id_for_label }}" class="form-label">Nome Fantasia</label>
+                            {{ form.nome_fantasia }}
+                            {% if form.nome_fantasia.errors %}
+                                <div class="text-danger small">{{ form.nome_fantasia.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label for="{{ form.tipo_pessoa.id_for_label }}" class="form-label">Tipo de Pessoa *</label>
+                            {{ form.tipo_pessoa }}
+                            {% if form.tipo_pessoa.errors %}
+                                <div class="text-danger small">{{ form.tipo_pessoa.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label for="{{ form.cpf_cnpj.id_for_label }}" class="form-label">CPF/CNPJ *</label>
+                            <div class="input-group">
+                                {{ form.cpf_cnpj }}
+                                <button type="button" class="btn btn-outline-secondary" id="btn-buscar-cpf-cnpj" title="Buscar dados automaticamente">
+                                    <i class="bi bi-search"></i>
+                                </button>
+                            </div>
+                            <small class="text-muted">
+                                <strong>CNPJ:</strong> Busca automática completa disponível. 
+                                <strong>CPF:</strong> Apenas tipo de pessoa será preenchido (dados completos requerem preenchimento manual).
+                            </small>
+                            <div id="loading-cpf-cnpj" class="spinner-border spinner-border-sm d-none" role="status">
+                                <span class="visually-hidden">Buscando...</span>
+                            </div>
+                            {% if form.cpf_cnpj.errors %}
+                                <div class="text-danger small">{{ form.cpf_cnpj.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label for="{{ form.inscricao_estadual.id_for_label }}" class="form-label">Inscrição Estadual</label>
+                            {{ form.inscricao_estadual }}
+                            {% if form.inscricao_estadual.errors %}
+                                <div class="text-danger small">{{ form.inscricao_estadual.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="{{ form.tipo_cliente.id_for_label }}" class="form-label">Tipo de Cliente</label>
+                            {{ form.tipo_cliente }}
+                            {% if form.tipo_cliente.errors %}
+                                <div class="text-danger small">{{ form.tipo_cliente.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label">Status</label>
+                            <div class="form-check form-switch mt-2">
+                                {{ form.ativo }}
+                                <label class="form-check-label" for="{{ form.ativo.id_for_label }}">Ativo</label>
+                            </div>
+                            {% if form.ativo.errors %}
+                                <div class="text-danger small">{{ form.ativo.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Contato -->
+                        <div class="col-12 mt-4">
+                            <h6 class="border-bottom pb-2 mb-3">Contato</h6>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label for="{{ form.telefone.id_for_label }}" class="form-label">Telefone</label>
+                            {{ form.telefone }}
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label for="{{ form.celular.id_for_label }}" class="form-label">Celular</label>
+                            {{ form.celular }}
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label for="{{ form.email.id_for_label }}" class="form-label">E-mail</label>
+                            {{ form.email }}
+                        </div>
+                        
+                        <div class="col-md-12">
+                            <label for="{{ form.website.id_for_label }}" class="form-label">Website</label>
+                            {{ form.website }}
+                        </div>
+                        
+                        <!-- Endereço -->
+                        <div class="col-12 mt-4">
+                            <h6 class="border-bottom pb-2 mb-3">Endereço</h6>
+                        </div>
+                        
+                        <div class="col-md-8">
+                            <label for="{{ form.endereco.id_for_label }}" class="form-label">Logradouro</label>
+                            {{ form.endereco }}
+                        </div>
+                        
+                        <div class="col-md-2">
+                            <label for="{{ form.numero.id_for_label }}" class="form-label">Número</label>
+                            {{ form.numero }}
+                        </div>
+                        
+                        <div class="col-md-2">
+                            <label for="{{ form.complemento.id_for_label }}" class="form-label">Complemento</label>
+                            {{ form.complemento }}
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label for="{{ form.bairro.id_for_label }}" class="form-label">Bairro</label>
+                            {{ form.bairro }}
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label for="{{ form.cidade.id_for_label }}" class="form-label">Cidade</label>
+                            {{ form.cidade }}
+                        </div>
+                        
+                        <div class="col-md-2">
+                            <label for="{{ form.estado.id_for_label }}" class="form-label">Estado (UF)</label>
+                            {{ form.estado }}
+                        </div>
+                        
+                        <div class="col-md-2">
+                            <label for="{{ form.cep.id_for_label }}" class="form-label">CEP</label>
+                            <div class="input-group">
+                                {{ form.cep }}
+                                <button type="button" class="btn btn-outline-secondary" id="btn-buscar-cep" title="Buscar endereço pelo CEP">
+                                    <i class="bi bi-search"></i>
+                                </button>
+                            </div>
+                            <small class="text-muted">Digite o CEP e clique no botão para buscar endereço</small>
+                            <div id="loading-cep" class="spinner-border spinner-border-sm d-none mt-2" role="status" style="display: none !important;">
+                                <span class="visually-hidden">Buscando...</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Dados Bancários -->
+                        <div class="col-12 mt-4">
+                            <h6 class="border-bottom pb-2 mb-3">Dados Bancários</h6>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label for="{{ form.banco.id_for_label }}" class="form-label">Banco</label>
+                            {{ form.banco }}
+                        </div>
+                        
+                        <div class="col-md-2">
+                            <label for="{{ form.agencia.id_for_label }}" class="form-label">Agência</label>
+                            {{ form.agencia }}
+                        </div>
+                        
+                        <div class="col-md-3">
+                            <label for="{{ form.conta.id_for_label }}" class="form-label">Conta</label>
+                            {{ form.conta }}
+                        </div>
+                        
+                        <div class="col-md-3">
+                            <label for="{{ form.tipo_conta.id_for_label }}" class="form-label">Tipo de Conta</label>
+                            {{ form.tipo_conta }}
+                        </div>
+                        
+                        <div class="col-md-12">
+                            <label for="{{ form.pix.id_for_label }}" class="form-label">Chave PIX</label>
+                            {{ form.pix }}
+                        </div>
+                        
+                        <!-- Financeiro -->
+                        <div class="col-12 mt-4">
+                            <h6 class="border-bottom pb-2 mb-3">Informações Financeiras</h6>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="{{ form.limite_credito.id_for_label }}" class="form-label">Limite de Crédito (R$)</label>
+                            {{ form.limite_credito }}
+                        </div>
+                        
+                        <!-- Observações -->
+                        <div class="col-12 mt-4">
+                            <label for="{{ form.observacoes.id_for_label }}" class="form-label">Observações</label>
+                            {{ form.observacoes }}
+                        </div>
+                        
+                        <!-- Botões -->
+                        <div class="col-12 d-flex gap-2 mt-4">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle me-1"></i>Salvar
+                            </button>
+                            <a href="{% url 'clientes_lista' propriedade.id %}" class="btn btn-outline-secondary">
+                                Cancelar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-2">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Informações</h6>
+                </div>
+                <div class="card-body small text-muted">
+                    <ul class="mb-0">
+                        <li>Use esta base de clientes para vendas e financeiro.</li>
+                        <li>Preencha CPF/CNPJ corretamente para integração.</li>
+                        <li>Cliente pode ser compartilhado entre propriedades.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const cpfCnpjInput = document.getElementById('{{ form.cpf_cnpj.id_for_label }}');
+    const btnBuscarCpfCnpj = document.getElementById('btn-buscar-cpf-cnpj');
+    const loadingCpfCnpj = document.getElementById('loading-cpf-cnpj');
+    
+    const cepInput = document.getElementById('{{ form.cep.id_for_label }}');
+    const btnBuscarCep = document.getElementById('btn-buscar-cep');
+    const loadingCep = document.getElementById('loading-cep');
+    
+    // Função para formatar CPF/CNPJ
+    function formatarCPFCNPJ(valor) {
+        const apenasNumeros = valor.replace(/\D/g, '');
+        if (apenasNumeros.length <= 11) {
+            // CPF: 000.000.000-00
+            return apenasNumeros.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+        } else {
+            // CNPJ: 00.000.000/0000-00
+            return apenasNumeros.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+        }
+    }
+    
+    // Aplicar máscara ao digitar CPF/CNPJ
+    if (cpfCnpjInput) {
+        cpfCnpjInput.addEventListener('input', function(e) {
+            const valor = e.target.value;
+            const apenasNumeros = valor.replace(/\D/g, '');
+            if (apenasNumeros.length <= 14) {
+                e.target.value = formatarCPFCNPJ(apenasNumeros);
+            }
+        });
+        
+        // Buscar automaticamente quando CPF/CNPJ tiver tamanho válido
+        cpfCnpjInput.addEventListener('blur', function(e) {
+            const valor = e.target.value.replace(/\D/g, '');
+            if ((valor.length === 11 || valor.length === 14) && btnBuscarCpfCnpj) {
+                // Pequeno delay para não buscar imediatamente
+                setTimeout(() => {
+                    if (document.activeElement !== cpfCnpjInput) {
+                        buscarDadosCPFCNPJ();
+                    }
+                }, 500);
+            }
+        });
+    }
+    
+    // Buscar dados por CPF/CNPJ
+    function buscarDadosCPFCNPJ() {
+        if (!cpfCnpjInput || !btnBuscarCpfCnpj) return;
+        
+        const cpfCnpj = cpfCnpjInput.value.replace(/\D/g, '');
+        
+        if (cpfCnpj.length !== 11 && cpfCnpj.length !== 14) {
+            alert('Por favor, digite um CPF (11 dígitos) ou CNPJ (14 dígitos) válido.');
+            return;
+        }
+        
+        // Mostrar loading
+        btnBuscarCpfCnpj.disabled = true;
+        if (loadingCpfCnpj) {
+            loadingCpfCnpj.classList.remove('d-none');
+            loadingCpfCnpj.style.display = 'inline-block';
+        }
+        
+        // Fazer requisição
+        fetch(`{% url 'consultar_cpf_cnpj_api' %}?cpf_cnpj=${cpfCnpj}`)
+            .then(response => response.json())
+            .then(data => {
+                let camposPreenchidos = 0;
+                let temDadosImportantes = false;
+                
+                if (data.dados) {
+                    const dados = data.dados;
+                    
+                    // Preencher tipo de pessoa sempre que disponível
+                    if (dados.tipo_pessoa) {
+                        document.getElementById('{{ form.tipo_pessoa.id_for_label }}').value = dados.tipo_pessoa;
+                        camposPreenchidos++;
+                    }
+                    
+                    // Preencher campos apenas se existirem
+                    if (dados.nome) {
+                        document.getElementById('{{ form.nome.id_for_label }}').value = dados.nome;
+                        camposPreenchidos++;
+                        temDadosImportantes = true;
+                    }
+                    if (dados.nome_fantasia) {
+                        document.getElementById('{{ form.nome_fantasia.id_for_label }}').value = dados.nome_fantasia;
+                        camposPreenchidos++;
+                    }
+                    if (dados.inscricao_estadual) {
+                        document.getElementById('{{ form.inscricao_estadual.id_for_label }}').value = dados.inscricao_estadual;
+                        camposPreenchidos++;
+                    }
+                    if (dados.telefone) {
+                        document.getElementById('{{ form.telefone.id_for_label }}').value = dados.telefone;
+                        camposPreenchidos++;
+                    }
+                    if (dados.email) {
+                        document.getElementById('{{ form.email.id_for_label }}').value = dados.email;
+                        camposPreenchidos++;
+                    }
+                    if (dados.endereco) {
+                        document.getElementById('{{ form.endereco.id_for_label }}').value = dados.endereco;
+                        camposPreenchidos++;
+                    }
+                    if (dados.numero) {
+                        document.getElementById('{{ form.numero.id_for_label }}').value = dados.numero;
+                        camposPreenchidos++;
+                    }
+                    if (dados.complemento) {
+                        document.getElementById('{{ form.complemento.id_for_label }}').value = dados.complemento;
+                        camposPreenchidos++;
+                    }
+                    if (dados.bairro) {
+                        document.getElementById('{{ form.bairro.id_for_label }}').value = dados.bairro;
+                        camposPreenchidos++;
+                    }
+                    if (dados.cidade) {
+                        document.getElementById('{{ form.cidade.id_for_label }}').value = dados.cidade;
+                        camposPreenchidos++;
+                    }
+                    if (dados.estado) {
+                        document.getElementById('{{ form.estado.id_for_label }}').value = dados.estado.toUpperCase();
+                        camposPreenchidos++;
+                    }
+                    if (dados.cep) {
+                        document.getElementById('{{ form.cep.id_for_label }}').value = dados.cep.replace(/(\d{5})(\d{3})/, '$1-$2');
+                        camposPreenchidos++;
+                    }
+                    if (dados.banco) {
+                        document.getElementById('{{ form.banco.id_for_label }}').value = dados.banco;
+                        camposPreenchidos++;
+                    }
+                    if (dados.agencia) {
+                        document.getElementById('{{ form.agencia.id_for_label }}').value = dados.agencia;
+                        camposPreenchidos++;
+                    }
+                    if (dados.conta) {
+                        document.getElementById('{{ form.conta.id_for_label }}').value = dados.conta;
+                        camposPreenchidos++;
+                    }
+                    if (dados.tipo_conta) {
+                        document.getElementById('{{ form.tipo_conta.id_for_label }}').value = dados.tipo_conta;
+                        camposPreenchidos++;
+                    }
+                    if (dados.pix) {
+                        document.getElementById('{{ form.pix.id_for_label }}').value = dados.pix;
+                        camposPreenchidos++;
+                    }
+                    if (dados.tipo_cliente) {
+                        document.getElementById('{{ form.tipo_cliente.id_for_label }}').value = dados.tipo_cliente;
+                        camposPreenchidos++;
+                    }
+                    if (dados.website) {
+                        document.getElementById('{{ form.website.id_for_label }}').value = dados.website;
+                        camposPreenchidos++;
+                    }
+                }
+                
+                // Mostrar mensagem apropriada
+                if (data.success && temDadosImportantes) {
+                    // Sucesso: dados importantes foram preenchidos
+                    let mensagem = `Dados preenchidos automaticamente! (${camposPreenchidos} campos)`;
+                    if (data.dados && data.dados.cliente_existente) {
+                        mensagem = `Cliente encontrado no sistema! Dados preenchidos automaticamente. (${camposPreenchidos} campos)`;
+                    } else if (data.dados && data.dados.fonte_receitaws) {
+                        mensagem = `Dados consultados na ReceitaWS e preenchidos automaticamente! (${camposPreenchidos} campos)`;
+                    }
+                    
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = 'alert alert-success alert-dismissible fade show mt-2';
+                    alertDiv.innerHTML = `
+                        <i class="bi bi-check-circle me-2"></i>${mensagem}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    `;
+                    cpfCnpjInput.parentElement.parentElement.appendChild(alertDiv);
+                    
+                    setTimeout(() => {
+                        alertDiv.remove();
+                    }, 5000);
+                } else if (data.eh_cpf) {
+                    // CPF: mostrar mensagem informativa ou de erro
+                    const alertDiv = document.createElement('div');
+                    if (data.cpf_invalido) {
+                        // CPF inválido
+                        alertDiv.className = 'alert alert-danger alert-dismissible fade show mt-2';
+                        alertDiv.innerHTML = `
+                            <i class="bi bi-exclamation-triangle me-2"></i><strong>CPF Inválido:</strong> ${data.message || 'Por favor, verifique o CPF digitado.'}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        `;
+                    } else {
+                    // CPF válido mas sem dados
+                    let mensagemCpf = data.message || 'Cliente não encontrado no sistema. Por favor, preencha os dados manualmente.';
+                    if (data.dados && data.dados.cliente_existente === false) {
+                        mensagemCpf = 'CPF válido, mas cliente não encontrado no sistema. Preencha os dados para criar novo cadastro.';
+                    }
+                    
+                    alertDiv.className = 'alert alert-info alert-dismissible fade show mt-2';
+                    alertDiv.innerHTML = `
+                        <i class="bi bi-info-circle me-2"></i><strong>CPF Válido Detectado:</strong> ${mensagemCpf}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    `;
+                    }
+                    cpfCnpjInput.parentElement.parentElement.appendChild(alertDiv);
+                    
+                    setTimeout(() => {
+                        alertDiv.remove();
+                    }, 8000);
+                } else {
+                    // Erro ou sem dados
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = 'alert alert-warning alert-dismissible fade show mt-2';
+                    alertDiv.innerHTML = `
+                        <i class="bi bi-exclamation-triangle me-2"></i>${data.message || 'Dados não encontrados. Por favor, preencha manualmente.'}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    `;
+                    cpfCnpjInput.parentElement.parentElement.appendChild(alertDiv);
+                    
+                    setTimeout(() => {
+                        alertDiv.remove();
+                    }, 5000);
+                }
+            })
+            .catch(error => {
+                console.error('Erro ao buscar dados:', error);
+                alert('Erro ao buscar dados. Tente novamente.');
+            })
+            .finally(() => {
+                // Esconder loading
+                btnBuscarCpfCnpj.disabled = false;
+                if (loadingCpfCnpj) {
+                    loadingCpfCnpj.classList.add('d-none');
+                    loadingCpfCnpj.style.display = 'none';
+                }
+            });
+    }
+    
+    // Botão buscar CPF/CNPJ
+    if (btnBuscarCpfCnpj) {
+        btnBuscarCpfCnpj.addEventListener('click', buscarDadosCPFCNPJ);
+    }
+    
+    // Função para formatar CEP
+    function formatarCEP(valor) {
+        const apenasNumeros = valor.replace(/\D/g, '');
+        if (apenasNumeros.length <= 8) {
+            return apenasNumeros.replace(/(\d{5})(\d{3})/, '$1-$2');
+        }
+        return apenasNumeros.substring(0, 8).replace(/(\d{5})(\d{3})/, '$1-$2');
+    }
+    
+    // Aplicar máscara ao digitar CEP
+    if (cepInput) {
+        cepInput.addEventListener('input', function(e) {
+            e.target.value = formatarCEP(e.target.value);
+        });
+    }
+    
+    // Buscar endereço por CEP
+    function buscarDadosCEP() {
+        if (!cepInput || !btnBuscarCep) return;
+        
+        const cep = cepInput.value.replace(/\D/g, '');
+        
+        if (cep.length !== 8) {
+            alert('Por favor, digite um CEP válido (8 dígitos).');
+            return;
+        }
+        
+        // Mostrar loading
+        btnBuscarCep.disabled = true;
+        if (loadingCep) {
+            loadingCep.classList.remove('d-none');
+            loadingCep.style.display = 'inline-block';
+        }
+        
+        // Fazer requisição
+        fetch(`{% url 'consultar_cep_api' %}?cep=${cep}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.dados) {
+                    const dados = data.dados;
+                    
+                    // Preencher campos de endereço
+                    if (dados.endereco) {
+                        document.getElementById('{{ form.endereco.id_for_label }}').value = dados.endereco;
+                    }
+                    if (dados.bairro) {
+                        document.getElementById('{{ form.bairro.id_for_label }}').value = dados.bairro;
+                    }
+                    if (dados.cidade) {
+                        document.getElementById('{{ form.cidade.id_for_label }}').value = dados.cidade;
+                    }
+                    if (dados.estado) {
+                        document.getElementById('{{ form.estado.id_for_label }}').value = dados.estado.toUpperCase();
+                    }
+                    
+                    // Mostrar mensagem de sucesso
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = 'alert alert-success alert-dismissible fade show mt-2';
+                    alertDiv.innerHTML = `
+                        <i class="bi bi-check-circle me-2"></i>Endereço preenchido automaticamente!
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    `;
+                    cepInput.parentElement.parentElement.appendChild(alertDiv);
+                    
+                    // Remover alerta após 5 segundos
+                    setTimeout(() => {
+                        alertDiv.remove();
+                    }, 5000);
+                } else {
+                    alert(data.message || 'CEP não encontrado. Por favor, preencha manualmente.');
+                }
+            })
+            .catch(error => {
+                console.error('Erro ao buscar CEP:', error);
+                alert('Erro ao buscar CEP. Tente novamente.');
+            })
+            .finally(() => {
+                // Esconder loading
+                btnBuscarCep.disabled = false;
+                if (loadingCep) {
+                    loadingCep.classList.add('d-none');
+                    loadingCep.style.display = 'none';
+                }
+            });
+    }
+    
+    // Botão buscar CEP
+    if (btnBuscarCep) {
+        btnBuscarCep.addEventListener('click', buscarDadosCEP);
+    }
+    
+    // Buscar CEP automaticamente quando perder o foco (se tiver 8 dígitos)
+    if (cepInput) {
+        cepInput.addEventListener('blur', function(e) {
+            const cep = e.target.value.replace(/\D/g, '');
+            if (cep.length === 8) {
+                buscarDadosCEP();
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
+
+

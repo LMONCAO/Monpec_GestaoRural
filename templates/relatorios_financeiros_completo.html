@@ -1,0 +1,828 @@
+{% extends 'base_navegacao_inteligente.html' %}
+
+{% block title %}Relatórios Financeiros - {{ propriedade.nome }} - MONPEC{% endblock %}
+
+{% block breadcrumb_extra %}
+<li class="breadcrumb-item">
+    <a href="{% url 'financeiro_dashboard' propriedade.id %}">Financeiro</a>
+</li>
+<li class="breadcrumb-item active">Relatórios Financeiros</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Cabeçalho -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card card-modulo card-financeiro">
+                <div class="card-header-colorido card-header">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h3 class="mb-0">
+                                <i class="bi bi-graph-up-arrow"></i> Relatórios Financeiros
+                            </h3>
+                            <p class="mb-0 mt-2">
+                                <i class="bi bi-calendar"></i> {{ propriedade.nome }} • 
+                                Análises e Indicadores Gerenciais
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <div class="btn-group">
+                                <button class="btn btn-modulo-financeiro" data-bs-toggle="modal" data-bs-target="#modalExportarRelatorio">
+                                    <i class="bi bi-file-earmark-pdf"></i> Exportar PDF
+                                </button>
+                                <button class="btn btn-outline-light dropdown-toggle" data-bs-toggle="dropdown">
+                                    <i class="bi bi-calendar"></i> Período
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="#" onclick="alterarPeriodo('mes')">Este Mês</a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="alterarPeriodo('trimestre')">Este Trimestre</a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="alterarPeriodo('semestre')">Este Semestre</a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="alterarPeriodo('ano')">Este Ano</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="#" onclick="alterarPeriodo('personalizado')">Período Personalizado</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Indicadores Principais -->
+    <div class="row mb-4">
+        <div class="col-lg-2-4 col-md-4 col-6 mb-3">
+            <div class="card bg-success bg-opacity-10 border-success h-100">
+                <div class="card-body text-center p-3">
+                    <i class="bi bi-arrow-up-circle-fill text-success fs-1 mb-2"></i>
+                    <h4 class="text-success mb-1">R$ 156.850</h4>
+                    <small class="text-muted fw-bold">RECEITA BRUTA</small>
+                    <div class="mt-2">
+                        <span class="badge bg-success">+12.5%</span>
+                        <small class="text-muted d-block">vs mês anterior</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-2-4 col-md-4 col-6 mb-3">
+            <div class="card bg-danger bg-opacity-10 border-danger h-100">
+                <div class="card-body text-center p-3">
+                    <i class="bi bi-arrow-down-circle-fill text-danger fs-1 mb-2"></i>
+                    <h4 class="text-danger mb-1">R$ 98.420</h4>
+                    <small class="text-muted fw-bold">CUSTOS TOTAIS</small>
+                    <div class="mt-2">
+                        <span class="badge bg-warning">+8.2%</span>
+                        <small class="text-muted d-block">vs mês anterior</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-2-4 col-md-4 col-6 mb-3">
+            <div class="card bg-primary bg-opacity-10 border-primary h-100">
+                <div class="card-body text-center p-3">
+                    <i class="bi bi-calculator text-primary fs-1 mb-2"></i>
+                    <h4 class="text-primary mb-1">R$ 58.430</h4>
+                    <small class="text-muted fw-bold">LUCRO BRUTO</small>
+                    <div class="mt-2">
+                        <span class="badge bg-success">+18.7%</span>
+                        <small class="text-muted d-block">Margem: 37.2%</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-2-4 col-md-4 col-6 mb-3">
+            <div class="card bg-info bg-opacity-10 border-info h-100">
+                <div class="card-body text-center p-3">
+                    <i class="bi bi-trophy text-info fs-1 mb-2"></i>
+                    <h4 class="text-info mb-1">R$ 42.180</h4>
+                    <small class="text-muted fw-bold">LUCRO LÍQUIDO</small>
+                    <div class="mt-2">
+                        <span class="badge bg-success">+22.1%</span>
+                        <small class="text-muted d-block">Margem: 26.9%</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-2-4 col-md-4 col-6 mb-3">
+            <div class="card bg-warning bg-opacity-10 border-warning h-100">
+                <div class="card-body text-center p-3">
+                    <i class="bi bi-speedometer2 text-warning fs-1 mb-2"></i>
+                    <h4 class="text-warning mb-1">18.5%</h4>
+                    <small class="text-muted fw-bold">ROI MENSAL</small>
+                    <div class="mt-2">
+                        <span class="badge bg-success">+2.8%</span>
+                        <small class="text-muted d-block">Meta: 15%</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DRE - Demonstração do Resultado do Exercício -->
+    <div class="row mb-4">
+        <div class="col-lg-8 mb-4">
+            <div class="card card-modulo h-100">
+                <div class="card-header-colorido card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-file-earmark-spreadsheet"></i> DRE - Demonstração do Resultado
+                        <small class="text-muted ms-2">Outubro/2024</small>
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ITEM</th>
+                                    <th class="text-end">VALOR (R$)</th>
+                                    <th class="text-end">% RECEITA</th>
+                                    <th class="text-end">VAR. MÊS ANT.</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- RECEITAS -->
+                                <tr class="table-success">
+                                    <td><strong><i class="bi bi-plus-circle me-2"></i>RECEITA BRUTA</strong></td>
+                                    <td class="text-end fw-bold text-success">156.850,00</td>
+                                    <td class="text-end">100,0%</td>
+                                    <td class="text-end">
+                                        <span class="badge bg-success">+12,5%</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="ps-4">Venda de Gado</td>
+                                    <td class="text-end">89.450,00</td>
+                                    <td class="text-end">57,0%</td>
+                                    <td class="text-end text-success">+15,2%</td>
+                                </tr>
+                                <tr>
+                                    <td class="ps-4">Venda de Leite</td>
+                                    <td class="text-end">38.200,00</td>
+                                    <td class="text-end">24,4%</td>
+                                    <td class="text-end text-success">+8,7%</td>
+                                </tr>
+                                <tr>
+                                    <td class="ps-4">Venda de Grãos</td>
+                                    <td class="text-end">22.800,00</td>
+                                    <td class="text-end">14,5%</td>
+                                    <td class="text-end text-success">+6,3%</td>
+                                </tr>
+                                <tr>
+                                    <td class="ps-4">Outros Serviços</td>
+                                    <td class="text-end">6.400,00</td>
+                                    <td class="text-end">4,1%</td>
+                                    <td class="text-end text-warning">+2,1%</td>
+                                </tr>
+
+                                <!-- CUSTOS DIRETOS -->
+                                <tr class="table-warning">
+                                    <td><strong><i class="bi bi-dash-circle me-2"></i>(-) CUSTOS DIRETOS</strong></td>
+                                    <td class="text-end fw-bold text-danger">(68.420,00)</td>
+                                    <td class="text-end">43,6%</td>
+                                    <td class="text-end">
+                                        <span class="badge bg-warning">+6,8%</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="ps-4">Ração e Insumos</td>
+                                    <td class="text-end text-danger">(28.200,00)</td>
+                                    <td class="text-end">18,0%</td>
+                                    <td class="text-end text-danger">+8,5%</td>
+                                </tr>
+                                <tr>
+                                    <td class="ps-4">Medicamentos</td>
+                                    <td class="text-end text-danger">(12.800,00)</td>
+                                    <td class="text-end">8,2%</td>
+                                    <td class="text-end text-danger">+4,2%</td>
+                                </tr>
+                                <tr>
+                                    <td class="ps-4">Sementes e Fertilizantes</td>
+                                    <td class="text-end text-danger">(18.420,00)</td>
+                                    <td class="text-end">11,7%</td>
+                                    <td class="text-end text-danger">+7,1%</td>
+                                </tr>
+                                <tr>
+                                    <td class="ps-4">Combustíveis</td>
+                                    <td class="text-end text-danger">(9.000,00)</td>
+                                    <td class="text-end">5,7%</td>
+                                    <td class="text-end text-danger">+12,5%</td>
+                                </tr>
+
+                                <!-- LUCRO BRUTO -->
+                                <tr class="table-primary">
+                                    <td><strong><i class="bi bi-equals me-2"></i>LUCRO BRUTO</strong></td>
+                                    <td class="text-end fw-bold text-primary">88.430,00</td>
+                                    <td class="text-end fw-bold">56,4%</td>
+                                    <td class="text-end">
+                                        <span class="badge bg-success">+18,7%</span>
+                                    </td>
+                                </tr>
+
+                                <!-- DESPESAS OPERACIONAIS -->
+                                <tr class="table-warning">
+                                    <td><strong><i class="bi bi-dash-circle me-2"></i>(-) DESPESAS OPERACIONAIS</strong></td>
+                                    <td class="text-end fw-bold text-danger">(30.000,00)</td>
+                                    <td class="text-end">19,1%</td>
+                                    <td class="text-end">
+                                        <span class="badge bg-warning">+5,2%</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="ps-4">Salários e Encargos</td>
+                                    <td class="text-end text-danger">(18.500,00)</td>
+                                    <td class="text-end">11,8%</td>
+                                    <td class="text-end text-danger">+3,2%</td>
+                                </tr>
+                                <tr>
+                                    <td class="ps-4">Manutenção e Reparos</td>
+                                    <td class="text-end text-danger">(6.200,00)</td>
+                                    <td class="text-end">4,0%</td>
+                                    <td class="text-end text-danger">+8,7%</td>
+                                </tr>
+                                <tr>
+                                    <td class="ps-4">Despesas Administrativas</td>
+                                    <td class="text-end text-danger">(3.800,00)</td>
+                                    <td class="text-end">2,4%</td>
+                                    <td class="text-end text-success">-2,1%</td>
+                                </tr>
+                                <tr>
+                                    <td class="ps-4">Outros Gastos</td>
+                                    <td class="text-end text-danger">(1.500,00)</td>
+                                    <td class="text-end">1,0%</td>
+                                    <td class="text-end text-warning">+1,8%</td>
+                                </tr>
+
+                                <!-- EBITDA -->
+                                <tr class="table-info">
+                                    <td><strong><i class="bi bi-equals me-2"></i>EBITDA</strong></td>
+                                    <td class="text-end fw-bold text-info">58.430,00</td>
+                                    <td class="text-end fw-bold">37,2%</td>
+                                    <td class="text-end">
+                                        <span class="badge bg-success">+25,3%</span>
+                                    </td>
+                                </tr>
+
+                                <!-- DEPRECIAÇÃO -->
+                                <tr>
+                                    <td><strong><i class="bi bi-dash-circle me-2"></i>(-) Depreciação</strong></td>
+                                    <td class="text-end text-danger">(8.250,00)</td>
+                                    <td class="text-end">5,3%</td>
+                                    <td class="text-end text-muted">0,0%</td>
+                                </tr>
+
+                                <!-- IMPOSTOS -->
+                                <tr>
+                                    <td><strong><i class="bi bi-dash-circle me-2"></i>(-) Impostos</strong></td>
+                                    <td class="text-end text-danger">(8.000,00)</td>
+                                    <td class="text-end">5,1%</td>
+                                    <td class="text-end text-danger">+12,5%</td>
+                                </tr>
+
+                                <!-- LUCRO LÍQUIDO -->
+                                <tr class="table-success">
+                                    <td><strong><i class="bi bi-trophy me-2"></i>LUCRO LÍQUIDO</strong></td>
+                                    <td class="text-end fw-bold text-success fs-5">42.180,00</td>
+                                    <td class="text-end fw-bold fs-6">26,9%</td>
+                                    <td class="text-end">
+                                        <span class="badge bg-success fs-6">+22,1%</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráficos de Análise -->
+        <div class="col-lg-4 mb-4">
+            <div class="card card-modulo h-100">
+                <div class="card-header-colorido card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-pie-chart"></i> Análise de Custos
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="graficoCustos" height="250"></canvas>
+                    
+                    <div class="mt-3">
+                        <h6 class="text-muted">Maiores Custos:</h6>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="small">Ração e Insumos</span>
+                            <span class="fw-bold text-warning">41,2%</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="small">Salários</span>
+                            <span class="fw-bold text-primary">27,0%</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="small">Fertilizantes</span>
+                            <span class="fw-bold text-info">26,9%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Indicadores de Performance -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card card-modulo">
+                <div class="card-header-colorido card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-graph-up"></i> Indicadores de Performance (KPIs)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <div class="kpi-card bg-primary bg-opacity-10 p-3 rounded">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h3 class="text-primary mb-0">26,9%</h3>
+                                        <small class="text-muted">Margem Líquida</small>
+                                    </div>
+                                    <i class="bi bi-percent text-primary fs-2"></i>
+                                </div>
+                                <div class="progress mt-2" style="height: 4px;">
+                                    <div class="progress-bar bg-primary" style="width: 90%"></div>
+                                </div>
+                                <small class="text-success">Meta: 25% ✓</small>
+                            </div>
+                        </div>
+
+                        <div class="col-md-3 mb-3">
+                            <div class="kpi-card bg-success bg-opacity-10 p-3 rounded">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h3 class="text-success mb-0">1,8x</h3>
+                                        <small class="text-muted">Liquidez Corrente</small>
+                                    </div>
+                                    <i class="bi bi-droplet text-success fs-2"></i>
+                                </div>
+                                <div class="progress mt-2" style="height: 4px;">
+                                    <div class="progress-bar bg-success" style="width: 72%"></div>
+                                </div>
+                                <small class="text-success">Ideal: >1,5 ✓</small>
+                            </div>
+                        </div>
+
+                        <div class="col-md-3 mb-3">
+                            <div class="kpi-card bg-warning bg-opacity-10 p-3 rounded">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h3 class="text-warning mb-0">28 dias</h3>
+                                        <small class="text-muted">Prazo Médio Receb.</small>
+                                    </div>
+                                    <i class="bi bi-calendar-check text-warning fs-2"></i>
+                                </div>
+                                <div class="progress mt-2" style="height: 4px;">
+                                    <div class="progress-bar bg-warning" style="width: 65%"></div>
+                                </div>
+                                <small class="text-warning">Meta: ≤30 dias ✓</small>
+                            </div>
+                        </div>
+
+                        <div class="col-md-3 mb-3">
+                            <div class="kpi-card bg-info bg-opacity-10 p-3 rounded">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h3 class="text-info mb-0">18,5%</h3>
+                                        <small class="text-muted">ROI Mensal</small>
+                                    </div>
+                                    <i class="bi bi-graph-up-arrow text-info fs-2"></i>
+                                </div>
+                                <div class="progress mt-2" style="height: 4px;">
+                                    <div class="progress-bar bg-info" style="width: 85%"></div>
+                                </div>
+                                <small class="text-success">Meta: 15% ✓</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Evolução Financeira -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card card-modulo">
+                <div class="card-header-colorido card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-graph-up"></i> Evolução Financeira - Últimos 12 Meses
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="graficoEvolucao" height="400"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Análise Comparativa e Projeções -->
+    <div class="row">
+        <div class="col-md-6 mb-4">
+            <div class="card card-modulo h-100">
+                <div class="card-header-colorido card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-bar-chart-steps"></i> Análise Comparativa
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="comparativo-item mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="fw-bold">Receita vs Mês Anterior</span>
+                            <span class="badge bg-success">+12,5%</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar bg-success" style="width: 112.5%">R$ 156.850</div>
+                        </div>
+                        <small class="text-muted">Outubro vs Setembro: R$ 139.400</small>
+                    </div>
+
+                    <div class="comparativo-item mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="fw-bold">Lucro vs Ano Anterior</span>
+                            <span class="badge bg-primary">+34,8%</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar bg-primary" style="width: 134.8%">R$ 42.180</div>
+                        </div>
+                        <small class="text-muted">Out/2024 vs Out/2023: R$ 31.290</small>
+                    </div>
+
+                    <div class="comparativo-item mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="fw-bold">Custos vs Orçado</span>
+                            <span class="badge bg-warning">+8,2%</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar bg-warning" style="width: 108.2%">R$ 98.420</div>
+                        </div>
+                        <small class="text-muted">Realizado vs Orçado: R$ 91.000</small>
+                    </div>
+
+                    <div class="comparativo-item">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="fw-bold">Margem vs Meta</span>
+                            <span class="badge bg-success">+1,9pp</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar bg-success" style="width: 107.6%">26,9%</div>
+                        </div>
+                        <small class="text-muted">Atual vs Meta: 25,0%</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 mb-4">
+            <div class="card card-modulo h-100">
+                <div class="card-header-colorido card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-crystal-ball"></i> Projeções Financeiras
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="projecao-item mb-3 p-3 bg-light rounded">
+                        <div class="row">
+                            <div class="col-8">
+                                <h6 class="mb-1">Novembro 2024</h6>
+                                <small class="text-muted">Baseado na média dos últimos 3 meses</small>
+                            </div>
+                            <div class="col-4 text-end">
+                                <div class="text-success fw-bold">R$ 165.200</div>
+                                <small class="text-success">+5,3%</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="projecao-item mb-3 p-3 bg-light rounded">
+                        <div class="row">
+                            <div class="col-8">
+                                <h6 class="mb-1">Dezembro 2024</h6>
+                                <small class="text-muted">Considerando sazonalidade</small>
+                            </div>
+                            <div class="col-4 text-end">
+                                <div class="text-success fw-bold">R$ 182.800</div>
+                                <small class="text-success">+16,5%</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="projecao-item mb-3 p-3 bg-info bg-opacity-10 rounded">
+                        <div class="row">
+                            <div class="col-8">
+                                <h6 class="mb-1 text-info">META 2025</h6>
+                                <small class="text-muted">Crescimento planejado: 20%</small>
+                            </div>
+                            <div class="col-4 text-end">
+                                <div class="text-info fw-bold">R$ 2.1M</div>
+                                <small class="text-info">Anual</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="alert alert-success d-flex align-items-center">
+                        <i class="bi bi-check-circle-fill me-2"></i>
+                        <div>
+                            <strong>Status:</strong> Dentro das metas estabelecidas para 2024. 
+                            Projeção indica fechamento 18% acima do previsto.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Exportar Relatório -->
+<div class="modal fade" id="modalExportarRelatorio" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-file-earmark-pdf"></i> Exportar Relatório
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formExportar">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Tipo de Relatório</label>
+                        <select class="form-select" required>
+                            <option value="">Selecione...</option>
+                            <option value="dre">📊 DRE Completa</option>
+                            <option value="balanco">⚖️ Balanço Patrimonial</option>
+                            <option value="fluxo_caixa">💰 Fluxo de Caixa</option>
+                            <option value="kpis">📈 Indicadores (KPIs)</option>
+                            <option value="completo">📋 Relatório Completo</option>
+                        </select>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <label class="form-label">Data Inicial</label>
+                            <input type="date" class="form-control" required>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <label class="form-label">Data Final</label>
+                            <input type="date" class="form-control" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Formato</label>
+                        <div class="row">
+                            <div class="col-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="formato" value="pdf" checked>
+                                    <label class="form-check-label">📄 PDF</label>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="formato" value="excel">
+                                    <label class="form-check-label">📊 Excel</label>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="formato" value="csv">
+                                    <label class="form-check-label">📋 CSV</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="incluirGraficos" checked>
+                        <label class="form-check-label" for="incluirGraficos">
+                            📈 Incluir gráficos e análises visuais
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-download"></i> Gerar e Baixar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .col-lg-2-4 {
+        flex: 0 0 20%;
+        max-width: 20%;
+    }
+
+    @media (max-width: 991.98px) {
+        .col-lg-2-4 {
+            flex: 0 0 50%;
+            max-width: 50%;
+        }
+    }
+
+    .kpi-card {
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+    }
+
+    .kpi-card:hover {
+        transform: translateY(-3px);
+        border-color: rgba(0,0,0,0.1);
+    }
+
+    .comparativo-item, .projecao-item {
+        border-left: 4px solid transparent;
+        padding-left: 1rem;
+    }
+
+    .comparativo-item {
+        border-left-color: var(--bs-primary);
+    }
+
+    .progress {
+        height: 8px;
+        border-radius: 10px;
+    }
+
+    .progress-bar {
+        border-radius: 10px;
+    }
+
+    .table th {
+        font-weight: 600;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+    }
+
+    .table tbody tr:hover {
+        background-color: rgba(0,0,0,0.02);
+    }
+
+    .badge {
+        font-size: 0.75rem;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Gráfico de Custos (Pie Chart)
+    const ctxCustos = document.getElementById('graficoCustos').getContext('2d');
+    const chartCustos = new Chart(ctxCustos, {
+        type: 'doughnut',
+        data: {
+            labels: ['Ração e Insumos', 'Salários', 'Fertilizantes', 'Combustível', 'Medicamentos', 'Outros'],
+            datasets: [{
+                data: [28200, 18500, 18420, 9000, 12800, 11500],
+                backgroundColor: [
+                    '#ffc107',
+                    '#007bff',
+                    '#17a2b8',
+                    '#fd7e14',
+                    '#20c997',
+                    '#6c757d'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 15,
+                        usePointStyle: true
+                    }
+                }
+            }
+        }
+    });
+
+    // Gráfico de Evolução Financeira
+    const ctxEvolucao = document.getElementById('graficoEvolucao').getContext('2d');
+    const chartEvolucao = new Chart(ctxEvolucao, {
+        type: 'line',
+        data: {
+            labels: ['Nov/23', 'Dez/23', 'Jan/24', 'Fev/24', 'Mar/24', 'Abr/24', 'Mai/24', 'Jun/24', 'Jul/24', 'Ago/24', 'Set/24', 'Out/24'],
+            datasets: [{
+                label: 'Receita Bruta',
+                data: [98000, 125000, 89000, 108000, 134000, 142000, 128000, 156000, 148000, 162000, 139400, 156850],
+                borderColor: '#28a745',
+                backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                tension: 0.4,
+                fill: true
+            }, {
+                label: 'Custos Totais',
+                data: [68000, 82000, 58000, 72000, 89000, 94000, 85000, 102000, 96000, 105000, 91000, 98420],
+                borderColor: '#dc3545',
+                backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                tension: 0.4,
+                fill: true
+            }, {
+                label: 'Lucro Líquido',
+                data: [18500, 28000, 19200, 22500, 32000, 34200, 28500, 38500, 35200, 42000, 31290, 42180],
+                borderColor: '#007bff',
+                backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                tension: 0.4,
+                fill: false,
+                borderWidth: 3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return 'R$ ' + (value/1000) + 'K';
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Form de exportação
+    document.getElementById('formExportar').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const modal = bootstrap.Modal.getInstance(document.getElementById('modalExportarRelatorio'));
+        modal.hide();
+        
+        // Simular download
+        const loading = document.createElement('div');
+        loading.className = 'alert alert-info';
+        loading.innerHTML = '<i class="bi bi-hourglass-split"></i> Gerando relatório...';
+        
+        setTimeout(() => {
+            loading.className = 'alert alert-success';
+            loading.innerHTML = '<i class="bi bi-check-circle"></i> Relatório gerado com sucesso! Download iniciado.';
+            
+            setTimeout(() => {
+                loading.remove();
+            }, 3000);
+        }, 2000);
+        
+        document.querySelector('.container-fluid').prepend(loading);
+        this.reset();
+    });
+
+    // Animação dos KPIs
+    function animarKPIs() {
+        document.querySelectorAll('.kpi-card').forEach((card, index) => {
+            setTimeout(() => {
+                card.style.transform = 'scale(1.02)';
+                setTimeout(() => {
+                    card.style.transform = 'scale(1)';
+                }, 200);
+            }, index * 100);
+        });
+    }
+
+    // Animar KPIs a cada 10 segundos
+    setInterval(animarKPIs, 10000);
+    
+    // Setar datas padrão
+    const hoje = new Date();
+    const primeiroDia = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+    
+    document.querySelector('input[type="date"]:first-of-type').valueAsDate = primeiroDia;
+    document.querySelector('input[type="date"]:last-of-type').valueAsDate = hoje;
+});
+
+// Funções globais
+function alterarPeriodo(periodo) {
+    console.log('Alterando período para:', periodo);
+    // Aqui você implementaria a lógica para alterar o período dos relatórios
+}
+</script>
+{% endblock %}

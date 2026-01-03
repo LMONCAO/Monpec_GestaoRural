@@ -1,0 +1,612 @@
+{% extends 'base_modulos_unificado.html' %}
+{% load static %}
+{% load formatacao_br %}
+
+{% block title %}Dashboard de Custos - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block breadcrumb_extra %}
+    <li class="breadcrumb-item active">
+        <i class="bi bi-cash-coin"></i>
+        Financeiro
+    </li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header da Página -->
+    <div class="submenu-page-header">
+        <div class="d-flex align-items-start gap-4">
+            <div class="submenu-page-icon">
+                <i class="bi bi-cash-coin"></i>
+            </div>
+            <div class="flex-grow-1">
+                <h1 class="submenu-page-title">Dashboard de Custos</h1>
+                <p class="submenu-page-description">
+                    Gerencie custos fixos, variáveis e acompanhe o fluxo financeiro da propriedade.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Conteúdo do Dashboard -->
+    <div class="row">
+        <div class="col-12">
+            <!-- Resumo geral -->
+            <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card-moderno text-center">
+                <div class="card-body-moderno">
+                    <div class="bg-info bg-opacity-10 rounded-circle p-3 mx-auto mb-3" style="width: 70px; height: 70px;">
+                        <i class="bi bi-house text-info fs-3"></i>
+                    </div>
+                    <h6 class="text-dark mb-1">Custos Fixos</h6>
+                    <h4 class="text-info mb-0">{{ custos_fixos_count|numero_br:0 }}</h4>
+                    <small class="text-muted">Cadastrados</small>
+                    <br>
+                    <strong class="text-primary">{{ custo_fixo_total|moeda_br }}/mês</strong>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card-moderno text-center">
+                <div class="card-body-moderno">
+                    <div class="bg-warning bg-opacity-10 rounded-circle p-3 mx-auto mb-3" style="width: 70px; height: 70px;">
+                        <i class="bi bi-graph-up text-warning fs-3"></i>
+                    </div>
+                    <h6 class="text-dark mb-1">Custos Variáveis</h6>
+                    <h4 class="text-warning mb-0">{{ custos_variaveis_count|numero_br:0 }}</h4>
+                    <small class="text-muted">Cadastrados</small>
+                    <br>
+                    <strong class="text-warning">{{ custo_variavel_por_cabeca|moeda_br }}/cabeça</strong>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card-moderno text-center">
+                <div class="card-body-moderno">
+                    <div class="bg-success bg-opacity-10 rounded-circle p-3 mx-auto mb-3" style="width: 70px; height: 70px;">
+                        <i class="bi bi-cash-stack text-success fs-3"></i>
+                    </div>
+                    <h6 class="text-dark mb-1">Receita Total</h6>
+                    <h4 class="text-success mb-0">{{ receita_total|moeda_br }}</h4>
+                    <small class="text-muted">Projeção anual</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card-moderno text-center">
+                <div class="card-body-moderno">
+                    <div class="bg-danger bg-opacity-10 rounded-circle p-3 mx-auto mb-3" style="width: 70px; height: 70px;">
+                        <i class="bi bi-graph-down text-danger fs-3"></i>
+                    </div>
+                    <h6 class="text-dark mb-1">Lucro Bruto</h6>
+                    <h4 class="text-danger mb-0">{{ lucro_bruto|moeda_br }}</h4>
+                    <small class="text-muted">Anual</small>
+                    <br>
+                    <strong class="text-success">{{ margem_lucro|percentual_br:1 }}</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ações principais -->
+    <div class="row mb-4">
+        <div class="col-md-6 mb-3">
+            <div class="card-moderno">
+                <div class="card-header-moderno">
+                    <h5 class="mb-0 text-white">
+                        <i class="bi bi-house me-2"></i> Custos Fixos
+                    </h5>
+                </div>
+                <div class="card-body-moderno">
+                    <p class="text-muted mb-3">Gerencie os custos fixos da propriedade (maquinário, pessoal, infraestrutura, etc.)</p>
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'custos_fixos_lista' propriedade.id %}" class="btn-moderno btn-info">
+                            <i class="bi bi-list me-1"></i> Ver Custos
+                        </a>
+                        <a href="{% url 'custos_fixos_novo' propriedade.id %}" class="btn-moderno btn-success">
+                            <i class="bi bi-plus me-1"></i> Novo Custo
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6 mb-3">
+            <div class="card-moderno">
+                <div class="card-header-moderno">
+                    <h5 class="mb-0 text-white">
+                        <i class="bi bi-graph-up me-2"></i> Custos Variáveis
+                    </h5>
+                </div>
+                <div class="card-body-moderno">
+                    <p class="text-muted mb-3">Gerencie os custos variáveis por cabeça (alimentação, sanidade, reprodução, etc.)</p>
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'custos_variaveis_lista' propriedade.id %}" class="btn-moderno btn-warning">
+                            <i class="bi bi-list me-1"></i> Ver Custos
+                        </a>
+                        <a href="{% url 'custos_variaveis_novo' propriedade.id %}" class="btn-moderno btn-success">
+                            <i class="bi bi-plus me-1"></i> Novo Custo
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Estatísticas de Fluxo de Caixa -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card-moderno text-center">
+                <div class="card-body-moderno">
+                    <div class="bg-primary bg-opacity-10 rounded-circle p-3 mx-auto mb-3" style="width: 70px; height: 70px;">
+                        <i class="bi bi-calendar-month text-primary fs-3"></i>
+                    </div>
+                    <h6 class="text-dark mb-1">Saldo Médio Mensal</h6>
+                    <h4 class="{% if saldo_medio_mensal >= 0 %}text-success{% else %}text-danger{% endif %} mb-0">
+                        {{ saldo_medio_mensal|moeda_br }}
+                    </h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card-moderno text-center">
+                <div class="card-body-moderno">
+                    <div class="bg-success bg-opacity-10 rounded-circle p-3 mx-auto mb-3" style="width: 70px; height: 70px;">
+                        <i class="bi bi-check-circle text-success fs-3"></i>
+                    </div>
+                    <h6 class="text-dark mb-1">Meses Positivos</h6>
+                    <h4 class="text-success mb-0">{{ meses_positivos }}</h4>
+                    <small class="text-muted">de 12 meses</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card-moderno text-center">
+                <div class="card-body-moderno">
+                    <div class="bg-danger bg-opacity-10 rounded-circle p-3 mx-auto mb-3" style="width: 70px; height: 70px;">
+                        <i class="bi bi-x-circle text-danger fs-3"></i>
+                    </div>
+                    <h6 class="text-dark mb-1">Meses Negativos</h6>
+                    <h4 class="text-danger mb-0">{{ meses_negativos }}</h4>
+                    <small class="text-muted">de 12 meses</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card-moderno text-center">
+                <div class="card-body-moderno">
+                    <div class="bg-info bg-opacity-10 rounded-circle p-3 mx-auto mb-3" style="width: 70px; height: 70px;">
+                        <i class="bi bi-calendar-year text-info fs-3"></i>
+                    </div>
+                    <h6 class="text-dark mb-1">Saldo Médio Anual</h6>
+                    <h4 class="{% if saldo_medio_anual >= 0 %}text-success{% else %}text-danger{% endif %} mb-0">
+                        {{ saldo_medio_anual|moeda_br }}
+                    </h4>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fluxo de Caixa Mensal -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card-moderno">
+                <div class="card-header-moderno">
+                    <h5 class="mb-0 text-white">
+                        <i class="bi bi-graph-up-arrow me-2"></i> Fluxo de Caixa Mensal (Últimos 12 Meses)
+                    </h5>
+                </div>
+                <div class="card-body-moderno">
+                    <canvas id="graficoFluxoMensal" style="height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabela Detalhada Mensal -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card-moderno">
+                <div class="card-header-moderno">
+                    <h5 class="mb-0 text-white">
+                        <i class="bi bi-table me-2"></i> Detalhamento Mensal
+                    </h5>
+                </div>
+                <div class="card-body-moderno">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Mês</th>
+                                    <th class="text-end">Receita</th>
+                                    <th class="text-end">Despesa</th>
+                                    <th class="text-end">Saldo</th>
+                                    <th class="text-end">Margem</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in fluxo_mensal %}
+                                <tr>
+                                    <td><strong>{{ item.mes }}</strong></td>
+                                    <td class="text-end text-success">{{ item.receita|moeda_br }}</td>
+                                    <td class="text-end text-danger">{{ item.despesa|moeda_br }}</td>
+                                    <td class="text-end {% if item.saldo >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                        <strong>{{ item.saldo|moeda_br }}</strong>
+                                    </td>
+                                    <td class="text-end {% if item.margem >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                        {{ item.margem|percentual_br:1 }}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fluxo de Caixa Anual -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card-moderno">
+                <div class="card-header-moderno">
+                    <h5 class="mb-0 text-white">
+                        <i class="bi bi-bar-chart me-2"></i> Fluxo de Caixa Anual
+                    </h5>
+                </div>
+                <div class="card-body-moderno">
+                    <canvas id="graficoFluxoAnual" style="height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabela Anual -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card-moderno">
+                <div class="card-header-moderno">
+                    <h5 class="mb-0 text-white">
+                        <i class="bi bi-calendar-range me-2"></i> Resumo Anual
+                    </h5>
+                </div>
+                <div class="card-body-moderno">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Ano</th>
+                                    <th class="text-end">Receita Total</th>
+                                    <th class="text-end">Despesa Total</th>
+                                    <th class="text-end">Saldo</th>
+                                    <th class="text-end">Margem</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in fluxo_anual %}
+                                <tr>
+                                    <td><strong>{{ item.ano }}</strong></td>
+                                    <td class="text-end text-success">{{ item.receita|moeda_br }}</td>
+                                    <td class="text-end text-danger">{{ item.despesa|moeda_br }}</td>
+                                    <td class="text-end {% if item.saldo >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                        <strong>{{ item.saldo|moeda_br }}</strong>
+                                    </td>
+                                    <td class="text-end {% if item.margem >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                        {{ item.margem|percentual_br:1 }}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Projeção Futura -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card-moderno">
+                <div class="card-header-moderno">
+                    <h5 class="mb-0 text-white">
+                        <i class="bi bi-arrow-right-circle me-2"></i> Projeção de Fluxo de Caixa (Próximos 12 Meses)
+                    </h5>
+                </div>
+                <div class="card-body-moderno">
+                    <canvas id="graficoProjecao" style="height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Análise financeira -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card-moderno">
+                <div class="card-header-moderno">
+                    <h5 class="mb-0 text-white">
+                        <i class="bi bi-cash-stack me-2"></i> Análise Financeira
+                    </h5>
+                </div>
+                <div class="card-body-moderno">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-success">Resumo de Custos</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>Custo Fixo Mensal:</strong> {{ custo_fixo_total|moeda_br }}</li>
+                                <li><strong>Custo Fixo Anual:</strong> {{ custo_fixo_anual|moeda_br }}</li>
+                                <li><strong>Custo Variável por Cabeça:</strong> {{ custo_variavel_por_cabeca|moeda_br }}</li>
+                                <li><strong>Total de Animais:</strong> {{ total_animais|numero_br:0 }} cabeças</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-primary">Resultados</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>Receita Total:</strong> {{ receita_total|moeda_br }}</li>
+                                <li><strong>Custo Total:</strong> {{ custo_total|moeda_br }}</li>
+                                <li><strong>Lucro Bruto:</strong> {{ lucro_bruto|moeda_br }}</li>
+                                <li><strong>Margem de Lucro:</strong> {{ margem_lucro|percentual_br:1 }}</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <a href="{% url 'calcular_fluxo_caixa' propriedade.id %}" class="btn-moderno btn-success">
+                            <i class="bi bi-arrow-clockwise me-1"></i> Atualizar Cálculo
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+{{ grafico_mensal|json_script:"grafico-mensal-data" }}
+{{ grafico_anual|json_script:"grafico-anual-data" }}
+{{ grafico_projecao|json_script:"grafico-projecao-data" }}
+
+<script>
+// Carregar dados dos gráficos
+const graficoMensalData = JSON.parse(document.getElementById('grafico-mensal-data').textContent);
+const graficoAnualData = JSON.parse(document.getElementById('grafico-anual-data').textContent);
+const graficoProjecaoData = JSON.parse(document.getElementById('grafico-projecao-data').textContent);
+
+// Gráfico de Fluxo de Caixa Mensal
+const ctxMensal = document.getElementById('graficoFluxoMensal').getContext('2d');
+new Chart(ctxMensal, {
+    type: 'line',
+    data: {
+        labels: graficoMensalData.labels,
+        datasets: [
+            {
+                label: 'Receitas',
+                data: graficoMensalData.receitas,
+                borderColor: 'rgb(34, 197, 94)',
+                backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                tension: 0.4,
+                fill: true
+            },
+            {
+                label: 'Despesas',
+                data: graficoMensalData.despesas,
+                borderColor: 'rgb(239, 68, 68)',
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                tension: 0.4,
+                fill: true
+            },
+            {
+                label: 'Saldo',
+                data: graficoMensalData.saldos,
+                borderColor: 'rgb(59, 130, 246)',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                tension: 0.4,
+                borderDash: [5, 5],
+                fill: false
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'top',
+            },
+            title: {
+                display: true,
+                text: 'Evolução Mensal do Fluxo de Caixa'
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        let label = context.dataset.label || '';
+                        if (label) {
+                            label += ': ';
+                        }
+                        label += new Intl.NumberFormat('pt-BR', {
+                            style: 'currency',
+                            currency: 'BRL'
+                        }).format(context.parsed.y);
+                        return label;
+                    }
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: false,
+                ticks: {
+                    callback: function(value) {
+                        return new Intl.NumberFormat('pt-BR', {
+                            style: 'currency',
+                            currency: 'BRL',
+                            notation: 'compact'
+                        }).format(value);
+                    }
+                }
+            }
+        }
+    }
+});
+
+// Gráfico de Fluxo de Caixa Anual
+const ctxAnual = document.getElementById('graficoFluxoAnual').getContext('2d');
+new Chart(ctxAnual, {
+    type: 'bar',
+    data: {
+        labels: graficoAnualData.labels,
+        datasets: [
+            {
+                label: 'Receitas',
+                data: graficoAnualData.receitas,
+                backgroundColor: 'rgba(34, 197, 94, 0.7)',
+                borderColor: 'rgb(34, 197, 94)',
+                borderWidth: 1
+            },
+            {
+                label: 'Despesas',
+                data: graficoAnualData.despesas,
+                backgroundColor: 'rgba(239, 68, 68, 0.7)',
+                borderColor: 'rgb(239, 68, 68)',
+                borderWidth: 1
+            },
+            {
+                label: 'Saldo',
+                data: graficoAnualData.saldos,
+                backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                borderColor: 'rgb(59, 130, 246)',
+                borderWidth: 1
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'top',
+            },
+            title: {
+                display: true,
+                text: 'Comparativo Anual'
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        let label = context.dataset.label || '';
+                        if (label) {
+                            label += ': ';
+                        }
+                        label += new Intl.NumberFormat('pt-BR', {
+                            style: 'currency',
+                            currency: 'BRL'
+                        }).format(context.parsed.y);
+                        return label;
+                    }
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: false,
+                ticks: {
+                    callback: function(value) {
+                        return new Intl.NumberFormat('pt-BR', {
+                            style: 'currency',
+                            currency: 'BRL',
+                            notation: 'compact'
+                        }).format(value);
+                    }
+                }
+            }
+        }
+    }
+});
+
+// Gráfico de Projeção Futura
+const ctxProjecao = document.getElementById('graficoProjecao').getContext('2d');
+new Chart(ctxProjecao, {
+    type: 'line',
+    data: {
+        labels: graficoProjecaoData.labels,
+        datasets: [
+            {
+                label: 'Receita Projetada',
+                data: graficoProjecaoData.receitas,
+                borderColor: 'rgb(34, 197, 94)',
+                backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                tension: 0.4,
+                borderDash: [5, 5],
+                fill: true
+            },
+            {
+                label: 'Despesa Projetada',
+                data: graficoProjecaoData.despesas,
+                borderColor: 'rgb(239, 68, 68)',
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                tension: 0.4,
+                borderDash: [5, 5],
+                fill: true
+            },
+            {
+                label: 'Saldo Projetado',
+                data: graficoProjecaoData.saldos,
+                borderColor: 'rgb(59, 130, 246)',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                tension: 0.4,
+                borderDash: [10, 5],
+                fill: false
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'top',
+            },
+            title: {
+                display: true,
+                text: 'Projeção de Fluxo de Caixa (Próximos 12 Meses)'
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        let label = context.dataset.label || '';
+                        if (label) {
+                            label += ': ';
+                        }
+                        label += new Intl.NumberFormat('pt-BR', {
+                            style: 'currency',
+                            currency: 'BRL'
+                        }).format(context.parsed.y);
+                        return label;
+                    }
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: false,
+                ticks: {
+                    callback: function(value) {
+                        return new Intl.NumberFormat('pt-BR', {
+                            style: 'currency',
+                            currency: 'BRL',
+                            notation: 'compact'
+                        }).format(value);
+                    }
+                }
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

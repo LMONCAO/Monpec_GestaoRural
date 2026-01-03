@@ -1,0 +1,400 @@
+{% extends "base_modulos_unificado.html" %}
+{% load formatacao_br %}
+
+{% block title %}Vendas - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Cards de Estatísticas - Design Balanceado */
+    .stat-card {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        padding: 0.875rem 1rem;
+        position: relative;
+        transition: all 0.2s ease;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        min-height: 100px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        align-items: stretch;
+    }
+
+    .stat-card:hover {
+        border-color: #d1d5db;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        transform: translateY(-1px);
+    }
+
+    .stat-card-clickable {
+        cursor: pointer;
+        text-decoration: none;
+        color: inherit;
+        display: block;
+    }
+
+    .stat-card-clickable:hover {
+        border-color: #3b82f6;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+        transform: translateY(-2px);
+    }
+
+    .stat-card h6 {
+        font-size: 0.625rem;
+        text-transform: uppercase;
+        margin-bottom: 0.5rem;
+        color: #6b7280;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        line-height: 1.3;
+    }
+
+    .stat-card h3 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0 0 0.375rem 0;
+        color: #111827;
+        line-height: 1.2;
+        word-break: break-word;
+    }
+
+    .stat-card p {
+        margin: 0;
+        font-size: 0.6875rem;
+        color: #6b7280;
+        font-weight: 400;
+        line-height: 1.4;
+        flex-grow: 1;
+    }
+
+    .stat-card .icon-wrapper {
+        position: absolute;
+        right: 0.875rem;
+        top: 0.875rem;
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f3f4f6;
+        color: #6b7280;
+        font-size: 1rem;
+        flex-shrink: 0;
+    }
+
+    .stat-card-success {
+        border-left: 3px solid #10b981;
+    }
+
+    .stat-card-success .icon-wrapper {
+        background: #d1fae5;
+        color: #10b981;
+    }
+
+    .stat-card-warning {
+        border-left: 3px solid #f59e0b;
+    }
+
+    .stat-card-warning .icon-wrapper {
+        background: #fef3c7;
+        color: #f59e0b;
+    }
+
+    .stat-card-empty {
+        opacity: 0.6;
+    }
+
+    .dashboard-header {
+        margin-bottom: 1.5rem;
+    }
+
+    .dashboard-header h2 {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #111827;
+        margin: 0;
+    }
+
+    .dashboard-header p {
+        color: #6b7280;
+        margin: 0.25rem 0 0 0;
+        font-size: 0.875rem;
+    }
+
+    .quick-actions-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 0.75rem;
+        margin-bottom: 2rem;
+    }
+
+    .btn-quick {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        padding: 0.875rem 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        text-decoration: none;
+        color: #111827;
+        font-weight: 500;
+        font-size: 0.875rem;
+        transition: all 0.2s ease;
+    }
+
+    .btn-quick:hover {
+        border-color: #3b82f6;
+        background: #eff6ff;
+        color: #1e40af;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+    }
+
+    .btn-quick .icon {
+        margin-right: 0.5rem;
+    }
+
+    .badge-novo {
+        background: #3b82f6;
+        color: white;
+        padding: 0.125rem 0.5rem;
+        border-radius: 12px;
+        font-size: 0.625rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .section-group {
+        margin-bottom: 2rem;
+    }
+
+    .section-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #374151;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .section-header i {
+        font-size: 1rem;
+        color: #6b7280;
+    }
+
+    .cards-horizontal {
+        display: grid;
+        gap: 0.75rem;
+    }
+
+    .cards-4 {
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    }
+
+    @media (max-width: 575px) {
+        .stat-card {
+            min-height: 90px;
+            padding: 0.75rem;
+        }
+
+        .stat-card h3 {
+            font-size: 1.25rem;
+        }
+
+        .stat-card h6 {
+            font-size: 0.5625rem;
+        }
+
+        .stat-card p {
+            font-size: 0.625rem;
+        }
+
+        .stat-card .icon-wrapper {
+            width: 28px;
+            height: 28px;
+            font-size: 0.875rem;
+            right: 0.75rem;
+            top: 0.75rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item active">Vendas</li>
+        </ol>
+    </nav>
+
+    <!-- Header -->
+    <div class="dashboard-header">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <h2><i class="bi bi-cart-check me-2"></i>Vendas</h2>
+                <p>{{ propriedade.nome_propriedade }}</p>
+            </div>
+            <div>
+                <a href="{% url 'configuracoes_modulo' propriedade.id 'vendas' %}" class="btn btn-outline-secondary btn-sm" title="Configurações do Módulo">
+                    <i class="bi bi-gear me-1"></i>Configurações
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions-grid">
+        <a href="{% url 'vendas_venda_nova' propriedade.id %}" class="btn-quick">
+            <span><i class="bi bi-cart-plus icon"></i> Nova Venda com NF-e</span>
+            <span class="badge-novo">Novo</span>
+        </a>
+        <a href="{% url 'vendas_nota_fiscal_emitir' propriedade.id %}" class="btn-quick">
+            <span><i class="bi bi-file-earmark-plus icon"></i> Emitir NF-e</span>
+        </a>
+        <a href="{% url 'vendas_notas_fiscais_lista' propriedade.id %}" class="btn-quick">
+            <span><i class="bi bi-receipt-cutoff icon"></i> Notas Fiscais</span>
+            <i class="bi bi-arrow-right-short icon"></i>
+        </a>
+        <a href="{% url 'vendas_relatorio_contabilidade' propriedade.id %}" class="btn-quick">
+            <span><i class="bi bi-file-earmark-spreadsheet icon"></i> Relatório Contabilidade</span>
+            <i class="bi bi-arrow-right-short icon"></i>
+        </a>
+        <a href="{% url 'vendas_por_categoria_lista' propriedade.id %}" class="btn-quick">
+            <span><i class="bi bi-sliders icon"></i> Parâmetros</span>
+            <i class="bi bi-arrow-right-short icon"></i>
+        </a>
+    </div>
+
+    <!-- Seção: Visão Geral -->
+    <div class="section-group">
+        <div class="section-header">
+            <i class="bi bi-speedometer2"></i>
+            <span>Visão Geral</span>
+        </div>
+        <div class="cards-horizontal cards-4">
+            <a href="{% url 'vendas_notas_fiscais_lista' propriedade.id %}" class="stat-card stat-card-clickable {% if total_notas_mes == 0 %}stat-card-empty{% else %}stat-card-success{% endif %}">
+                <div class="icon-wrapper"><i class="bi bi-receipt-cutoff"></i></div>
+                <h6>Notas Fiscais (Mês)</h6>
+                <h3>{{ total_notas_mes|numero_br }}</h3>
+                <p>{% if total_notas_mes == 0 %}Nenhuma nota emitida{% else %}Total de NF-e emitidas{% endif %}</p>
+            </a>
+            <a href="{% url 'vendas_notas_fiscais_lista' propriedade.id %}?status=AUTORIZADA" class="stat-card stat-card-clickable stat-card-success">
+                <div class="icon-wrapper"><i class="bi bi-check-circle"></i></div>
+                <h6>Notas Autorizadas</h6>
+                <h3>{{ notas_autorizadas|numero_br }}</h3>
+                <p>NF-e autorizadas pela SEFAZ</p>
+            </a>
+            <a href="{% url 'vendas_notas_fiscais_lista' propriedade.id %}?status=PENDENTE" class="stat-card stat-card-clickable {% if notas_pendentes > 0 %}stat-card-warning{% else %}stat-card-empty{% endif %}">
+                <div class="icon-wrapper"><i class="bi bi-clock-history"></i></div>
+                <h6>Notas Pendentes</h6>
+                <h3>{{ notas_pendentes|numero_br }}</h3>
+                <p>{% if notas_pendentes > 0 %}Aguardando autorização{% else %}Nenhuma pendente{% endif %}</p>
+            </a>
+            <a href="{% url 'vendas_notas_fiscais_lista' propriedade.id %}" class="stat-card stat-card-clickable stat-card-success">
+                <div class="icon-wrapper"><i class="bi bi-cash-coin"></i></div>
+                <h6>Vendas do Mês</h6>
+                <h3>{{ valor_vendas_mes|moeda_br }}</h3>
+                <p>Total de vendas do mês atual</p>
+            </a>
+        </div>
+    </div>
+
+    <!-- Seção: Top Clientes -->
+    {% if top_clientes %}
+    <div class="section-group">
+        <div class="section-header">
+            <i class="bi bi-trophy"></i>
+            <span>Top Clientes do Mês</span>
+        </div>
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Cliente</th>
+                                <th class="text-end">Quantidade</th>
+                                <th class="text-end">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for cliente in top_clientes %}
+                            <tr>
+                                <td>{{ cliente.cliente__nome }}</td>
+                                <td class="text-end">{{ cliente.quantidade }}</td>
+                                <td class="text-end">{{ cliente.total|moeda_br }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Seção: Notas Recentes -->
+    {% if notas_saida %}
+    <div class="section-group">
+        <div class="section-header">
+            <i class="bi bi-clock"></i>
+            <span>Notas Fiscais Recentes</span>
+        </div>
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Número</th>
+                                <th>Cliente</th>
+                                <th>Data</th>
+                                <th>Valor</th>
+                                <th>Status</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for nota in notas_saida %}
+                            <tr>
+                                <td><strong>{{ nota.numero }}</strong><div class="small text-muted">Série {{ nota.serie }}</div></td>
+                                <td>{{ nota.cliente.nome|default:"-" }}</td>
+                                <td>{{ nota.data_emissao|date:"d/m/Y" }}</td>
+                                <td>{{ nota.valor_total|moeda_br }}</td>
+                                <td>
+                                    <span class="badge bg-{% if nota.status == 'AUTORIZADA' %}success{% elif nota.status == 'CANCELADA' %}secondary{% else %}warning text-dark{% endif %}">
+                                        {{ nota.get_status_display }}
+                                    </span>
+                                </td>
+                                <td class="text-end">
+                                    <a href="{% url 'vendas_nota_fiscal_detalhes' propriedade.id nota.id %}" class="btn btn-sm btn-outline-success">
+                                        <i class="bi bi-search"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="text-center mt-3">
+                    <a href="{% url 'vendas_notas_fiscais_lista' propriedade.id %}" class="btn btn-outline-primary">
+                        Ver todas as notas fiscais
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

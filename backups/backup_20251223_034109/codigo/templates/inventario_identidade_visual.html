@@ -1,0 +1,1131 @@
+{% extends 'base_navegacao_inteligente.html' %}
+
+{% block title %}Inventário do Rebanho - {{ propriedade.nome }} - MONPEC{% endblock %}
+
+{% block breadcrumb_extra %}
+<li class="breadcrumb-item">
+    <a href="{% url 'pecuaria_dashboard' propriedade.id %}">Pecuária</a>
+</li>
+<li class="breadcrumb-item active">Inventário do Rebanho</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Cabeçalho do Inventário -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card inventario-header">
+                <div class="card-header">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h2 class="mb-0 text-navy">
+                                Inventário do Rebanho
+                            </h2>
+                            <p class="mb-0 mt-2 text-muted">
+                                <strong>{{ propriedade.nome }}</strong> • 
+                                Controle Total do Rebanho • 
+                                {{ total_animais|default:"0" }} animais cadastrados
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <div class="btn-group">
+                                <button class="btn btn-sage" data-bs-toggle="modal" data-bs-target="#modalNovoAnimal">
+                                    Adicionar Animal
+                                </button>
+                                <button class="btn btn-outline-navy dropdown-toggle" data-bs-toggle="dropdown">
+                                    Ações
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="#" onclick="exportarInventario()">Exportar Excel</a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="importarInventario()">Importar Dados</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="#" onclick="gerarRelatorio()">Relatório PDF</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cards de Resumo -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card inventario-card bg-navy-light">
+                <div class="card-body text-center">
+                    <h3 class="text-navy mb-1">{{ total_animais|default:"145" }}</h3>
+                    <h6 class="text-muted">TOTAL DE ANIMAIS</h6>
+                    <div class="progress mt-2" style="height: 4px;">
+                        <div class="progress-bar bg-navy" style="width: 85%"></div>
+                    </div>
+                    <small class="text-sage">Meta: 170 animais</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card inventario-card bg-sage-light">
+                <div class="card-body text-center">
+                    <h3 class="text-sage mb-1">R$ {{ valor_total|default:"2.180.500" }}</h3>
+                    <h6 class="text-muted">VALOR TOTAL</h6>
+                    <div class="progress mt-2" style="height: 4px;">
+                        <div class="progress-bar bg-sage" style="width: 92%"></div>
+                    </div>
+                    <small class="text-navy">Avaliação atual</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card inventario-card bg-earth-light">
+                <div class="card-body text-center">
+                    <h3 class="text-earth mb-1">{{ total_categorias|default:"9" }}</h3>
+                    <h6 class="text-muted">CATEGORIAS ATIVAS</h6>
+                    <div class="progress mt-2" style="height: 4px;">
+                        <div class="progress-bar bg-earth" style="width: 100%"></div>
+                    </div>
+                    <small class="text-earth">Classificação completa</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card inventario-card bg-light-gray">
+                <div class="card-body text-center">
+                    <h3 class="text-navy mb-1">R$ {{ valor_medio|default:"15.040" }}</h3>
+                    <h6 class="text-muted">VALOR MÉDIO/CABEÇA</h6>
+                    <div class="progress mt-2" style="height: 4px;">
+                        <div class="progress-bar bg-navy" style="width: 75%"></div>
+                    </div>
+                    <small class="text-muted">Última avaliação</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros e Controles -->
+    <div class="row mb-3">
+        <div class="col-md-8">
+            <div class="card inventario-filtros">
+                <div class="card-body py-3">
+                    <div class="row g-3 align-items-center">
+                        <div class="col-md-3">
+                            <select class="form-select" id="filtroCategoria">
+                                <option value="">Todas as Categorias</option>
+                                <option value="bezerros">Bezerros (0-12m)</option>
+                                <option value="bezerras">Bezerras (0-12m)</option>
+                                <option value="garrotes">Garrotes (12-24m)</option>
+                                <option value="novilhas">Novilhas (12-24m)</option>
+                                <option value="bois_magros">Bois Magros (24-36m)</option>
+                                <option value="novilhas_prontas">Novilhas Prontas (24-36m)</option>
+                                <option value="bois_gordos">Bois Gordos (36m+)</option>
+                                <option value="vacas_matrizes">Vacas Matrizes</option>
+                                <option value="touros">Touros Reprodutores</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" id="filtroSexo">
+                                <option value="">Todos os Sexos</option>
+                                <option value="M">Macho</option>
+                                <option value="F">Fêmea</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <input type="text" class="form-control" id="buscaInventario" placeholder="Buscar por brinco, nome...">
+                        </div>
+                        <div class="col-md-2">
+                            <button class="btn btn-outline-navy w-100" onclick="limparFiltros()">
+                                Limpar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card inventario-resumo">
+                <div class="card-body py-3 text-center">
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="h5 mb-0 text-navy">{{ machos|default:"73" }}</div>
+                            <small class="text-muted">Machos</small>
+                        </div>
+                        <div class="col-6">
+                            <div class="h5 mb-0 text-sage">{{ femeas|default:"72" }}</div>
+                            <small class="text-muted">Fêmeas</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabela do Inventário -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card inventario-tabela">
+                <div class="card-header">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <h5 class="mb-0 text-navy">
+                                Rebanho por Categoria
+                            </h5>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-navy active" data-view="categoria">Por Categoria</button>
+                                <button class="btn btn-outline-navy" data-view="individual">Individual</button>
+                                <button class="btn btn-outline-navy" data-view="resumo">Resumo</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <!-- Visualização por Categoria -->
+                    <div id="viewCategoria" class="table-view active">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0" id="tabelaInventario">
+                                <thead class="table-header">
+                                    <tr>
+                                        <th class="text-navy">CATEGORIA</th>
+                                        <th class="text-center text-navy">SEXO</th>
+                                        <th class="text-center text-navy">QUANTIDADE</th>
+                                        <th class="text-end text-navy">VALOR/CABEÇA</th>
+                                        <th class="text-end text-navy">VALOR TOTAL</th>
+                                        <th class="text-center text-navy">AÇÕES</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Bezerros -->
+                                    <tr class="inventario-row" data-categoria="bezerros" data-sexo="M">
+                                        <td>
+                                            <div class="categoria-info">
+                                                <strong class="text-navy">Bezerros (0-12m)</strong>
+                                                <br><small class="text-muted">Categoria 1</small>
+                                            </div>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-navy text-white">MACHO</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <input type="number" class="form-control form-control-sm text-center quantidade-input" 
+                                                   value="18" min="0" onchange="calcularTotal(this)">
+                                        </td>
+                                        <td class="text-end">
+                                            <input type="number" class="form-control form-control-sm text-end valor-input" 
+                                                   value="8500.00" step="0.01" onchange="calcularTotal(this)">
+                                        </td>
+                                        <td class="text-end">
+                                            <strong class="valor-total text-sage">R$ 153.000,00</strong>
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-sage" title="Salvar" onclick="salvarLinha(this)">
+                                                    Salvar
+                                                </button>
+                                                <button class="btn btn-outline-earth" title="Limpar" onclick="limparLinha(this)">
+                                                    Limpar
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+
+                                    <!-- Bezerras -->
+                                    <tr class="inventario-row" data-categoria="bezerras" data-sexo="F">
+                                        <td>
+                                            <div class="categoria-info">
+                                                <strong class="text-navy">Bezerras (0-12m)</strong>
+                                                <br><small class="text-muted">Categoria 2</small>
+                                            </div>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-sage text-white">FÊMEA</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <input type="number" class="form-control form-control-sm text-center quantidade-input" 
+                                                   value="16" min="0" onchange="calcularTotal(this)">
+                                        </td>
+                                        <td class="text-end">
+                                            <input type="number" class="form-control form-control-sm text-end valor-input" 
+                                                   value="9200.00" step="0.01" onchange="calcularTotal(this)">
+                                        </td>
+                                        <td class="text-end">
+                                            <strong class="valor-total text-sage">R$ 147.200,00</strong>
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-sage" title="Salvar" onclick="salvarLinha(this)">
+                                                    Salvar
+                                                </button>
+                                                <button class="btn btn-outline-earth" title="Limpar" onclick="limparLinha(this)">
+                                                    Limpar
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+
+                                    <!-- Garrotes -->
+                                    <tr class="inventario-row" data-categoria="garrotes" data-sexo="M">
+                                        <td>
+                                            <div class="categoria-info">
+                                                <strong class="text-navy">Garrotes (12-24m)</strong>
+                                                <br><small class="text-muted">Categoria 3</small>
+                                            </div>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-navy text-white">MACHO</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <input type="number" class="form-control form-control-sm text-center quantidade-input" 
+                                                   value="15" min="0" onchange="calcularTotal(this)">
+                                        </td>
+                                        <td class="text-end">
+                                            <input type="number" class="form-control form-control-sm text-end valor-input" 
+                                                   value="12800.00" step="0.01" onchange="calcularTotal(this)">
+                                        </td>
+                                        <td class="text-end">
+                                            <strong class="valor-total text-sage">R$ 192.000,00</strong>
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-sage" title="Salvar" onclick="salvarLinha(this)">
+                                                    Salvar
+                                                </button>
+                                                <button class="btn btn-outline-earth" title="Limpar" onclick="limparLinha(this)">
+                                                    Limpar
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+
+                                    <!-- Novilhas -->
+                                    <tr class="inventario-row" data-categoria="novilhas" data-sexo="F">
+                                        <td>
+                                            <div class="categoria-info">
+                                                <strong class="text-navy">Novilhas (12-24m)</strong>
+                                                <br><small class="text-muted">Categoria 4</small>
+                                            </div>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-sage text-white">FÊMEA</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <input type="number" class="form-control form-control-sm text-center quantidade-input" 
+                                                   value="14" min="0" onchange="calcularTotal(this)">
+                                        </td>
+                                        <td class="text-end">
+                                            <input type="number" class="form-control form-control-sm text-end valor-input" 
+                                                   value="14500.00" step="0.01" onchange="calcularTotal(this)">
+                                        </td>
+                                        <td class="text-end">
+                                            <strong class="valor-total text-sage">R$ 203.000,00</strong>
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-sage" title="Salvar" onclick="salvarLinha(this)">
+                                                    Salvar
+                                                </button>
+                                                <button class="btn btn-outline-earth" title="Limpar" onclick="limparLinha(this)">
+                                                    Limpar
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+
+                                    <!-- Bois Magros -->
+                                    <tr class="inventario-row" data-categoria="bois_magros" data-sexo="M">
+                                        <td>
+                                            <div class="categoria-info">
+                                                <strong class="text-navy">Bois Magros (24-36m)</strong>
+                                                <br><small class="text-muted">Categoria 5</small>
+                                            </div>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-navy text-white">MACHO</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <input type="number" class="form-control form-control-sm text-center quantidade-input" 
+                                                   value="12" min="0" onchange="calcularTotal(this)">
+                                        </td>
+                                        <td class="text-end">
+                                            <input type="number" class="form-control form-control-sm text-end valor-input" 
+                                                   value="18200.00" step="0.01" onchange="calcularTotal(this)">
+                                        </td>
+                                        <td class="text-end">
+                                            <strong class="valor-total text-sage">R$ 218.400,00</strong>
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-sage" title="Salvar" onclick="salvarLinha(this)">
+                                                    Salvar
+                                                </button>
+                                                <button class="btn btn-outline-earth" title="Limpar" onclick="limparLinha(this)">
+                                                    Limpar
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+
+                                    <!-- Novilhas Prontas -->
+                                    <tr class="inventario-row" data-categoria="novilhas_prontas" data-sexo="F">
+                                        <td>
+                                            <div class="categoria-info">
+                                                <strong class="text-navy">Novilhas Prontas (24-36m)</strong>
+                                                <br><small class="text-muted">Categoria 6</small>
+                                            </div>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-sage text-white">FÊMEA</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <input type="number" class="form-control form-control-sm text-center quantidade-input" 
+                                                   value="10" min="0" onchange="calcularTotal(this)">
+                                        </td>
+                                        <td class="text-end">
+                                            <input type="number" class="form-control form-control-sm text-end valor-input" 
+                                                   value="19800.00" step="0.01" onchange="calcularTotal(this)">
+                                        </td>
+                                        <td class="text-end">
+                                            <strong class="valor-total text-sage">R$ 198.000,00</strong>
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-sage" title="Salvar" onclick="salvarLinha(this)">
+                                                    Salvar
+                                                </button>
+                                                <button class="btn btn-outline-earth" title="Limpar" onclick="limparLinha(this)">
+                                                    Limpar
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+
+                                    <!-- Bois Gordos -->
+                                    <tr class="inventario-row" data-categoria="bois_gordos" data-sexo="M">
+                                        <td>
+                                            <div class="categoria-info">
+                                                <strong class="text-navy">Bois Gordos (36m+)</strong>
+                                                <br><small class="text-muted">Categoria 7</small>
+                                            </div>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-navy text-white">MACHO</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <input type="number" class="form-control form-control-sm text-center quantidade-input" 
+                                                   value="25" min="0" onchange="calcularTotal(this)">
+                                        </td>
+                                        <td class="text-end">
+                                            <input type="number" class="form-control form-control-sm text-end valor-input" 
+                                                   value="22500.00" step="0.01" onchange="calcularTotal(this)">
+                                        </td>
+                                        <td class="text-end">
+                                            <strong class="valor-total text-sage">R$ 562.500,00</strong>
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-sage" title="Salvar" onclick="salvarLinha(this)">
+                                                    Salvar
+                                                </button>
+                                                <button class="btn btn-outline-earth" title="Limpar" onclick="limparLinha(this)">
+                                                    Limpar
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+
+                                    <!-- Vacas Matrizes -->
+                                    <tr class="inventario-row" data-categoria="vacas_matrizes" data-sexo="F">
+                                        <td>
+                                            <div class="categoria-info">
+                                                <strong class="text-navy">Vacas Matrizes</strong>
+                                                <br><small class="text-muted">Categoria 8</small>
+                                            </div>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-sage text-white">FÊMEA</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <input type="number" class="form-control form-control-sm text-center quantidade-input" 
+                                                   value="28" min="0" onchange="calcularTotal(this)">
+                                        </td>
+                                        <td class="text-end">
+                                            <input type="number" class="form-control form-control-sm text-end valor-input" 
+                                                   value="16800.00" step="0.01" onchange="calcularTotal(this)">
+                                        </td>
+                                        <td class="text-end">
+                                            <strong class="valor-total text-sage">R$ 470.400,00</strong>
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-sage" title="Salvar" onclick="salvarLinha(this)">
+                                                    Salvar
+                                                </button>
+                                                <button class="btn btn-outline-earth" title="Limpar" onclick="limparLinha(this)">
+                                                    Limpar
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+
+                                    <!-- Touros Reprodutores -->
+                                    <tr class="inventario-row" data-categoria="touros" data-sexo="M">
+                                        <td>
+                                            <div class="categoria-info">
+                                                <strong class="text-navy">Touros Reprodutores</strong>
+                                                <br><small class="text-muted">Categoria 9</small>
+                                            </div>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-navy text-white">MACHO</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <input type="number" class="form-control form-control-sm text-center quantidade-input" 
+                                                   value="7" min="0" onchange="calcularTotal(this)">
+                                        </td>
+                                        <td class="text-end">
+                                            <input type="number" class="form-control form-control-sm text-end valor-input" 
+                                                   value="25000.00" step="0.01" onchange="calcularTotal(this)">
+                                        </td>
+                                        <td class="text-end">
+                                            <strong class="valor-total text-sage">R$ 175.000,00</strong>
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-sage" title="Salvar" onclick="salvarLinha(this)">
+                                                    Salvar
+                                                </button>
+                                                <button class="btn btn-outline-earth" title="Limpar" onclick="limparLinha(this)">
+                                                    Limpar
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                                <tfoot class="table-footer">
+                                    <tr>
+                                        <th class="text-navy">TOTAIS</th>
+                                        <th class="text-center">9 CATEGORIAS</th>
+                                        <th class="text-center total-quantidade">145</th>
+                                        <th class="text-end">MÉDIA</th>
+                                        <th class="text-end">
+                                            <strong class="text-sage fs-5">R$ 2.319.500,00</strong>
+                                        </th>
+                                        <th class="text-center">
+                                            <button class="btn btn-navy btn-sm" onclick="salvarTudo()">
+                                                Salvar Tudo
+                                            </button>
+                                        </th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ações Rápidas -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card inventario-acoes">
+                <div class="card-header">
+                    <h5 class="mb-0 text-navy">Ações Rápidas do Inventário</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <div class="d-grid">
+                                <button class="btn btn-outline-navy" onclick="zerarCategoria()">
+                                    <div class="mb-2 fw-bold">Zerar Categoria</div>
+                                    <small>Limpar inventário de uma categoria</small>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <div class="d-grid">
+                                <button class="btn btn-outline-sage" onclick="duplicarInventario()">
+                                    <div class="mb-2 fw-bold">Duplicar Inventário</div>
+                                    <small>Copiar para outro período</small>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <div class="d-grid">
+                                <button class="btn btn-outline-earth" onclick="avaliarRebanho()">
+                                    <div class="mb-2 fw-bold">Reavaliar Rebanho</div>
+                                    <small>Atualizar valores de mercado</small>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <div class="d-grid">
+                                <button class="btn btn-outline-secondary" onclick="historicoInventario()">
+                                    <div class="mb-2 fw-bold">Histórico</div>
+                                    <small>Ver inventários anteriores</small>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Novo Animal -->
+<div class="modal fade" id="modalNovoAnimal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-navy">
+                    Adicionar Animal ao Inventário
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formNovoAnimal">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Categoria *</label>
+                            <select class="form-select" required>
+                                <option value="">Selecione a categoria...</option>
+                                <option value="bezerros">Bezerros (0-12m)</option>
+                                <option value="bezerras">Bezerras (0-12m)</option>
+                                <option value="garrotes">Garrotes (12-24m)</option>
+                                <option value="novilhas">Novilhas (12-24m)</option>
+                                <option value="bois_magros">Bois Magros (24-36m)</option>
+                                <option value="novilhas_prontas">Novilhas Prontas (24-36m)</option>
+                                <option value="bois_gordos">Bois Gordos (36m+)</option>
+                                <option value="vacas_matrizes">Vacas Matrizes</option>
+                                <option value="touros">Touros Reprodutores</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Quantidade *</label>
+                            <input type="number" class="form-control" min="1" value="1" required>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Valor por Cabeça</label>
+                            <div class="input-group">
+                                <span class="input-group-text">R$</span>
+                                <input type="number" class="form-control" step="0.01" placeholder="0,00">
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Data de Referência</label>
+                            <input type="date" class="form-control" id="dataReferencia">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Observações</label>
+                        <textarea class="form-control" rows="2" placeholder="Informações adicionais (opcional)"></textarea>
+                    </div>
+
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="atualizarValores" checked>
+                        <label class="form-check-label" for="atualizarValores">
+                            Atualizar valores automaticamente na categoria
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-sage">
+                        Adicionar ao Inventário
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Paleta de Cores da Identidade Visual */
+    :root {
+        --navy: #6495ed;
+        --sage: #8a9a88;
+        --earth: #8b4513;
+        --light-gray: #f8f9fa;
+        --dark-gray: #6c757d;
+    }
+
+    .text-navy { color: var(--navy) !important; }
+    .text-sage { color: var(--sage) !important; }
+    .text-earth { color: var(--earth) !important; }
+
+    .bg-navy { background-color: var(--navy) !important; }
+    .bg-sage { background-color: var(--sage) !important; }
+    .bg-earth { background-color: var(--earth) !important; }
+    .bg-navy-light { background-color: rgba(26, 54, 93, 0.1) !important; }
+    .bg-sage-light { background-color: rgba(138, 154, 136, 0.1) !important; }
+    .bg-earth-light { background-color: rgba(139, 69, 19, 0.1) !important; }
+    .bg-light-gray { background-color: var(--light-gray) !important; }
+
+    .btn-navy {
+        background-color: var(--navy);
+        border-color: var(--navy);
+        color: white;
+    }
+
+    .btn-navy:hover {
+        background-color: #2c5282;
+        border-color: #2c5282;
+        color: white;
+    }
+
+    .btn-sage {
+        background-color: var(--sage);
+        border-color: var(--sage);
+        color: white;
+    }
+
+    .btn-sage:hover {
+        background-color: #6d7a6b;
+        border-color: #6d7a6b;
+        color: white;
+    }
+
+    .btn-outline-navy {
+        color: var(--navy);
+        border-color: var(--navy);
+    }
+
+    .btn-outline-navy:hover {
+        background-color: var(--navy);
+        border-color: var(--navy);
+        color: white;
+    }
+
+    .btn-outline-sage {
+        color: var(--sage);
+        border-color: var(--sage);
+    }
+
+    .btn-outline-sage:hover {
+        background-color: var(--sage);
+        border-color: var(--sage);
+        color: white;
+    }
+
+    .btn-outline-earth {
+        color: var(--earth);
+        border-color: var(--earth);
+    }
+
+    .btn-outline-earth:hover {
+        background-color: var(--earth);
+        border-color: var(--earth);
+        color: white;
+    }
+
+    /* Cards do Inventário */
+    .inventario-card {
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        transition: all 0.3s ease;
+        border-left: 4px solid var(--sage);
+    }
+
+    .inventario-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    }
+
+    .inventario-header {
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        border-left: 4px solid var(--navy);
+    }
+
+    .inventario-header .card-header {
+        background: linear-gradient(135deg, var(--light-gray) 0%, #e9ecef 100%);
+        border-bottom: 2px solid var(--navy);
+        border-radius: 12px 12px 0 0;
+    }
+
+    .inventario-filtros {
+        border: none;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        border-left: 3px solid var(--sage);
+    }
+
+    .inventario-resumo {
+        border: none;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        border-left: 3px solid var(--earth);
+    }
+
+    .inventario-tabela {
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        overflow: hidden;
+    }
+
+    .inventario-tabela .card-header {
+        background: var(--navy);
+        color: white;
+        border: none;
+    }
+
+    .inventario-acoes {
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        border-left: 4px solid var(--earth);
+    }
+
+    .inventario-acoes .card-header {
+        background: linear-gradient(135deg, var(--light-gray) 0%, #e9ecef 100%);
+        border-bottom: 2px solid var(--earth);
+    }
+
+    /* Tabela */
+    .table-header {
+        background: var(--light-gray) !important;
+        border-bottom: 2px solid var(--navy);
+    }
+
+    .table-header th {
+        font-weight: 600;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 1rem 0.75rem;
+    }
+
+    .table-footer {
+        background: var(--navy) !important;
+        color: white !important;
+    }
+
+    .table-footer th {
+        color: white !important;
+        font-weight: 600;
+        padding: 1rem 0.75rem;
+    }
+
+    .inventario-row {
+        border-left: 3px solid transparent;
+        transition: all 0.3s ease;
+    }
+
+    .inventario-row:hover {
+        background-color: rgba(138, 154, 136, 0.05);
+        border-left-color: var(--sage);
+    }
+
+    .categoria-info strong {
+        font-size: 0.95rem;
+    }
+
+    .quantidade-input, .valor-input {
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        font-weight: 500;
+    }
+
+    .quantidade-input:focus, .valor-input:focus {
+        border-color: var(--sage);
+        box-shadow: 0 0 0 0.2rem rgba(138, 154, 136, 0.25);
+    }
+
+    .valor-total {
+        font-size: 1.1rem;
+        font-weight: 700;
+    }
+
+    /* Badges */
+    .badge {
+        font-size: 0.75rem;
+        padding: 0.5rem 0.75rem;
+        border-radius: 6px;
+        font-weight: 600;
+    }
+
+    /* Botões da tabela */
+    .btn-group-sm .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+        border-radius: 4px;
+        font-weight: 500;
+    }
+
+    /* Progress bars */
+    .progress {
+        height: 4px;
+        border-radius: 4px;
+        background-color: rgba(0,0,0,0.1);
+    }
+
+    .progress-bar {
+        border-radius: 4px;
+    }
+
+    .bg-navy.progress-bar {
+        background-color: var(--navy) !important;
+    }
+
+    .bg-sage.progress-bar {
+        background-color: var(--sage) !important;
+    }
+
+    .bg-earth.progress-bar {
+        background-color: var(--earth) !important;
+    }
+
+    /* Form controls */
+    .form-select:focus, .form-control:focus {
+        border-color: var(--sage);
+        box-shadow: 0 0 0 0.2rem rgba(138, 154, 136, 0.25);
+    }
+
+    /* Animações */
+    .inventario-card, .inventario-row {
+        animation: slideInUp 0.4s ease-out;
+    }
+
+    @keyframes slideInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Responsivo */
+    @media (max-width: 768px) {
+        .inventario-card {
+            margin-bottom: 1rem;
+        }
+        
+        .btn-group-sm .btn {
+            padding: 0.2rem 0.4rem;
+            font-size: 0.7rem;
+        }
+        
+        .quantidade-input, .valor-input {
+            font-size: 0.85rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Setar data de hoje
+    document.getElementById('dataReferencia').valueAsDate = new Date();
+
+    // Filtros da tabela
+    document.getElementById('filtroCategoria').addEventListener('change', filtrarTabela);
+    document.getElementById('filtroSexo').addEventListener('change', filtrarTabela);
+    document.getElementById('buscaInventario').addEventListener('input', filtrarTabela);
+
+    // Form novo animal
+    document.getElementById('formNovoAnimal').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const modal = bootstrap.Modal.getInstance(document.getElementById('modalNovoAnimal'));
+        modal.hide();
+        
+        // Simular adição
+        mostrarSucesso('Animal adicionado ao inventário com sucesso!');
+        
+        this.reset();
+        document.getElementById('dataReferencia').valueAsDate = new Date();
+    });
+
+    // Calcular total geral na inicialização
+    calcularTotalGeral();
+});
+
+// Funções de cálculo
+function calcularTotal(elemento) {
+    const row = elemento.closest('tr');
+    const quantidade = row.querySelector('.quantidade-input').value || 0;
+    const valor = row.querySelector('.valor-input').value || 0;
+    const total = quantidade * valor;
+    
+    row.querySelector('.valor-total').textContent = formatarMoeda(total);
+    
+    // Atualizar total geral
+    calcularTotalGeral();
+}
+
+function calcularTotalGeral() {
+    let totalQuantidade = 0;
+    let totalValor = 0;
+    
+    document.querySelectorAll('.inventario-row').forEach(row => {
+        const quantidade = parseInt(row.querySelector('.quantidade-input').value) || 0;
+        const valorUnitario = parseFloat(row.querySelector('.valor-input').value) || 0;
+        
+        totalQuantidade += quantidade;
+        totalValor += quantidade * valorUnitario;
+    });
+    
+    document.querySelector('.total-quantidade').textContent = totalQuantidade;
+    document.querySelector('.table-footer .text-sage').textContent = formatarMoeda(totalValor);
+}
+
+// Funções de ação
+function salvarLinha(botao) {
+    const row = botao.closest('tr');
+    
+    // Animação de sucesso
+    row.style.backgroundColor = 'rgba(40, 167, 69, 0.1)';
+    setTimeout(() => {
+        row.style.backgroundColor = '';
+    }, 1000);
+    
+    mostrarSucesso('Linha salva com sucesso!');
+}
+
+function limparLinha(botao) {
+    const row = botao.closest('tr');
+    
+    if (confirm('Deseja realmente limpar esta linha?')) {
+        row.querySelector('.quantidade-input').value = 0;
+        row.querySelector('.valor-input').value = 0;
+        calcularTotal(row.querySelector('.quantidade-input'));
+        
+        mostrarInfo('Linha limpa.');
+    }
+}
+
+function salvarTudo() {
+    if (confirm('Salvar todo o inventário?')) {
+        // Animação geral
+        document.querySelectorAll('.inventario-row').forEach(row => {
+            row.style.backgroundColor = 'rgba(40, 167, 69, 0.1)';
+        });
+        
+        setTimeout(() => {
+            document.querySelectorAll('.inventario-row').forEach(row => {
+                row.style.backgroundColor = '';
+            });
+        }, 1500);
+        
+        mostrarSucesso('Inventário completo salvo com sucesso!');
+    }
+}
+
+// Filtros
+function filtrarTabela() {
+    const categoria = document.getElementById('filtroCategoria').value;
+    const sexo = document.getElementById('filtroSexo').value;
+    const busca = document.getElementById('buscaInventario').value.toLowerCase();
+    
+    document.querySelectorAll('.inventario-row').forEach(row => {
+        const rowCategoria = row.getAttribute('data-categoria');
+        const rowSexo = row.getAttribute('data-sexo');
+        const rowTexto = row.textContent.toLowerCase();
+        
+        const categoriaMatch = !categoria || rowCategoria === categoria;
+        const sexoMatch = !sexo || rowSexo === sexo;
+        const buscaMatch = !busca || rowTexto.includes(busca);
+        
+        row.style.display = (categoriaMatch && sexoMatch && buscaMatch) ? '' : 'none';
+    });
+}
+
+function limparFiltros() {
+    document.getElementById('filtroCategoria').value = '';
+    document.getElementById('filtroSexo').value = '';
+    document.getElementById('buscaInventario').value = '';
+    filtrarTabela();
+}
+
+// Ações rápidas
+function zerarCategoria() {
+    const categoria = prompt('Digite o nome da categoria para zerar:');
+    if (categoria) {
+        mostrarInfo(`Categoria "${categoria}" zerada.`);
+    }
+}
+
+function duplicarInventario() {
+    mostrarInfo('Funcionalidade de duplicação será implementada.');
+}
+
+function avaliarRebanho() {
+    if (confirm('Reavaliar todo o rebanho com valores de mercado atuais?')) {
+        mostrarSucesso('Reavaliação iniciada. Valores serão atualizados em breve.');
+    }
+}
+
+function historicoInventario() {
+    mostrarInfo('Abrindo histórico de inventários...');
+}
+
+function exportarInventario() {
+    mostrarSucesso('Exportação Excel iniciada. Download será feito automaticamente.');
+}
+
+function importarInventario() {
+    mostrarInfo('Funcionalidade de importação será implementada.');
+}
+
+function gerarRelatorio() {
+    mostrarSucesso('Gerando relatório PDF do inventário...');
+}
+
+// Utilitários
+function formatarMoeda(valor) {
+    return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+    }).format(valor);
+}
+
+function mostrarSucesso(mensagem) {
+    const alert = criarAlerta('success', mensagem);
+    document.querySelector('.container-fluid').prepend(alert);
+}
+
+function mostrarInfo(mensagem) {
+    const alert = criarAlerta('info', mensagem);
+    document.querySelector('.container-fluid').prepend(alert);
+}
+
+function criarAlerta(tipo, mensagem) {
+    const alert = document.createElement('div');
+    alert.className = `alert alert-${tipo} alert-dismissible fade show`;
+    alert.innerHTML = `
+        ${mensagem}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    setTimeout(() => {
+        if (alert.parentNode) {
+            alert.remove();
+        }
+    }, 4000);
+    
+    return alert;
+}
+</script>
+{% endblock %}

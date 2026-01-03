@@ -1,0 +1,128 @@
+{% extends "base_modulos_unificado.html" %}
+{% load formatacao_br %}
+
+{% block title %}Touros - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'reproducao_dashboard' propriedade.id %}">Reprodução</a></li>
+            <li class="breadcrumb-item active">Touros</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h2 class="mb-1"><i class="bi bi-bull text-success me-2"></i>Touros da Propriedade</h2>
+            <p class="text-muted mb-0">{{ propriedade.nome_propriedade }}</p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{% url 'reproducao_dashboard' propriedade.id %}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left me-1"></i>Voltar ao Dashboard
+            </a>
+            <a href="{% url 'touro_novo' propriedade.id %}" class="btn btn-success btn-sm">
+                <i class="bi bi-plus-circle me-1"></i>Novo Touro
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-md-4 col-lg-3">
+            <div class="card border-success h-100">
+                <div class="card-body">
+                    <h6 class="text-muted text-uppercase small mb-3">Resumo</h6>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Total cadastrados</span>
+                        <strong>{{ total_touros|numero_br }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Aptos</span>
+                        <span class="badge bg-success">{{ touros_aptos|length|numero_br }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Inaptos</span>
+                        <span class="badge bg-danger">{{ touros_inaptos|length|numero_br }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8 col-lg-9">
+            <div class="card">
+                <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-list-ul me-2"></i>Lista de Touros</h5>
+                    <span class="badge bg-light text-success">{{ total_touros }} registros</span>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Brinco</th>
+                                    <th>Nome</th>
+                                    <th>Raça</th>
+                                    <th>Origem</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Serviços</th>
+                                    <th class="text-end">Prenhezes</th>
+                                    <th class="text-end">Taxa Prenhez</th>
+                                    <th class="text-end">Avaliação</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for touro in touros %}
+                                <tr>
+                                    <td class="fw-bold">{{ touro.numero_brinco }}</td>
+                                    <td>{{ touro.nome|default:"-" }}</td>
+                                    <td>{{ touro.raca|default:"-" }}</td>
+                                    <td>{{ touro.get_propriedade_touro_display }}</td>
+                                    <td>
+                                        {% if touro.status == "APTO" %}
+                                            <span class="badge bg-success">{{ touro.get_status_display }}</span>
+                                        {% elif touro.status == "INAPTO" %}
+                                            <span class="badge bg-danger">{{ touro.get_status_display }}</span>
+                                        {% elif touro.status == "EM_TRATAMENTO" %}
+                                            <span class="badge bg-warning text-dark">{{ touro.get_status_display }}</span>
+                                        {% elif touro.status == "AFASTADO" %}
+                                            <span class="badge bg-secondary">{{ touro.get_status_display }}</span>
+                                        {% else %}
+                                            <span class="badge bg-dark">{{ touro.get_status_display }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">{{ touro.numero_servicos|numero_br }}</td>
+                                    <td class="text-end">{{ touro.numero_prenhezes|numero_br }}</td>
+                                    <td class="text-end">
+                                        {% if touro.taxa_prenhez %}
+                                            {{ touro.taxa_prenhez|percentual_br:1 }}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        {% if touro.data_ultima_avaliacao %}
+                                            {{ touro.data_ultima_avaliacao|date:"d/m/Y" }}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="9" class="text-center text-muted py-4">
+                                        Ainda não existem touros cadastrados para esta propriedade.
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

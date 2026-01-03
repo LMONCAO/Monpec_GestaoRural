@@ -1,0 +1,91 @@
+{% extends 'base_modulos_unificado.html' %}
+
+{% block title %}Categorias Financeiras - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block breadcrumb_extra %}
+    <li class="breadcrumb-item">
+        <a href="{% url 'financeiro_dashboard' propriedade.id %}">
+            <i class="bi bi-cash-coin me-1"></i>Financeiro
+        </a>
+    </li>
+    <li class="breadcrumb-item active">Categorias</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="submenu-page-header">
+        <div class="d-flex align-items-start gap-4">
+            <div class="submenu-page-icon bg-primary bg-opacity-10 text-primary">
+                <i class="bi bi-tags"></i>
+            </div>
+            <div class="flex-grow-1">
+                <h1 class="submenu-page-title mb-1">Categorias Financeiras</h1>
+                <p class="submenu-page-description mb-0">
+                    Organize suas receitas, despesas e transferências em categorias configuráveis.
+                </p>
+            </div>
+            <div>
+                <a href="{{ url_novo }}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-1"></i> Nova Categoria
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="card-moderno">
+        <div class="card-body-moderno">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Tipo</th>
+                            <th>Categoria Pai</th>
+                            <th>Status</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if categorias %}
+                            {% for categoria in categorias %}
+                                <tr>
+                                    <td>
+                                        <span class="badge rounded-pill" style="background-color: {{ categoria.cor|default:'#f5f5f5' }}; color: #333;">
+                                            {{ categoria.nome }}
+                                        </span>
+                                    </td>
+                                    <td>{{ categoria.get_tipo_display }}</td>
+                                    <td>{{ categoria.categoria_pai.nome|default:"Raiz" }}</td>
+                                    <td>
+                                        {% if categoria.ativa %}
+                                            <span class="badge bg-success">Ativa</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Inativa</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        <a href="{% url 'financeiro_categoria_editar' propriedade.id categoria.id %}" class="btn btn-outline-secondary btn-sm">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4">
+                                    <p class="text-muted mb-0">Nenhuma categoria cadastrada ainda.</p>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+
+

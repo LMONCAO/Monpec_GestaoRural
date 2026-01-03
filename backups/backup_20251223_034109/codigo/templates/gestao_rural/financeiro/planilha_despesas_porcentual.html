@@ -1,0 +1,443 @@
+{% extends 'base_modulos_unificado.html' %}
+{% load static %}
+{% load formatacao_br %}
+
+{% block title %}Planilha de Despesas - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block breadcrumb_extra %}
+    <li class="breadcrumb-item"><a href="{% url 'financeiro_dashboard' propriedade.id %}">Financeiro</a></li>
+    <li class="breadcrumb-item active">Planilha de Despesas</li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .planilha-container {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+    }
+    .planilha-table {
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    .planilha-table thead {
+        background: #0d6efd;
+        color: white;
+    }
+    .planilha-table thead th {
+        border: none;
+        padding: 15px;
+        font-weight: 600;
+    }
+    .planilha-table tbody td {
+        padding: 15px;
+        vertical-align: middle;
+    }
+    .planilha-table tbody tr:hover {
+        background: #f8f9fa;
+    }
+    .input-porcentual {
+        width: 100px;
+        text-align: center;
+        font-weight: 600;
+        font-size: 1.1rem;
+        border: 2px solid #0d6efd;
+        border-radius: 6px;
+        padding: 8px;
+    }
+    .input-porcentual:focus {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+    }
+    .valor-calculado {
+        font-weight: 600;
+        font-size: 1.05rem;
+        color: #198754;
+    }
+    .resumo-box {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .resumo-valor {
+        font-size: 1.8rem;
+        font-weight: bold;
+        margin-top: 10px;
+    }
+    .saldo-positivo {
+        color: #198754;
+    }
+    .saldo-negativo {
+        color: #dc3545;
+    }
+    .grupo-nome {
+        font-weight: 600;
+        font-size: 1.05rem;
+        color: #212529;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>
+            <i class="bi bi-calculator me-2"></i>
+            Planilha de Despesas por Percentual
+        </h2>
+        <a href="{% url 'financeiro_dashboard' propriedade.id %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left me-1"></i>
+            Voltar
+        </a>
+    </div>
+
+    <!-- Filtro de Ano e Receita -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Ano:</label>
+                    <select name="ano" class="form-select" onchange="window.location.href='?ano=' + this.value">
+                        {% for ano_opcao in anos_disponiveis %}
+                            <option value="{{ ano_opcao }}" {% if ano_opcao == ano %}selected{% endif %}>{{ ano_opcao }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Receita Anual {{ ano }}:</label>
+                    {% if receita_anual_obj %}
+                        <h4 class="mb-0 text-success">R$ {{ receita_anual|moeda_br }}</h4>
+                    {% else %}
+                        <div class="alert alert-warning mb-0 py-2">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            <strong>Não há receita cadastrada para {{ ano }}.</strong>
+                            <a href="{% url 'financeiro_receita_anual_nova' propriedade.id %}?ano={{ ano }}" class="alert-link">Cadastrar agora</a>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="col-md-3 text-end">
+                    {% if receita_anual_obj %}
+                        <a href="{% url 'financeiro_receitas_anuais' propriedade.id %}" class="btn btn-outline-primary">
+                            <i class="bi bi-pencil me-1"></i>
+                            Editar Receita
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if receita_anual_obj %}
+        <!-- Resumo Rápido -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="resumo-box">
+                    <div class="text-muted small">Total de Despesas</div>
+                    <div class="resumo-valor text-danger" id="total-despesas-display">
+                        R$ {{ total_despesas|moeda_br }}
+                    </div>
+                    <div class="text-muted small mt-2" id="total-porcentagem-display">
+                        {{ total_porcentagem|floatformat:2 }}% da receita
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="resumo-box">
+                    <div class="text-muted small">Saldo Disponível</div>
+                    <div class="resumo-valor {% if saldo_disponivel >= 0 %}saldo-positivo{% else %}saldo-negativo{% endif %}" id="saldo-disponivel-display">
+                        R$ {{ saldo_disponivel|moeda_br }}
+                    </div>
+                    <div class="text-muted small mt-2" id="porcentagem-disponivel-display">
+                        {{ porcentagem_disponivel|floatformat:2 }}% disponível
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="resumo-box">
+                    <div class="text-muted small">Ações</div>
+                    <button type="button" class="btn btn-primary w-100 mt-3" onclick="gerarLancamentos()">
+                        <i class="bi bi-file-earmark-plus me-1"></i>
+                        Gerar Lançamentos Financeiros
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Planilha Simplificada -->
+        <div class="planilha-container">
+            <div class="planilha-table">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th style="width: 40%;">Grupo de Despesa</th>
+                            <th style="width: 15%;" class="text-center">Percentual (%)</th>
+                            <th style="width: 22%;" class="text-end">Valor Anual (R$)</th>
+                            <th style="width: 23%;" class="text-end">Valor Mensal (R$)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in grupos_com_despesas %}
+                            <tr data-despesa-id="{{ item.despesa.id }}">
+                                <td>
+                                    <span class="grupo-nome">{{ item.grupo.nome }}</span>
+                                </td>
+                                <td class="text-center">
+                                    <input type="number" 
+                                           class="form-control input-porcentual porcentual-input" 
+                                           value="{{ item.porcentagem_atual|floatformat:2 }}" 
+                                           min="0" 
+                                           max="100" 
+                                           step="0.01"
+                                           data-despesa-id="{{ item.despesa.id }}"
+                                           data-receita="{{ receita_anual }}"
+                                           data-ano="{{ ano }}">
+                                </td>
+                                <td class="text-end valor-calculado valor-anual-{{ item.despesa.id }}">
+                                    R$ {{ item.valor_anual|moeda_br }}
+                                </td>
+                                <td class="text-end valor-calculado valor-mensal-{{ item.despesa.id }}">
+                                    R$ {{ item.valor_mensal|moeda_br }}
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted py-4">
+                                    Nenhum grupo de despesa encontrado. 
+                                    <a href="{% url 'financeiro_despesas_grupos' propriedade.id %}">Crie grupos de despesas primeiro</a>.
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="table-primary">
+                            <th class="text-end">TOTAL:</th>
+                            <th class="text-center total-porcentagem">{{ total_porcentagem|floatformat:2 }}%</th>
+                            <th class="text-end total-despesas">R$ {{ total_despesas|moeda_br }}</th>
+                            <th class="text-end total-mensal" id="total-mensal-footer">R$ {{ total_mensal|moeda_br }}</th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        <!-- Modal para Gerar Lançamentos -->
+        <div class="modal fade" id="modalGerarLancamentos" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Gerar Lançamentos Financeiros</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form method="post" action="{% url 'financeiro_gerar_lancamentos_planilha' propriedade.id %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="ano" value="{{ ano }}">
+                        <div class="modal-body">
+                            <p>Deseja gerar os lançamentos financeiros para o ano {{ ano }}?</p>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" name="criar_receita" id="criar_receita" checked>
+                                <label class="form-check-label" for="criar_receita">
+                                    Criar lançamento de receita anual (R$ {{ receita_anual|moeda_br }})
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="criar_despesas" id="criar_despesas" checked>
+                                <label class="form-check-label" for="criar_despesas">
+                                    Criar lançamentos mensais de despesas (12 lançamentos por despesa)
+                                </label>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-file-earmark-plus me-1"></i>
+                                Gerar Lançamentos
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Obter token CSRF
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    const csrftoken = getCookie('csrftoken');
+    
+    const receitaAnual = parseFloat({{ receita_anual }});
+    const ano = {{ ano }};
+    const urlAtualizar = "{% url 'financeiro_atualizar_porcentual_ajax' propriedade.id %}";
+
+    // Função para formatar moeda brasileira
+    function formatarMoeda(valor) {
+        return valor.toLocaleString('pt-BR', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
+
+    // Atualizar valores quando o percentual mudar
+    document.querySelectorAll('.porcentual-input').forEach(input => {
+        let timeout;
+        input.addEventListener('input', function() {
+            clearTimeout(timeout);
+            const despesaId = this.dataset.despesaId;
+            const porcentagem = parseFloat(this.value) || 0;
+            
+            // Atualização visual imediata
+            const valorAnual = (receitaAnual * porcentagem) / 100;
+            const valorMensal = valorAnual / 12;
+            
+            document.querySelector(`.valor-anual-${despesaId}`).textContent = 
+                'R$ ' + formatarMoeda(valorAnual);
+            document.querySelector(`.valor-mensal-${despesaId}`).textContent = 
+                'R$ ' + formatarMoeda(valorMensal);
+            
+            // Recalcular totais
+            recalcularTotais();
+            
+            // Salvar no servidor após 1 segundo de inatividade
+            timeout = setTimeout(() => {
+                salvarPorcentual(despesaId, porcentagem);
+            }, 1000);
+        });
+    });
+
+    function recalcularTotais() {
+        let totalPorcentagem = 0;
+        let totalDespesas = 0;
+        
+        document.querySelectorAll('.porcentual-input').forEach(input => {
+            const porcentagem = parseFloat(input.value) || 0;
+            totalPorcentagem += porcentagem;
+            totalDespesas += (receitaAnual * porcentagem) / 100;
+        });
+        
+        const totalMensal = totalDespesas / 12;
+        const saldoDisponivel = receitaAnual - totalDespesas;
+        const porcentagemDisponivel = 100 - totalPorcentagem;
+        
+        // Atualizar totais na tabela
+        document.querySelector('.total-porcentagem').textContent = totalPorcentagem.toFixed(2) + '%';
+        document.querySelector('.total-despesas').textContent = 'R$ ' + formatarMoeda(totalDespesas);
+        document.getElementById('total-mensal-footer').textContent = 'R$ ' + formatarMoeda(totalMensal);
+        
+        // Atualizar resumo
+        document.getElementById('total-despesas-display').textContent = 'R$ ' + formatarMoeda(totalDespesas);
+        document.getElementById('total-porcentagem-display').textContent = totalPorcentagem.toFixed(2) + '% da receita';
+        document.getElementById('saldo-disponivel-display').textContent = 'R$ ' + formatarMoeda(saldoDisponivel);
+        document.getElementById('porcentagem-disponivel-display').textContent = porcentagemDisponivel.toFixed(2) + '% disponível';
+        
+        // Atualizar cor do saldo
+        const saldoElement = document.getElementById('saldo-disponivel-display');
+        if (saldoDisponivel >= 0) {
+            saldoElement.className = 'resumo-valor saldo-positivo';
+        } else {
+            saldoElement.className = 'resumo-valor saldo-negativo';
+        }
+    }
+
+    function salvarPorcentual(despesaId, porcentagem) {
+        const formData = new FormData();
+        formData.append('despesa_id', despesaId);
+        formData.append('porcentagem', porcentagem);
+        formData.append('ano', ano);
+        
+        fetch(urlAtualizar, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': csrftoken
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.sucesso) {
+                // Atualizar valores com os dados do servidor
+                if (data.valor_anual) {
+                    document.querySelector(`.valor-anual-${despesaId}`).textContent = 
+                        'R$ ' + formatarMoeda(parseFloat(data.valor_anual));
+                }
+                if (data.valor_mensal) {
+                    document.querySelector(`.valor-mensal-${despesaId}`).textContent = 
+                        'R$ ' + formatarMoeda(parseFloat(data.valor_mensal));
+                }
+                
+                // Atualizar totais com valores do servidor
+                if (data.total_porcentagem !== undefined) {
+                    document.querySelector('.total-porcentagem').textContent = 
+                        parseFloat(data.total_porcentagem).toFixed(2) + '%';
+                }
+                if (data.total_despesas !== undefined) {
+                    const totalDespesas = parseFloat(data.total_despesas);
+                    document.querySelector('.total-despesas').textContent = 
+                        'R$ ' + formatarMoeda(totalDespesas);
+                    document.getElementById('total-mensal-footer').textContent = 
+                        'R$ ' + formatarMoeda(totalDespesas / 12);
+                    document.getElementById('total-despesas-display').textContent = 
+                        'R$ ' + formatarMoeda(totalDespesas);
+                    document.getElementById('total-porcentagem-display').textContent = 
+                        parseFloat(data.total_porcentagem || 0).toFixed(2) + '% da receita';
+                }
+                if (data.saldo_disponivel !== undefined) {
+                    const saldoDisponivel = parseFloat(data.saldo_disponivel);
+                    document.getElementById('saldo-disponivel-display').textContent = 
+                        'R$ ' + formatarMoeda(saldoDisponivel);
+                    document.getElementById('porcentagem-disponivel-display').textContent = 
+                        parseFloat(data.porcentagem_disponivel || 0).toFixed(2) + '% disponível';
+                    
+                    // Atualizar cor do saldo
+                    const saldoElement = document.getElementById('saldo-disponivel-display');
+                    if (saldoDisponivel >= 0) {
+                        saldoElement.className = 'resumo-valor saldo-positivo';
+                    } else {
+                        saldoElement.className = 'resumo-valor saldo-negativo';
+                    }
+                }
+                
+                // Feedback visual no input
+                const input = document.querySelector(`.porcentual-input[data-despesa-id="${despesaId}"]`);
+                if (input) {
+                    input.classList.add('border-success');
+                    setTimeout(() => input.classList.remove('border-success'), 2000);
+                }
+            } else {
+                console.error('Erro do servidor:', data);
+                alert('Erro ao salvar: ' + (data.erro || 'Erro desconhecido'));
+            }
+        })
+        .catch(error => {
+            console.error('Erro na requisição:', error);
+            alert('Erro ao salvar. Verifique o console para mais detalhes.');
+        });
+    }
+
+    function gerarLancamentos() {
+        const modal = new bootstrap.Modal(document.getElementById('modalGerarLancamentos'));
+        modal.show();
+    }
+</script>
+{% endblock %}

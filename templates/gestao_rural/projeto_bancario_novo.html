@@ -1,0 +1,187 @@
+{% extends 'gestao_rural/submenu_page_base.html' %}
+
+{% block title %}Novo Projeto Bancário - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% with module_name='Projetos Bancários' module_icon='bi-clipboard-data' module_dashboard_url='projeto_bancario_dashboard' page_icon='bi-plus-circle' page_title='Novo Projeto Bancário' %}
+{% endwith %}
+
+{% block page_description %}
+Cadastro de um novo projeto bancário. Vincule a uma projeção para avaliar cenários.
+{% endblock %}
+
+{% block page_content %}
+{% if planejamento_vinculado %}
+<div class="alert alert-info mb-4">
+    <i class="bi bi-info-circle me-2"></i>
+    <strong>Projeção Vinculada:</strong> {{ planejamento_vinculado.codigo }} - {{ planejamento_vinculado.ano }}
+    <br>
+    <small>Esta projeção será vinculada ao projeto bancário para avaliação de cenários.</small>
+</div>
+{% endif %}
+
+<form method="post" enctype="multipart/form-data" class="content-card">
+    <div class="content-card-header"><strong>Dados do projeto</strong></div>
+    <div class="content-card-body">
+        {% csrf_token %}
+        
+        <!-- Busca por Código da Projeção -->
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <label class="form-label">
+                    <i class="bi bi-search me-2"></i>Buscar Projeção por Código (opcional)
+                </label>
+                <div class="input-group">
+                    <input type="text" 
+                           class="form-control" 
+                           id="codigo_projecao_busca"
+                           placeholder="Ex: PROJ-2025-0001"
+                           style="text-transform: uppercase;">
+                    <button type="button" 
+                            class="btn btn-outline-secondary" 
+                            onclick="buscarProjecaoPorCodigo()">
+                        <i class="bi bi-search"></i> Buscar
+                    </button>
+                </div>
+                <small class="form-text text-muted">
+                    Digite o código da projeção para vincular automaticamente ao projeto bancário.
+                </small>
+            </div>
+        </div>
+        
+        <!-- Campo Planejamento com visual melhorado -->
+        <div class="row mb-3">
+            <div class="col-md-12">
+                <label for="{{ form.planejamento.id_for_label }}" class="form-label">
+                    <i class="bi bi-calendar-check me-2"></i>{{ form.planejamento.label }}
+                </label>
+                {{ form.planejamento }}
+                {% if form.planejamento.help_text %}
+                    <small class="form-text text-muted">{{ form.planejamento.help_text }}</small>
+                {% endif %}
+                {% if form.planejamento.errors %}
+                    <div class="text-danger">{{ form.planejamento.errors }}</div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Informação da Projeção Selecionada -->
+        <div id="info-projecao" class="alert alert-light d-none mb-3">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-check-circle text-success me-2"></i>
+                <div>
+                    <strong>Projeção selecionada:</strong>
+                    <span id="codigo-projecao" class="badge bg-primary ms-2"></span>
+                    <span id="ano-projecao" class="ms-2"></span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Demais campos do formulário -->
+        {% for field in form %}
+            {% if field.name != 'planejamento' %}
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}
+                        <small class="form-text text-muted">{{ field.help_text }}</small>
+                    {% endif %}
+                    {% if field.errors %}
+                        <div class="text-danger">{{ field.errors }}</div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+    <div class="content-card-body pt-0">
+        <button type="submit" class="btn btn-primary"><i class="bi bi-check2"></i> Salvar</button>
+        <a href="{% url 'projeto_bancario_dashboard' propriedade.id %}" class="btn btn-light">Cancelar</a>
+    </div>
+</form>
+
+<script>
+function buscarProjecaoPorCodigo() {
+    const codigo = document.getElementById('codigo_projecao_busca').value.trim().toUpperCase();
+    if (!codigo) {
+        alert('Digite o código da projeção');
+        return;
+    }
+    
+    // Buscar projeção via AJAX
+    fetch(`/propriedade/{{ propriedade.id }}/pecuaria/cenarios/?codigo=${codigo}`)
+        .then(response => response.text())
+        .then(html => {
+            // Extrair ID do planejamento do HTML ou fazer busca direta
+            buscarPlanejamentoPorCodigo(codigo);
+        })
+        .catch(error => {
+            console.error('Erro ao buscar projeção:', error);
+            buscarPlanejamentoPorCodigo(codigo);
+        });
+}
+
+function buscarPlanejamentoPorCodigo(codigo) {
+    const selectPlanejamento = document.getElementById('{{ form.planejamento.id_for_label }}');
+    
+    // Buscar via API
+    fetch(`/propriedade/{{ propriedade.id }}/api/buscar-planejamento-por-codigo/?codigo=${codigo}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert('Erro: ' + data.error);
+                return;
+            }
+            
+            // Selecionar o planejamento encontrado
+            selectPlanejamento.value = data.id;
+            selectPlanejamento.dispatchEvent(new Event('change'));
+            
+            // Mostrar informação
+            const infoDiv = document.getElementById('info-projecao');
+            document.getElementById('codigo-projecao').textContent = data.codigo;
+            document.getElementById('ano-projecao').textContent = `${data.ano} - ${data.status_display}`;
+            infoDiv.classList.remove('d-none');
+            
+            // Limpar campo de busca
+            document.getElementById('codigo_projecao_busca').value = '';
+        })
+        .catch(error => {
+            console.error('Erro ao buscar planejamento:', error);
+            alert('Erro ao buscar projeção. Verifique se o código está correto.');
+        });
+}
+
+// Atualizar informação quando selecionar no dropdown
+document.getElementById('{{ form.planejamento.id_for_label }}').addEventListener('change', function() {
+    const selectedOption = this.options[this.selectedIndex];
+    const infoDiv = document.getElementById('info-projecao');
+    
+    if (this.value && selectedOption.text) {
+        // Extrair código e ano do texto da opção
+        const texto = selectedOption.text;
+        const match = texto.match(/(PROJ-\d+-\d+)/);
+        
+        if (match) {
+            document.getElementById('codigo-projecao').textContent = match[1];
+            document.getElementById('ano-projecao').textContent = texto;
+            infoDiv.classList.remove('d-none');
+        } else {
+            infoDiv.classList.add('d-none');
+        }
+    } else {
+        infoDiv.classList.add('d-none');
+    }
+});
+
+// Verificar se já há um planejamento selecionado ao carregar
+window.addEventListener('DOMContentLoaded', function() {
+    const selectPlanejamento = document.getElementById('{{ form.planejamento.id_for_label }}');
+    if (selectPlanejamento && selectPlanejamento.value) {
+        selectPlanejamento.dispatchEvent(new Event('change'));
+    }
+});
+</script>
+{% endblock %}
+
+

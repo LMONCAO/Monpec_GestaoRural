@@ -1,0 +1,80 @@
+{% extends 'base_navegacao_inteligente.html' %}
+{% load formatacao_br %}
+
+{% block title %}Excluir Custo Variável - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item">
+    <a href="{% url 'custos_dashboard' propriedade.id %}">Financeiro</a>
+</li>
+<li class="breadcrumb-item">
+    <a href="{% url 'custos_variaveis_lista' propriedade.id %}">Custos Variáveis</a>
+</li>
+<li class="breadcrumb-item active">Excluir</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card-moderno">
+                <div class="card-header-moderno bg-danger text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-exclamation-triangle"></i> Confirmar Exclusão
+                    </h5>
+                </div>
+                <div class="card-body-moderno">
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <strong>Atenção!</strong> Esta ação não pode ser desfeita.
+                    </div>
+                    
+                    <p class="mb-4">Tem certeza que deseja excluir este custo variável?</p>
+                    
+                    <div class="card bg-light mb-4">
+                        <div class="card-body">
+                            <h6><strong>{{ custo.nome_custo }}</strong></h6>
+                            <p class="mb-1"><strong>Tipo:</strong> {{ custo.get_tipo_custo_display }}</p>
+                            <p class="mb-1"><strong>Valor por Cabeça:</strong> {{ custo.valor_por_cabeca|moeda_br }}</p>
+                            <p class="mb-0"><strong>Status:</strong> 
+                                {% if custo.ativo %}
+                                    <span class="badge bg-success">Ativo</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Inativo</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <form method="POST">
+                        {% csrf_token %}
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn-moderno btn-danger flex-fill">
+                                <i class="bi bi-trash"></i> Sim, Excluir
+                            </button>
+                            <a href="{% url 'custos_variaveis_lista' propriedade.id %}" class="btn-moderno btn-outline-secondary flex-fill">
+                                <i class="bi bi-x-circle"></i> Cancelar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

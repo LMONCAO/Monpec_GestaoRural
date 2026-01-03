@@ -1,0 +1,130 @@
+{% extends "gestao_rural/base.html" %}
+{% load static %}
+
+{% block title %}Editar Post{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3 mb-0">📝 Editar Post</h1>
+            <p class="text-muted">{{ post.titulo }}</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.titulo.id_for_label }}" class="form-label">Título</label>
+                            {{ form.titulo }}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.conteudo_final.id_for_label }}" class="form-label">Conteúdo</label>
+                            {{ form.conteudo_final }}
+                            <small class="form-text text-muted">Edite o conteúdo do post antes de publicar</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.hashtags_final.id_for_label }}" class="form-label">Hashtags</label>
+                            {{ form.hashtags_final }}
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.rede_social.id_for_label }}" class="form-label">Rede Social</label>
+                                {{ form.rede_social }}
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.tipo_post.id_for_label }}" class="form-label">Tipo</label>
+                                {{ form.tipo_post }}
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.status.id_for_label }}" class="form-label">Status</label>
+                                {{ form.status }}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.agendar_para.id_for_label }}" class="form-label">Agendar Para (Opcional)</label>
+                            {{ form.agendar_para }}
+                        </div>
+                        
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> Salvar
+                            </button>
+                            <a href="{% url 'marketing_posts' %}" class="btn btn-secondary">Cancelar</a>
+                            <a href="{% url 'marketing_post_delete' post.id %}" class="btn btn-danger ms-auto" onclick="return confirm('Tem certeza que deseja deletar este post?')">
+                                <i class="bi bi-trash"></i> Deletar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">📋 Informações</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Criado por:</strong><br>{{ post.criado_por|default:"Sistema" }}</p>
+                    <p><strong>Criado em:</strong><br>{{ post.criado_em|date:"d/m/Y H:i" }}</p>
+                    {% if post.template %}
+                    <p><strong>Template:</strong><br>{{ post.template.nome }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="card border-0 shadow-sm mt-3">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">📱 Preview</h5>
+                </div>
+                <div class="card-body">
+                    <div class="bg-light p-3 rounded" style="white-space: pre-wrap; font-family: system-ui;">{{ post.conteudo_final }}</div>
+                    <div class="mt-2">
+                        <small class="text-muted">{{ post.hashtags_final }}</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

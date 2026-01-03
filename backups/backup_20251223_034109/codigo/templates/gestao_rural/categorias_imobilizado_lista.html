@@ -1,0 +1,103 @@
+{% extends 'base_navegacao_inteligente.html' %}
+{% load formatacao_br %}
+
+{% block title %}Categorias de Imobilizado{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item">
+    <a href="{% url 'dashboard' %}">Dashboard</a>
+</li>
+<li class="breadcrumb-item active">Categorias de Imobilizado</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Cabeçalho -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">
+                        <i class="bi bi-grid"></i> Categorias de Imobilizado
+                    </h2>
+                    <p class="text-muted mb-0">Gerenciar categorias de bens patrimoniais</p>
+                </div>
+                <div>
+                    <a href="{% url 'categoria_imobilizado_nova' %}" class="btn-moderno">
+                        <i class="bi bi-plus-circle"></i> Nova Categoria
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de Categorias -->
+    <div class="card-moderno">
+        <div class="card-header-moderno">
+            <h5 class="mb-0"><i class="bi bi-list-ul"></i> Lista de Categorias</h5>
+        </div>
+        <div class="card-body-moderno">
+            {% if categorias %}
+            <div class="table-responsive">
+                <table class="table table-moderno">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Vida Útil (anos)</th>
+                            <th>Taxa Depreciação</th>
+                            <th>Descrição</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for categoria in categorias %}
+                        <tr>
+                            <td><strong>{{ categoria.nome }}</strong></td>
+                            <td>{{ categoria.vida_util_anos|numero_br:0 }}</td>
+                            <td>{{ categoria.taxa_depreciacao|percentual_br:2 }}</td>
+                            <td>{{ categoria.descricao|truncatechars:50|default:"-" }}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'categoria_imobilizado_editar' categoria.id %}" 
+                                       class="btn btn-outline-primary" title="Editar">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="{% url 'categoria_imobilizado_excluir' categoria.id %}" 
+                                       class="btn btn-outline-danger" title="Excluir">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-inbox" style="font-size: 3rem; color: #ccc;"></i>
+                <p class="text-muted mt-3">Nenhuma categoria cadastrada</p>
+                <a href="{% url 'categoria_imobilizado_nova' %}" class="btn-moderno">
+                    <i class="bi bi-plus-circle"></i> Criar Primeira Categoria
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

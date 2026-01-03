@@ -1,0 +1,236 @@
+{% extends 'base_navegacao_inteligente.html' %}
+
+{% block title %}Propriedades de {{ produtor.nome }} - MONPEC{% endblock %}
+
+{% block breadcrumb_extra %}
+<li class="breadcrumb-item active">Propriedades</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Cabeçalho -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card card-modulo card-agricultura">
+                <div class="card-header-colorido card-header">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h3 class="mb-0">
+                                <i class="bi bi-house-door"></i> Propriedades de {{ produtor.nome }}
+                            </h3>
+                            <p class="mb-0 mt-2">Selecione uma propriedade para acessar os módulos</p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <a href="{% url 'admin:gestao_rural_propriedade_add' %}?produtor={{ produtor.id }}" 
+                               class="btn btn-modulo-agricultura">
+                                <i class="bi bi-plus-circle"></i> Nova Propriedade
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert informativo -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="alert alert-info d-flex align-items-center">
+                <i class="bi bi-info-circle me-2"></i>
+                <div>
+                    <strong>Como funciona:</strong> 
+                    Clique em "Acessar Módulos" de uma propriedade para habilitar o menu lateral colorido com todos os módulos.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de Propriedades -->
+    <div class="row">
+        {% for propriedade in propriedades %}
+        <div class="col-lg-6 col-xl-4 mb-4">
+            <div class="card card-modulo card-patrimonio h-100">
+                <div class="card-header-colorido card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-0">
+                            <i class="bi bi-geo-alt-fill"></i> {{ propriedade.nome }}
+                        </h6>
+                        <small class="text-muted">ID: #{{ propriedade.id }}</small>
+                    </div>
+                    <span class="badge bg-success">Ativa</span>
+                </div>
+                
+                <div class="card-body">
+                    <!-- Estatísticas Visuais -->
+                    <div class="row text-center mb-3">
+                        <div class="col-6">
+                            <div class="border-end pe-2">
+                                <div class="h5 mb-0 text-info">{{ propriedade.area_total|default:"0" }}</div>
+                                <small class="text-muted">Hectares</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="ps-2">
+                                <div class="h5 mb-0 text-success">{{ propriedade.total_animais|default:"0" }}</div>
+                                <small class="text-muted">Animais</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Detalhes Completos -->
+                    <div class="mb-3">
+                        {% if propriedade.localizacao %}
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="bi bi-map text-muted me-2"></i>
+                            <span class="small">{{ propriedade.localizacao }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        {% if propriedade.tipo_propriedade %}
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="bi bi-house text-muted me-2"></i>
+                            <span class="small">Tipo: {{ propriedade.get_tipo_propriedade_display|default:propriedade.tipo_propriedade }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        {% if propriedade.situacao_posse %}
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="bi bi-file-text text-muted me-2"></i>
+                            <span class="small">Posse: {{ propriedade.get_situacao_posse_display|default:propriedade.situacao_posse }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-calendar text-muted me-2"></i>
+                            <span class="small">Cadastro: {{ propriedade.data_cadastro|date:"d/m/Y" }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Valor Total -->
+                    {% if propriedade.valor_total %}
+                    <div class="text-center mb-3">
+                        <div class="p-2 bg-light rounded">
+                            <div class="small text-muted">Valor Total</div>
+                            <div class="h5 mb-0 text-success">R$ {{ propriedade.valor_total|default:"0" }}</div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Módulos Disponíveis Preview -->
+                    <div class="mb-3">
+                        <div class="small text-muted mb-2">Módulos disponíveis:</div>
+                        <div class="d-flex flex-wrap gap-1">
+                            <span class="badge" style="background-color: #28a745; color: white;">Pecuária</span>
+                            <span class="badge" style="background-color: #17a2b8; color: white;">Patrimônio</span>
+                            <span class="badge" style="background-color: #dc3545; color: white;">Financeiro</span>
+                            <span class="badge" style="background-color: #6f42c1; color: white;">Projetos</span>
+                            <span class="badge" style="background-color: #20c997; color: white;">Categorias</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-footer bg-transparent">
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <a href="{% url 'propriedade_modulos' propriedade.id %}" 
+                               class="btn btn-modulo-patrimonio w-100">
+                                <i class="bi bi-grid-3x3-gap"></i> Acessar Módulos
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="{% url 'admin:gestao_rural_propriedade_change' propriedade.id %}" 
+                               class="btn btn-outline-secondary w-100">
+                                <i class="bi bi-pencil"></i> Editar
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="card card-modulo text-center py-5">
+                <div class="card-body">
+                    <i class="bi bi-house-plus display-1 text-muted mb-3"></i>
+                    <h4>Nenhuma Propriedade Cadastrada</h4>
+                    <p class="text-muted">Cadastre a primeira propriedade para {{ produtor.nome }}</p>
+                    <a href="{% url 'admin:gestao_rural_propriedade_add' %}?produtor={{ produtor.id }}" 
+                       class="btn btn-primary btn-lg">
+                        <i class="bi bi-plus-circle"></i> Cadastrar Propriedade
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Resumo do Produtor -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card card-modulo card-relatorios">
+                <div class="card-header-colorido card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-bar-chart"></i> Resumo Geral - {{ produtor.nome }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3 mb-3 mb-md-0">
+                            <div class="border-end border-md-end-0 border-bottom border-md-bottom-0 pe-3 pb-3 pb-md-0">
+                                <div class="h4 mb-1 text-primary">{{ propriedades|length }}</div>
+                                <small class="text-muted">Total de Propriedades</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3 mb-md-0">
+                            <div class="border-end border-md-end-0 border-bottom border-md-bottom-0 pe-3 pb-3 pb-md-0">
+                                <div class="h4 mb-1 text-success">{{ area_total|default:"0" }} ha</div>
+                                <small class="text-muted">Área Total</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3 mb-md-0">
+                            <div class="border-end border-md-end-0 border-bottom border-md-bottom-0 pe-3 pb-3 pb-md-0">
+                                <div class="h4 mb-1 text-info">{{ total_animais|default:"0" }}</div>
+                                <small class="text-muted">Total de Animais</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="h4 mb-1 text-warning">R$ {{ valor_total|default:"0" }}</div>
+                            <small class="text-muted">Valor Total</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Animação nos cards ao carregar
+    const cards = document.querySelectorAll('.card-modulo');
+    cards.forEach((card, index) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        
+        setTimeout(() => {
+            card.style.transition = 'all 0.5s ease';
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+        }, index * 100);
+    });
+    
+    // Destaque no hover dos botões de acesso
+    document.querySelectorAll('[href*="propriedade_modulos"]').forEach(btn => {
+        btn.addEventListener('mouseenter', function() {
+            this.innerHTML = '<i class="bi bi-unlock"></i> ATIVAR MÓDULOS';
+        });
+        
+        btn.addEventListener('mouseleave', function() {
+            this.innerHTML = '<i class="bi bi-grid-3x3-gap"></i> Acessar Módulos';
+        });
+    });
+});
+</script>
+{% endblock %}

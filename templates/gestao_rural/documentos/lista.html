@@ -1,0 +1,296 @@
+{% extends "base_modulos_unificado.html" %}
+{% load static %}
+
+{% block title %}Documentos - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item active">Documentos</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+        <div>
+            <h2 class="mb-0"><i class="bi bi-file-earmark-pdf text-primary me-2"></i>Documentos da Propriedade</h2>
+            <small class="text-muted">{{ propriedade.nome_propriedade }}</small>
+        </div>
+        <a href="{% url 'documento_upload' propriedade.id %}" class="btn btn-primary">
+            <i class="bi bi-upload me-1"></i>Enviar Documento
+        </a>
+    </div>
+
+    {% if documentos %}
+    <div class="row">
+        {% for tipo, docs in documentos_por_tipo.items %}
+        <div class="col-12 mb-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-folder-fill me-2"></i>{{ tipo }}
+                        <span class="badge bg-light text-dark ms-2">{{ docs|length }}</span>
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Nome do Documento</th>
+                                    <th>Descrição</th>
+                                    <th>Data de Upload</th>
+                                    <th>Data de Vencimento</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for doc in docs %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ doc.nome_documento }}</strong>
+                                        {% if doc.observacoes %}
+                                        <div class="small text-muted">{{ doc.observacoes|truncatewords:10 }}</div>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ doc.descricao|default:"-"|truncatewords:10 }}</td>
+                                    <td>{{ doc.data_upload|date:"d/m/Y H:i" }}</td>
+                                    <td>
+                                        {% if doc.data_vencimento %}
+                                            {{ doc.data_vencimento|date:"d/m/Y" }}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if doc.data_vencimento %}
+                                            {% if doc.esta_vencido %}
+                                                <span class="badge bg-danger">Vencido</span>
+                                            {% elif doc.esta_proximo_vencimento %}
+                                                <span class="badge bg-warning text-dark">Próximo do Vencimento</span>
+                                            {% else %}
+                                                <span class="badge bg-success">Válido</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="badge bg-secondary">Sem Vencimento</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="btn-group" role="group">
+                                            <a href="{% url 'documento_visualizar' propriedade.id doc.id %}" 
+                                               class="btn btn-sm btn-outline-primary" 
+                                               target="_blank"
+                                               title="Visualizar">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            <a href="{% url 'documento_download' propriedade.id doc.id %}" 
+                                               class="btn btn-sm btn-outline-secondary"
+                                               title="Download">
+                                                <i class="bi bi-download"></i>
+                                            </a>
+                                            <button type="button" 
+                                                    class="btn btn-sm btn-outline-success"
+                                                    onclick="enviarEmail({{ doc.id }})"
+                                                    title="Enviar por E-mail">
+                                                <i class="bi bi-envelope"></i>
+                                            </button>
+                                            <button type="button" 
+                                                    class="btn btn-sm btn-outline-success"
+                                                    onclick="enviarWhatsApp({{ doc.id }})"
+                                                    title="Enviar por WhatsApp">
+                                                <i class="fab fa-whatsapp"></i>
+                                            </button>
+                                            <a href="{% url 'documento_editar' propriedade.id doc.id %}" 
+                                               class="btn btn-sm btn-outline-warning"
+                                               title="Editar">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <form method="post" 
+                                                  action="{% url 'documento_excluir' propriedade.id doc.id %}" 
+                                                  class="d-inline"
+                                                  onsubmit="return confirm('Tem certeza que deseja excluir este documento?');">
+                                                {% csrf_token %}
+                                                <button type="submit" 
+                                                        class="btn btn-sm btn-outline-danger"
+                                                        title="Excluir">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-file-earmark-pdf" style="font-size: 4rem; color: #ccc;"></i>
+            <h4 class="mt-3 text-muted">Nenhum documento cadastrado</h4>
+            <p class="text-muted">Comece enviando documentos importantes da propriedade como matrícula, ITR, CCIR, CAR e outros.</p>
+            <a href="{% url 'documento_upload' propriedade.id %}" class="btn btn-primary">
+                <i class="bi bi-upload me-1"></i>Enviar Primeiro Documento
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modal para Enviar por E-mail -->
+<div class="modal fade" id="modalEmail" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Enviar Documento por E-mail</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formEmail">
+                    <div class="mb-3">
+                        <label for="emailDestino" class="form-label">E-mail de Destino</label>
+                        <input type="email" class="form-control" id="emailDestino" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="confirmarEnvioEmail()">Enviar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Enviar por WhatsApp -->
+<div class="modal fade" id="modalWhatsApp" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Enviar Documento por WhatsApp</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formWhatsApp">
+                    <div class="mb-3">
+                        <label for="telefoneDestino" class="form-label">Telefone (com DDD)</label>
+                        <input type="text" class="form-control" id="telefoneDestino" placeholder="(00) 00000-0000" required>
+                        <small class="form-text text-muted">Exemplo: (11) 98765-4321</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" onclick="confirmarEnvioWhatsApp()">
+                    <i class="fab fa-whatsapp me-1"></i>Enviar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let documentoIdAtual = null;
+
+function enviarEmail(docId) {
+    documentoIdAtual = docId;
+    document.getElementById('emailDestino').value = '';
+    new bootstrap.Modal(document.getElementById('modalEmail')).show();
+}
+
+function enviarWhatsApp(docId) {
+    documentoIdAtual = docId;
+    document.getElementById('telefoneDestino').value = '';
+    new bootstrap.Modal(document.getElementById('modalWhatsApp')).show();
+}
+
+function confirmarEnvioEmail() {
+    const email = document.getElementById('emailDestino').value;
+    if (!email) {
+        alert('Por favor, informe o e-mail de destino.');
+        return;
+    }
+
+    fetch(`/propriedade/{{ propriedade.id }}/documentos/${documentoIdAtual}/enviar-email/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({ email: email })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.sucesso) {
+            alert(data.mensagem);
+            bootstrap.Modal.getInstance(document.getElementById('modalEmail')).hide();
+        } else {
+            alert('Erro: ' + (data.erro || 'Erro ao enviar e-mail'));
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro ao enviar e-mail. Tente novamente.');
+    });
+}
+
+function confirmarEnvioWhatsApp() {
+    const telefone = document.getElementById('telefoneDestino').value;
+    if (!telefone) {
+        alert('Por favor, informe o telefone de destino.');
+        return;
+    }
+
+    fetch(`/propriedade/{{ propriedade.id }}/documentos/${documentoIdAtual}/enviar-whatsapp/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({ telefone: telefone })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.sucesso) {
+            if (data.whatsapp_url) {
+                // Abrir link do WhatsApp Web
+                window.open(data.whatsapp_url, '_blank');
+            }
+            alert(data.mensagem);
+            bootstrap.Modal.getInstance(document.getElementById('modalWhatsApp')).hide();
+        } else {
+            alert('Erro: ' + (data.erro || 'Erro ao enviar por WhatsApp'));
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro ao enviar por WhatsApp. Tente novamente.');
+    });
+}
+
+// Máscara para telefone
+document.getElementById('telefoneDestino')?.addEventListener('input', function(e) {
+    let value = e.target.value.replace(/\D/g, '');
+    if (value.length <= 11) {
+        if (value.length <= 10) {
+            value = value.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
+        } else {
+            value = value.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+        }
+        e.target.value = value;
+    }
+});
+</script>
+{% endblock %}
+
+
+
+
+

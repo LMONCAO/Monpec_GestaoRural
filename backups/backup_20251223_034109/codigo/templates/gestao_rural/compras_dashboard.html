@@ -1,0 +1,821 @@
+{% extends "base_modulos_unificado.html" %}
+{% load formatacao_br %}
+
+{% block title %}Compras - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Cards de Estatísticas - Design Balanceado */
+    .stat-card {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        padding: 0.875rem 1rem;
+        position: relative;
+        transition: all 0.2s ease;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        min-height: 100px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        align-items: stretch;
+    }
+
+    .stat-card:hover {
+        border-color: #d1d5db;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        transform: translateY(-1px);
+    }
+
+    /* Cards clicáveis */
+    .stat-card-clickable {
+        cursor: pointer;
+        text-decoration: none;
+        color: inherit;
+        display: block;
+    }
+
+    .stat-card-clickable:hover {
+        border-color: #3b82f6;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+        transform: translateY(-2px);
+    }
+
+    .stat-card-clickable:hover h3,
+    .stat-card-clickable:hover h6 {
+        color: #1e40af;
+    }
+
+    .stat-card h6 {
+        font-size: 0.625rem;
+        text-transform: uppercase;
+        margin-bottom: 0.5rem;
+        color: #6b7280;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        line-height: 1.3;
+    }
+
+    .stat-card h3 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0 0 0.375rem 0;
+        color: #111827;
+        line-height: 1.2;
+        word-break: break-word;
+    }
+
+    .stat-card p {
+        margin: 0;
+        font-size: 0.6875rem;
+        color: #6b7280;
+        font-weight: 400;
+        line-height: 1.4;
+        flex-grow: 1;
+    }
+
+    .stat-card .icon-wrapper {
+        position: absolute;
+        right: 0.875rem;
+        top: 0.875rem;
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f3f4f6;
+        color: #6b7280;
+        font-size: 1rem;
+        flex-shrink: 0;
+    }
+
+    /* Cores apenas para estados importantes */
+    .stat-card-warning {
+        border-left: 3px solid #f59e0b;
+    }
+
+    .stat-card-warning .icon-wrapper {
+        background: #fef3c7;
+        color: #f59e0b;
+    }
+
+    .stat-card-danger {
+        border-left: 3px solid #ef4444;
+    }
+
+    .stat-card-danger .icon-wrapper {
+        background: #fee2e2;
+        color: #ef4444;
+    }
+
+    .stat-card-success {
+        border-left: 3px solid #10b981;
+    }
+
+    .stat-card-success .icon-wrapper {
+        background: #d1fae5;
+        color: #10b981;
+    }
+
+    /* Seções de Agrupamento */
+    .section-header {
+        background: #f9fafb;
+        color: #111827;
+        padding: 0.75rem 1rem;
+        border-radius: 6px 6px 0 0;
+        margin-bottom: 0;
+        font-weight: 600;
+        font-size: 0.875rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .section-group {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        padding: 0;
+        margin-bottom: 1.25rem;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    .section-group > div:last-child {
+        padding: 0.75rem;
+    }
+
+    /* Container de cards - Grid Responsivo */
+    .cards-horizontal {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        width: 100%;
+        padding: 1rem;
+        align-items: stretch;
+    }
+
+    /* Quando há 3 cards, distribuir melhor */
+    .cards-horizontal.cards-3 {
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
+    /* Quando há 4 cards */
+    .cards-horizontal.cards-4 {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    }
+
+    .cards-horizontal .stat-card {
+        min-width: 0;
+        width: 100%;
+        max-width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* Scroll horizontal apenas em telas muito pequenas */
+    @media (max-width: 991px) {
+        .cards-horizontal {
+            display: flex;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            overflow-y: hidden;
+            padding-bottom: 0.5rem;
+            -webkit-overflow-scrolling: touch;
+            gap: 0.75rem;
+        }
+
+        .cards-horizontal::-webkit-scrollbar {
+            height: 6px;
+        }
+
+        .cards-horizontal::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        .cards-horizontal::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+
+        .cards-horizontal::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+        .cards-horizontal .stat-card {
+            flex: 0 0 auto !important;
+            min-width: 180px;
+            width: 180px;
+            max-width: 180px;
+        }
+    }
+
+    /* Botões de Ação Rápida - Design Compacto */
+    .quick-actions-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 0.625rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .btn-quick {
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        padding: 0.75rem 1rem;
+        color: #374151;
+        font-weight: 500;
+        font-size: 0.8125rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+        background: #ffffff;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    .btn-quick:hover {
+        border-color: #3b82f6;
+        background: #eff6ff;
+        color: #1e40af;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+    }
+
+    .btn-quick .icon {
+        font-size: 1.25rem;
+        color: #6b7280;
+        transition: color 0.2s ease;
+    }
+
+    .btn-quick:hover .icon {
+        color: #3b82f6;
+    }
+
+    .badge-novo {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        color: #ffffff;
+        border-radius: 4px;
+        font-size: 0.625rem;
+        padding: 0.125rem 0.5rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-weight: 600;
+        box-shadow: 0 1px 2px rgba(59, 130, 246, 0.2);
+    }
+
+    /* Estado vazio melhorado */
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1.5rem;
+        color: #6b7280;
+    }
+
+    .empty-state-icon {
+        font-size: 3rem;
+        color: #d1d5db;
+        margin-bottom: 1rem;
+        display: block;
+    }
+
+    .empty-state-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 0.5rem;
+    }
+
+    .empty-state-text {
+        font-size: 0.875rem;
+        color: #6b7280;
+        margin-bottom: 1.5rem;
+    }
+
+    /* Indicador de valor zero */
+    .stat-card-empty {
+        opacity: 0.7;
+    }
+
+    .stat-card-empty h3 {
+        color: #9ca3af;
+    }
+
+    /* Cards de Tabela */
+    .card {
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+        transition: all 0.2s ease;
+    }
+
+    .card:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    .card-header {
+        background: #f9fafb;
+        border-bottom: 1px solid #e5e7eb;
+        padding: 1rem 1.25rem;
+        font-weight: 600;
+        font-size: 0.9375rem;
+        color: #111827;
+    }
+
+    .table {
+        margin-bottom: 0;
+    }
+
+    .table thead th {
+        background: #f9fafb;
+        border: none;
+        border-bottom: 1px solid #e5e7eb;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.05em;
+        color: #6b7280;
+        padding: 0.875rem 1rem;
+    }
+
+    .table tbody tr {
+        transition: background 0.15s ease;
+    }
+
+    .table tbody tr:hover {
+        background: #f9fafb;
+    }
+
+    .table tbody td {
+        padding: 0.875rem 1rem;
+        vertical-align: middle;
+        border-color: #f3f4f6;
+        color: #374151;
+    }
+
+    /* Badges Simplificados */
+    .badge {
+        padding: 0.375rem 0.75rem;
+        font-weight: 500;
+        border-radius: 4px;
+        font-size: 0.75rem;
+    }
+
+    .badge.bg-success { 
+        background: #d1fae5 !important; 
+        color: #065f46 !important;
+    }
+    
+    .badge.bg-warning { 
+        background: #fef3c7 !important; 
+        color: #92400e !important;
+    }
+    
+    .badge.bg-secondary { 
+        background: #f3f4f6 !important; 
+        color: #6b7280 !important;
+    }
+
+    /* Botões de Ação */
+    .btn {
+        border-radius: 6px;
+        font-weight: 500;
+        padding: 0.5rem 1rem;
+        transition: all 0.2s ease;
+        border: 1px solid transparent;
+    }
+
+    .btn-primary { 
+        background: #374151; 
+        border-color: #374151;
+        color: #ffffff;
+    }
+
+    .btn-primary:hover {
+        background: #1f2937;
+        border-color: #1f2937;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-info { 
+        background: #374151; 
+        border-color: #374151;
+        color: #ffffff;
+    }
+
+    .btn-info:hover {
+        background: #1f2937;
+        border-color: #1f2937;
+    }
+
+    .btn-success { 
+        background: #10b981; 
+        border-color: #10b981;
+        color: #ffffff;
+    }
+
+    .btn-success:hover {
+        background: #059669;
+        border-color: #059669;
+    }
+
+    .btn-outline-info {
+        border: 1px solid #d1d5db;
+        color: #374151;
+        background: transparent;
+    }
+
+    .btn-outline-info:hover {
+        background: #f9fafb;
+        border-color: #9ca3af;
+        color: #111827;
+    }
+
+    /* Header do Dashboard */
+    .dashboard-header {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        color: #111827;
+        padding: 1rem 1.25rem;
+        border-radius: 6px;
+        margin-bottom: 1.25rem;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    .dashboard-header h2 {
+        margin: 0;
+        font-weight: 700;
+        font-size: 1.375rem;
+        color: #111827;
+    }
+
+    .dashboard-header p {
+        margin: 0.25rem 0 0;
+        color: #6b7280;
+        font-size: 0.8125rem;
+    }
+
+    /* Ajustes responsivos para cards */
+    @media (max-width: 575px) {
+        .btn-quick {
+            flex-direction: row;
+            align-items: center;
+        }
+        
+        .stat-card {
+            min-height: 90px;
+            padding: 0.75rem 0.875rem;
+        }
+        
+        .stat-card h3 {
+            font-size: 1.25rem;
+        }
+        
+        .stat-card h6 {
+            font-size: 0.5625rem;
+        }
+        
+        .stat-card p {
+            font-size: 0.625rem;
+        }
+        
+        .stat-card .icon-wrapper {
+            width: 28px;
+            height: 28px;
+            font-size: 0.875rem;
+            right: 0.75rem;
+            top: 0.75rem;
+        }
+    }
+
+    @media (min-width: 576px) and (max-width: 767px) {
+        .stat-card {
+            min-height: 95px;
+        }
+    }
+
+    @media (min-width: 768px) and (max-width: 991px) {
+        .stat-card {
+            min-height: 100px;
+        }
+    }
+
+    @media (min-width: 992px) {
+        .stat-card {
+            min-height: 100px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item active">Compras</li>
+        </ol>
+    </nav>
+
+    <!-- Header -->
+    <div class="dashboard-header">
+        <h2><i class="bi bi-cart me-2"></i>Compras e Fornecedores</h2>
+        <p>{{ propriedade.nome_propriedade }}</p>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions-grid">
+        <a href="{% url 'requisicao_compra_nova' propriedade.id %}" class="btn-quick">
+            <span><i class="bi bi-journal-plus icon"></i> Nova Requisição</span>
+            <span class="badge-novo">Novo</span>
+        </a>
+        <a href="{% url 'requisicoes_compra_lista' propriedade.id %}" class="btn-quick">
+            <span><i class="bi bi-diagram-3 icon"></i> Fluxo</span>
+            <i class="bi bi-arrow-right-short icon"></i>
+        </a>
+        <a href="{% url 'requisicoes_compra_lista' propriedade.id %}" class="btn-quick">
+            <span><i class="bi bi-journal-text icon"></i> Ver Requisições</span>
+            {% if cotacoes_recebidas > 0 %}
+            <span class="badge-novo">{{ cotacoes_recebidas }}</span>
+            {% else %}
+            <i class="bi bi-arrow-right-short icon"></i>
+            {% endif %}
+        </a>
+        <a href="{% url 'convites_cotacao_lista' propriedade.id %}" class="btn-quick">
+            <span><i class="bi bi-envelope-paper icon"></i> Convites de Cotação</span>
+            <span class="badge-novo">Portal</span>
+        </a>
+        <a href="{% url 'nota_fiscal_upload' propriedade.id %}" class="btn-quick">
+            <span><i class="bi bi-upload icon"></i> Importar NF-e</span>
+            <i class="bi bi-arrow-up-square icon"></i>
+        </a>
+        <a href="{% url 'ordem_compra_nova' propriedade.id %}" class="btn-quick">
+            <span><i class="bi bi-file-earmark-plus icon"></i> Nova Ordem</span>
+            <i class="bi bi-clipboard-check icon"></i>
+        </a>
+    </div>
+
+    <!-- Seção: Visão Geral -->
+    <div class="section-group">
+        <div class="section-header">
+            <i class="bi bi-speedometer2"></i>
+            <span>Visão Geral</span>
+        </div>
+        <div class="cards-horizontal cards-4">
+            <a href="{% url 'fornecedores_lista' propriedade.id %}" class="stat-card stat-card-clickable {% if total_fornecedores == 0 %}stat-card-empty{% endif %}">
+                <div class="icon-wrapper"><i class="bi bi-people"></i></div>
+                <h6>Fornecedores</h6>
+                <h3>{{ total_fornecedores|numero_br }}</h3>
+                <p>{% if total_fornecedores == 0 %}Cadastre o primeiro{% else %}Cadastrados{% endif %}</p>
+            </a>
+            <a href="{% url 'orcamentos_compra_lista' propriedade.id %}" class="stat-card stat-card-clickable {% if orcamento_mes %}{% if percentual_utilizado_mes >= 100 %}stat-card-danger{% elif percentual_utilizado_mes >= 80 %}stat-card-warning{% else %}stat-card-success{% endif %}{% else %}{% if valor_compras_mes == 0 %}stat-card-empty{% else %}stat-card-success{% endif %}{% endif %}">
+                <div class="icon-wrapper"><i class="bi bi-cart-check"></i></div>
+                <h6>Orçamento (Mês)</h6>
+                {% if orcamento_mes %}
+                    <h3>{{ valor_comprometido_mes|moeda_br }}</h3>
+                    <p>
+                        {% if saldo_disponivel_mes > 0 %}
+                            Disponível: {{ saldo_disponivel_mes|moeda_br }} de {{ valor_orcamento_mes|moeda_br }}
+                        {% else %}
+                            <strong>Orçamento esgotado!</strong> Limite: {{ valor_orcamento_mes|moeda_br }}
+                        {% endif %}
+                    </p>
+                {% else %}
+                    <h3>{{ valor_compras_mes|moeda_br }}</h3>
+                    <p>Total investido (sem orçamento definido)</p>
+                {% endif %}
+            </a>
+            <a href="{% url 'setores_compra_lista' propriedade.id %}" class="stat-card stat-card-clickable {% if total_setores == 0 %}stat-card-empty{% endif %}">
+                <div class="icon-wrapper"><i class="bi bi-diagram-3"></i></div>
+                <h6>Setores de Compras</h6>
+                <h3>{{ total_setores|numero_br }}</h3>
+                <p>
+                    {% if total_setores == 0 %}
+                        Configure os setores
+                    {% elif setores_inativos > 0 %}
+                        {{ setores_inativos|numero_br }} inativos •
+                    {% endif %}
+                    {% if setores_sem_responsavel > 0 %}
+                        {{ setores_sem_responsavel|numero_br }} sem responsável
+                    {% elif total_setores > 0 %}
+                        Todos com responsável
+                    {% endif %}
+                </p>
+            </a>
+            {% if cotacoes_recebidas > 0 %}
+            <a href="{% url 'requisicoes_compra_lista' propriedade.id %}" class="stat-card stat-card-clickable stat-card-success">
+                <div class="icon-wrapper"><i class="bi bi-check2-square"></i></div>
+                <h6>Respostas Recebidas</h6>
+                <h3>{{ cotacoes_recebidas|numero_br }}</h3>
+                <p>
+                    {{ cotacoes_recebidas|numero_br }} cotação{{ cotacoes_recebidas|pluralize:"ões" }} para analisar
+                    <i class="bi bi-arrow-right ms-1"></i>
+                </p>
+            </a>
+            {% else %}
+            <div class="stat-card stat-card-success stat-card-empty">
+                <div class="icon-wrapper"><i class="bi bi-check2-square"></i></div>
+                <h6>Respostas Recebidas</h6>
+                <h3>{{ cotacoes_recebidas|numero_br }}</h3>
+                <p>Aguardando cotações</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Seção: Pendências e Alertas -->
+    <div class="section-group">
+        <div class="section-header">
+            <i class="bi bi-exclamation-triangle"></i>
+            <span>Pendências e Alertas</span>
+        </div>
+        <div class="cards-horizontal cards-4">
+            {% if ordens_pendentes > 0 %}
+            <a href="{% url 'ordens_compra_lista' propriedade.id %}" class="stat-card stat-card-clickable stat-card-warning">
+                <div class="icon-wrapper"><i class="bi bi-file-earmark-text"></i></div>
+                <h6>Ordens Pendentes</h6>
+                <h3>{{ ordens_pendentes|numero_br }}</h3>
+                <p>Aguardando ações</p>
+            </a>
+            {% else %}
+            <div class="stat-card stat-card-warning">
+                <div class="icon-wrapper"><i class="bi bi-file-earmark-text"></i></div>
+                <h6>Ordens Pendentes</h6>
+                <h3>{{ ordens_pendentes|numero_br }}</h3>
+                <p>Aguardando ações</p>
+            </div>
+            {% endif %}
+            {% if requisicoes_pendentes > 0 %}
+            <a href="{% url 'requisicoes_compra_lista' propriedade.id %}" class="stat-card stat-card-clickable stat-card-warning">
+                <div class="icon-wrapper"><i class="bi bi-clipboard-check"></i></div>
+                <h6>Requisições Pendentes</h6>
+                <h3>{{ requisicoes_pendentes|numero_br }}</h3>
+                <p>Aguardam aprovação/compras</p>
+            </a>
+            {% else %}
+            <div class="stat-card stat-card-warning">
+                <div class="icon-wrapper"><i class="bi bi-clipboard-check"></i></div>
+                <h6>Requisições Pendentes</h6>
+                <h3>{{ requisicoes_pendentes|numero_br }}</h3>
+                <p>Aguardam aprovação/compras</p>
+            </div>
+            {% endif %}
+            {% if nfes_pendentes > 0 %}
+            <a href="{% url 'notas_fiscais_lista' propriedade.id %}" class="stat-card stat-card-clickable stat-card-danger">
+                <div class="icon-wrapper"><i class="bi bi-file-earmark-pdf"></i></div>
+                <h6>NF-es Pendentes</h6>
+                <h3>{{ nfes_pendentes|numero_br }}</h3>
+                <p>Upload necessário</p>
+            </a>
+            {% else %}
+            <div class="stat-card stat-card-danger">
+                <div class="icon-wrapper"><i class="bi bi-file-earmark-pdf"></i></div>
+                <h6>NF-es Pendentes</h6>
+                <h3>{{ nfes_pendentes|numero_br }}</h3>
+                <p>Upload necessário</p>
+            </div>
+            {% endif %}
+            {% if ordens_autorizacao_pendente > 0 %}
+            <a href="{% url 'ordens_compra_lista' propriedade.id %}" class="stat-card stat-card-clickable stat-card-danger">
+                <div class="icon-wrapper"><i class="bi bi-shield-exclamation"></i></div>
+                <h6>OCs sem Autorização</h6>
+                <h3>{{ ordens_autorizacao_pendente|numero_br }}</h3>
+                <p>Setor responsável precisa agir</p>
+            </a>
+            {% else %}
+            <div class="stat-card stat-card-danger">
+                <div class="icon-wrapper"><i class="bi bi-shield-exclamation"></i></div>
+                <h6>OCs sem Autorização</h6>
+                <h3>{{ ordens_autorizacao_pendente|numero_br }}</h3>
+                <p>Setor responsável precisa agir</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Seção: Convites e Cotações -->
+    <div class="section-group">
+        <div class="section-header">
+            <i class="bi bi-envelope-paper"></i>
+            <span>Convites e Cotações</span>
+        </div>
+        <div class="cards-horizontal cards-3">
+            {% if convites_abertos > 0 %}
+            <a href="{% url 'convites_cotacao_lista' propriedade.id %}" class="stat-card stat-card-clickable">
+                <div class="icon-wrapper"><i class="bi bi-envelope-paper"></i></div>
+                <h6>Convites Enviados</h6>
+                <h3>{{ convites_abertos|numero_br }}</h3>
+                <p><span class="badge-novo me-2">Portal</span>De {{ convites_total|numero_br }} convites</p>
+            </a>
+            {% else %}
+            <div class="stat-card">
+                <div class="icon-wrapper"><i class="bi bi-envelope-paper"></i></div>
+                <h6>Convites Enviados</h6>
+                <h3>{{ convites_abertos|numero_br }}</h3>
+                <p><span class="badge-novo me-2">Portal</span>De {{ convites_total|numero_br }} convites</p>
+            </div>
+            {% endif %}
+            {% if convites_expirando > 0 %}
+            <a href="{% url 'convites_cotacao_lista' propriedade.id %}" class="stat-card stat-card-clickable stat-card-warning">
+                <div class="icon-wrapper"><i class="bi bi-hourglass-split"></i></div>
+                <h6>Convites a Vencer</h6>
+                <h3>{{ convites_expirando|numero_br }}</h3>
+                <p>Expiram em até 48h</p>
+            </a>
+            {% else %}
+            <div class="stat-card stat-card-warning">
+                <div class="icon-wrapper"><i class="bi bi-hourglass-split"></i></div>
+                <h6>Convites a Vencer</h6>
+                <h3>{{ convites_expirando|numero_br }}</h3>
+                <p>Expiram em até 48h</p>
+            </div>
+            {% endif %}
+            {% if cotacoes_recebidas > 0 %}
+            <a href="{% url 'requisicoes_compra_lista' propriedade.id %}" class="stat-card stat-card-clickable stat-card-success">
+                <div class="icon-wrapper"><i class="bi bi-check-circle"></i></div>
+                <h6>Cotações Recebidas</h6>
+                <h3>{{ cotacoes_recebidas|numero_br }}</h3>
+                <p>Disponíveis para análise</p>
+            </a>
+            {% else %}
+            <div class="stat-card stat-card-success">
+                <div class="icon-wrapper"><i class="bi bi-check-circle"></i></div>
+                <h6>Cotações Recebidas</h6>
+                <h3>{{ cotacoes_recebidas|numero_br }}</h3>
+                <p>Disponíveis para análise</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Seção: Ordens de Compra Recentes -->
+    <div class="mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-file-earmark-text me-2"></i>Ordens de Compra Recentes</h5>
+            </div>
+            <div class="card-body">
+                {% if ordens_recentes %}
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead>
+                            <tr>
+                                <th>Número</th>
+                                <th>Fornecedor</th>
+                                <th>Data</th>
+                                <th class="text-end">Valor</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ordem in ordens_recentes %}
+                            <tr>
+                                <td>
+                                    <a href="#">{{ ordem.numero_ordem }}</a>
+                                </td>
+                                <td>{{ ordem.fornecedor.nome|default:"-" }}</td>
+                                <td>{{ ordem.data_emissao|date:"d/m/Y" }}</td>
+                                <td class="text-end">{{ ordem.valor_total|moeda_br }}</td>
+                                <td>
+                                    <span class="badge bg-{% if ordem.status == 'RECEBIDA' %}success{% elif ordem.status == 'PENDENTE' %}warning{% else %}secondary{% endif %}">
+                                        {{ ordem.get_status_display }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="mt-3">
+                    <a href="{% url 'ordens_compra_lista' propriedade.id %}" class="btn btn-primary btn-sm">
+                        <i class="bi bi-list-ul me-1"></i>Ver Todas
+                    </a>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="bi bi-file-earmark-text empty-state-icon"></i>
+                    <div class="empty-state-title">Nenhuma ordem de compra ainda</div>
+                    <div class="empty-state-text">Comece criando uma nova ordem de compra ou requisição</div>
+                    <div class="d-flex gap-2 justify-content-center flex-wrap">
+                        <a href="{% url 'ordem_compra_nova' propriedade.id %}" class="btn btn-primary btn-sm">
+                            <i class="bi bi-file-earmark-plus me-1"></i>Nova Ordem
+                        </a>
+                        <a href="{% url 'requisicao_compra_nova' propriedade.id %}" class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-journal-plus me-1"></i>Nova Requisição
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+

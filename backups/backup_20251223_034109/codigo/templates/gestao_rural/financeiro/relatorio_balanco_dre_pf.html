@@ -1,0 +1,415 @@
+{% extends 'base_modulos_unificado.html' %}
+{% load formatacao_br %}
+{% load static %}
+
+{% block title %}Balanço e DRE - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block breadcrumb_extra %}
+    <li class="breadcrumb-item"><a href="{% url 'financeiro_dashboard' propriedade.id %}">Financeiro</a></li>
+    <li class="breadcrumb-item active">Balanço e DRE</li>
+{% endblock %}
+
+{% block content %}
+<style>
+    @media print {
+        .no-print { display: none; }
+        body { font-size: 10pt; }
+        .page-break { page-break-after: always; }
+    }
+    .dre-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 11pt;
+        margin-bottom: 20px;
+    }
+    .dre-table th, .dre-table td {
+        border: 1px solid #000;
+        padding: 6px 8px;
+        text-align: left;
+    }
+    .dre-table th {
+        background-color: #f0f0f0;
+        font-weight: bold;
+        text-align: center;
+    }
+    .codigo-col { width: 15%; }
+    .descricao-col { width: 60%; }
+    .valor-col { width: 25%; text-align: right; }
+    .dre-table .valor-negativo {
+        color: #000;
+    }
+    .dre-table .total-row {
+        background-color: #e8e8e8;
+        font-weight: bold;
+    }
+    .dre-table .subtotal-row {
+        background-color: #f5f5f5;
+        font-weight: 600;
+    }
+    .dre-table .grupo-row {
+        background-color: #f9f9f9;
+        font-weight: 600;
+    }
+    .header-dre {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    .header-dre h2 {
+        font-size: 16pt;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    .header-dre h3 {
+        font-size: 14pt;
+        font-weight: 600;
+        margin-bottom: 10px;
+    }
+    .header-dre p {
+        font-size: 10pt;
+        margin: 2px 0;
+    }
+</style>
+
+<div class="container-fluid">
+    <div class="row mb-4 no-print">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2 class="mb-0">
+                    <i class="bi bi-file-earmark-text me-2"></i>
+                    Demonstração do Resultado do Exercício (DRE) - {{ ano }}
+                </h2>
+                <div class="d-flex gap-2 align-items-center">
+                    <select class="form-select" style="width: auto;" onchange="window.location.href='?ano=' + this.value">
+                        {% for a in anos_disponiveis %}
+                            <option value="{{ a }}" {% if a == ano %}selected{% endif %}>{{ a }}</option>
+                        {% endfor %}
+                    </select>
+                    <button onclick="window.print()" class="btn btn-danger">
+                        <i class="bi bi-printer me-2"></i>
+                        Imprimir
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cabeçalho DRE -->
+    <div class="header-dre">
+        <h2>DEMONSTRAÇÃO DO RESULTADO DO EXERCÍCIO</h2>
+        <h3>{{ propriedade.nome_propriedade|upper }}</h3>
+        {% if propriedade.produtor %}
+        <p><strong>CPF/CNPJ:</strong> {{ propriedade.produtor.cpf_cnpj }}</p>
+        {% endif %}
+        <p><strong>Exercício Social:</strong> {{ ano }}</p>
+    </div>
+
+    <!-- DRE Completo (formato contábil conforme PDF) -->
+    <table class="dre-table">
+        <thead>
+            <tr>
+                <th class="codigo-col">CÓDIGO</th>
+                <th class="descricao-col">DESCRIÇÃO</th>
+                <th class="valor-col">VALOR (R$)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- 1. RECEITA BRUTA DE VENDAS -->
+            <tr class="total-row">
+                <td>3.01.01.01.01.</td>
+                <td><strong>RECEITA BRUTA DE VENDAS</strong></td>
+                <td class="valor-col">{{ receita_bruta|moeda_br }}</td>
+            </tr>
+            <tr>
+                <td>3.01.01.01.01.0001</td>
+                <td>Vendas Mercadorias Produção Própria</td>
+                <td class="valor-col">{{ receita_bruta|moeda_br }}</td>
+            </tr>
+            
+            <!-- 2. DEDUÇÕES DA RECEITA BRUTA -->
+            {% if total_deducoes > 0 %}
+            <tr class="grupo-row">
+                <td colspan="3"><strong>DEDUÇÕES DA RECEITA BRUTA</strong></td>
+            </tr>
+            {% if funviral_vendas > 0 %}
+            <tr>
+                <td>3.01.01.01.02.0004</td>
+                <td>Funviral s/Vendas</td>
+                <td class="valor-col valor-negativo">({{ funviral_vendas|moeda_br }})</td>
+            </tr>
+            {% endif %}
+            {% if icms_vendas > 0 %}
+            <tr>
+                <td>3.01.01.01.02.0005</td>
+                <td>ICMS s/Vendas</td>
+                <td class="valor-col valor-negativo">({{ icms_vendas|moeda_br }})</td>
+            </tr>
+            {% endif %}
+            {% if outros_impostos_vendas > 0 %}
+            <tr>
+                <td>3.01.01.01.02.0006</td>
+                <td>Outros Impostos s/Vendas</td>
+                <td class="valor-col valor-negativo">({{ outros_impostos_vendas|moeda_br }})</td>
+            </tr>
+            {% endif %}
+            {% if devolucoes_vendas > 0 %}
+            <tr>
+                <td>3.01.01.01.02.0007</td>
+                <td>Devoluções de Vendas</td>
+                <td class="valor-col valor-negativo">({{ devolucoes_vendas|moeda_br }})</td>
+            </tr>
+            {% endif %}
+            {% if abatimentos_vendas > 0 %}
+            <tr>
+                <td>3.01.01.01.02.0008</td>
+                <td>Abatimentos sobre Vendas</td>
+                <td class="valor-col valor-negativo">({{ abatimentos_vendas|moeda_br }})</td>
+            </tr>
+            {% endif %}
+            <tr class="subtotal-row">
+                <td>3.01.01.01.02.</td>
+                <td><strong>Total Deduções</strong></td>
+                <td class="valor-col valor-negativo">({{ total_deducoes|moeda_br }})</td>
+            </tr>
+            {% endif %}
+            
+            <!-- 3. RECEITA LÍQUIDA -->
+            <tr class="total-row">
+                <td>3.01.01.01.03.</td>
+                <td><strong>RECEITA LÍQUIDA</strong></td>
+                <td class="valor-col">{{ receita_liquida|moeda_br }}</td>
+            </tr>
+            
+            <!-- 4. CUSTOS MERCADORIA S/VENDIDA S -->
+            {% if cpv > 0 %}
+            <tr class="grupo-row">
+                <td colspan="3"><strong>CUSTOS MERCADORIA S/VENDIDA S</strong></td>
+            </tr>
+            <tr>
+                <td>3.01.01.01.03.0001</td>
+                <td>Custos Mercadorias Produção Própria Vendidas</td>
+                <td class="valor-col valor-negativo">({{ cpv|moeda_br }})</td>
+            </tr>
+            <tr class="subtotal-row">
+                <td>3.01.01.01.03.</td>
+                <td><strong>Total Custos</strong></td>
+                <td class="valor-col valor-negativo">({{ cpv|moeda_br }})</td>
+            </tr>
+            {% endif %}
+            
+            <!-- 5. LUCRO BRUTO -->
+            <tr class="total-row">
+                <td>3.01.01.01.04.</td>
+                <td><strong>LUCRO BRUTO</strong></td>
+                <td class="valor-col">{{ lucro_bruto|moeda_br }}</td>
+            </tr>
+            
+            <!-- 6. DESPESAS OPERACIONAIS -->
+            <tr class="grupo-row">
+                <td colspan="3"><strong>DESPESAS OPERACIONAIS</strong></td>
+            </tr>
+            <tr class="grupo-row">
+                <td colspan="3"><strong>DESPESAS DIVERSAS</strong></td>
+            </tr>
+            
+            {% if retirada_labore > 0 %}
+            <tr>
+                <td>3.01.01.07.01.0001</td>
+                <td>Retirada Labore</td>
+                <td class="valor-col valor-negativo">({{ retirada_labore|moeda_br }})</td>
+            </tr>
+            {% endif %}
+            {% if assistencia_contabil > 0 %}
+            <tr>
+                <td>3.01.01.07.01.0002</td>
+                <td>Assistência Contábil</td>
+                <td class="valor-col valor-negativo">({{ assistencia_contabil|moeda_br }})</td>
+            </tr>
+            {% endif %}
+            {% if encargos_inss > 0 %}
+            <tr>
+                <td>3.01.01.07.01.0003</td>
+                <td>Encargos INSS</td>
+                <td class="valor-col valor-negativo">({{ encargos_inss|moeda_br }})</td>
+            </tr>
+            {% endif %}
+            {% if taxas_diversas > 0 %}
+            <tr>
+                <td>3.01.01.07.01.0004</td>
+                <td>Taxas Diversas</td>
+                <td class="valor-col valor-negativo">({{ taxas_diversas|moeda_br }})</td>
+            </tr>
+            {% endif %}
+            {% if despesas_administrativas > 0 %}
+            <tr>
+                <td>3.01.01.07.01.0005</td>
+                <td>Despesas Administrativas</td>
+                <td class="valor-col valor-negativo">({{ despesas_administrativas|moeda_br }})</td>
+            </tr>
+            {% endif %}
+            {% if material_uso_consumo > 0 %}
+            <tr>
+                <td>3.01.01.07.01.0006</td>
+                <td>Material de Uso e Consumo</td>
+                <td class="valor-col valor-negativo">({{ material_uso_consumo|moeda_br }})</td>
+            </tr>
+            {% endif %}
+            {% if despesas_comunicacao > 0 %}
+            <tr>
+                <td>3.01.01.07.01.0007</td>
+                <td>Despesas Comunicação</td>
+                <td class="valor-col valor-negativo">({{ despesas_comunicacao|moeda_br }})</td>
+            </tr>
+            {% endif %}
+            {% if despesas_viagens > 0 %}
+            <tr>
+                <td>3.01.01.07.01.0008</td>
+                <td>Despesas Viagens</td>
+                <td class="valor-col valor-negativo">({{ despesas_viagens|moeda_br }})</td>
+            </tr>
+            {% endif %}
+            {% if despesas_energia_eletrica > 0 %}
+            <tr>
+                <td>3.01.01.07.01.0009</td>
+                <td>Despesas Energia Elétrica</td>
+                <td class="valor-col valor-negativo">({{ despesas_energia_eletrica|moeda_br }})</td>
+            </tr>
+            {% endif %}
+            {% if despesas_transportes > 0 %}
+            <tr>
+                <td>3.01.01.07.01.0010</td>
+                <td>Despesas Transportes</td>
+                <td class="valor-col valor-negativo">({{ despesas_transportes|moeda_br }})</td>
+            </tr>
+            {% endif %}
+            {% if despesas_combustivel > 0 %}
+            <tr>
+                <td>3.01.01.07.01.0011</td>
+                <td>Despesas Combustível</td>
+                <td class="valor-col valor-negativo">({{ despesas_combustivel|moeda_br }})</td>
+            </tr>
+            {% endif %}
+            {% if despesas_manutencao > 0 %}
+            <tr>
+                <td>3.01.01.07.01.0012</td>
+                <td>Despesas Manutenção</td>
+                <td class="valor-col valor-negativo">({{ despesas_manutencao|moeda_br }})</td>
+            </tr>
+            {% endif %}
+            {% if depreciacao > 0 %}
+            <tr>
+                <td>3.01.01.07.01.0013</td>
+                <td>Despesas Encargos Depreciação</td>
+                <td class="valor-col valor-negativo">({{ depreciacao|moeda_br }})</td>
+            </tr>
+            {% endif %}
+            <tr class="subtotal-row">
+                <td>3.01.01.07.01.</td>
+                <td><strong>Total Despesas Diversas</strong></td>
+                <td class="valor-col valor-negativo">({{ despesas_detalhadas|moeda_br }})</td>
+            </tr>
+            <tr class="subtotal-row">
+                <td>3.01.01.07.</td>
+                <td><strong>Total Despesas Operacionais</strong></td>
+                <td class="valor-col valor-negativo">({{ total_despesas_operacionais|moeda_br }})</td>
+            </tr>
+            
+            <!-- 7. RESULTADO OPERACIONAL -->
+            <tr class="total-row">
+                <td>3.01.01.01.01.</td>
+                <td><strong>RESULTADO OPERACIONAL</strong></td>
+                <td class="valor-col">{{ resultado_operacional|moeda_br }}</td>
+            </tr>
+            
+            <!-- 8. DESPESAS E RECEITAS NÃO OPERACIONAIS -->
+            {% if despesas_financeiras > 0 or receitas_financeiras > 0 %}
+            <tr class="grupo-row">
+                <td colspan="3"><strong>DESPESAS E RECEITAS NÃO OPERACIONAIS</strong></td>
+            </tr>
+            <tr class="grupo-row">
+                <td colspan="3"><strong>DESPESAS E RECEITAS</strong></td>
+            </tr>
+            {% if despesas_financeiras > 0 %}
+            <tr class="grupo-row">
+                <td colspan="3"><strong>DESPESAS DIVERSAS</strong></td>
+            </tr>
+            <tr>
+                <td>3.01.01.08.0001</td>
+                <td>Despesas Juros e Multas</td>
+                <td class="valor-col valor-negativo">({{ despesas_financeiras|moeda_br }})</td>
+            </tr>
+            {% endif %}
+            {% if receitas_financeiras > 0 %}
+            <tr class="grupo-row">
+                <td colspan="3"><strong>RECEITAS DIVERSAS</strong></td>
+            </tr>
+            <tr>
+                <td>3.01.01.08.0002</td>
+                <td>Receitas Rendimentos Financeiros</td>
+                <td class="valor-col">{{ receitas_financeiras|moeda_br }}</td>
+            </tr>
+            {% endif %}
+            <tr class="subtotal-row">
+                <td>3.01.01.08.</td>
+                <td><strong>Resultado Não Operacional</strong></td>
+                <td class="valor-col">{% if resultado_nao_operacional >= 0 %}{{ resultado_nao_operacional|moeda_br }}{% else %}({{ resultado_nao_operacional|abs|moeda_br }}){% endif %}</td>
+            </tr>
+            {% endif %}
+            
+            <!-- 9. PROVISÃO DE IMPOSTOS (Pessoa Física - apenas IR) -->
+            {% if irpj > 0 %}
+            <tr class="grupo-row">
+                <td colspan="3"><strong>PROVISÃO DE IMPOSTOS</strong></td>
+            </tr>
+            <tr class="grupo-row">
+                <td colspan="3"><strong>IRPJ</strong></td>
+            </tr>
+            <tr>
+                <td>3.01.01.10.0001</td>
+                <td>Imposto de Renda Pessoa Física - IRPF</td>
+                <td class="valor-col valor-negativo">({{ irpj|moeda_br }})</td>
+            </tr>
+            <tr class="subtotal-row">
+                <td>3.01.01.10.</td>
+                <td><strong>Total Provisão de Impostos</strong></td>
+                <td class="valor-col valor-negativo">({{ irpj|moeda_br }})</td>
+            </tr>
+            {% endif %}
+            
+            <!-- 10. RESULTADO LÍQUIDO DO EXERCÍCIO -->
+            <tr class="total-row" style="border-top: 3px solid #000;">
+                <td>3.01.</td>
+                <td><strong>RESULTADO LÍQUIDO DO EXERCÍCIO</strong></td>
+                <td class="valor-col"><strong>{{ resultado_liquido|moeda_br }}</strong></td>
+            </tr>
+            <tr class="total-row">
+                <td>3.01.</td>
+                <td><strong>RESULTADO LÍQUIDO</strong></td>
+                <td class="valor-col"><strong>{{ resultado_liquido|moeda_br }}</strong></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- Rodapé com assinatura -->
+    <div style="margin-top: 50px; text-align: right; font-size: 10pt;">
+        <p>{{ propriedade.municipio|default:"Cidade" }} ({{ propriedade.uf|default:"UF" }}), {% now "d/m/Y" %}</p>
+        <br><br><br>
+        <p>_________________________________________</p>
+        <p><strong>{{ propriedade.produtor.nome|default:"Nome do Produtor"|upper }}</strong></p>
+        <p>CPF: {{ propriedade.produtor.cpf_cnpj|default:"000.000.000-00" }}</p>
+    </div>
+    
+    <!-- Link para editar receita anual -->
+    <div class="row mt-4 no-print">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle me-2"></i>
+                <strong>Nota:</strong> Para editar os valores de deduções, CPV, depreciação, despesas/receitas financeiras e impostos, 
+                <a href="{% url 'financeiro_receita_anual_editar' propriedade.id receita_anual_obj.id %}" class="alert-link">
+                    edite a receita anual de {{ ano }}
+                </a>.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

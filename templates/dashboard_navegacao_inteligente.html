@@ -1,0 +1,236 @@
+{% extends 'base_navegacao_inteligente.html' %}
+
+{% block title %}Dashboard - MONPEC{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Cabeçalho do Dashboard -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card card-modulo">
+                <div class="card-header-colorido card-header text-center">
+                    <h2 class="mb-0">
+                        <i class="bi bi-speedometer2"></i> Dashboard Principal
+                    </h2>
+                    <p class="mb-0 mt-2">Central de controle - Gestão Rural Inteligente</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cards de Produtores -->
+    <div class="row">
+        <div class="col-12">
+            <h4 class="mb-3">
+                <i class="bi bi-person-badge"></i> Seus Produtores Rurais
+                <small class="text-muted">({{ produtores|length }})</small>
+            </h4>
+        </div>
+
+        {% for produtor in produtores %}
+        <div class="col-lg-6 col-xl-4 mb-4">
+            <div class="card card-modulo card-configuracoes h-100">
+                <div class="card-header-colorido card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-0">
+                            <i class="bi bi-person-circle"></i> {{ produtor.nome }}
+                        </h6>
+                        <small class="text-muted">ID: #{{ produtor.id }}</small>
+                    </div>
+                    <span class="badge bg-success">Ativo</span>
+                </div>
+                <div class="card-body">
+                    <!-- Informações Completas -->
+                    <div class="row text-center mb-3">
+                        <div class="col-6">
+                            <div class="border-end pe-2">
+                                <div class="h5 mb-0 text-primary">{{ produtor.propriedades.count|default:"0" }}</div>
+                                <small class="text-muted">Propriedades</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="ps-2">
+                                <div class="h5 mb-0 text-success">{{ produtor.area_total|default:"0" }} ha</div>
+                                <small class="text-muted">Área Total</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dados Pessoais -->
+                    <div class="mb-3">
+                        {% if produtor.cpf_cnpj %}
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="bi bi-credit-card text-muted me-2"></i>
+                            <span class="small">{{ produtor.cpf_cnpj }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        {% if produtor.telefone %}
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="bi bi-telephone text-muted me-2"></i>
+                            <span class="small">{{ produtor.telefone }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        {% if produtor.email %}
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="bi bi-envelope text-muted me-2"></i>
+                            <span class="small">{{ produtor.email }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-calendar text-muted me-2"></i>
+                            <span class="small">Cadastro: {{ produtor.data_cadastro|date:"d/m/Y" }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Valor Total -->
+                    {% if produtor.valor_total %}
+                    <div class="text-center mb-3">
+                        <div class="p-2 bg-light rounded">
+                            <div class="small text-muted">Valor Total do Rebanho</div>
+                            <div class="h5 mb-0 text-success">R$ {{ produtor.valor_total|default:"0" }}</div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer bg-transparent">
+                    <a href="{% url 'propriedades_lista' produtor.id %}" 
+                       class="btn btn-modulo-configuracoes w-100">
+                        <i class="bi bi-house-door"></i> Ver Propriedades
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="card card-modulo text-center py-5">
+                <div class="card-body">
+                    <i class="bi bi-person-plus display-1 text-muted mb-3"></i>
+                    <h4>Nenhum Produtor Cadastrado</h4>
+                    <p class="text-muted">Cadastre seu primeiro produtor rural para começar</p>
+                    <a href="{% url 'admin:gestao_rural_produtor_add' %}" class="btn btn-primary btn-lg">
+                        <i class="bi bi-plus-circle"></i> Cadastrar Produtor
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Resumo Estatístico -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <h4 class="mb-3">
+                <i class="bi bi-graph-up"></i> Resumo Geral do Sistema
+            </h4>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card card-modulo card-pecuaria text-center">
+                <div class="card-body">
+                    <i class="bi bi-person-badge display-4 text-success mb-2"></i>
+                    <h5>{{ produtores|length }}</h5>
+                    <small class="text-muted">Produtores</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card card-modulo card-agricultura text-center">
+                <div class="card-body">
+                    <i class="bi bi-house display-4 text-warning mb-2"></i>
+                    <h5>{{ total_propriedades|default:"0" }}</h5>
+                    <small class="text-muted">Propriedades</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card card-modulo card-patrimonio text-center">
+                <div class="card-body">
+                    <i class="bi bi-geo-alt display-4 text-info mb-2"></i>
+                    <h5>{{ total_area|default:"0" }} ha</h5>
+                    <small class="text-muted">Área Total</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card card-modulo card-financeiro text-center">
+                <div class="card-body">
+                    <i class="bi bi-currency-dollar display-4 text-danger mb-2"></i>
+                    <h5>R$ {{ valor_total_sistema|default:"0" }}</h5>
+                    <small class="text-muted">Valor Total</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ações Rápidas -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <h4 class="mb-3">
+                <i class="bi bi-lightning-charge"></i> Ações Rápidas
+            </h4>
+        </div>
+        
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card card-modulo card-projetos h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-person-plus-fill display-4 text-purple mb-3"></i>
+                    <h6>Novo Produtor</h6>
+                    <a href="{% url 'admin:gestao_rural_produtor_add' %}" class="btn btn-modulo-projetos btn-sm">
+                        Cadastrar
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card card-modulo card-relatorios h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-house-add-fill display-4 text-orange mb-3"></i>
+                    <h6>Nova Propriedade</h6>
+                    <a href="{% url 'admin:gestao_rural_propriedade_add' %}" class="btn btn-modulo-relatorios btn-sm">
+                        Cadastrar
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card card-modulo card-categorias h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-tags-fill display-4 text-teal mb-3"></i>
+                    <h6>Categorias</h6>
+                    <a href="{% url 'categorias_lista' %}" class="btn btn-modulo-categorias btn-sm">
+                        Gerenciar
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card card-modulo card-configuracoes h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-gear-fill display-4 text-secondary mb-3"></i>
+                    <h6>Configurações</h6>
+                    <a href="{% url 'admin:index' %}" class="btn btn-modulo-configuracoes btn-sm">
+                        Acessar
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .text-purple { color: #6f42c1; }
+    .text-orange { color: #fd7e14; }
+    .text-teal { color: #20c997; }
+</style>
+{% endblock %}

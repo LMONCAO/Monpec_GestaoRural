@@ -1,0 +1,554 @@
+{% extends 'base_navegacao_inteligente.html' %}
+
+{% block title %}{{ propriedade.nome }} - Módulos - MONPEC{% endblock %}
+
+{% block breadcrumb_extra %}
+<li class="breadcrumb-item active">Módulos da Propriedade</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Cabeçalho da Propriedade -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card card-modulo card-pecuaria">
+                <div class="card-header-colorido card-header">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h2 class="mb-0">
+                                <i class="bi bi-house-door-fill"></i> {{ propriedade.nome|upper }}
+                            </h2>
+                            <p class="mb-0 mt-2">
+                                <i class="bi bi-geo-alt"></i> {{ propriedade.localizacao|default:"Localização não informada" }} • 
+                                <i class="bi bi-grid"></i> {{ propriedade.area_total|default:"0" }} hectares • 
+                                <i class="bi bi-check-circle"></i> Sistema Completo Ativo
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <div class="badge bg-success fs-6 p-2">
+                                <i class="bi bi-speedometer"></i> Dashboard Ativo
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CARDS DE ESTATÍSTICAS NO TOPO -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <h4 class="mb-3">
+                <i class="bi bi-graph-up"></i> Resumo da Propriedade
+            </h4>
+        </div>
+
+        <!-- Card Pecuária - Animais -->
+        <div class="col-lg-2-4 col-md-6 col-12 mb-3">
+            <div class="card card-estatistica card-pecuaria h-100">
+                <div class="card-body text-center p-3">
+                    <div class="icone-estatistica mb-2">
+                        <i class="bi bi-cow display-4 text-success"></i>
+                    </div>
+                    <div class="valor-principal">
+                        <h2 class="mb-0 fw-bold text-success">{{ propriedade.total_animais|default:"0" }}</h2>
+                    </div>
+                    <div class="label-estatistica">
+                        <h6 class="mb-0 text-muted">ANIMAIS</h6>
+                        <small class="text-success">
+                            <i class="bi bi-arrow-up"></i> Rebanho Total
+                        </small>
+                    </div>
+                </div>
+                <div class="card-footer bg-success bg-opacity-10 text-center py-2">
+                    <small class="text-success fw-bold">PECUÁRIA</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card Agricultura - Toneladas -->
+        <div class="col-lg-2-4 col-md-6 col-12 mb-3">
+            <div class="card card-estatistica card-agricultura h-100">
+                <div class="card-body text-center p-3">
+                    <div class="icone-estatistica mb-2">
+                        <i class="bi bi-tree-fill display-4 text-warning"></i>
+                    </div>
+                    <div class="valor-principal">
+                        <h2 class="mb-0 fw-bold text-warning">{{ propriedade.toneladas_agricultura|default:"0" }}</h2>
+                    </div>
+                    <div class="label-estatistica">
+                        <h6 class="mb-0 text-muted">TONELADAS</h6>
+                        <small class="text-warning">
+                            <i class="bi bi-arrow-up"></i> Produção Agrícola
+                        </small>
+                    </div>
+                </div>
+                <div class="card-footer bg-warning bg-opacity-10 text-center py-2">
+                    <small class="text-warning fw-bold">AGRICULTURA</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card Patrimônio - Valor Total -->
+        <div class="col-lg-2-4 col-md-6 col-12 mb-3">
+            <div class="card card-estatistica card-patrimonio h-100">
+                <div class="card-body text-center p-3">
+                    <div class="icone-estatistica mb-2">
+                        <i class="bi bi-building-fill display-4 text-info"></i>
+                    </div>
+                    <div class="valor-principal">
+                        <h2 class="mb-0 fw-bold text-info">R$ {{ propriedade.valor_patrimonio|default:"0" }}</h2>
+                    </div>
+                    <div class="label-estatistica">
+                        <h6 class="mb-0 text-muted">PATRIMÔNIO</h6>
+                        <small class="text-info">
+                            <i class="bi bi-arrow-up"></i> Bens Totais
+                        </small>
+                    </div>
+                </div>
+                <div class="card-footer bg-info bg-opacity-10 text-center py-2">
+                    <small class="text-info fw-bold">BENS</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card Receitas -->
+        <div class="col-lg-2-4 col-md-6 col-12 mb-3">
+            <div class="card card-estatistica card-receitas h-100">
+                <div class="card-body text-center p-3">
+                    <div class="icone-estatistica mb-2">
+                        <i class="bi bi-arrow-up-circle-fill display-4 text-success"></i>
+                    </div>
+                    <div class="valor-principal">
+                        <h2 class="mb-0 fw-bold text-success">R$ {{ propriedade.total_receitas|default:"0" }}</h2>
+                    </div>
+                    <div class="label-estatistica">
+                        <h6 class="mb-0 text-muted">RECEITAS</h6>
+                        <small class="text-success">
+                            <i class="bi bi-arrow-up"></i> Mês Atual
+                        </small>
+                    </div>
+                </div>
+                <div class="card-footer bg-success bg-opacity-10 text-center py-2">
+                    <small class="text-success fw-bold">ENTRADAS</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card Despesas -->
+        <div class="col-lg-2-4 col-md-6 col-12 mb-3">
+            <div class="card card-estatistica card-despesas h-100">
+                <div class="card-body text-center p-3">
+                    <div class="icone-estatistica mb-2">
+                        <i class="bi bi-arrow-down-circle-fill display-4 text-danger"></i>
+                    </div>
+                    <div class="valor-principal">
+                        <h2 class="mb-0 fw-bold text-danger">R$ {{ propriedade.total_despesas|default:"0" }}</h2>
+                    </div>
+                    <div class="label-estatistica">
+                        <h6 class="mb-0 text-muted">DESPESAS</h6>
+                        <small class="text-danger">
+                            <i class="bi bi-arrow-down"></i> Mês Atual
+                        </small>
+                    </div>
+                </div>
+                <div class="card-footer bg-danger bg-opacity-10 text-center py-2">
+                    <small class="text-danger fw-bold">SAÍDAS</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Indicadores Adicionais -->
+    <div class="row mb-4">
+        <div class="col-md-4 mb-3">
+            <div class="card bg-primary bg-opacity-10 border-primary">
+                <div class="card-body text-center py-2">
+                    <div class="row align-items-center">
+                        <div class="col-4">
+                            <i class="bi bi-calculator text-primary fs-3"></i>
+                        </div>
+                        <div class="col-8">
+                            <h5 class="mb-0 text-primary">R$ {{ propriedade.lucro_mensal|default:"0" }}</h5>
+                            <small class="text-muted">Lucro Mensal</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-3">
+            <div class="card bg-warning bg-opacity-10 border-warning">
+                <div class="card-body text-center py-2">
+                    <div class="row align-items-center">
+                        <div class="col-4">
+                            <i class="bi bi-percent text-warning fs-3"></i>
+                        </div>
+                        <div class="col-8">
+                            <h5 class="mb-0 text-warning">{{ propriedade.roi_percentual|default:"0" }}%</h5>
+                            <small class="text-muted">ROI Anual</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-3">
+            <div class="card bg-info bg-opacity-10 border-info">
+                <div class="card-body text-center py-2">
+                    <div class="row align-items-center">
+                        <div class="col-4">
+                            <i class="bi bi-speedometer2 text-info fs-3"></i>
+                        </div>
+                        <div class="col-8">
+                            <h5 class="mb-0 text-info">{{ propriedade.produtividade_ha|default:"0" }}</h5>
+                            <small class="text-muted">Prod/Hectare</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MÓDULOS PRINCIPAIS -->
+    <div class="row">
+        <div class="col-12">
+            <h4 class="mb-4">
+                <i class="bi bi-grid-3x3-gap"></i> Módulos do Sistema
+                <small class="text-muted">(8 disponíveis)</small>
+            </h4>
+        </div>
+
+        <!-- PECUÁRIA - Verde -->
+        <div class="col-lg-6 col-xl-4 mb-4">
+            <div class="card card-modulo card-pecuaria h-100">
+                <div class="card-header-colorido card-header text-center" style="background: linear-gradient(135deg, #28a745, #20c997);">
+                    <i class="bi bi-cow display-4 text-white mb-2"></i>
+                    <h5 class="text-white mb-0">PECUÁRIA</h5>
+                    <small class="text-light">{{ propriedade.total_animais|default:"0" }} animais</small>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-3">
+                        <li><i class="bi bi-check text-success me-2"></i>Inventário Completo</li>
+                        <li><i class="bi bi-check text-success me-2"></i>10 Categorias Ativas</li>
+                        <li><i class="bi bi-check text-success me-2"></i>IA Automática</li>
+                        <li><i class="bi bi-check text-success me-2"></i>Projeções Inteligentes</li>
+                    </ul>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <a href="{% url 'pecuaria_dashboard' propriedade.id %}" class="btn btn-modulo-pecuaria w-100">
+                        <i class="bi bi-play-circle"></i> ACESSAR
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- AGRICULTURA - Amarelo -->
+        <div class="col-lg-6 col-xl-4 mb-4">
+            <div class="card card-modulo card-agricultura h-100">
+                <div class="card-header-colorido card-header text-center" style="background: linear-gradient(135deg, #ffc107, #fd7e14);">
+                    <i class="bi bi-tree display-4 text-dark mb-2"></i>
+                    <h5 class="text-dark mb-0">AGRICULTURA</h5>
+                    <small class="text-dark">{{ propriedade.toneladas_agricultura|default:"0" }} ton</small>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-3">
+                        <li><i class="bi bi-clock text-warning me-2"></i>Calendário Agrícola</li>
+                        <li><i class="bi bi-clock text-warning me-2"></i>Controle de Safras</li>
+                        <li><i class="bi bi-clock text-warning me-2"></i>Análise de Solo</li>
+                        <li><i class="bi bi-clock text-warning me-2"></i>Produtividade</li>
+                    </ul>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <button class="btn btn-modulo-agricultura w-100" disabled>
+                        <i class="bi bi-hourglass-split"></i> EM BREVE
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- BENS E PATRIMÔNIO - Azul -->
+        <div class="col-lg-6 col-xl-4 mb-4">
+            <div class="card card-modulo card-patrimonio h-100">
+                <div class="card-header-colorido card-header text-center" style="background: linear-gradient(135deg, #17a2b8, #007bff);">
+                    <i class="bi bi-building display-4 text-white mb-2"></i>
+                    <h5 class="text-white mb-0">BENS E PATRIMÔNIO</h5>
+                    <small class="text-light">R$ {{ propriedade.valor_patrimonio|default:"0" }}</small>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-3">
+                        <li><i class="bi bi-check text-info me-2"></i>Cadastro de Bens</li>
+                        <li><i class="bi bi-check text-info me-2"></i>Máquinas e Veículos</li>
+                        <li><i class="bi bi-check text-info me-2"></i>Instalações</li>
+                        <li><i class="bi bi-check text-info me-2"></i>Depreciação</li>
+                    </ul>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <a href="{% url 'patrimonio_dashboard' propriedade.id %}" class="btn btn-modulo-patrimonio w-100">
+                        <i class="bi bi-plus-circle"></i> GERENCIAR
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- FINANCEIRO - Vermelho -->
+        <div class="col-lg-6 col-xl-4 mb-4">
+            <div class="card card-modulo card-financeiro h-100">
+                <div class="card-header-colorido card-header text-center" style="background: linear-gradient(135deg, #dc3545, #e74c3c);">
+                    <i class="bi bi-cash-coin display-4 text-white mb-2"></i>
+                    <h5 class="text-white mb-0">FINANCEIRO</h5>
+                    <small class="text-light">Saldo: R$ {{ propriedade.saldo_atual|default:"0" }}</small>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-3">
+                        <li><i class="bi bi-check text-danger me-2"></i>Fluxo de Caixa</li>
+                        <li><i class="bi bi-check text-danger me-2"></i>Contas a Pagar/Receber</li>
+                        <li><i class="bi bi-check text-danger me-2"></i>Relatórios</li>
+                        <li><i class="bi bi-check text-danger me-2"></i>DRE Automatizado</li>
+                    </ul>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <a href="{% url 'financeiro_dashboard' propriedade.id %}" class="btn btn-modulo-financeiro w-100">
+                        <i class="bi bi-calculator"></i> ACESSAR
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- PROJETOS - Roxo -->
+        <div class="col-lg-6 col-xl-4 mb-4">
+            <div class="card card-modulo card-projetos h-100">
+                <div class="card-header-colorido card-header text-center" style="background: linear-gradient(135deg, #6f42c1, #9b59b6);">
+                    <i class="bi bi-clipboard-data display-4 text-white mb-2"></i>
+                    <h5 class="text-white mb-0">PROJETOS</h5>
+                    <small class="text-light">{{ propriedade.projetos_ativos|default:"0" }} ativos</small>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-3">
+                        <li><i class="bi bi-check text-purple me-2"></i>Novos Projetos</li>
+                        <li><i class="bi bi-check text-purple me-2"></i>Cronograma</li>
+                        <li><i class="bi bi-check text-purple me-2"></i>Orçamento</li>
+                        <li><i class="bi bi-check text-purple me-2"></i>ROI e Viabilidade</li>
+                    </ul>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <a href="{% url 'projetos_dashboard' propriedade.id %}" class="btn btn-modulo-projetos w-100">
+                        <i class="bi bi-rocket-takeoff"></i> CRIAR
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- RELATÓRIOS - Laranja -->
+        <div class="col-lg-6 col-xl-4 mb-4">
+            <div class="card card-modulo card-relatorios h-100">
+                <div class="card-header-colorido card-header text-center" style="background: linear-gradient(135deg, #fd7e14, #f39c12);">
+                    <i class="bi bi-file-earmark-text display-4 text-white mb-2"></i>
+                    <h5 class="text-white mb-0">RELATÓRIOS</h5>
+                    <small class="text-light">Análises Completas</small>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-3">
+                        <li><i class="bi bi-clock text-warning me-2"></i>Dashboards</li>
+                        <li><i class="bi bi-clock text-warning me-2"></i>Análise Performance</li>
+                        <li><i class="bi bi-clock text-warning me-2"></i>Exportação PDF</li>
+                        <li><i class="bi bi-clock text-warning me-2"></i>Histórico</li>
+                    </ul>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <button class="btn btn-modulo-relatorios w-100" disabled>
+                        <i class="bi bi-hourglass-split"></i> EM BREVE
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Módulos de Configuração -->
+    <div class="row mt-4">
+        <div class="col-md-6 mb-4">
+            <div class="card card-modulo card-categorias h-100">
+                <div class="card-header-colorido card-header" style="background: linear-gradient(135deg, #20c997, #17a2b8);">
+                    <h6 class="mb-0 text-white">
+                        <i class="bi bi-tags"></i> CATEGORIAS (10 Ativas)
+                    </h6>
+                </div>
+                <div class="card-body py-3">
+                    <a href="{% url 'categorias_lista' %}" class="btn btn-modulo-categorias w-100">
+                        <i class="bi bi-list-ul"></i> GERENCIAR
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 mb-4">
+            <div class="card card-modulo card-configuracoes h-100">
+                <div class="card-header-colorido card-header" style="background: linear-gradient(135deg, #6c757d, #495057);">
+                    <h6 class="mb-0 text-white">
+                        <i class="bi bi-gear"></i> CONFIGURAÇÕES
+                    </h6>
+                </div>
+                <div class="card-body py-3">
+                    <a href="{% url 'admin:index' %}" class="btn btn-modulo-configuracoes w-100">
+                        <i class="bi bi-sliders"></i> ADMIN
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Grid para 5 colunas */
+    .col-lg-2-4 {
+        flex: 0 0 20%;
+        max-width: 20%;
+    }
+
+    @media (max-width: 991.98px) {
+        .col-lg-2-4 {
+            flex: 0 0 50%;
+            max-width: 50%;
+        }
+    }
+
+    /* Cards de Estatística */
+    .card-estatistica {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+        overflow: hidden;
+    }
+
+    .card-estatistica:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+
+    /* Cores específicas para os cards de estatística */
+    .card-estatistica.card-pecuaria:hover {
+        box-shadow: 0 8px 25px rgba(40, 167, 69, 0.25);
+    }
+
+    .card-estatistica.card-agricultura:hover {
+        box-shadow: 0 8px 25px rgba(255, 193, 7, 0.25);
+    }
+
+    .card-estatistica.card-patrimonio:hover {
+        box-shadow: 0 8px 25px rgba(23, 162, 184, 0.25);
+    }
+
+    .card-estatistica.card-receitas:hover {
+        box-shadow: 0 8px 25px rgba(40, 167, 69, 0.25);
+    }
+
+    .card-estatistica.card-despesas:hover {
+        box-shadow: 0 8px 25px rgba(220, 53, 69, 0.25);
+    }
+
+    .valor-principal h2 {
+        font-size: 1.8rem;
+        font-weight: 700;
+    }
+
+    /* Animações */
+    .card-estatistica {
+        animation: slideInUp 0.6s ease-out;
+    }
+
+    @keyframes slideInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .text-purple { 
+        color: #6f42c1 !important; 
+    }
+
+    /* Responsivo para mobile */
+    @media (max-width: 768px) {
+        .valor-principal h2 {
+            font-size: 1.5rem;
+        }
+        
+        .icone-estatistica i {
+            font-size: 2.5rem !important;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Animação escalonada dos cards
+    const cards = document.querySelectorAll('.card-estatistica, .card-modulo');
+    cards.forEach((card, index) => {
+        card.style.animationDelay = `${index * 0.1}s`;
+    });
+
+    // Contador animado nos valores das estatísticas
+    function animateValue(element, start, end, duration) {
+        const startTime = performance.now();
+        const step = (currentTime) => {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            const current = Math.floor(progress * (end - start) + start);
+            
+            // Formato brasileiro para valores monetários
+            if (element.textContent.includes('R$')) {
+                element.textContent = `R$ ${current.toLocaleString('pt-BR')}`;
+            } else {
+                element.textContent = current.toLocaleString('pt-BR');
+            }
+            
+            if (progress < 1) {
+                requestAnimationFrame(step);
+            }
+        };
+        requestAnimationFrame(step);
+    }
+
+    // Observador para animar quando os cards ficam visíveis
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const valueElements = entry.target.querySelectorAll('.valor-principal h2');
+                valueElements.forEach(element => {
+                    const text = element.textContent.replace(/[^\d]/g, '');
+                    const value = parseInt(text) || 0;
+                    if (value > 0) {
+                        animateValue(element, 0, value, 2000);
+                    }
+                });
+                observer.unobserve(entry.target);
+            }
+        });
+    });
+
+    // Observar todos os cards de estatística
+    document.querySelectorAll('.card-estatistica').forEach(card => {
+        observer.observe(card);
+    });
+
+    // Efeito de pulsação nos indicadores
+    setInterval(() => {
+        document.querySelectorAll('.badge, .valor-principal h2').forEach(element => {
+            element.style.transform = 'scale(1.02)';
+            setTimeout(() => {
+                element.style.transform = 'scale(1)';
+            }, 200);
+        });
+    }, 5000);
+});
+</script>
+{% endblock %}

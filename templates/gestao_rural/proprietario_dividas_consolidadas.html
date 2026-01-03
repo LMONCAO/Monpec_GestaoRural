@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Dívidas Consolidadas - {{ produtor.nome }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="text-dark mb-1">
+                        <i class="bi bi-credit-card text-warning"></i> Dívidas Consolidadas
+                    </h2>
+                    <p class="text-muted mb-0">{{ produtor.nome }} - Todas as Propriedades</p>
+                </div>
+                <a href="{% url 'propriedades_lista' produtor.id %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Voltar às Propriedades
+                </a>
+            </div>
+
+            <!-- Resumo das Dívidas -->
+            <div class="row mb-4">
+                <div class="col-md-3 mb-3">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body text-center p-3">
+                            <div class="bg-warning bg-opacity-10 rounded-circle p-3 mx-auto mb-2" style="width: 60px; height: 60px;">
+                                <i class="bi bi-credit-card text-warning fs-4"></i>
+                            </div>
+                            <h6 class="text-dark mb-1">Total Financiamentos</h6>
+                            <h4 class="text-warning mb-0">{{ total_financiamentos }}</h4>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3 mb-3">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body text-center p-3">
+                            <div class="bg-danger bg-opacity-10 rounded-circle p-3 mx-auto mb-2" style="width: 60px; height: 60px;">
+                                <i class="bi bi-cash text-danger fs-4"></i>
+                            </div>
+                            <h6 class="text-dark mb-1">Valor Principal</h6>
+                            <h4 class="text-danger mb-0">R$ {{ total_principal|floatformat:2 }}</h4>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3 mb-3">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body text-center p-3">
+                            <div class="bg-info bg-opacity-10 rounded-circle p-3 mx-auto mb-2" style="width: 60px; height: 60px;">
+                                <i class="bi bi-calendar text-info fs-4"></i>
+                            </div>
+                            <h6 class="text-dark mb-1">Parcelas Mensais</h6>
+                            <h4 class="text-info mb-0">R$ {{ total_parcelas|floatformat:2 }}</h4>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3 mb-3">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body text-center p-3">
+                            <div class="bg-success bg-opacity-10 rounded-circle p-3 mx-auto mb-2" style="width: 60px; height: 60px;">
+                                <i class="bi bi-check-circle text-success fs-4"></i>
+                            </div>
+                            <h6 class="text-dark mb-1">Valor Pago</h6>
+                            <h4 class="text-success mb-0">R$ {{ total_pago|floatformat:2 }}</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lista de Financiamentos -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <h5 class="text-dark mb-3">
+                        <i class="bi bi-list-ul me-2 text-primary"></i>
+                        Financiamentos por Propriedade
+                    </h5>
+                    
+                    {% if financiamentos %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Propriedade</th>
+                                    <th>Instituição</th>
+                                    <th>Valor Principal</th>
+                                    <th>Parcela Mensal</th>
+                                    <th>Valor Pago</th>
+                                    <th>Restante</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for financiamento in financiamentos %}
+                                <tr>
+                                    <td>{{ financiamento.propriedade.nome_propriedade }}</td>
+                                    <td>{{ financiamento.instituicao_financeira }}</td>
+                                    <td class="text-danger">R$ {{ financiamento.valor_principal|floatformat:2 }}</td>
+                                    <td class="text-warning">R$ {{ financiamento.valor_parcela|floatformat:2 }}</td>
+                                    <td class="text-success">R$ {{ financiamento.valor_pago|floatformat:2 }}</td>
+                                    <td class="text-info">R$ {{ financiamento.valor_principal|add:financiamento.valor_pago|floatformat:2 }}</td>
+                                    <td>
+                                        {% if financiamento.ativo %}
+                                            <span class="badge bg-success">Ativo</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Inativo</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-credit-card text-muted" style="font-size: 3rem;"></i>
+                        <p class="text-muted mt-2">Nenhum financiamento cadastrado</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

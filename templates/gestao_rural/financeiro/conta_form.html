@@ -1,0 +1,95 @@
+{% extends 'base_modulos_unificado.html' %}
+
+{% block title %}{{ titulo }} - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block breadcrumb_extra %}
+    <li class="breadcrumb-item">
+        <a href="{% url 'financeiro_dashboard' propriedade.id %}">
+            <i class="bi bi-cash-coin me-1"></i>Financeiro
+        </a>
+    </li>
+    <li class="breadcrumb-item">
+        <a href="{% url 'financeiro_contas' propriedade.id %}">
+            Contas
+        </a>
+    </li>
+    <li class="breadcrumb-item active">{{ titulo }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="card-moderno">
+        <div class="card-body-moderno">
+            <h3 class="mb-3">{{ titulo }}</h3>
+            <form method="post">
+                {% csrf_token %}
+                {{ form.propriedade }}
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {{ form.non_field_errors }}
+                    </div>
+                {% endif %}
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Nome da Conta</label>
+                        {{ form.nome }}
+                        {{ form.nome.errors }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Tipo</label>
+                        {{ form.tipo }}
+                        {{ form.tipo.errors }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Banco</label>
+                        {{ form.banco }}
+                        {{ form.banco.errors }}
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Agência</label>
+                        {{ form.agencia }}
+                        {{ form.agencia.errors }}
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Número da Conta</label>
+                        {{ form.numero_conta }}
+                        {{ form.numero_conta.errors }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Saldo Inicial</label>
+                        {{ form.saldo_inicial }}
+                        {{ form.saldo_inicial.errors }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Data do Saldo</label>
+                        {{ form.data_saldo_inicial }}
+                        {{ form.data_saldo_inicial.errors }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label d-block">Opções</label>
+                        <div class="form-check">
+                            {{ form.permite_negativo }}
+                            <label class="form-check-label">Permitir saldo negativo</label>
+                        </div>
+                        <div class="form-check">
+                            {{ form.ativa }}
+                            <label class="form-check-label">Conta ativa</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mt-4">
+                    <a href="{% url 'financeiro_contas' propriedade.id %}" class="btn btn-outline-secondary">
+                        Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle me-1"></i> Salvar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

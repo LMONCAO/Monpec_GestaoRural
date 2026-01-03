@@ -1,0 +1,94 @@
+# Dockerfile para produção - Google Cloud Run
+# Otimizado para Django 4.2.7
+
+FROM python:3.11-slim
+
+# Variáveis de ambiente
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PORT=8080
+
+# Instalar dependências do sistema
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-client \
+    build-essential \
+    libpq-dev \
+    libjpeg-dev \
+    zlib1g-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Criar diretório de trabalho
+WORKDIR /app
+
+# Copiar requirements primeiro (para cache de layers)
+COPY requirements_producao.txt requirements.txt ./
+
+# Instalar dependências Python
+RUN pip install --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir -r requirements_producao.txt && \
+    pip list | head -20
+
+# Copiar código da aplicação
+COPY . .
+
+# Criar diretórios necessários
+RUN mkdir -p /app/staticfiles /app/media /app/logs && \
+    chmod -R 755 /app/staticfiles /app/media /app/logs
+
+# Executar collectstatic durante o build (sem precisar de DB)
+# IMPORTANTE: Coletar TODOS os arquivos estáticos incluindo imagens, vídeos, etc.
+# Usar --link para criar links simbólicos (mais rápido) ou copiar arquivos
+RUN echo "🔍 Verificando arquivos estáticos antes do collectstatic..." && \
+    ls -la /app/static/site/ 2>/dev/null || echo "⚠️ Pasta static/site/ não encontrada ainda" && \
+    DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp \
+    STATIC_ROOT=/app/staticfiles \
+    python manage.py collectstatic --noinput --clear --verbosity 2 --link || \
+    (echo "⚠️ AVISO: collectstatic com --link falhou, tentando sem --link..." && \
+     DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp \
+     STATIC_ROOT=/app/staticfiles \
+     python manage.py collectstatic --noinput --clear --verbosity 2 || \
+     (echo "❌ ERRO: collectstatic falhou completamente!" && \
+      echo "Criando diretório manualmente..." && \
+      mkdir -p /app/staticfiles && chmod -R 755 /app/staticfiles))
+
+# Verificar se arquivos estáticos foram coletados (imagens, CSS, JS)
+RUN if [ -d "/app/staticfiles" ]; then \
+        echo "✅ Arquivos estáticos coletados:" && \
+        ls -la /app/staticfiles/ | head -20 && \
+        echo "Verificando imagens em staticfiles/site/:" && \
+        ls -la /app/staticfiles/site/ 2>/dev/null || echo "⚠️ Pasta staticfiles/site/ não encontrada" && \
+        find /app/staticfiles -type f \( -name "*.jpg" -o -name "*.png" -o -name "*.jpeg" -o -name "*.gif" \) | head -20 && \
+        echo "Verificando especificamente foto1.jpeg até foto6.jpeg:" && \
+        for i in 1 2 3 4 5 6; do \
+            if [ -f "/app/staticfiles/site/foto${i}.jpeg" ]; then \
+                echo "✅ foto${i}.jpeg encontrado"; \
+            else \
+                echo "❌ foto${i}.jpeg NÃO encontrado!"; \
+            fi; \
+        done && \
+        echo "Total de arquivos estáticos: $(find /app/staticfiles -type f | wc -l)"; \
+    fi
+
+# Verificar instalação crítica
+RUN python -c "import django; import openpyxl; import psycopg2; print('✅ Dependências críticas instaladas')" || \
+    (echo "❌ ERRO: Dependências críticas não instaladas!" && exit 1)
+
+# Expor porta
+EXPOSE 8080
+
+# Configurar settings para produção
+ENV DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp
+
+# Comando de inicialização
+# Executa migrações e inicia servidor
+# IMPORTANTE: Porta deve usar ${PORT} (sem aspas) para Cloud Run
+CMD gunicorn --bind 0.0.0.0:${PORT:-8080} \
+    --workers 2 \
+    --threads 4 \
+    --timeout 300 \
+    --access-logfile - \
+    --error-logfile - \
+    --log-level info \
+    sistema_rural.wsgi:application

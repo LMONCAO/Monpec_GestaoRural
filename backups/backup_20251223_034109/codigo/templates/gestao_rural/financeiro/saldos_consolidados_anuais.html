@@ -1,0 +1,174 @@
+{% extends 'base_modulos_unificado.html' %}
+{% load static %}
+{% load formatacao_br %}
+
+{% block title %}Saldos Consolidados Ano a Ano - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block breadcrumb_extra %}
+    <li class="breadcrumb-item"><a href="{% url 'financeiro_dashboard' propriedade.id %}">Financeiro</a></li>
+    <li class="breadcrumb-item active">Saldos Consolidados</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>
+            <i class="bi bi-bar-chart-line me-2"></i>
+            Saldos Consolidados Ano a Ano
+        </h2>
+        <div>
+            <a href="{% url 'financeiro_integrar_vendas' propriedade.id %}" class="btn btn-info">
+                <i class="bi bi-link-45deg me-1"></i>
+                Integrar Vendas
+            </a>
+            <a href="{% url 'financeiro_dashboard' propriedade.id %}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left me-1"></i>
+                Voltar
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-8">
+                    <label class="form-label">Filtrar por anos:</label>
+                    <div class="row">
+                        {% for ano in anos_com_vendas %}
+                            <div class="col-md-3 mb-2">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="anos" value="{{ ano }}" 
+                                           id="ano_{{ ano }}" {% if ano in anos_selecionados %}checked{% endif %}>
+                                    <label class="form-check-label" for="ano_{{ ano }}">
+                                        {{ ano }}
+                                    </label>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2">
+                        <i class="bi bi-funnel me-1"></i>
+                        Filtrar
+                    </button>
+                    <a href="{% url 'financeiro_saldos_consolidados' propriedade.id %}" class="btn btn-secondary">
+                        <i class="bi bi-x-circle me-1"></i>
+                        Limpar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Resumo Geral -->
+    {% if resumo_financeiro.saldos_anuais %}
+        <div class="row g-3 mb-4">
+            <div class="col-md-3">
+                <div class="card border-success">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted mb-2">Total Receitas</h6>
+                        <h4 class="text-success mb-0">R$ {{ resumo_financeiro.total_receitas|moeda_br }}</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-danger">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted mb-2">Total Despesas</h6>
+                        <h4 class="text-danger mb-0">R$ {{ resumo_financeiro.total_despesas|moeda_br }}</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-info">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted mb-2">Saldo Total</h6>
+                        <h4 class="text-info mb-0">R$ {{ resumo_financeiro.total_saldo|moeda_br }}</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-primary">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted mb-2">Saldo Acumulado</h6>
+                        <h4 class="text-primary mb-0">R$ {{ resumo_financeiro.saldo_acumulado_final|moeda_br }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabela Detalhada -->
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-table me-2"></i>
+                    Detalhamento por Ano
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Ano</th>
+                                <th class="text-end">Receita (R$)</th>
+                                <th class="text-end">Despesas (R$)</th>
+                                <th class="text-end">Saldo do Ano (R$)</th>
+                                <th class="text-end">Saldo Acumulado (R$)</th>
+                                <th class="text-end">Margem (%)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in resumo_financeiro.saldos_anuais %}
+                                <tr>
+                                    <td><strong>{{ item.ano }}</strong></td>
+                                    <td class="text-end text-success">
+                                        <strong>R$ {{ item.receita|moeda_br }}</strong>
+                                    </td>
+                                    <td class="text-end text-danger">
+                                        R$ {{ item.despesas|moeda_br }}
+                                    </td>
+                                    <td class="text-end {% if item.saldo_ano >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                        <strong>R$ {{ item.saldo_ano|moeda_br }}</strong>
+                                    </td>
+                                    <td class="text-end {% if item.saldo_acumulado >= 0 %}text-primary{% else %}text-danger{% endif %}">
+                                        <strong>R$ {{ item.saldo_acumulado|moeda_br }}</strong>
+                                    </td>
+                                    <td class="text-end">
+                                        <span class="badge {% if item.margem_percentual >= 0 %}bg-success{% else %}bg-danger{% endif %}">
+                                            {{ item.margem_percentual|floatformat:2 }}%
+                                        </span>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr class="table-active">
+                                <th>TOTAL</th>
+                                <th class="text-end">R$ {{ resumo_financeiro.total_receitas|moeda_br }}</th>
+                                <th class="text-end">R$ {{ resumo_financeiro.total_despesas|moeda_br }}</th>
+                                <th class="text-end">R$ {{ resumo_financeiro.total_saldo|moeda_br }}</th>
+                                <th class="text-end">R$ {{ resumo_financeiro.saldo_acumulado_final|moeda_br }}</th>
+                                <th></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            <strong>Nenhum dado encontrado!</strong>
+            <p class="mb-0 mt-2">
+                Não há receitas anuais cadastradas ou sincronizadas. 
+                <a href="{% url 'financeiro_integrar_vendas' propriedade.id %}">Clique aqui para sincronizar as vendas projetadas</a>.
+            </p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+

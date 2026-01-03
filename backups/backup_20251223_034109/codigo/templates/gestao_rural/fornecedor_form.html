@@ -1,0 +1,95 @@
+{% extends "base_modulos_unificado.html" %}
+
+{% block title %}Fornecedor - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'compras_dashboard' propriedade.id %}">Compras</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'fornecedores_lista' propriedade.id %}">Fornecedores</a></li>
+            <li class="breadcrumb-item active">{% if form_type == 'editar' %}Editar{% else %}Novo{% endif %}</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-truck me-2"></i>{% if form_type == 'editar' %}Editar fornecedor{% else %}Novo fornecedor{% endif %}</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" class="row g-3">
+                        {% csrf_token %}
+                        <div class="col-md-8">
+                            <label class="form-label">Razão Social / Nome *</label>
+                            <input type="text" name="nome" class="form-control" value="{{ fornecedor.nome|default:'' }}" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Nome fantasia</label>
+                            <input type="text" name="nome_fantasia" class="form-control" value="{{ fornecedor.nome_fantasia|default:'' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">CPF/CNPJ *</label>
+                            <input type="text" name="cpf_cnpj" class="form-control" value="{{ fornecedor.cpf_cnpj|default:'' }}" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Tipo *</label>
+                            <select name="tipo" class="form-select" required>
+                                <option value="PESSOA_FISICA" {% if fornecedor.tipo == 'PESSOA_FISICA' %}selected{% endif %}>Pessoa Física</option>
+                                <option value="PESSOA_JURIDICA" {% if fornecedor.tipo == 'PESSOA_JURIDICA' %}selected{% endif %}>Pessoa Jurídica</option>
+                                <option value="COOPERATIVA" {% if fornecedor.tipo == 'COOPERATIVA' %}selected{% endif %}>Cooperativa</option>
+                                <option value="OUTROS" {% if fornecedor.tipo == 'OUTROS' %}selected{% endif %}>Outros</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Telefone</label>
+                            <input type="text" name="telefone" class="form-control" value="{{ fornecedor.telefone|default:'' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">E-mail</label>
+                            <input type="email" name="email" class="form-control" value="{{ fornecedor.email|default:'' }}">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Endereço</label>
+                            <input type="text" name="endereco" class="form-control" value="{{ fornecedor.endereco|default:'' }}" placeholder="Rua, número, bairro">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Cidade</label>
+                            <input type="text" name="cidade" class="form-control" value="{{ fornecedor.cidade|default:'' }}">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Estado</label>
+                            <input type="text" name="estado" maxlength="2" class="form-control text-uppercase" value="{{ fornecedor.estado|default:'' }}">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Observações</label>
+                            <textarea name="observacoes" rows="3" class="form-control">{{ fornecedor.observacoes|default:'' }}</textarea>
+                        </div>
+                        <div class="col-12 d-flex gap-2">
+                            <button type="submit" class="btn btn-primary"><i class="bi bi-check-circle me-1"></i>Salvar</button>
+                            <a href="{% url 'fornecedores_lista' propriedade.id %}" class="btn btn-outline-secondary">Cancelar</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Boas práticas</h6>
+                </div>
+                <div class="card-body small text-muted">
+                    <ul class="mb-0">
+                        <li>Use a mesma base de fornecedores para compras, financeiro e estoque.</li>
+                        <li>Preencha CPF/CNPJ corretamente para cruzar com NF-e importada.</li>
+                        <li>Cadastre contatos e canais para negociações e auditorias.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

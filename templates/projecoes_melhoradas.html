@@ -1,0 +1,555 @@
+{% extends "base_moderno.html" %}
+{% load static %}
+
+{% block title %}Projeções e Cenários - Sistema Monpec{% endblock %}
+
+{% block extra_css %}
+<style>
+    .projection-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 50px 0;
+        margin: -20px -15px 40px -15px;
+        border-radius: 0 0 30px 30px;
+        text-align: center;
+    }
+    
+    .timeline-container {
+        position: relative;
+        padding: 30px 0;
+    }
+    
+    .timeline-line {
+        position: absolute;
+        left: 50%;
+        top: 0;
+        bottom: 0;
+        width: 3px;
+        background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+        transform: translateX(-50%);
+    }
+    
+    .timeline-item {
+        position: relative;
+        margin-bottom: 50px;
+    }
+    
+    .timeline-year {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        background: white;
+        border: 4px solid #667eea;
+        border-radius: 50%;
+        width: 80px;
+        height: 80px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        font-weight: 700;
+        color: #667eea;
+        z-index: 2;
+    }
+    
+    .timeline-content {
+        background: white;
+        border-radius: 16px;
+        padding: 25px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+        width: 45%;
+    }
+    
+    .timeline-item:nth-child(odd) .timeline-content {
+        margin-left: 0;
+    }
+    
+    .timeline-item:nth-child(even) .timeline-content {
+        margin-left: 55%;
+    }
+    
+    .projection-metrics {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 15px;
+        margin-top: 20px;
+    }
+    
+    .metric-box {
+        text-align: center;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 10px;
+    }
+    
+    .metric-value {
+        font-size: 24px;
+        font-weight: 700;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    
+    .metric-label {
+        font-size: 12px;
+        color: #6c757d;
+        margin-top: 5px;
+    }
+    
+    .scenario-selector {
+        background: white;
+        border-radius: 16px;
+        padding: 30px;
+        margin-bottom: 40px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+    }
+    
+    .scenario-btn {
+        padding: 20px;
+        border: 2px solid #e9ecef;
+        border-radius: 12px;
+        background: white;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-align: center;
+    }
+    
+    .scenario-btn:hover,
+    .scenario-btn.active {
+        border-color: #667eea;
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+    }
+    
+    .scenario-btn.active {
+        border-width: 3px;
+    }
+    
+    .scenario-icon {
+        font-size: 36px;
+        margin-bottom: 10px;
+    }
+    
+    .comparison-table {
+        background: white;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+    }
+    
+    .comparison-table table {
+        margin: 0;
+    }
+    
+    .comparison-table thead {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+    
+    .comparison-table tbody tr:hover {
+        background: rgba(102, 126, 234, 0.05);
+    }
+    
+    .progress-custom {
+        height: 25px;
+        border-radius: 12px;
+        background: #e9ecef;
+    }
+    
+    .progress-bar-custom {
+        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 600;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Cabeçalho -->
+    <div class="projection-header">
+        <div class="container">
+            <h1 class="display-4 mb-3">
+                <i class="fas fa-chart-line"></i> Projeções e Cenários
+            </h1>
+            <p class="lead">Visualize a evolução do seu rebanho nos próximos 5 anos</p>
+        </div>
+    </div>
+    
+    <div class="container">
+        <!-- Seletor de Cenários -->
+        <div class="scenario-selector">
+            <h4 class="mb-4">
+                <i class="fas fa-sliders-h"></i> Selecione o Cenário
+            </h4>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="scenario-btn active" data-scenario="conservador">
+                        <div class="scenario-icon text-primary">
+                            <i class="fas fa-chart-area"></i>
+                        </div>
+                        <h6>Conservador</h6>
+                        <small class="text-muted">Crescimento de 8% ao ano</small>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="scenario-btn" data-scenario="moderado">
+                        <div class="scenario-icon text-success">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <h6>Moderado</h6>
+                        <small class="text-muted">Crescimento de 12% ao ano</small>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="scenario-btn" data-scenario="agressivo">
+                        <div class="scenario-icon text-warning">
+                            <i class="fas fa-rocket"></i>
+                        </div>
+                        <h6>Agressivo</h6>
+                        <small class="text-muted">Crescimento de 18% ao ano</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Timeline de Projeções -->
+        <div class="timeline-container">
+            <div class="timeline-line"></div>
+            
+            <!-- Ano 1 -->
+            <div class="timeline-item">
+                <div class="timeline-year">2026</div>
+                <div class="timeline-content">
+                    <h5><i class="fas fa-calendar-alt text-primary"></i> Ano 1</h5>
+                    <div class="projection-metrics">
+                        <div class="metric-box">
+                            <div class="metric-value">1.545</div>
+                            <div class="metric-label">Animais</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-value">R$ 1,2M</div>
+                            <div class="metric-label">Receita</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-value">24,2%</div>
+                            <div class="metric-label">Margem</div>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <small class="text-muted">
+                            <i class="fas fa-arrow-up text-success"></i> +8% crescimento do rebanho
+                        </small>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Ano 2 -->
+            <div class="timeline-item">
+                <div class="timeline-year">2027</div>
+                <div class="timeline-content">
+                    <h5><i class="fas fa-calendar-alt text-primary"></i> Ano 2</h5>
+                    <div class="projection-metrics">
+                        <div class="metric-box">
+                            <div class="metric-value">1.669</div>
+                            <div class="metric-label">Animais</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-value">R$ 1,4M</div>
+                            <div class="metric-label">Receita</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-value">24,5%</div>
+                            <div class="metric-label">Margem</div>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <small class="text-muted">
+                            <i class="fas fa-arrow-up text-success"></i> +8% crescimento acumulado
+                        </small>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Ano 3 -->
+            <div class="timeline-item">
+                <div class="timeline-year">2028</div>
+                <div class="timeline-content">
+                    <h5><i class="fas fa-calendar-alt text-primary"></i> Ano 3</h5>
+                    <div class="projection-metrics">
+                        <div class="metric-box">
+                            <div class="metric-value">1.803</div>
+                            <div class="metric-label">Animais</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-value">R$ 1,6M</div>
+                            <div class="metric-label">Receita</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-value">25,1%</div>
+                            <div class="metric-label">Margem</div>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <small class="text-muted">
+                            <i class="fas fa-arrow-up text-success"></i> +8% crescimento acumulado
+                        </small>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Ano 4 -->
+            <div class="timeline-item">
+                <div class="timeline-year">2029</div>
+                <div class="timeline-content">
+                    <h5><i class="fas fa-calendar-alt text-primary"></i> Ano 4</h5>
+                    <div class="projection-metrics">
+                        <div class="metric-box">
+                            <div class="metric-value">1.947</div>
+                            <div class="metric-label">Animais</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-value">R$ 1,8M</div>
+                            <div class="metric-label">Receita</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-value">25,8%</div>
+                            <div class="metric-label">Margem</div>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <small class="text-muted">
+                            <i class="fas fa-arrow-up text-success"></i> +8% crescimento acumulado
+                        </small>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Ano 5 -->
+            <div class="timeline-item">
+                <div class="timeline-year">2030</div>
+                <div class="timeline-content">
+                    <h5><i class="fas fa-calendar-alt text-primary"></i> Ano 5</h5>
+                    <div class="projection-metrics">
+                        <div class="metric-box">
+                            <div class="metric-value">2.103</div>
+                            <div class="metric-label">Animais</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-value">R$ 2,1M</div>
+                            <div class="metric-label">Receita</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-value">26,5%</div>
+                            <div class="metric-label">Margem</div>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <small class="text-muted">
+                            <i class="fas fa-trophy text-warning"></i> Crescimento total de 47%!
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tabela Comparativa -->
+        <div class="comparison-table mt-5 mb-5">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Ano</th>
+                        <th>Rebanho</th>
+                        <th>Nascimentos</th>
+                        <th>Vendas</th>
+                        <th>Receita</th>
+                        <th>Lucro</th>
+                        <th>Crescimento</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>2026</strong></td>
+                        <td>1.545</td>
+                        <td>385</td>
+                        <td>310</td>
+                        <td>R$ 1.200.000</td>
+                        <td>R$ 290.400</td>
+                        <td><span class="badge bg-success">+8%</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>2027</strong></td>
+                        <td>1.669</td>
+                        <td>416</td>
+                        <td>335</td>
+                        <td>R$ 1.380.000</td>
+                        <td>R$ 338.100</td>
+                        <td><span class="badge bg-success">+8%</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>2028</strong></td>
+                        <td>1.803</td>
+                        <td>449</td>
+                        <td>362</td>
+                        <td>R$ 1.580.000</td>
+                        <td>R$ 396.580</td>
+                        <td><span class="badge bg-success">+8%</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>2029</strong></td>
+                        <td>1.947</td>
+                        <td>485</td>
+                        <td>391</td>
+                        <td>R$ 1.810.000</td>
+                        <td>R$ 467.180</td>
+                        <td><span class="badge bg-success">+8%</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>2030</strong></td>
+                        <td>2.103</td>
+                        <td>524</td>
+                        <td>422</td>
+                        <td>R$ 2.070.000</td>
+                        <td>R$ 548.550</td>
+                        <td><span class="badge bg-success">+8%</span></td>
+                    </tr>
+                    <tr class="table-active">
+                        <td><strong>TOTAL 5 ANOS</strong></td>
+                        <td colspan="3"><strong>Crescimento: 47%</strong></td>
+                        <td><strong>R$ 8.040.000</strong></td>
+                        <td><strong>R$ 2.040.810</strong></td>
+                        <td><strong>25,4% média</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Gráfico de Projeção -->
+        <div class="card card-modern mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-chart-area"></i> Gráfico de Evolução</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="chartProjecao" height="100"></canvas>
+            </div>
+        </div>
+        
+        <!-- Botão de Exportar -->
+        <div class="text-center mb-5">
+            <button class="btn btn-modern btn-modern-primary btn-lg px-5" onclick="exportarPDF()">
+                <i class="fas fa-file-pdf"></i> Exportar Relatório PDF
+            </button>
+            <button class="btn btn-modern btn-modern-success btn-lg px-5 ms-3" onclick="exportarExcel()">
+                <i class="fas fa-file-excel"></i> Exportar para Excel
+            </button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+    // Seletor de cenários
+    document.querySelectorAll('.scenario-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.scenario-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            // Atualizar dados do gráfico baseado no cenário
+        });
+    });
+    
+    // Gráfico de Projeção
+    const ctx = document.getElementById('chartProjecao').getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ['2025', '2026', '2027', '2028', '2029', '2030'],
+            datasets: [{
+                label: 'Rebanho',
+                data: [1430, 1545, 1669, 1803, 1947, 2103],
+                borderColor: '#667eea',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4,
+                yAxisID: 'y'
+            }, {
+                label: 'Receita (R$ mil)',
+                data: [1050, 1200, 1380, 1580, 1810, 2070],
+                borderColor: '#28a745',
+                backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4,
+                yAxisID: 'y1'
+            }]
+        },
+        options: {
+            responsive: true,
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
+            plugins: {
+                legend: {
+                    position: 'top'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (context.parsed.y !== null) {
+                                if (context.datasetIndex === 1) {
+                                    label += 'R$ ' + context.parsed.y.toLocaleString('pt-BR') + ' mil';
+                                } else {
+                                    label += context.parsed.y.toLocaleString('pt-BR') + ' animais';
+                                }
+                            }
+                            return label;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    title: {
+                        display: true,
+                        text: 'Número de Animais'
+                    }
+                },
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    title: {
+                        display: true,
+                        text: 'Receita (R$ mil)'
+                    },
+                    grid: {
+                        drawOnChartArea: false
+                    }
+                }
+            }
+        }
+    });
+    
+    function exportarPDF() {
+        alert('Gerando relatório PDF... (implementar endpoint /api/relatorio/projecoes/pdf/)');
+        // window.location.href = '/api/relatorio/projecoes/pdf/';
+    }
+    
+    function exportarExcel() {
+        alert('Gerando planilha Excel... (implementar endpoint /api/relatorio/projecoes/excel/)');
+        // window.location.href = '/api/relatorio/projecoes/excel/';
+    }
+</script>
+{% endblock %}
+

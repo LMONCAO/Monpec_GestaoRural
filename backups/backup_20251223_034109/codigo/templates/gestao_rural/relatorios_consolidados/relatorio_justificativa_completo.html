@@ -1,0 +1,302 @@
+{% extends "gestao_rural/base.html" %}
+{% load static %}
+{% load formatacao_br %}
+{% load humanize %}
+
+{% block title %}Relatório de Justificativa de Endividamento - {{ produtor.nome }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    @media print {
+        .no-print { display: none; }
+        .page-break { page-break-after: always; }
+    }
+    .secao-relatorio {
+        margin-bottom: 2rem;
+        page-break-inside: avoid;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="card">
+        <div class="card-body">
+            <!-- Cabeçalho -->
+            <div class="text-center mb-4">
+                <h2><strong>RELATÓRIO DE JUSTIFICATIVA DE ENDIVIDAMENTO</strong></h2>
+                <h4>{{ produtor.nome }}</h4>
+                <p class="mb-0">CPF/CNPJ: {{ produtor.cpf_cnpj }}</p>
+                <p>Ano de Referência: {{ ano }}</p>
+            </div>
+
+            <hr>
+
+            <!-- 1. CONTEXTO DA SITUAÇÃO -->
+            <div class="secao-relatorio">
+                <h4><strong>1. CONTEXTO DA SITUAÇÃO FINANCEIRA</strong></h4>
+                
+                <h5>1.1. Histórico do Endividamento</h5>
+                <p>
+                    O endividamento atual teve origem em uma dívida inicial de aproximadamente 
+                    <strong>R$ 11.000.000,00</strong>. Ao longo do tempo, algumas dívidas foram renegociadas 
+                    com as instituições financeiras, porém essas renegociações resultaram em aumento 
+                    significativo dos valores devidos.
+                </p>
+                <p>
+                    <strong>Exemplo:</strong> Uma dívida original de R$ 500.000,00 foi renegociada e 
+                    passou a R$ 850.000,00, representando um aumento de 70% no valor devido.
+                </p>
+
+                <h5 class="mt-4">1.2. Causas do Agravamento da Situação</h5>
+                <p>
+                    A situação financeira foi agravada por fatores externos ao controle do produtor:
+                </p>
+                <ul>
+                    <li>
+                        <strong>Queda de Preços no Mercado (2023 - Julho 2024):</strong> 
+                        O período de 2023 até julho de 2024 foi marcado por uma queda significativa 
+                        nos preços dos bezerros e do gado, reduzindo drasticamente a receita esperada.
+                    </li>
+                    <li>
+                        <strong>Compromisso Fixo Elevado:</strong> 
+                        A Fazenda Canta Galo requer um pagamento anual de aproximadamente 
+                        <strong>R$ 8.000.000,00</strong>, compromisso que não pode ser flexibilizado.
+                    </li>
+                    <li>
+                        <strong>Pagamento como Avalista (2024):</strong> 
+                        No ano de 2024, foi necessário pagar <strong>R$ 2.400.000,00</strong> 
+                        em dívidas de terceiros onde o produtor atuou como avalista. Este valor 
+                        significativo impactou diretamente o fluxo de caixa disponível para 
+                        honrar os próprios compromissos financeiros.
+                    </li>
+                    <li>
+                        <strong>Falta de Caixa:</strong> 
+                        Com a queda de preços e os pagamentos como avalista, não houve geração 
+                        de caixa suficiente para honrar todos os compromissos financeiros simultaneamente.
+                    </li>
+                </ul>
+
+                <h5 class="mt-4">1.3. Estratégia Adotada</h5>
+                <p>
+                    Diante da situação, foi adotada a seguinte estratégia:
+                </p>
+                <ul>
+                    <li>Priorização do pagamento de dívidas bancárias</li>
+                    <li>Aguardar a estabilização do mercado de gado para retomar o fluxo de caixa normal</li>
+                    <li>Negociação ativa com credores para obtenção de descontos em parcelas vencidas</li>
+                </ul>
+            </div>
+
+            <hr class="page-break">
+
+            <!-- 2. SITUAÇÃO NO SCR -->
+            {% if scr %}
+            <div class="secao-relatorio">
+                <h4><strong>2. SITUAÇÃO NO SCR (SISTEMA DE INFORMAÇÕES DE CRÉDITO)</strong></h4>
+                <p><strong>Data de Referência:</strong> {{ scr.data_referencia_scr|date:"d/m/Y" }}</p>
+                
+                {% if dividas_por_banco %}
+                <div class="table-responsive mt-3">
+                    <table class="table table-bordered table-sm">
+                        <thead>
+                            <tr>
+                                <th>Instituição</th>
+                                <th class="text-end">Dívidas em Dia</th>
+                                <th class="text-end">Dívidas Vencidas</th>
+                                <th class="text-end">Valor Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for divida in dividas_por_banco %}
+                            <tr>
+                                <td>{{ divida.banco }}</td>
+                                <td class="text-end">
+                                    {% if divida.status_divida == 'A_VENCER' %}
+                                        {{ divida.valor_total|floatformat:2|moeda_br }}
+                                    {% else %}
+                                        R$ 0,00
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    {% if divida.status_divida == 'VENCIDO' %}
+                                        {{ divida.valor_total|floatformat:2|moeda_br }}
+                                    {% else %}
+                                        R$ 0,00
+                                    {% endif %}
+                                </td>
+                                <td class="text-end"><strong>{{ divida.valor_total|floatformat:2|moeda_br }}</strong></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <hr class="page-break">
+
+            <!-- 3. CAPACIDADE DE PAGAMENTO -->
+            <div class="secao-relatorio">
+                <h4><strong>3. CAPACIDADE DE PAGAMENTO</strong></h4>
+                
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <tbody>
+                            <tr>
+                                <td><strong>Receitas Anuais ({{ ano }})</strong></td>
+                                <td class="text-end"><strong>{{ capacidade_pagamento.receitas_anuais|floatformat:2|moeda_br }}</strong></td>
+                            </tr>
+                            <tr>
+                                <td>(-) Despesas Operacionais</td>
+                                <td class="text-end">({{ capacidade_pagamento.despesas_operacionais|floatformat:2|moeda_br }})</td>
+                            </tr>
+                            <tr class="table-primary">
+                                <td><strong>Saldo Disponível para Pagamento de Dívidas</strong></td>
+                                <td class="text-end"><strong>{{ capacidade_pagamento.saldo_disponivel|floatformat:2|moeda_br }}</strong></td>
+                            </tr>
+                            <tr>
+                                <td>Capacidade de Pagamento Mensal (70% do saldo)</td>
+                                <td class="text-end">{{ capacidade_pagamento.capacidade_mensal|floatformat:2|moeda_br }}</td>
+                            </tr>
+                            <tr>
+                                <td>Capacidade de Pagamento Anual</td>
+                                <td class="text-end">{{ capacidade_pagamento.capacidade_anual|floatformat:2|moeda_br }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h5 class="mt-4">3.1. Histórico de Receitas</h5>
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Ano</th>
+                                <th class="text-end">Receitas (R$)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for hist in historico_receitas %}
+                            <tr>
+                                <td>{{ hist.ano }}</td>
+                                <td class="text-end">{{ hist.receitas|floatformat:2|moeda_br }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <hr class="page-break">
+
+            <!-- 4. GARANTIAS -->
+            <div class="secao-relatorio">
+                <h4><strong>4. GARANTIAS DISPONÍVEIS</strong></h4>
+                
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <tbody>
+                            <tr>
+                                <td><strong>Valor do Rebanho</strong></td>
+                                <td class="text-end"><strong>{{ rebanho.valor_total|floatformat:2|moeda_br }}</strong></td>
+                            </tr>
+                            <tr>
+                                <td>Quantidade de Cabeças</td>
+                                <td class="text-end">{{ rebanho.total_cabecas|intcomma }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Bens Imobilizados (Valor Líquido)</strong></td>
+                                <td class="text-end"><strong>{{ bens.valor_liquido|floatformat:2|moeda_br }}</strong></td>
+                            </tr>
+                            <tr class="table-success">
+                                <td><strong>TOTAL DE GARANTIAS</strong></td>
+                                <td class="text-end"><strong>{{ valor_garantias|floatformat:2|moeda_br }}</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <hr class="page-break">
+
+            <!-- 5. RESUMO DOS IMPACTOS FINANCEIROS -->
+            <div class="secao-relatorio">
+                <h4><strong>5. RESUMO DOS IMPACTOS FINANCEIROS</strong></h4>
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <tbody>
+                            <tr>
+                                <td>Dívida Original</td>
+                                <td class="text-end">R$ 11.000.000,00</td>
+                            </tr>
+                            <tr>
+                                <td>Renegociações (aumento de valores)</td>
+                                <td class="text-end">Valores aumentados significativamente</td>
+                            </tr>
+                            <tr>
+                                <td>Pagamento como Avalista (2024)</td>
+                                <td class="text-end">R$ 2.400.000,00</td>
+                            </tr>
+                            <tr>
+                                <td>Compromisso Fixo Anual (Fazenda Canta Galo)</td>
+                                <td class="text-end">R$ 8.000.000,00</td>
+                            </tr>
+                            <tr>
+                                <td>Queda de Preços (2023 - Jul/2024)</td>
+                                <td class="text-end">Redução significativa de receitas</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <hr class="page-break">
+
+            <!-- 6. CONCLUSÃO -->
+            <div class="secao-relatorio">
+                <h4><strong>6. CONCLUSÃO</strong></h4>
+                <p>
+                    O endividamento atual é resultado de múltiplos fatores:
+                </p>
+                <ul>
+                    <li>Fatores externos (queda de preços do gado em 2023-2024)</li>
+                    <li>Renegociações que aumentaram os valores devidos</li>
+                    <li>Pagamento de R$ 2.400.000,00 como avalista em 2024</li>
+                    <li>Compromisso fixo elevado com a Fazenda Canta Galo</li>
+                </ul>
+                <p>
+                    A capacidade de pagamento demonstrada, aliada às garantias disponíveis 
+                    (rebanho e bens imobilizados), comprova a viabilidade financeira para 
+                    honrar os compromissos assumidos.
+                </p>
+                <p>
+                    Com a estabilização do mercado e a retomada dos preços normais, a capacidade 
+                    de geração de caixa será restaurada, permitindo o pagamento regular das dívidas 
+                    e a manutenção das operações.
+                </p>
+            </div>
+
+            <!-- Rodapé -->
+            <div class="text-center mt-5">
+                <p class="mb-0">Relatório gerado em {{ "now"|date:"d/m/Y H:i" }}</p>
+                <p class="text-muted">Sistema MONPEC - Gestão Rural</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botões de Ação -->
+    <div class="row mt-4 no-print">
+        <div class="col-12 text-center">
+            <a href="{% url 'justificativa_endividamento' %}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Voltar
+            </a>
+            <button onclick="window.print()" class="btn btn-primary">
+                <i class="bi bi-printer"></i> Imprimir
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

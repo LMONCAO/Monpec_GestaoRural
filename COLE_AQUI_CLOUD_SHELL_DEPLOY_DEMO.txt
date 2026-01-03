@@ -1,0 +1,70 @@
+========================================
+INSTRUÇÕES PARA EXECUTAR NO GOOGLE CLOUD SHELL
+========================================
+
+1. Abra o Google Cloud Shell: https://console.cloud.google.com/cloudshell
+
+2. Faça upload do arquivo DEPLOY_CORRECOES_DEMO.sh para o Cloud Shell
+   OU copie e cole o conteúdo do script diretamente
+
+3. Execute o script:
+
+   bash DEPLOY_CORRECOES_DEMO.sh
+
+   OU se preferir copiar e colar tudo de uma vez, use este comando:
+
+   curl -sSL https://raw.githubusercontent.com/SEU_USUARIO/SEU_REPO/main/DEPLOY_CORRECOES_DEMO.sh | bash
+
+4. Aguarde o processo concluir (15-25 minutos)
+
+5. Após o deploy, teste o login com usuário demo
+
+========================================
+COMANDO RÁPIDO (se já tiver o arquivo no repositório Git):
+========================================
+
+# Clone o repositório (se necessário)
+git clone https://github.com/SEU_USUARIO/SEU_REPOSITORIO.git
+cd SEU_REPOSITORIO
+
+# Execute o script
+bash DEPLOY_CORRECOES_DEMO.sh
+
+========================================
+COMANDO ALTERNATIVO (executar diretamente sem arquivo):
+========================================
+
+Execute os comandos diretamente no Cloud Shell:
+
+PROJECT_ID="monpec-sistema-rural"
+SERVICE_NAME="monpec"
+REGION="us-central1"
+IMAGE_NAME="gcr.io/$PROJECT_ID/sistema-rural"
+CLOUD_SQL_CONN="$PROJECT_ID:$REGION:monpec-db"
+
+# Build
+gcloud builds submit --no-cache --tag $IMAGE_NAME:latest .
+
+# Deploy
+gcloud run deploy $SERVICE_NAME \
+    --image $IMAGE_NAME:latest \
+    --region=$REGION \
+    --platform managed \
+    --allow-unauthenticated \
+    --add-cloudsql-instances=$CLOUD_SQL_CONN \
+    --set-env-vars "DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,DEBUG=False" \
+    --memory=2Gi \
+    --cpu=2 \
+    --timeout=600 \
+    --max-instances=10 \
+    --min-instances=0
+
+========================================
+OBSERVAÇÕES:
+========================================
+
+- O processo pode levar 15-25 minutos
+- NÃO feche a janela do Cloud Shell durante o processo
+- Você verá o progresso em tempo real
+- Após o deploy, aguarde 1-2 minutos antes de testar
+

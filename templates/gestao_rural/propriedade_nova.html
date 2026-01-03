@@ -1,0 +1,334 @@
+{% extends 'base_modulos_unificado.html' %}
+
+{% block title %}Nova Propriedade - Sistema Rural{% endblock %}
+
+{% block breadcrumb_extra %}
+{% if produtor %}
+<li class="breadcrumb-item"><a href="{% url 'propriedades_lista' produtor.id %}">Propriedades</a></li>
+{% else %}
+<li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+{% endif %}
+<li class="breadcrumb-item active">Nova Propriedade</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+    <div class="col-lg-10 col-xl-9">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-house-plus"></i> Cadastrar Nova Propriedade
+                </h5>
+                {% if produtor %}
+                <small class="text-muted">Produtor: {{ produtor.nome }}</small>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <!-- Campo de seleção de produtor - SEMPRE exibido para permitir seleção -->
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label for="{{ form.produtor.id_for_label }}" class="form-label">
+                                <i class="bi bi-person me-1"></i>{{ form.produtor.label }} <span class="text-danger">*</span>
+                            </label>
+                            {{ form.produtor }}
+                            {% if form.produtor.errors %}
+                                <div class="text-danger">{{ form.produtor.errors }}</div>
+                            {% endif %}
+                            <small class="form-text text-muted">Selecione o produtor para vincular esta propriedade</small>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.nome_propriedade.id_for_label }}" class="form-label">{{ form.nome_propriedade.label }}</label>
+                            {{ form.nome_propriedade }}
+                            {% if form.nome_propriedade.errors %}
+                                <div class="text-danger">{{ form.nome_propriedade.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="{{ form.tipo_operacao.id_for_label }}" class="form-label">{{ form.tipo_operacao.label }}</label>
+                            {{ form.tipo_operacao }}
+                            {% if form.tipo_operacao.errors %}
+                                <div class="text-danger">{{ form.tipo_operacao.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="{{ form.tipo_ciclo_pecuario.id_for_label }}" class="form-label">{{ form.tipo_ciclo_pecuario.label }}</label>
+                            <div class="d-flex flex-wrap gap-3">
+                                {% for checkbox in form.tipo_ciclo_pecuario %}
+                                <div class="form-check form-check-inline">
+                                    {{ checkbox.tag }}
+                                    <label class="form-check-label" for="{{ checkbox.id_for_label }}">{{ checkbox.choice_label }}</label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% if form.tipo_ciclo_pecuario.errors %}
+                                <div class="text-danger">{{ form.tipo_ciclo_pecuario.errors }}</div>
+                            {% endif %}
+                            <small class="form-text text-muted">Marque todos os ciclos pecuários presentes na propriedade.</small>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.municipio.id_for_label }}" class="form-label">{{ form.municipio.label }}</label>
+                            {{ form.municipio }}
+                            {% if form.municipio.errors %}
+                                <div class="text-danger">{{ form.municipio.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="{{ form.uf.id_for_label }}" class="form-label">{{ form.uf.label }} <span class="text-danger">*</span></label>
+                            {{ form.uf }}
+                            {% if form.uf.errors %}
+                                <div class="text-danger">{{ form.uf.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="{{ form.area_total_ha.id_for_label }}" class="form-label">{{ form.area_total_ha.label }}</label>
+                            {{ form.area_total_ha }}
+                            {% if form.area_total_ha.errors %}
+                                <div class="text-danger">{{ form.area_total_ha.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Localização da Fazenda -->
+                    <div class="mt-4 mb-3">
+                        <h6 class="text-muted border-bottom pb-2">Localização da Fazenda</h6>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label for="{{ form.endereco.id_for_label }}" class="form-label">{{ form.endereco.label }}</label>
+                            {{ form.endereco }}
+                            {% if form.endereco.errors %}
+                                <div class="text-danger">{{ form.endereco.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="{{ form.cep.id_for_label }}" class="form-label">{{ form.cep.label }}</label>
+                            {{ form.cep }}
+                            {% if form.cep.errors %}
+                                <div class="text-danger">{{ form.cep.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="{{ form.bairro.id_for_label }}" class="form-label">{{ form.bairro.label }}</label>
+                            {{ form.bairro }}
+                            {% if form.bairro.errors %}
+                                <div class="text-danger">{{ form.bairro.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.latitude.id_for_label }}" class="form-label">{{ form.latitude.label }}</label>
+                            {{ form.latitude }}
+                            {% if form.latitude.errors %}
+                                <div class="text-danger">{{ form.latitude.errors }}</div>
+                            {% endif %}
+                            <small class="form-text text-muted">Coordenada GPS (ex: -20.12345678)</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.longitude.id_for_label }}" class="form-label">{{ form.longitude.label }}</label>
+                            {{ form.longitude }}
+                            {% if form.longitude.errors %}
+                                <div class="text-danger">{{ form.longitude.errors }}</div>
+                            {% endif %}
+                            <small class="form-text text-muted">Coordenada GPS (ex: -54.12345678)</small>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label for="{{ form.ponto_referencia.id_for_label }}" class="form-label">{{ form.ponto_referencia.label }}</label>
+                            {{ form.ponto_referencia }}
+                            {% if form.ponto_referencia.errors %}
+                                <div class="text-danger">{{ form.ponto_referencia.errors }}</div>
+                            {% endif %}
+                            <small class="form-text text-muted">Ex: Próximo à BR-262, km 45, entrada à direita</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Tipo de Propriedade -->
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.tipo_propriedade.id_for_label }}" class="form-label">{{ form.tipo_propriedade.label }} <span class="text-danger">*</span></label>
+                            {{ form.tipo_propriedade }}
+                            {% if form.tipo_propriedade.errors %}
+                                <div class="text-danger">{{ form.tipo_propriedade.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Campos condicionais para propriedade própria -->
+                    <div id="propriedade-propria" style="display: none;">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.valor_hectare_proprio.id_for_label }}" class="form-label">{{ form.valor_hectare_proprio.label }}</label>
+                                {{ form.valor_hectare_proprio }}
+                                {% if form.valor_hectare_proprio.errors %}
+                                    <div class="text-danger">{{ form.valor_hectare_proprio.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Valor Total da Propriedade</label>
+                                <div class="form-control-plaintext" id="valor-total-propriedade">
+                                    <span class="text-muted">Será calculado automaticamente</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Campos condicionais para arrendamento -->
+                    <div id="propriedade-arrendamento" style="display: none;">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.valor_mensal_hectare_arrendamento.id_for_label }}" class="form-label">{{ form.valor_mensal_hectare_arrendamento.label }}</label>
+                                {{ form.valor_mensal_hectare_arrendamento }}
+                                {% if form.valor_mensal_hectare_arrendamento.errors %}
+                                    <div class="text-danger">{{ form.valor_mensal_hectare_arrendamento.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Valor Mensal Total do Arrendamento</label>
+                                <div class="form-control-plaintext" id="valor-mensal-total">
+                                    <span class="text-muted">Será calculado automaticamente</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Documentação -->
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <label for="{{ form.nirf.id_for_label }}" class="form-label">{{ form.nirf.label }}</label>
+                            {{ form.nirf }}
+                            {% if form.nirf.errors %}
+                                <div class="text-danger">{{ form.nirf.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="{{ form.incra.id_for_label }}" class="form-label">{{ form.incra.label }}</label>
+                            {{ form.incra }}
+                            {% if form.incra.errors %}
+                                <div class="text-danger">{{ form.incra.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="{{ form.car.id_for_label }}" class="form-label">{{ form.car.label }}</label>
+                            {{ form.car }}
+                            {% if form.car.errors %}
+                                <div class="text-danger">{{ form.car.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="{{ form.inscricao_estadual.id_for_label }}" class="form-label">{{ form.inscricao_estadual.label }}</label>
+                            {{ form.inscricao_estadual }}
+                            {% if form.inscricao_estadual.errors %}
+                                <div class="text-danger">{{ form.inscricao_estadual.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Dica:</strong> O tipo de operação determina quais módulos estarão disponíveis para esta propriedade.
+                        <ul class="mb-0 mt-2">
+                            <li><strong>Pecuária:</strong> Apenas módulo de gestão de rebanho</li>
+                            <li><strong>Agricultura:</strong> Apenas módulo de gestão agrícola</li>
+                            <li><strong>Mista:</strong> Ambos os módulos disponíveis</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check"></i> Salvar
+                        </button>
+                        {% if produtor %}
+                        <a href="{% url 'propriedades_lista' produtor.id %}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Voltar
+                        </a>
+                        {% else %}
+                        <a href="{% url 'dashboard' %}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Voltar
+                        </a>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tipoPropriedadeSelect = document.getElementById('id_tipo_propriedade');
+    const propriedadePropria = document.getElementById('propriedade-propria');
+    const propriedadeArrendamento = document.getElementById('propriedade-arrendamento');
+    const valorHectareProprio = document.getElementById('id_valor_hectare_proprio');
+    const valorMensalHectare = document.getElementById('id_valor_mensal_hectare_arrendamento');
+    const areaTotal = document.getElementById('id_area_total_ha');
+    const valorTotalPropriedade = document.getElementById('valor-total-propriedade');
+    const valorMensalTotal = document.getElementById('valor-mensal-total');
+    
+    function toggleCamposCondicionais() {
+        const tipo = tipoPropriedadeSelect.value;
+        
+        if (tipo === 'PROPRIA') {
+            propriedadePropria.style.display = 'block';
+            propriedadeArrendamento.style.display = 'none';
+        } else if (tipo === 'ARRENDAMENTO') {
+            propriedadePropria.style.display = 'none';
+            propriedadeArrendamento.style.display = 'block';
+        } else {
+            propriedadePropria.style.display = 'none';
+            propriedadeArrendamento.style.display = 'none';
+        }
+    }
+    
+    function calcularValorTotalPropriedade() {
+        const area = parseFloat(areaTotal.value) || 0;
+        const valorHectare = parseFloat(valorHectareProprio.value) || 0;
+        const total = area * valorHectare;
+        
+        if (total > 0) {
+            valorTotalPropriedade.innerHTML = `<strong>R$ ${total.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</strong>`;
+        } else {
+            valorTotalPropriedade.innerHTML = '<span class="text-muted">Será calculado automaticamente</span>';
+        }
+    }
+    
+    function calcularValorMensalTotal() {
+        const area = parseFloat(areaTotal.value) || 0;
+        const valorMensal = parseFloat(valorMensalHectare.value) || 0;
+        const total = area * valorMensal;
+        
+        if (total > 0) {
+            valorMensalTotal.innerHTML = `<strong>R$ ${total.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</strong>`;
+        } else {
+            valorMensalTotal.innerHTML = '<span class="text-muted">Será calculado automaticamente</span>';
+        }
+    }
+    
+    // Event listeners
+    tipoPropriedadeSelect.addEventListener('change', toggleCamposCondicionais);
+    valorHectareProprio.addEventListener('input', calcularValorTotalPropriedade);
+    valorMensalHectare.addEventListener('input', calcularValorMensalTotal);
+    areaTotal.addEventListener('input', function() {
+        calcularValorTotalPropriedade();
+        calcularValorMensalTotal();
+    });
+    
+    // Inicializar estado
+    toggleCamposCondicionais();
+});
+</script>
+{% endblock %}

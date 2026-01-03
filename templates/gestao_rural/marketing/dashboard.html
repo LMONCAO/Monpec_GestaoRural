@@ -1,0 +1,274 @@
+{% extends "gestao_rural/base.html" %}
+{% load static %}
+
+{% block title %}Marketing - Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3 mb-0">📱 Marketing - Dashboard</h1>
+            <p class="text-muted">Gerencie seus posts e leads</p>
+        </div>
+    </div>
+
+    <!-- Cards de Estatísticas -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Total de Leads</h6>
+                            <h2 class="mb-0">{{ total_leads }}</h2>
+                        </div>
+                        <div class="text-primary" style="font-size: 2.5rem;">
+                            <i class="bi bi-people"></i>
+                        </div>
+                    </div>
+                    {% if leads_novos > 0 %}
+                    <small class="text-success">
+                        <i class="bi bi-arrow-up"></i> {{ leads_novos }} novos
+                    </small>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Leads Novos</h6>
+                            <h2 class="mb-0 text-warning">{{ leads_novos }}</h2>
+                        </div>
+                        <div class="text-warning" style="font-size: 2.5rem;">
+                            <i class="bi bi-person-plus"></i>
+                        </div>
+                    </div>
+                    <small class="text-muted">Aguardando contato</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Total de Posts</h6>
+                            <h2 class="mb-0">{{ total_posts }}</h2>
+                        </div>
+                        <div class="text-info" style="font-size: 2.5rem;">
+                            <i class="bi bi-file-post"></i>
+                        </div>
+                    </div>
+                    {% if posts_pendentes > 0 %}
+                    <small class="text-warning">
+                        <i class="bi bi-clock"></i> {{ posts_pendentes }} pendentes
+                    </small>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Templates</h6>
+                            <h2 class="mb-0">{{ total_templates }}</h2>
+                        </div>
+                        <div class="text-success" style="font-size: 2.5rem;">
+                            <i class="bi bi-file-earmark-text"></i>
+                        </div>
+                    </div>
+                    <small class="text-muted">Templates ativos</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ações Rápidas -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Ações Rápidas</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-2">
+                            <a href="{% url 'marketing_gerar_post' %}" class="btn btn-primary w-100">
+                                <i class="bi bi-plus-circle"></i> Gerar Novo Post
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <a href="{% url 'marketing_gerar_posts_semana' %}" class="btn btn-info w-100">
+                                <i class="bi bi-calendar-week"></i> Gerar Posts da Semana
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <a href="{% url 'marketing_template_create' %}" class="btn btn-success w-100">
+                                <i class="bi bi-file-earmark-plus"></i> Criar Template
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <a href="{% url 'marketing_configuracao' %}" class="btn btn-secondary w-100">
+                                <i class="bi bi-gear"></i> Configurações
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Posts Recentes -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Posts Recentes</h5>
+                    <a href="{% url 'marketing_posts' %}" class="btn btn-sm btn-outline-primary">Ver Todos</a>
+                </div>
+                <div class="card-body">
+                    {% if posts_recentes %}
+                    <div class="list-group list-group-flush">
+                        {% for post in posts_recentes %}
+                        <div class="list-group-item px-0">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1">{{ post.titulo }}</h6>
+                                    <p class="mb-1 text-muted small">{{ post.conteudo_final|truncatewords:20 }}</p>
+                                    <small class="text-muted">
+                                        <span class="badge bg-secondary">{{ post.get_rede_social_display }}</span>
+                                        <span class="badge bg-info">{{ post.get_status_display }}</span>
+                                        <span class="text-muted">{{ post.criado_em|date:"d/m/Y H:i" }}</span>
+                                    </small>
+                                </div>
+                                <a href="{% url 'marketing_post_edit' post.id %}" class="btn btn-sm btn-outline-primary ms-2">
+                                    Editar
+                                </a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center py-4">Nenhum post gerado ainda. <a href="{% url 'marketing_gerar_post' %}">Criar primeiro post</a></p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Leads Recentes -->
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Leads Recentes</h5>
+                    <a href="{% url 'marketing_leads' %}" class="btn btn-sm btn-outline-primary">Ver Todos</a>
+                </div>
+                <div class="card-body">
+                    {% if leads_recentes %}
+                    <div class="list-group list-group-flush">
+                        {% for lead in leads_recentes %}
+                        <div class="list-group-item px-0">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1">{{ lead.nome }}</h6>
+                                    <p class="mb-1 text-muted small">{{ lead.email }}</p>
+                                    <small class="text-muted">
+                                        <span class="badge bg-{% if lead.status == 'novo' %}warning{% elif lead.status == 'convertido' %}success{% else %}secondary{% endif %}">
+                                            {{ lead.get_status_display }}
+                                        </span>
+                                        <span class="text-muted">{{ lead.criado_em|date:"d/m/Y" }}</span>
+                                    </small>
+                                </div>
+                                <a href="{% url 'marketing_lead_detail' lead.id %}" class="btn btn-sm btn-outline-primary ms-2">
+                                    Ver
+                                </a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center py-4">Nenhum lead ainda. <a href="/acesso-gratuito/" target="_blank">Ver landing page</a></p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Links Úteis -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Links Úteis</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-2">
+                            <a href="{% url 'marketing_templates' %}" class="text-decoration-none">
+                                <i class="bi bi-file-earmark-text"></i> Gerenciar Templates
+                            </a>
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <a href="{% url 'marketing_posts' %}" class="text-decoration-none">
+                                <i class="bi bi-file-post"></i> Gerenciar Posts
+                            </a>
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <a href="{% url 'marketing_leads' %}" class="text-decoration-none">
+                                <i class="bi bi-people"></i> Gerenciar Leads
+                            </a>
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <a href="/acesso-gratuito/" target="_blank" class="text-decoration-none">
+                                <i class="bi bi-globe"></i> Landing Page (Pública)
+                            </a>
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <a href="{% url 'marketing_configuracao' %}" class="text-decoration-none">
+                                <i class="bi bi-gear"></i> Configurações
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

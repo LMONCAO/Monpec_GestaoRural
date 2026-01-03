@@ -1,0 +1,1635 @@
+{% extends 'base_modulos_unificado.html' %}
+{% load formatacao_br %}
+{% load static %}
+
+{% block title %}Financeiro - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block breadcrumb_extra %}
+    <li class="breadcrumb-item active">
+        <i class="bi bi-cash-coin me-1"></i>
+        Financeiro
+    </li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .financeiro-dashboard {
+        padding: 1rem 0;
+    }
+    
+    /* Cards de Resumo Melhorados */
+    .kpi-card-enhanced {
+        background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+        border: none;
+        border-radius: 16px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        overflow: hidden;
+        position: relative;
+        height: 100%;
+    }
+    
+    .kpi-card-enhanced::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: var(--card-accent);
+        transform: scaleX(0);
+        transition: transform 0.3s ease;
+    }
+    
+    .kpi-card-enhanced:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 4px 8px rgba(0, 0, 0, 0.08);
+    }
+    
+    .kpi-card-enhanced:hover::before {
+        transform: scaleX(1);
+    }
+    
+    .kpi-card-enhanced.receita {
+        --card-accent: #10b981;
+    }
+    
+    .kpi-card-enhanced.despesa {
+        --card-accent: #ef4444;
+    }
+    
+    .kpi-card-enhanced.transferencia {
+        --card-accent: #6b7280;
+    }
+    
+    .kpi-card-enhanced.saldo {
+        --card-accent: #3b82f6;
+    }
+    
+    .kpi-icon-enhanced {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        margin-bottom: 0.5rem;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .kpi-icon-enhanced::after {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    
+    .kpi-card-enhanced:hover .kpi-icon-enhanced::after {
+        opacity: 1;
+    }
+    
+    .kpi-icon-enhanced.receita {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+    }
+    
+    .kpi-icon-enhanced.despesa {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        color: white;
+    }
+    
+    .kpi-icon-enhanced.transferencia {
+        background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+        color: white;
+    }
+    
+    .kpi-icon-enhanced.saldo {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        color: white;
+    }
+    
+    .kpi-value-enhanced {
+        font-size: 1.25rem;
+        font-weight: 700;
+        line-height: 1.2;
+        margin: 0.25rem 0;
+        letter-spacing: -0.02em;
+    }
+    
+    .kpi-label-enhanced {
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: #6b7280;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    /* Cards de Gráficos Melhorados */
+    .chart-card-enhanced {
+        background: #ffffff;
+        border: none;
+        border-radius: 16px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+        overflow: hidden;
+    }
+    
+    .chart-card-enhanced:hover {
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 4px 8px rgba(0, 0, 0, 0.08);
+    }
+    
+    .chart-header-enhanced {
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid #f1f5f9;
+        background: linear-gradient(to right, #ffffff, #f8fafc);
+    }
+    
+    .chart-title-enhanced {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+    
+    .chart-title-enhanced i {
+        font-size: 0.9rem;
+        color: #3b82f6;
+    }
+    
+    .chart-subtitle-enhanced {
+        font-size: 0.7rem;
+        color: #64748b;
+        margin-top: 0.1rem;
+    }
+    
+    .chart-body-enhanced {
+        padding: 1rem 1.25rem;
+        position: relative;
+    }
+    
+    /* Lista de Pendências Melhorada */
+    .pendencia-item {
+        padding: 0.6rem;
+        border-radius: 8px;
+        margin-bottom: 0.5rem;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        transition: all 0.2s ease;
+    }
+    
+    .pendencia-item:hover {
+        background: #f8fafc;
+        border-color: #cbd5e1;
+        transform: translateX(4px);
+    }
+    
+    .pendencia-item.atrasado {
+        border-left: 4px solid #ef4444;
+        background: linear-gradient(to right, #fef2f2, #ffffff);
+    }
+    
+    /* Lista de Saldos Melhorada */
+    .saldo-item {
+        padding: 0.6rem;
+        border-radius: 8px;
+        margin-bottom: 0.5rem;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        transition: all 0.2s ease;
+    }
+    
+    .saldo-item:hover {
+        background: #f8fafc;
+        border-color: #cbd5e1;
+    }
+    
+    .saldo-positivo {
+        color: #10b981;
+        font-weight: 600;
+    }
+    
+    .saldo-negativo {
+        color: #ef4444;
+        font-weight: 600;
+    }
+    
+    /* Container de gráficos responsivo */
+    .chart-container-responsive {
+        position: relative;
+        width: 100%;
+        height: 220px;
+    }
+    
+    @media (max-width: 1200px) {
+        .chart-container-responsive {
+            height: 200px;
+        }
+    }
+    
+    @media (max-width: 992px) {
+        .chart-container-responsive {
+            height: 180px;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .kpi-value-enhanced {
+            font-size: 1.1rem;
+        }
+        
+        .chart-body-enhanced {
+            padding: 1rem;
+        }
+        
+        .chart-container-responsive {
+            height: 220px;
+        }
+        
+        .chart-header-enhanced {
+            padding: 1rem;
+        }
+        
+        .chart-title-enhanced {
+            font-size: 1rem;
+        }
+        
+        .chart-subtitle-enhanced {
+            font-size: 0.75rem;
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .chart-container-responsive {
+            height: 200px;
+        }
+        
+        .kpi-icon-enhanced {
+            width: 36px;
+            height: 36px;
+            font-size: 16px;
+        }
+        
+        .kpi-value-enhanced {
+            font-size: 1rem;
+        }
+    }
+    
+    /* Lista de pendências com scroll */
+    .pendencias-container {
+        max-height: 300px;
+        overflow-y: auto;
+        padding-right: 0.5rem;
+    }
+    
+    .pendencias-container::-webkit-scrollbar {
+        width: 6px;
+    }
+    
+    .pendencias-container::-webkit-scrollbar-track {
+        background: #f1f5f9;
+        border-radius: 10px;
+    }
+    
+    .pendencias-container::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 10px;
+    }
+    
+    .pendencias-container::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
+    
+    /* Saldos container */
+    .saldos-container {
+        max-height: 300px;
+        overflow-y: auto;
+        padding-right: 0.5rem;
+    }
+    
+    .saldos-container::-webkit-scrollbar {
+        width: 6px;
+    }
+    
+    .saldos-container::-webkit-scrollbar-track {
+        background: #f1f5f9;
+        border-radius: 10px;
+    }
+    
+    .saldos-container::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 10px;
+    }
+    
+    .saldos-container::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
+    
+    /* Gráficos de pizza responsivos */
+    .pie-chart-container {
+        position: relative;
+        width: 100%;
+        height: 220px;
+    }
+    
+    @media (max-width: 992px) {
+        .pie-chart-container {
+            height: 200px;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .pie-chart-container {
+            height: 180px;
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .pie-chart-container {
+            height: 160px;
+        }
+    }
+    
+    /* Melhorias na organização */
+    .section-divider {
+        margin: 2rem 0;
+        border-top: 2px solid #e2e8f0;
+    }
+    
+    .stats-row {
+        margin-bottom: 1rem;
+    }
+    
+    /* Alinhamento de Cards e Gráficos */
+    .financeiro-dashboard .row > [class*='col-'] {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .financeiro-dashboard .row > [class*='col-'] > .chart-card-enhanced,
+    .financeiro-dashboard .row > [class*='col-'] > .kpi-card-enhanced {
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 auto;
+    }
+    
+    /* Garantir que cards na mesma linha tenham mesma altura */
+    .financeiro-dashboard .row.g-2 > [class*='col-'] {
+        align-items: stretch;
+    }
+    
+    /* Alinhamento vertical da coluna lateral */
+    .financeiro-dashboard .col-lg-4.col-xl-3 {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .financeiro-dashboard .col-lg-4.col-xl-3 > .chart-card-enhanced {
+        flex: 0 0 auto;
+    }
+    
+    /* Garantir que gráficos principais e lateral estejam alinhados no topo */
+    .financeiro-dashboard .col-lg-8.col-xl-9,
+    .financeiro-dashboard .col-lg-4.col-xl-3 {
+        align-items: flex-start;
+    }
+    
+    /* Cards de gráficos com altura mínima consistente */
+    .chart-card-enhanced {
+        min-height: fit-content;
+    }
+    
+    /* Garantir que cards de indicadores tenham mesma altura */
+    .financeiro-dashboard .row.g-2 > .col-12.col-md-6 > .chart-card-enhanced,
+    .financeiro-dashboard .row.g-2 > .col-md-6 > .chart-card-enhanced {
+        height: 100%;
+    }
+    
+    /* Garantir que cards KPI tenham mesma altura */
+    .financeiro-dashboard .row.g-2 > [class*='col-'] > .kpi-card-enhanced {
+        height: 100%;
+    }
+    
+    /* Animações */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .kpi-card-enhanced {
+        animation: fadeInUp 0.5s ease-out;
+    }
+    
+    .kpi-card-enhanced:nth-child(1) { animation-delay: 0.1s; }
+    .kpi-card-enhanced:nth-child(2) { animation-delay: 0.2s; }
+    .kpi-card-enhanced:nth-child(3) { animation-delay: 0.3s; }
+    .kpi-card-enhanced:nth-child(4) { animation-delay: 0.4s; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid financeiro-dashboard">
+    <div class="submenu-page-header mb-2">
+        <div class="d-flex align-items-start gap-3">
+            <div class="submenu-page-icon bg-primary bg-opacity-10 text-primary">
+                <i class="bi bi-cash-coin"></i>
+            </div>
+            <div class="flex-grow-1">
+                <h1 class="submenu-page-title mb-0" style="font-size: 1.5rem;">Financeiro</h1>
+                <p class="submenu-page-description mb-0" style="font-size: 0.85rem;">
+                    Visão geral dos lançamentos financeiros, saldos de contas e pendências da propriedade
+                    <strong>{{ propriedade.nome_propriedade }}</strong>.
+                </p>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <a href="{{ url_lancamentos }}" class="btn btn-sm btn-primary">
+                    <i class="bi bi-list-task me-1"></i> Lançamentos
+                </a>
+                <a href="{% url 'financeiro_contas_pagar' propriedade.id %}" class="btn btn-sm btn-outline-danger">
+                    <i class="bi bi-arrow-up-circle me-1"></i> Contas a Pagar
+                </a>
+                <a href="{% url 'financeiro_contas_receber' propriedade.id %}" class="btn btn-sm btn-outline-success">
+                    <i class="bi bi-arrow-down-circle me-1"></i> Contas a Receber
+                </a>
+                <a href="{% url 'financeiro_conciliacao' propriedade.id %}" class="btn btn-sm btn-outline-info">
+                    <i class="bi bi-bank me-1"></i> Conciliação
+                </a>
+                <button type="button" class="btn btn-sm btn-outline-primary" disabled style="cursor: not-allowed; opacity: 0.6;">
+                    <i class="bi bi-graph-up me-1"></i> Fluxo de Caixa
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-warning" disabled style="cursor: not-allowed; opacity: 0.6;">
+                    <i class="bi bi-file-earmark-text me-1"></i> DRE
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" disabled style="cursor: not-allowed; opacity: 0.6;">
+                    <i class="bi bi-journal-text me-1"></i> LCDPR
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" disabled style="cursor: not-allowed; opacity: 0.6;">
+                    <i class="bi bi-bank me-1"></i> Contas
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" disabled style="cursor: not-allowed; opacity: 0.6;">
+                    <i class="bi bi-tags me-1"></i> Categorias
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Seção de Despesas e Receitas Anuais -->
+    <div class="card shadow-sm mb-3">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">
+                <i class="bi bi-calculator me-2"></i>
+                Gestão de Despesas e Receitas Anuais
+            </h5>
+        </div>
+        <div class="card-body">
+            <!-- Cards: Integrar Vendas, Saldos Consolidados, Planilha de Despesas -->
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="card border-info h-100">
+                        <div class="card-body">
+                            <h6 class="card-title text-info">
+                                <i class="bi bi-link-45deg me-2"></i>
+                                Integrar Vendas
+                            </h6>
+                            <p class="card-text small text-muted">
+                                Sincronize vendas projetadas com receitas anuais e crie lançamentos financeiros
+                            </p>
+                            <a href="{% url 'financeiro_integrar_vendas' propriedade.id %}" class="btn btn-sm btn-info">
+                                <i class="bi bi-arrow-right me-1"></i>
+                                Integrar Vendas
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-primary h-100">
+                        <div class="card-body">
+                            <h6 class="card-title text-primary">
+                                <i class="bi bi-bar-chart-line me-2"></i>
+                                Saldos Consolidados Ano a Ano
+                            </h6>
+                            <p class="card-text small text-muted">
+                                Visualize receitas, despesas e saldos acumulados por ano
+                            </p>
+                            <a href="{% url 'financeiro_saldos_consolidados' propriedade.id %}" class="btn btn-sm btn-primary">
+                                <i class="bi bi-arrow-right me-1"></i>
+                                Ver Saldos
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-success h-100">
+                        <div class="card-body">
+                            <h6 class="card-title text-success">
+                                <i class="bi bi-table me-2"></i>
+                                Planilha de Despesas
+                            </h6>
+                            <p class="card-text small text-muted">
+                                Configure despesas por percentual da receita com cálculos automáticos
+                            </p>
+                            <a href="{% url 'financeiro_planilha_despesas' propriedade.id %}" class="btn btn-sm btn-success">
+                                <i class="bi bi-arrow-right me-1"></i>
+                                Abrir Planilha
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros de Período -->
+    <div class="card shadow-sm mb-2">
+        <div class="card-body p-2">
+            <form method="get" class="row g-2 align-items-end">
+                <div class="col-auto">
+                    <label class="form-label small mb-0" for="inicio">Data Início</label>
+                    <input type="date" 
+                           class="form-control form-control-sm" 
+                           id="inicio" 
+                           name="inicio" 
+                           value="{{ periodo.inicio|date:'Y-m-d' }}"
+                           required>
+                </div>
+                <div class="col-auto">
+                    <label class="form-label small mb-0" for="fim">Data Fim</label>
+                    <input type="date" 
+                           class="form-control form-control-sm" 
+                           id="fim" 
+                           name="fim" 
+                           value="{{ periodo.fim|date:'Y-m-d' }}"
+                           required>
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-sm btn-primary">
+                        <i class="bi bi-funnel me-1"></i> Filtrar
+                    </button>
+                </div>
+                <div class="col-auto">
+                    <button type="button" 
+                            class="btn btn-sm btn-outline-secondary" 
+                            onclick="window.location.reload()">
+                        <i class="bi bi-arrow-clockwise me-1"></i> Atualizar
+                    </button>
+                </div>
+                <div class="col-auto ms-auto">
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" 
+                                class="btn btn-outline-primary periodo-customizado" 
+                                data-inicio="{{ periodo.inicio|date:'Y' }}-01-01"
+                                data-fim="{{ periodo.inicio|date:'Y' }}-12-31"
+                                title="Ver dados do ano atual">
+                            <i class="bi bi-calendar-range me-1"></i> Ano {{ periodo.inicio|date:'Y' }}
+                        </button>
+                        <button type="button" 
+                                class="btn btn-outline-secondary periodo-rapido" 
+                                data-dias="30">
+                            <i class="bi bi-calendar-week me-1"></i> 30 dias
+                        </button>
+                        <button type="button" 
+                                class="btn btn-outline-secondary periodo-rapido" 
+                                data-dias="90">
+                            <i class="bi bi-calendar-month me-1"></i> 90 dias
+                        </button>
+                        <button type="button" 
+                                class="btn btn-outline-secondary periodo-rapido" 
+                                data-mes="atual">
+                            <i class="bi bi-calendar-check me-1"></i> Mês atual
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Cards de Resumo -->
+    <div class="row g-2 stats-row align-items-stretch">
+        <div class="col-6 col-md-3 d-flex">
+            <div class="kpi-card-enhanced receita w-100">
+                <div class="card-body-moderno p-2 p-md-3">
+                    <div class="kpi-icon-enhanced receita">
+                        <i class="bi bi-arrow-down-left-circle"></i>
+                    </div>
+                    <div class="kpi-label-enhanced">Receitas no período</div>
+                    <h3 class="kpi-value-enhanced text-success mb-0">
+                        {{ resumo.total_receitas|default:0|moeda_br }}
+                    </h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3 d-flex">
+            <div class="kpi-card-enhanced despesa w-100">
+                <div class="card-body-moderno p-2 p-md-3">
+                    <div class="kpi-icon-enhanced despesa">
+                        <i class="bi bi-arrow-up-right-circle"></i>
+                    </div>
+                    <div class="kpi-label-enhanced">Despesas no período</div>
+                    <h3 class="kpi-value-enhanced text-danger mb-0">
+                        {{ resumo.total_despesas|default:0|moeda_br }}
+                    </h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3 d-flex">
+            <div class="kpi-card-enhanced transferencia w-100">
+                <div class="card-body-moderno p-2 p-md-3">
+                    <div class="kpi-icon-enhanced transferencia">
+                        <i class="bi bi-repeat"></i>
+                    </div>
+                    <div class="kpi-label-enhanced">Transferências</div>
+                    <h3 class="kpi-value-enhanced text-secondary mb-0">
+                        {{ resumo.total_transferencias|default:0|moeda_br }}
+                    </h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3 d-flex">
+            <div class="kpi-card-enhanced saldo w-100">
+                <div class="card-body-moderno p-2 p-md-3">
+                    <div class="kpi-icon-enhanced saldo">
+                        <i class="bi bi-graph-up-arrow"></i>
+                    </div>
+                    <div class="kpi-label-enhanced">Saldo líquido</div>
+                    <h3 class="kpi-value-enhanced text-primary mb-0">
+                        {{ resumo.saldo_liquido|default:0|moeda_br }}
+                    </h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Seção de Insights e Alertas -->
+    {% if insights %}
+    <div class="row g-2 mb-2">
+        <div class="col-12">
+            <div class="chart-card-enhanced">
+                <div class="chart-header-enhanced">
+                    <h5 class="chart-title-enhanced">
+                        <i class="bi bi-lightbulb"></i>
+                        Insights e Alertas Financeiros
+                    </h5>
+                </div>
+                <div class="chart-body-enhanced">
+                    <div class="row g-2">
+                        {% for insight in insights %}
+                        <div class="col-md-6 col-lg-4">
+                            <div class="alert alert-{{ insight.tipo }} d-flex align-items-start mb-0 py-2" role="alert">
+                                <i class="bi {{ insight.icone }} me-2" style="font-size: 0.9rem;"></i>
+                                <div class="flex-grow-1">
+                                    <strong style="font-size: 0.85rem;">{{ insight.titulo }}</strong>
+                                    <p class="mb-0" style="font-size: 0.75rem;">{{ insight.descricao }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Integração com Outros Módulos -->
+    {% if dados_pecuaria.total_vendas_animais > 0 or dados_compras.total_compras > 0 %}
+    <div class="row g-2 mb-2">
+        <div class="col-12">
+            <div class="chart-card-enhanced">
+                <div class="chart-header-enhanced">
+                    <h5 class="chart-title-enhanced">
+                        <i class="bi bi-link-45deg"></i>
+                        Integração com Outros Módulos
+                    </h5>
+                    <div class="chart-subtitle-enhanced">Dados consolidados de pecuária e compras</div>
+                </div>
+                <div class="chart-body-enhanced">
+                    <div class="row g-4">
+                        {% if dados_pecuaria.total_vendas_animais > 0 %}
+                        <div class="col-md-6">
+                            <div class="p-3 bg-success bg-opacity-10 rounded border border-success border-opacity-25">
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="bi bi-cow fs-4 text-success me-2"></i>
+                                    <h6 class="mb-0">Vendas de Animais (Pecuária)</h6>
+                                </div>
+                                <div class="h4 text-success mb-1">{{ dados_pecuaria.total_vendas_animais|moeda_br }}</div>
+                                <div class="small text-muted">
+                                    {{ dados_pecuaria.numero_vendas }} venda(s) • {{ dados_pecuaria.quantidade_vendida }} animal(is)
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% if dados_compras.total_compras > 0 %}
+                        <div class="col-md-6">
+                            <div class="p-3 bg-primary bg-opacity-10 rounded border border-primary border-opacity-25">
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="bi bi-cart-check fs-4 text-primary me-2"></i>
+                                    <h6 class="mb-0">Compras Realizadas</h6>
+                                </div>
+                                <div class="h4 text-primary mb-1">{{ dados_compras.total_compras|moeda_br }}</div>
+                                <div class="small text-muted">
+                                    {{ dados_compras.numero_ordens }} ordem(ns) de compra • {{ dados_compras.numero_notas }} nota(s) fiscal(is)
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Gráficos Principais -->
+    <div class="row g-2 align-items-start">
+        <!-- Fluxo de Caixa Diário -->
+        <div class="col-12">
+            <div class="chart-card-enhanced mb-2">
+                <div class="chart-header-enhanced">
+                    <h5 class="chart-title-enhanced">
+                        <i class="bi bi-calendar-day"></i>
+                        Fluxo de Caixa Diário
+                    </h5>
+                    <div class="chart-subtitle-enhanced">
+                        Período de {{ periodo.inicio|data_br }} a {{ periodo.fim|data_br }}
+                    </div>
+                </div>
+                <div class="chart-body-enhanced">
+                    <div class="chart-container-responsive">
+                        <canvas id="grafico-fluxo-caixa"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Evolução Mensal - Largura Total -->
+    <div class="row g-2 mb-2">
+        <div class="col-12">
+            <div class="chart-card-enhanced">
+                <div class="chart-header-enhanced">
+                    <h5 class="chart-title-enhanced">
+                        <i class="bi bi-calendar-month"></i>
+                        Evolução Mensal
+                    </h5>
+                    <div class="chart-subtitle-enhanced">Últimos 12 meses - Receitas vs Despesas</div>
+                </div>
+                <div class="chart-body-enhanced">
+                    <div class="chart-container-responsive" style="height: 300px;">
+                        <canvas id="grafico-mensal"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos de Pizza - Alinhados com cards de baixo -->
+    <div class="row g-2 align-items-stretch mb-2">
+        <div class="col-md-6 d-flex">
+            <div class="chart-card-enhanced h-100 w-100">
+                <div class="chart-header-enhanced">
+                    <h5 class="chart-title-enhanced">
+                        <i class="bi bi-pie-chart"></i>
+                        Despesas por Fornecedor
+                    </h5>
+                    <div class="chart-subtitle-enhanced">Período atual</div>
+                </div>
+                <div class="chart-body-enhanced">
+                    {% if grafico_fornecedor.labels %}
+                        <div class="pie-chart-container" style="height: 250px;">
+                            <canvas id="grafico-fornecedor"></canvas>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info mb-0">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Nenhum dado de fornecedor disponível.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 d-flex">
+            <div class="chart-card-enhanced h-100 w-100">
+                <div class="chart-header-enhanced">
+                    <h5 class="chart-title-enhanced">
+                        <i class="bi bi-pie-chart-fill"></i>
+                        Despesas por Centro de Custo
+                    </h5>
+                    <div class="chart-subtitle-enhanced">Período atual</div>
+                </div>
+                <div class="chart-body-enhanced">
+                    {% if grafico_centro_custo.labels %}
+                        <div class="pie-chart-container" style="height: 250px;">
+                            <canvas id="grafico-centro-custo"></canvas>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info mb-0">
+                            <i class="bi bi-info-circle me-1"></i>
+                            <strong>Nenhum dado de centro de custo disponível.</strong>
+                            <div class="mt-2 small">
+                                {% if grafico_centro_custo.total_centros_custo == 0 %}
+                                    <p class="mb-1">❌ <strong>Nenhum centro de custo cadastrado.</strong></p>
+                                    <p class="mb-1">Para exibir o gráfico, você precisa:</p>
+                                    <ol class="mb-1 ps-3">
+                                        <li>Cadastrar centros de custo em <strong>Financeiro → Centros de Custo</strong></li>
+                                        <li>Associar os centros de custo aos lançamentos financeiros</li>
+                                    </ol>
+                                {% elif grafico_centro_custo.total_despesas == 0 %}
+                                    <p class="mb-1">⚠️ <strong>Nenhuma despesa quitada no período.</strong></p>
+                                    <p class="mb-0">Verifique se há lançamentos financeiros do tipo DESPESA com status QUITADO no período selecionado.</p>
+                                {% elif grafico_centro_custo.despesas_sem_centro_custo > 0 %}
+                                    <p class="mb-1">⚠️ <strong>Despesas encontradas sem centro de custo.</strong></p>
+                                    <p class="mb-1">Existem <strong>{{ grafico_centro_custo.despesas_sem_centro_custo }}</strong> despesa(s) quitada(s) no período sem centro de custo preenchido.</p>
+                                    <p class="mb-0">Para exibir o gráfico, edite os lançamentos financeiros e preencha o campo "Centro de Custo".</p>
+                                {% else %}
+                                    <p class="mb-0">Não há dados disponíveis para o período selecionado.</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    </div>
+
+    <!-- Seção de Indicadores Financeiros e Comparação -->
+    <div class="row g-2 mb-2 align-items-stretch">
+        <!-- Indicadores Financeiros -->
+        <div class="col-12 col-md-6 d-flex">
+            <div class="chart-card-enhanced h-100 w-100">
+                <div class="chart-header-enhanced">
+                    <h5 class="chart-title-enhanced">
+                        <i class="bi bi-graph-up-arrow"></i>
+                        Indicadores Financeiros
+                    </h5>
+                    <div class="chart-subtitle-enhanced">Métricas de desempenho do período</div>
+                </div>
+                <div class="chart-body-enhanced" style="padding: 0.75rem;">
+                    <div class="row g-1">
+                        <div class="col-6">
+                            <div class="text-center p-1 bg-light rounded">
+                                <div class="text-muted" style="font-size: 0.65rem; margin-bottom: 0.15rem; line-height: 1.2;">Margem de Lucro</div>
+                                <div class="small mb-0 fw-bold {% if indicadores.margem_lucro >= 0 %}text-success{% else %}text-danger{% endif %}" style="font-size: 0.85rem;">
+                                    {{ indicadores.margem_lucro|floatformat:1 }}%
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center p-1 bg-light rounded">
+                                <div class="text-muted" style="font-size: 0.65rem; margin-bottom: 0.15rem; line-height: 1.2;">Taxa de Despesas</div>
+                                <div class="small mb-0 fw-bold text-danger" style="font-size: 0.85rem;">
+                                    {{ indicadores.taxa_despesas|floatformat:1 }}%
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center p-1 bg-light rounded">
+                                <div class="text-muted" style="font-size: 0.65rem; margin-bottom: 0.15rem; line-height: 1.2;">Média Diária - Receitas</div>
+                                <div class="small mb-0 fw-bold text-success" style="font-size: 0.8rem;">
+                                    {{ indicadores.media_diaria_receitas|moeda_br }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center p-1 bg-light rounded">
+                                <div class="text-muted" style="font-size: 0.65rem; margin-bottom: 0.15rem; line-height: 1.2;">Média Diária - Despesas</div>
+                                <div class="small mb-0 fw-bold text-danger" style="font-size: 0.8rem;">
+                                    {{ indicadores.media_diaria_despesas|moeda_br }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Comparação com Período Anterior -->
+        <div class="col-12 col-md-6 d-flex">
+            <div class="chart-card-enhanced h-100 w-100">
+                <div class="chart-header-enhanced">
+                    <h5 class="chart-title-enhanced">
+                        <i class="bi bi-arrow-left-right"></i>
+                        Comparação com Período Anterior
+                    </h5>
+                    <div class="chart-subtitle-enhanced">
+                        {{ comparacao.periodo_anterior.inicio|date:"d/m/Y" }} a {{ comparacao.periodo_anterior.fim|date:"d/m/Y" }}
+                    </div>
+                </div>
+                <div class="chart-body-enhanced" style="padding: 0.75rem;">
+                    <div class="row g-1">
+                        <div class="col-12">
+                            <div class="d-flex justify-content-between align-items-center p-1 bg-light rounded mb-1">
+                                <span class="fw-semibold" style="font-size: 0.75rem;">Receitas</span>
+                                <div class="text-end">
+                                    <div class="small mb-0 fw-bold {% if comparacao.variacao_receitas >= 0 %}text-success{% else %}text-danger{% endif %}" style="font-size: 0.8rem;">
+                                        <i class="bi {% if comparacao.variacao_receitas >= 0 %}bi-arrow-up{% else %}bi-arrow-down{% endif %}"></i>
+                                        {{ comparacao.variacao_receitas|floatformat:1 }}%
+                                    </div>
+                                    <small class="text-muted" style="font-size: 0.65rem; line-height: 1.2;">
+                                        {{ comparacao.resumo_anterior.total_receitas|moeda_br }} → {{ resumo.total_receitas|moeda_br }}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="d-flex justify-content-between align-items-center p-1 bg-light rounded mb-1">
+                                <span class="fw-semibold" style="font-size: 0.75rem;">Despesas</span>
+                                <div class="text-end">
+                                    <div class="small mb-0 fw-bold {% if comparacao.variacao_despesas <= 0 %}text-success{% else %}text-danger{% endif %}" style="font-size: 0.8rem;">
+                                        <i class="bi {% if comparacao.variacao_despesas <= 0 %}bi-arrow-down{% else %}bi-arrow-up{% endif %}"></i>
+                                        {{ comparacao.variacao_despesas|floatformat:1 }}%
+                                    </div>
+                                    <small class="text-muted" style="font-size: 0.65rem; line-height: 1.2;">
+                                        {{ comparacao.resumo_anterior.total_despesas|moeda_br }} → {{ resumo.total_despesas|moeda_br }}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="d-flex justify-content-between align-items-center p-1 bg-light rounded">
+                                <span class="fw-semibold" style="font-size: 0.75rem;">Saldo Líquido</span>
+                                <div class="text-end">
+                                    <div class="small mb-0 fw-bold {% if comparacao.variacao_saldo >= 0 %}text-success{% else %}text-danger{% endif %}" style="font-size: 0.8rem;">
+                                        <i class="bi {% if comparacao.variacao_saldo >= 0 %}bi-arrow-up{% else %}bi-arrow-down{% endif %}"></i>
+                                        {{ comparacao.variacao_saldo|floatformat:1 }}%
+                                    </div>
+                                    <small class="text-muted" style="font-size: 0.65rem; line-height: 1.2;">
+                                        {{ comparacao.resumo_anterior.saldo_liquido|moeda_br }} → {{ resumo.saldo_liquido|moeda_br }}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Categorias -->
+    {% if tendencias_categoria.top_receitas or tendencias_categoria.top_despesas %}
+    <div class="row g-2 mb-2 align-items-stretch">
+        <div class="col-md-6 d-flex">
+            <div class="chart-card-enhanced h-100 w-100">
+                <div class="chart-header-enhanced">
+                    <h5 class="chart-title-enhanced">
+                        <i class="bi bi-trophy"></i>
+                        Top Categorias de Receitas
+                    </h5>
+                    <div class="chart-subtitle-enhanced">Principais fontes de receita do período</div>
+                </div>
+                <div class="chart-body-enhanced" style="padding: 0.75rem;">
+                    {% if tendencias_categoria.top_receitas %}
+                    {% for item in tendencias_categoria.top_receitas %}
+                    <div class="mb-1 pb-1 {% if not forloop.last %}border-bottom{% endif %}">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <div class="d-flex align-items-center gap-1 mb-1">
+                                    <span class="badge bg-success bg-opacity-20 text-success border border-success border-opacity-50 rounded-pill" style="min-width: 22px; font-size: 0.65rem; padding: 0.15rem 0.35rem;">
+                                        #{{ forloop.counter }}
+                                    </span>
+                                    <span class="fw-semibold text-dark" style="font-size: 0.8rem;">{{ item.categoria__nome|truncatewords:4 }}</span>
+                                </div>
+                                <div class="progress" style="height: 6px; background-color: #e9ecef;">
+                                    <div class="progress-bar bg-success" role="progressbar" 
+                                         style="width: {{ item.percentual }}%;" 
+                                         aria-valuenow="{{ item.percentual }}" 
+                                         aria-valuemin="0" 
+                                         aria-valuemax="100">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="text-end ms-2 flex-shrink-0">
+                                <div class="small mb-0 text-success fw-bold" style="font-size: 0.8rem;">{{ item.total|moeda_br }}</div>
+                                <small class="text-muted" style="font-size: 0.65rem;">
+                                    {{ item.percentual|floatformat:1 }}%
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-inbox fs-1 text-muted mb-3 d-block"></i>
+                        <p class="text-muted mb-0">Nenhuma receita registrada no período.</p>
+                        <a href="{{ url_lancamentos }}?tipo=RECEITA" class="btn btn-sm btn-outline-success mt-2">
+                            <i class="bi bi-plus-circle me-1"></i>Registrar Receita
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 d-flex">
+            <div class="chart-card-enhanced h-100 w-100">
+                <div class="chart-header-enhanced">
+                    <h5 class="chart-title-enhanced">
+                        <i class="bi bi-trophy-fill"></i>
+                        Top Categorias de Despesas
+                    </h5>
+                    <div class="chart-subtitle-enhanced">Principais categorias de gastos do período</div>
+                </div>
+                <div class="chart-body-enhanced" style="padding: 0.75rem;">
+                    {% if tendencias_categoria.top_despesas %}
+                    {% for item in tendencias_categoria.top_despesas %}
+                    <div class="mb-1 pb-1 {% if not forloop.last %}border-bottom{% endif %}">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <div class="d-flex align-items-center gap-1 mb-1">
+                                    <span class="badge bg-danger bg-opacity-20 text-danger border border-danger border-opacity-50 rounded-pill" style="min-width: 22px; font-size: 0.65rem; padding: 0.15rem 0.35rem;">
+                                        #{{ forloop.counter }}
+                                    </span>
+                                    <span class="fw-semibold text-dark" style="font-size: 0.8rem;">{{ item.categoria__nome|truncatewords:4 }}</span>
+                                </div>
+                                <div class="progress" style="height: 6px; background-color: #e9ecef;">
+                                    <div class="progress-bar bg-danger" role="progressbar" 
+                                         style="width: {{ item.percentual }}%;" 
+                                         aria-valuenow="{{ item.percentual }}" 
+                                         aria-valuemin="0" 
+                                         aria-valuemax="100">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="text-end ms-2 flex-shrink-0">
+                                <div class="small mb-0 text-danger fw-bold" style="font-size: 0.8rem;">{{ item.total|moeda_br }}</div>
+                                <small class="text-muted" style="font-size: 0.65rem;">
+                                    {{ item.percentual|floatformat:1 }}%
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-inbox fs-1 text-muted mb-3 d-block"></i>
+                        <p class="text-muted mb-0">Nenhuma despesa registrada no período.</p>
+                        <a href="{{ url_lancamentos }}?tipo=DESPESA" class="btn btn-sm btn-outline-danger mt-2">
+                            <i class="bi bi-plus-circle me-1"></i>Registrar Despesa
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{{ grafico_fluxo|json_script:"grafico-fluxo-data" }}
+{{ grafico_mensal|json_script:"grafico-mensal-data" }}
+{{ grafico_fornecedor|json_script:"grafico-fornecedor-data" }}
+{{ grafico_centro_custo|json_script:"grafico-centro-custo-data" }}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+    (function() {
+        // Cores modernas para os gráficos
+        const cores = [
+            '#4F46E5', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6',
+            '#06B6D4', '#EC4899', '#14B8A6', '#F97316', '#6366F1'
+        ];
+
+        // Gráfico de Fluxo de Caixa Diário - Melhorado
+        const dataFluxo = JSON.parse(document.getElementById("grafico-fluxo-data").textContent);
+        const ctxFluxo = document.getElementById("grafico-fluxo-caixa");
+        
+        // Gradientes para preenchimento
+        const gradientEntradas = ctxFluxo.getContext('2d').createLinearGradient(0, 0, 0, 220);
+        gradientEntradas.addColorStop(0, 'rgba(16, 185, 129, 0.3)');
+        gradientEntradas.addColorStop(1, 'rgba(16, 185, 129, 0.05)');
+        
+        const gradientSaidas = ctxFluxo.getContext('2d').createLinearGradient(0, 0, 0, 220);
+        gradientSaidas.addColorStop(0, 'rgba(239, 68, 68, 0.3)');
+        gradientSaidas.addColorStop(1, 'rgba(239, 68, 68, 0.05)');
+        
+        new Chart(ctxFluxo, {
+            type: "line",
+            data: {
+                labels: dataFluxo.labels,
+                datasets: [
+                    {
+                        label: "Entradas",
+                        data: dataFluxo.entradas,
+                        borderColor: "#10B981",
+                        backgroundColor: gradientEntradas,
+                        tension: 0.4,
+                        fill: true,
+                        borderWidth: 2,
+                        pointRadius: 3,
+                        pointHoverRadius: 5,
+                        pointBackgroundColor: "#10B981",
+                        pointBorderColor: "#ffffff",
+                        pointBorderWidth: 2,
+                        pointHoverBackgroundColor: "#059669",
+                        pointHoverBorderColor: "#ffffff",
+                        pointHoverBorderWidth: 3,
+                    },
+                    {
+                        label: "Saídas",
+                        data: dataFluxo.saidas,
+                        borderColor: "#EF4444",
+                        backgroundColor: gradientSaidas,
+                        tension: 0.4,
+                        fill: true,
+                        borderWidth: 2,
+                        pointRadius: 3,
+                        pointHoverRadius: 5,
+                        pointBackgroundColor: "#EF4444",
+                        pointBorderColor: "#ffffff",
+                        pointBorderWidth: 2,
+                        pointHoverBackgroundColor: "#DC2626",
+                        pointHoverBorderColor: "#ffffff",
+                        pointHoverBorderWidth: 3,
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: {
+                    duration: 1500,
+                    easing: 'easeInOutQuart'
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: "bottom",
+                        labels: {
+                            usePointStyle: true,
+                            padding: window.innerWidth < 768 ? 8 : 12,
+                            font: {
+                                size: window.innerWidth < 768 ? 10 : 11,
+                                weight: '500'
+                            },
+                            color: '#1e293b'
+                        }
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                        padding: 10,
+                        titleFont: {
+                            size: 14,
+                            weight: 'bold'
+                        },
+                        bodyFont: {
+                            size: 13
+                        },
+                        borderColor: 'rgba(255, 255, 255, 0.1)',
+                        borderWidth: 1,
+                        cornerRadius: 8,
+                        displayColors: true,
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': R$ ' + 
+                                    context.parsed.y.toLocaleString('pt-BR', {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2
+                                    });
+                            }
+                        }
+                    }
+                },
+                interaction: {
+                    intersect: false,
+                    mode: "index"
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                if (value >= 1000000) {
+                                    return 'R$ ' + (value / 1000000).toFixed(1) + 'M';
+                                } else if (value >= 1000) {
+                                    return 'R$ ' + (value / 1000).toFixed(0) + 'k';
+                                }
+                                return 'R$ ' + value.toLocaleString('pt-BR');
+                            },
+                            font: {
+                                size: window.innerWidth < 768 ? 8 : 10,
+                                weight: '500'
+                            },
+                            color: '#64748b',
+                            padding: 6
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)',
+                            drawBorder: false
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false,
+                            drawBorder: false
+                        },
+                        ticks: {
+                            font: {
+                                size: window.innerWidth < 768 ? 8 : 10,
+                                weight: '500'
+                            },
+                            color: '#64748b',
+                            padding: 6,
+                            maxRotation: window.innerWidth < 768 ? 45 : 0,
+                            minRotation: 0
+                        }
+                    }
+                }
+            },
+        });
+
+        // Gráfico Mensal - Melhorado com Linha de Tendência
+        const dataMensal = JSON.parse(document.getElementById("grafico-mensal-data").textContent);
+        const ctxMensal = document.getElementById("grafico-mensal");
+        
+        // Calcular linha de tendência (média móvel simples de 3 meses)
+        function calcularTendencia(dados) {
+            const tendencia = [];
+            for (let i = 0; i < dados.length; i++) {
+                if (i === 0) {
+                    tendencia.push(dados[i]);
+                } else if (i === 1) {
+                    tendencia.push((dados[i] + dados[i-1]) / 2);
+                } else {
+                    tendencia.push((dados[i] + dados[i-1] + dados[i-2]) / 3);
+                }
+            }
+            return tendencia;
+        }
+        
+        const tendenciaReceitas = calcularTendencia(dataMensal.receitas);
+        const tendenciaDespesas = calcularTendencia(dataMensal.despesas);
+        
+        new Chart(ctxMensal, {
+            type: "bar",
+            data: {
+                labels: dataMensal.labels,
+                datasets: [
+                    {
+                        label: "Receitas",
+                        data: dataMensal.receitas,
+                        backgroundColor: "rgba(16, 185, 129, 0.9)",
+                        borderColor: "#10B981",
+                        borderWidth: 1.5,
+                        borderRadius: 6,
+                        borderSkipped: false,
+                        order: 2,
+                    },
+                    {
+                        label: "Despesas",
+                        data: dataMensal.despesas,
+                        backgroundColor: "rgba(239, 68, 68, 0.9)",
+                        borderColor: "#EF4444",
+                        borderWidth: 1.5,
+                        borderRadius: 6,
+                        borderSkipped: false,
+                        order: 2,
+                    },
+                    {
+                        label: "Tendência Receitas",
+                        data: tendenciaReceitas,
+                        type: "line",
+                        borderColor: "#059669",
+                        backgroundColor: "transparent",
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        pointRadius: 0,
+                        pointHoverRadius: 4,
+                        fill: false,
+                        tension: 0.4,
+                        order: 1,
+                    },
+                    {
+                        label: "Tendência Despesas",
+                        data: tendenciaDespesas,
+                        type: "line",
+                        borderColor: "#DC2626",
+                        backgroundColor: "transparent",
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        pointRadius: 0,
+                        pointHoverRadius: 4,
+                        fill: false,
+                        tension: 0.4,
+                        order: 1,
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: {
+                    duration: 1500,
+                    easing: 'easeInOutQuart'
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: "bottom",
+                        labels: {
+                            usePointStyle: true,
+                            padding: window.innerWidth < 768 ? 8 : 12,
+                            font: {
+                                size: window.innerWidth < 768 ? 10 : 11,
+                                weight: '500'
+                            },
+                            color: '#1e293b'
+                        }
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                        padding: 10,
+                        borderColor: 'rgba(255, 255, 255, 0.1)',
+                        borderWidth: 1,
+                        cornerRadius: 8,
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': R$ ' + 
+                                    context.parsed.y.toLocaleString('pt-BR', {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2
+                                    });
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                if (value >= 1000000) {
+                                    return 'R$ ' + (value / 1000000).toFixed(1) + 'M';
+                                } else if (value >= 1000) {
+                                    return 'R$ ' + (value / 1000).toFixed(0) + 'k';
+                                }
+                                return 'R$ ' + value.toLocaleString('pt-BR');
+                            },
+                            font: {
+                                size: window.innerWidth < 768 ? 8 : 10,
+                                weight: '500'
+                            },
+                            color: '#64748b',
+                            padding: 6
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)',
+                            drawBorder: false
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false,
+                            drawBorder: false
+                        },
+                        ticks: {
+                            font: {
+                                size: window.innerWidth < 768 ? 8 : 10,
+                                weight: '500'
+                            },
+                            color: '#64748b',
+                            padding: 6,
+                            maxRotation: window.innerWidth < 768 ? 45 : 0,
+                            minRotation: 0
+                        }
+                    }
+                }
+            },
+        });
+
+        // Gráfico de Pizza - Fornecedor - Melhorado
+        const dataFornecedor = JSON.parse(document.getElementById("grafico-fornecedor-data").textContent);
+        if (dataFornecedor.labels && dataFornecedor.labels.length > 0) {
+            const ctxFornecedor = document.getElementById("grafico-fornecedor");
+            new Chart(ctxFornecedor, {
+                type: "pie",
+                data: {
+                    labels: dataFornecedor.labels,
+                    datasets: [{
+                        data: dataFornecedor.valores,
+                        backgroundColor: cores.slice(0, dataFornecedor.labels.length),
+                        borderColor: '#ffffff',
+                        borderWidth: 3,
+                        hoverBorderWidth: 4,
+                    }],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        animateRotate: true,
+                        animateScale: true,
+                        duration: 1500
+                    },
+                    plugins: {
+                        legend: {
+                            position: window.innerWidth < 992 ? "bottom" : "right",
+                        labels: {
+                            padding: 12,
+                            font: {
+                                size: 10,
+                                weight: '500'
+                            },
+                            color: '#1e293b',
+                                generateLabels: function(chart) {
+                                    const data = chart.data;
+                                    if (data.labels.length && data.datasets.length) {
+                                        return data.labels.map((label, i) => {
+                                            const value = data.datasets[0].data[i];
+                                            const total = data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                            const percentage = ((value / total) * 100).toFixed(1);
+                                            return {
+                                                text: label + ' (' + percentage + '%)',
+                                                fillStyle: data.datasets[0].backgroundColor[i],
+                                                strokeStyle: data.datasets[0].borderColor,
+                                                lineWidth: data.datasets[0].borderWidth,
+                                                hidden: false,
+                                                index: i
+                                            };
+                                        });
+                                    }
+                                    return [];
+                                }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                            padding: 14,
+                            borderColor: 'rgba(255, 255, 255, 0.1)',
+                            borderWidth: 1,
+                            cornerRadius: 8,
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    return label + ': R$ ' + 
+                                        value.toLocaleString('pt-BR', {
+                                            minimumFractionDigits: 2,
+                                            maximumFractionDigits: 2
+                                        }) + ' (' + percentage + '%)';
+                                }
+                            }
+                        }
+                    }
+                },
+            });
+        }
+
+        // Gráfico de Rosca - Centro de Custo - Melhorado
+        const dataCentroCusto = JSON.parse(document.getElementById("grafico-centro-custo-data").textContent);
+        if (dataCentroCusto.labels && dataCentroCusto.labels.length > 0) {
+            const ctxCentroCusto = document.getElementById("grafico-centro-custo");
+            new Chart(ctxCentroCusto, {
+                type: "doughnut",
+                data: {
+                    labels: dataCentroCusto.labels,
+                    datasets: [{
+                        data: dataCentroCusto.valores,
+                        backgroundColor: cores.slice(0, dataCentroCusto.labels.length),
+                        borderColor: '#ffffff',
+                        borderWidth: 3,
+                        hoverBorderWidth: 4,
+                    }],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: window.innerWidth < 768 ? '50%' : '60%',
+                    animation: {
+                        animateRotate: true,
+                        animateScale: true,
+                        duration: 1500
+                    },
+                    plugins: {
+                        legend: {
+                            position: window.innerWidth < 992 ? "bottom" : "right",
+                        labels: {
+                            padding: 12,
+                            font: {
+                                size: 10,
+                                weight: '500'
+                            },
+                            color: '#1e293b',
+                                generateLabels: function(chart) {
+                                    const data = chart.data;
+                                    if (data.labels.length && data.datasets.length) {
+                                        return data.labels.map((label, i) => {
+                                            const value = data.datasets[0].data[i];
+                                            const total = data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                            const percentage = ((value / total) * 100).toFixed(1);
+                                            return {
+                                                text: label + ' (' + percentage + '%)',
+                                                fillStyle: data.datasets[0].backgroundColor[i],
+                                                strokeStyle: data.datasets[0].borderColor,
+                                                lineWidth: data.datasets[0].borderWidth,
+                                                hidden: false,
+                                                index: i
+                                            };
+                                        });
+                                    }
+                                    return [];
+                                }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                            padding: 14,
+                            borderColor: 'rgba(255, 255, 255, 0.1)',
+                            borderWidth: 1,
+                            cornerRadius: 8,
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    return label + ': R$ ' + 
+                                        value.toLocaleString('pt-BR', {
+                                            minimumFractionDigits: 2,
+                                            maximumFractionDigits: 2
+                                        }) + ' (' + percentage + '%)';
+                                }
+                            }
+                        }
+                    }
+                },
+            });
+        }
+
+        // Botões de período customizado (ex: Ano 2022)
+        document.querySelectorAll('.periodo-customizado').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const inicio = this.getAttribute('data-inicio');
+                const fim = this.getAttribute('data-fim');
+                
+                if (inicio && fim) {
+                    document.getElementById('inicio').value = inicio;
+                    document.getElementById('fim').value = fim;
+                    document.querySelector('form').submit();
+                }
+            });
+        });
+
+        // Botões de período rápido
+        document.querySelectorAll('.periodo-rapido').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const dias = this.getAttribute('data-dias');
+                const mes = this.getAttribute('data-mes');
+                const hoje = new Date();
+                let inicio, fim;
+
+                if (dias) {
+                    // Período de X dias (últimos X dias)
+                    fim = new Date(hoje);
+                    inicio = new Date(hoje);
+                    inicio.setDate(inicio.getDate() - parseInt(dias));
+                } else if (mes === 'atual') {
+                    // Mês atual
+                    inicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+                    fim = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
+                }
+
+                // Formatar datas para YYYY-MM-DD
+                const formatDate = (date) => {
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    return `${year}-${month}-${day}`;
+                };
+
+                // Preencher os campos e submeter o formulário
+                document.getElementById('inicio').value = formatDate(inicio);
+                document.getElementById('fim').value = formatDate(fim);
+                document.querySelector('form').submit();
+            });
+        });
+    })();
+</script>
+{% endblock %}
+
+
+
+
+

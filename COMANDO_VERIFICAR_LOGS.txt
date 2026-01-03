@@ -1,0 +1,27 @@
+========================================
+COMANDO PARA VERIFICAR LOGS NO CLOUD SHELL
+========================================
+
+Execute no Cloud Shell:
+
+bash VERIFICAR_LOGS_DEPLOY.sh
+
+OU execute diretamente:
+
+gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=monpec" --limit=50 --format="table(timestamp,severity,textPayload)"
+
+OU acesse no navegador:
+https://console.cloud.google.com/logs/viewer?project=monpec-sistema-rural&resource=cloud_run_revision/service_name/monpec
+
+========================================
+PROBLEMA COMUM: Container não inicia
+========================================
+
+Possíveis causas:
+1. Script scripts/diagnostico_banco_cloud.py não existe
+2. Erro ao conectar ao banco de dados
+3. Migrações falhando
+4. Timeout muito curto
+
+Solução: Verificar os logs primeiro para identificar o erro específico.
+

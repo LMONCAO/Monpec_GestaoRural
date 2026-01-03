@@ -1,0 +1,161 @@
+{% extends "base_navegacao.html" %}
+
+{% block title %}Dashboard IA - Sistema Monpec{% endblock %}
+
+{% block breadcrumbs %}
+<li><a href="{% url 'dashboard' %}">Início</a></li>
+<li class="breadcrumb-separator">›</li>
+<li><a href="{% url 'propriedades_lista' propriedade.produtor_id %}">Propriedades</a></li>
+<li class="breadcrumb-separator">›</li>
+<li><a href="{% url 'pecuaria_dashboard' propriedade.id %}">{{ propriedade.nome }}</a></li>
+<li class="breadcrumb-separator">›</li>
+<li class="active">Dashboard IA</li>
+{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div class="d-flex justify-content-between align-items-start">
+        <div>
+            <h1 class="page-title">Dashboard de Inteligência Artificial</h1>
+            <p class="page-subtitle">{{ propriedade.nome }} - Análises inteligentes e movimentações automáticas</p>
+        </div>
+        <a href="{% url 'pecuaria_dashboard' propriedade.id %}" class="btn-outline">
+            Voltar
+        </a>
+    </div>
+</div>
+
+<!-- Inventário Atual por Categoria -->
+<h2 style="font-family: 'Playfair Display', serif; font-size: 1.75rem; color: var(--navy); margin-bottom: 1.5rem;">
+    Inventário Atual do Rebanho
+</h2>
+
+<div class="cards-grid">
+    {% for categoria in categorias %}
+    <div class="card-clean">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+            <h3 class="card-title" style="font-size: 1.1rem; margin-bottom: 0;">{{ categoria.nome }}</h3>
+            <span class="badge-destaque">{{ categoria.get_sexo_display }}</span>
+        </div>
+        
+        <p style="color: var(--text-light); font-size: 13px; margin-bottom: 1rem;">
+            {{ categoria.descricao }}
+        </p>
+        
+        <div class="row">
+            <div class="col-6">
+                <div style="font-size: 11px; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.05em;">
+                    Quantidade
+                </div>
+                <div class="card-valor-destaque" style="font-size: 1.75rem; margin-top: 0.25rem;">
+                    {{ categoria.quantidade_atual|default:"0" }}
+                </div>
+            </div>
+            <div class="col-6">
+                <div style="font-size: 11px; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.05em;">
+                    Valor Total
+                </div>
+                <div class="destaque-valor" style="font-size: 1.25rem; margin-top: 0.25rem;">
+                    R$ {{ categoria.valor_total|default:"0,00" }}
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-3">
+            <a href="{% url 'categoria_editar' categoria.id %}" class="btn-outline" style="padding: 0.5rem 1rem; font-size: 13px; width: 100%; display: block; text-align: center;">
+                Atualizar Dados
+            </a>
+        </div>
+    </div>
+    {% empty %}
+    <div class="card-empty" style="grid-column: 1 / -1;">
+        <h3 style="color: var(--text-light); font-weight: 400;">Nenhuma categoria cadastrada</h3>
+        <p style="color: var(--text-light); margin-bottom: 2rem;">Configure as categorias primeiro</p>
+        <a href="{% url 'categorias_lista' %}" class="btn-navy">Ir para Categorias</a>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Sugestões da IA -->
+<div class="page-header mt-5">
+    <h2 style="font-size: 1.75rem; margin-bottom: 1.5rem;">Sugestões Inteligentes</h2>
+    
+    <div class="cards-grid">
+        <div class="card-clean" style="border-left: 3px solid #28a745;">
+            <h3 class="card-title" style="font-size: 1.1rem;">Nascimentos Projetados</h3>
+            <p style="color: var(--text-light); font-size: 14px; margin-bottom: 1rem;">
+                Com base nas vacas matrizes, a IA prevê aproximadamente <strong>45 nascimentos</strong> nos próximos 30 dias
+            </p>
+            <div class="destaque-valor" style="font-size: 1.5rem;">+45 animais</div>
+        </div>
+        
+        <div class="card-clean" style="border-left: 3px solid #17a2b8;">
+            <h3 class="card-title" style="font-size: 1.1rem;">Oportunidade de Compra</h3>
+            <p style="color: var(--text-light); font-size: 14px; margin-bottom: 1rem;">
+                Mercado favorável para compra de <strong>50 garrotes</strong> com preço 12% abaixo da média
+            </p>
+            <div class="destaque-valor" style="font-size: 1.5rem;">Economia: R$ 27.000</div>
+        </div>
+        
+        <div class="card-clean" style="border-left: 3px solid #ffc107;">
+            <h3 class="card-title" style="font-size: 1.1rem;">Momento Ideal de Venda</h3>
+            <p style="color: var(--text-light); font-size: 14px; margin-bottom: 1rem;">
+                <strong>30 bois gordos</strong> atingiram peso ideal. Venda agora com margem estimada de 22,5%
+            </p>
+            <div class="destaque-valor" style="font-size: 1.5rem;">Receita: R$ 135.000</div>
+        </div>
+        
+        <div class="card-clean" style="border-left: 3px solid #dc3545;">
+            <h3 class="card-title" style="font-size: 1.1rem;">Transferência Recomendada</h3>
+            <p style="color: var(--text-light); font-size: 14px; margin-bottom: 1rem;">
+                IA sugere transferir <strong>20 novilhas</strong> para otimizar pastagem e reduzir custos
+            </p>
+            <div class="destaque-valor" style="font-size: 1.5rem;">Economia: R$ 12.000/ano</div>
+        </div>
+    </div>
+</div>
+
+<!-- Movimentações Recentes -->
+<div class="page-header mt-5">
+    <h2 style="font-size: 1.5rem; margin-bottom: 1.5rem;">Movimentações Recentes</h2>
+    
+    <div class="table-clean">
+        <table class="table mb-0">
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Tipo</th>
+                    <th>Categoria</th>
+                    <th>Quantidade</th>
+                    <th class="text-end">Valor</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>24/10/2025</td>
+                    <td><span class="badge-custom badge-navy">Nascimento</span></td>
+                    <td>Bezerros</td>
+                    <td class="destaque-valor">+45</td>
+                    <td class="text-end">—</td>
+                </tr>
+                <tr>
+                    <td>23/10/2025</td>
+                    <td><span class="badge-custom badge-brown">Venda</span></td>
+                    <td>Bois Gordos</td>
+                    <td class="destaque-valor">-30</td>
+                    <td class="text-end destaque-valor">R$ 135.000,00</td>
+                </tr>
+                <tr>
+                    <td>22/10/2025</td>
+                    <td><span class="badge-custom badge-gray">Transferência</span></td>
+                    <td>Novilhas</td>
+                    <td class="destaque-valor">-20</td>
+                    <td class="text-end">—</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+

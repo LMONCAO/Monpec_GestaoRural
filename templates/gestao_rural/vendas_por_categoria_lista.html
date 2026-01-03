@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Parâmetros de Venda por Categoria - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2><i class="bi bi-percent"></i> Parâmetros de Venda por Categoria</h2>
+                    <p class="text-muted mb-0">Propriedade: {{ propriedade.nome_propriedade }}</p>
+                </div>
+                <div>
+                    <a href="{% url 'pecuaria_dashboard' propriedade.id %}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Voltar
+                    </a>
+                </div>
+            </div>
+
+            <!-- Informações -->
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i>
+                <strong>Configuração por Categoria:</strong> 
+                Configure o percentual de venda para cada categoria de animal, independente do sexo.
+                Isso permite um controle mais específico das vendas por tipo de animal.
+            </div>
+
+            <!-- Ações -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <a href="{% url 'vendas_por_categoria_novo' propriedade.id %}" class="btn btn-primary">
+                        <i class="bi bi-plus"></i> Novo Parâmetro
+                    </a>
+                    <a href="{% url 'vendas_por_categoria_bulk' propriedade.id %}" class="btn btn-success">
+                        <i class="bi bi-grid-3x3-gap"></i> Configuração em Massa
+                    </a>
+                </div>
+            </div>
+
+            <!-- Parâmetros Configurados -->
+            {% if parametros %}
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-check-circle"></i> Parâmetros Configurados
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Categoria</th>
+                                    <th>Sexo</th>
+                                    <th>Percentual de Venda (%)</th>
+                                    <th>Status</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for parametro in parametros %}
+                                <tr>
+                                    <td>
+                                        <i class="bi bi-tag"></i> {{ parametro.categoria.nome }}
+                                    </td>
+                                    <td>
+                                        <span class="badge {% if parametro.categoria.sexo == 'M' %}bg-primary{% else %}bg-pink{% endif %}">
+                                            {% if parametro.categoria.sexo == 'M' %}Macho{% else %}Fêmea{% endif %}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <strong class="{% if parametro.percentual_venda_anual > 0 %}text-success{% else %}text-muted{% endif %}">
+                                            {{ parametro.percentual_venda_anual }}%
+                                        </strong>
+                                    </td>
+                                    <td>
+                                        {% if parametro.ativo %}
+                                            <span class="badge bg-success">Ativo</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Inativo</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{% url 'vendas_por_categoria_editar' propriedade.id parametro.id %}" 
+                                               class="btn btn-outline-primary">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            
+                                            <a href="{% url 'vendas_por_categoria_toggle_status' propriedade.id parametro.id %}" 
+                                               class="btn {% if parametro.ativo %}btn-outline-warning{% else %}btn-outline-success{% endif %}">
+                                                {% if parametro.ativo %}
+                                                    <i class="bi bi-pause"></i>
+                                                {% else %}
+                                                    <i class="bi bi-play"></i>
+                                                {% endif %}
+                                            </a>
+                                            
+                                            <button type="button" class="btn btn-outline-danger" 
+                                                    onclick="confirmarExclusao('{{ parametro.categoria.nome }}', '{% url 'vendas_por_categoria_excluir' propriedade.id parametro.id %}')">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle"></i>
+                <strong>Nenhum parâmetro configurado!</strong>
+                Configure os percentuais de venda para cada categoria de animal.
+            </div>
+            {% endif %}
+
+            <!-- Categorias sem Parâmetro -->
+            {% if categorias_sem_parametro %}
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="bi bi-exclamation-triangle"></i> Categorias sem Parâmetro
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">As seguintes categorias ainda não possuem parâmetros de venda configurados:</p>
+                    <div class="row">
+                        {% for categoria in categorias_sem_parametro %}
+                        <div class="col-md-4 mb-2">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-tag text-muted me-2"></i>
+                                <span>{{ categoria.nome }}</span>
+                                <span class="badge {% if categoria.sexo == 'M' %}bg-primary{% else %}bg-pink{% endif %} ms-2">
+                                    {% if categoria.sexo == 'M' %}M{% else %}F{% endif %}
+                                </span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmarExclusao(nome, url) {
+    if (confirm(`Tem certeza que deseja excluir o parâmetro de venda para "${nome}"?`)) {
+        // Criar form para POST
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = url;
+        
+        // Adicionar CSRF token
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrfmiddlewaretoken';
+        csrfInput.value = csrfToken;
+        form.appendChild(csrfInput);
+        
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+</script>
+
+<style>
+.bg-pink {
+    background-color: #e83e8c !important;
+}
+</style>
+{% endblock %}
+

@@ -1,0 +1,134 @@
+<!-- Modais do Curral Dashboard V2 -->
+<!-- Nota: Os modais principais estão aqui. Modais específicos podem estar em seus respectivos includes -->
+
+<!-- Toast notifications -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- Loading overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-spinner">
+    <div class="spinner"></div>
+    <div style="font-size: 0.9rem; color: #455a64;">Processando...</div>
+  </div>
+</div>
+
+<!-- Popup de confirmação de brinco -->
+<div class="curral-modal-overlay" id="brincoConfirmOverlay">
+  <div class="curral-modal" style="max-width: 500px;">
+    <div class="curral-modal-title">
+      <i class="fas fa-cow"></i> Confirmar animal identificado
+    </div>
+    <div class="curral-modal-body">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+        <div>
+          <p style="margin: 0 0 4px 0; font-size: 0.85rem; color: #607d8b;"><strong>Brinco:</strong></p>
+          <p style="margin: 0; font-size: 1rem; font-weight: 600; color: #1565c0;" id="brincoConfirmNumero">—</p>
+        </div>
+        <div>
+          <p style="margin: 0 0 4px 0; font-size: 0.85rem; color: #607d8b;"><strong>SISBOV:</strong></p>
+          <p style="margin: 0; font-size: 0.9rem; font-weight: 500; color: #455a64;" id="brincoConfirmSisbov">—</p>
+        </div>
+      </div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+        <div>
+          <p style="margin: 0 0 4px 0; font-size: 0.85rem; color: #607d8b;"><strong>Número de Manejo:</strong></p>
+          <p style="margin: 0; font-size: 0.9rem; font-weight: 500; color: #455a64;" id="brincoConfirmManejo">—</p>
+        </div>
+        <div>
+          <p style="margin: 0 0 4px 0; font-size: 0.85rem; color: #607d8b;"><strong>Status BND:</strong></p>
+          <p style="margin: 0;" id="brincoConfirmBnd">
+            <span style="font-size: 0.9rem; font-weight: 500; color: #455a64;">—</span>
+          </p>
+        </div>
+      </div>
+
+      <div style="border-top: 1px solid #e0e0e0; padding-top: 12px; margin-top: 8px; margin-bottom: 12px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div>
+            <p style="margin: 0 0 4px 0; font-size: 0.85rem; color: #607d8b;"><strong>Raça:</strong></p>
+            <p style="margin: 0; font-size: 0.9rem; color: #455a64;" id="brincoConfirmRaca">—</p>
+          </div>
+          <div>
+            <p style="margin: 0 0 4px 0; font-size: 0.85rem; color: #607d8b;"><strong>Sexo:</strong></p>
+            <p style="margin: 0; font-size: 0.9rem; color: #455a64;" id="brincoConfirmSexo">—</p>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+        <div>
+          <p style="margin: 0 0 4px 0; font-size: 0.85rem; color: #607d8b;"><strong>Data nascimento:</strong></p>
+          <p style="margin: 0; font-size: 0.9rem; color: #455a64;" id="brincoConfirmDataNasc">—</p>
+        </div>
+        <div>
+          <p style="margin: 0 0 4px 0; font-size: 0.85rem; color: #607d8b;"><strong>Último peso:</strong></p>
+          <p style="margin: 0; font-size: 0.9rem; color: #455a64;" id="brincoConfirmUltimoPeso">—</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div>
+          <p style="margin: 0 0 4px 0; font-size: 0.85rem; color: #607d8b;"><strong>Lote:</strong></p>
+          <p style="margin: 0; font-size: 0.9rem; color: #455a64;" id="brincoConfirmLote">—</p>
+        </div>
+        <div>
+          <p style="margin: 0 0 4px 0; font-size: 0.85rem; color: #607d8b;"><strong>Status reprodutivo:</strong></p>
+          <p style="margin: 0; font-size: 0.9rem; color: #455a64;" id="brincoConfirmReprodutivo">—</p>
+        </div>
+      </div>
+    </div>
+    <div class="curral-modal-footer">
+      <button type="button" class="btn btn-sm btn-outline-secondary" id="brincoConfirmCancelarBtn">
+        Cancelar
+      </button>
+      <button type="button" class="btn btn-sm btn-primary" id="brincoConfirmOkBtn">
+        Confirmar (Enter / OK)
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para Editar Pesagem -->
+<div id="modalEditarPesagem" class="modal-editar-pesagem" style="display: none;" onclick="if(event.target === this) fecharModalEditarPesagem();">
+  <div class="modal-editar-pesagem-content" onclick="event.stopPropagation();">
+    <div class="modal-editar-pesagem-header">
+      <h3><i class="fas fa-edit"></i> Editar Pesagem</h3>
+      <button type="button" class="modal-close" onclick="fecharModalEditarPesagem()">&times;</button>
+    </div>
+    <div class="modal-editar-pesagem-body">
+      <p style="margin-bottom: 15px; color: #666; font-size: 0.9rem;">
+        Edite o peso da última pesagem registrada:
+      </p>
+      <div style="margin-bottom: 15px;">
+        <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">
+          Peso Atual:
+        </label>
+        <span id="pesoAtualExibicao" style="font-size: 1.1rem; color: #666;">—</span>
+      </div>
+      <div style="margin-bottom: 20px;">
+        <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">
+          Novo Peso (kg):
+        </label>
+        <input type="text" 
+               id="novoPesoInput" 
+               class="form-control" 
+               placeholder="0,0"
+               inputmode="decimal"
+               pattern="[0-9,\.]+"
+               style="font-size: 1.1rem; padding: 10px; border: 2px solid #ddd; border-radius: 6px; width: 100%;">
+      </div>
+    </div>
+    <div class="modal-editar-pesagem-footer">
+      <button type="button" class="btn btn-secondary" onclick="fecharModalEditarPesagem()">
+        <i class="fas fa-times"></i> Cancelar
+      </button>
+      <button type="button" class="btn btn-primary" onclick="salvarEdicaoPesagem()">
+        <i class="fas fa-save"></i> Salvar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Nota: Outros modais (Diagnóstico, Estoque Cadastro, IATF, etc.) continuam no template original 
+     e podem ser extraídos posteriormente conforme necessário -->

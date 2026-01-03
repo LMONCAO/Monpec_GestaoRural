@@ -1,0 +1,68 @@
+{% extends "base_modulos_unificado.html" %}
+{% load formatacao_br %}
+
+{% block title %}Registrar Pagamento - {{ parcela.titulo.descricao }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'financeiro_dashboard' propriedade.id %}">Financeiro</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'contas_pagar_lista' propriedade.id %}">Contas a pagar</a></li>
+            <li class="breadcrumb-item active">Pagamento</li>
+        </ol>
+    </nav>
+
+    <div class="row g-3">
+        <div class="col-xl-6">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-cash-stack me-2"></i>Confirmar pagamento</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" class="row g-3">
+                        {% csrf_token %}
+                        <div class="col-md-6">
+                            <label class="form-label" for="{{ form.data_pagamento.id_for_label }}">Data do pagamento *</label>
+                            {{ form.data_pagamento }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="{{ form.valor.id_for_label }}">Valor *</label>
+                            {{ form.valor }}
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="{{ form.conta_financeira.id_for_label }}">Conta financeira *</label>
+                            {{ form.conta_financeira }}
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="{{ form.observacoes.id_for_label }}">Observações</label>
+                            {{ form.observacoes }}
+                        </div>
+                        <div class="col-12 d-flex gap-2">
+                            <button type="submit" class="btn btn-success"><i class="bi bi-check-circle me-1"></i>Confirmar pagamento</button>
+                            <a href="{% url 'contas_pagar_lista' propriedade.id %}" class="btn btn-outline-secondary">Cancelar</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-6">
+            <div class="card h-100">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Resumo da conta</h6>
+                </div>
+                <div class="card-body">
+                    <p class="mb-1"><strong>{{ parcela.titulo.descricao }}</strong></p>
+                    <p class="mb-1">Valor da parcela: {{ parcela.valor_previsto|moeda_br }}</p>
+                    <p class="mb-1">Saldo atual: {{ parcela.saldo|moeda_br }}</p>
+                    <p class="mb-1">Vencimento: {{ parcela.vencimento|date:"d/m/Y" }}</p>
+                    <p class="mb-1">Plano de contas: {{ parcela.titulo.plano_conta|default:"-" }}</p>
+                    <p class="mb-0">Fornecedor: {{ parcela.titulo.pessoa|default:"-" }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,135 @@
+{% extends "base_modulos_unificado.html" %}
+
+{% block title %}Recebimento OC {{ ordem.numero_ordem }} - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'compras_dashboard' propriedade.id %}">Compras</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'ordens_compra_lista' propriedade.id %}">Ordens de Compra</a></li>
+            <li class="breadcrumb-item active">Recebimento</li>
+        </ol>
+    </nav>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+                <div>
+                    <h2 class="h5 mb-1">OC {{ ordem.numero_ordem }}</h2>
+                    <div class="text-muted small">
+                        Fornecedor: {{ ordem.fornecedor.nome }} • Emitida em {{ ordem.data_emissao|date:"d/m/Y" }}
+                    </div>
+                </div>
+                {% if requisicao_origem %}
+                <a href="{% url 'requisicao_compra_detalhes' propriedade.id requisicao_origem.id %}" class="btn btn-outline-secondary btn-sm">
+                    Ver requisição origem
+                </a>
+                {% endif %}
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-sm table-striped align-middle">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Quantidade solicitada</th>
+                            <th>Valor unitário</th>
+                            <th>Valor total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in ordem.itens.all %}
+                        <tr>
+                            <td>{{ item.descricao }}</td>
+                            <td>{{ item.quantidade_solicitada }}</td>
+                            <td>R$ {{ item.valor_unitario|floatformat:2 }}</td>
+                            <td>R$ {{ item.valor_total|floatformat:2 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="row g-3 mb-4">
+                    {% for field in form.visible_fields %}
+                    <div class="col-md-4">
+                        <label class="form-label">{{ field.label }}{% if field.field.required %} *{% endif %}</label>
+                        {{ field }}
+                        {% for error in field.errors %}
+                        <div class="invalid-feedback d-block">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <h4 class="h6 mb-3">Itens conferidos</h4>
+                {{ formset.management_form }}
+                <div class="row g-3">
+                    {% for item_form in formset %}
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                {% for hidden in item_form.hidden_fields %}
+                                    {{ hidden }}
+                                {% endfor %}
+                                <div class="mb-2">
+                                    <label class="form-label">Item da OC</label>
+                                    {{ item_form.item_ordem }}
+                                </div>
+                                <div class="row g-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Quantidade recebida</label>
+                                        {{ item_form.quantidade_recebida }}
+                                    </div>
+                                    <div class="col-md-6 d-flex align-items-center">
+                                        <div class="form-check mt-4">
+                                            {{ item_form.divergencia }}
+                                            <label class="form-check-label">Divergência</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mt-2">
+                                    <label class="form-label">Justificativa</label>
+                                    {{ item_form.justificativa_divergencia }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mt-4 flex-wrap gap-2">
+                    <a href="{% url 'ordem_compra_detalhes' propriedade.id ordem.id %}" class="btn btn-light">
+                        Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        Salvar recebimento
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+
+
+
+
+
+
+
+
+
+

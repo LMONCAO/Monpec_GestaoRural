@@ -1,0 +1,103 @@
+{% extends "base_modulos_unificado.html" %}
+
+{% block title %}Clientes - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item active">Clientes</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+        <div>
+            <h2 class="mb-0"><i class="bi bi-person-check text-primary me-2"></i>Clientes</h2>
+            <small class="text-muted">Base compartilhada para vendas e financeiro</small>
+        </div>
+        <a href="{% url 'cliente_novo' propriedade.id %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle me-1"></i>Novo Cliente
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Nome</th>
+                            <th>Tipo</th>
+                            <th>CPF/CNPJ</th>
+                            <th>Contato</th>
+                            <th>Cidade/UF</th>
+                            <th>Limite Crédito</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cliente in clientes %}
+                        <tr>
+                            <td>
+                                <strong>{{ cliente.nome }}</strong>
+                                {% if cliente.nome_fantasia %}
+                                <div class="small text-muted">{{ cliente.nome_fantasia }}</div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-info">{{ cliente.get_tipo_pessoa_display }}</span>
+                                <div class="small text-muted mt-1">{{ cliente.get_tipo_cliente_display }}</div>
+                            </td>
+                            <td>{{ cliente.cpf_cnpj|default:"-" }}</td>
+                            <td>
+                                <div>{{ cliente.telefone|default:cliente.celular|default:"-" }}</div>
+                                <div class="small text-muted">{{ cliente.email|default:"" }}</div>
+                            </td>
+                            <td>{{ cliente.cidade|default:"-" }} / {{ cliente.estado|default:"-" }}</td>
+                            <td>
+                                {% if cliente.limite_credito %}
+                                    <span class="text-success">R$ {{ cliente.limite_credito|floatformat:2 }}</span>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="{% url 'cliente_editar' propriedade.id cliente.id %}" 
+                                       class="btn btn-outline-primary" 
+                                       title="Editar">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="{% url 'cliente_excluir' propriedade.id cliente.id %}" 
+                                       class="btn btn-outline-danger" 
+                                       title="Excluir"
+                                       onclick="return confirm('Tem certeza que deseja excluir este cliente?');">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">
+                                <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                                Nenhum cliente cadastrado.
+                                <div class="mt-2">
+                                    <a href="{% url 'cliente_novo' propriedade.id %}" class="btn btn-sm btn-primary">
+                                        Cadastrar primeiro cliente
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+

@@ -1,0 +1,88 @@
+# ==========================================
+# COMANDO FINAL PARA EXECUTAR NO CLOUD SHELL
+# Copie e cole tudo abaixo
+# ==========================================
+
+PROJECT_ID="monpec-sistema-rural"
+SERVICE_NAME="monpec"
+REGION="us-central1"
+
+echo "=========================================="
+echo "🔧 CORREÇÃO FINAL - ERRO OPENPYXL"
+echo "=========================================="
+
+gcloud config set project $PROJECT_ID
+
+echo ""
+echo "1️⃣ Removendo imports de openpyxl do topo dos arquivos..."
+# Corrigir views_relatorios_rastreabilidade.py
+if [ -f "gestao_rural/views_relatorios_rastreabilidade.py" ]; then
+    if head -30 gestao_rural/views_relatorios_rastreabilidade.py | grep -qE "^from openpyxl|^import openpyxl"; then
+        echo "Corrigindo views_relatorios_rastreabilidade.py..."
+        cp gestao_rural/views_relatorios_rastreabilidade.py gestao_rural/views_relatorios_rastreabilidade.py.bak
+        sed -i '/^from openpyxl/d' gestao_rural/views_relatorios_rastreabilidade.py
+        sed -i '/^import openpyxl/d' gestao_rural/views_relatorios_rastreabilidade.py
+        echo "✅ Corrigido"
+    fi
+fi
+
+# Corrigir outros arquivos também
+for file in gestao_rural/views_relatorios.py gestao_rural/exportar_excel_financeiro.py gestao_rural/exportar_dre_multi_anos_excel.py gestao_rural/views_financeiro_avancado.py; do
+    if [ -f "$file" ] && head -30 "$file" | grep -qE "^from openpyxl|^import openpyxl"; then
+        echo "Corrigindo $file..."
+        cp "$file" "${file}.bak"
+        sed -i '/^from openpyxl/d' "$file"
+        sed -i '/^import openpyxl/d' "$file"
+        echo "✅ Corrigido"
+    fi
+done
+
+echo ""
+echo "2️⃣ Garantindo que requirements_producao.txt tem openpyxl..."
+if [ ! -f "requirements_producao.txt" ] || ! grep -qE "^openpyxl" requirements_producao.txt; then
+    echo "openpyxl>=3.1.5" >> requirements_producao.txt
+    echo "✅ Adicionado openpyxl ao requirements_producao.txt"
+fi
+
+echo ""
+echo "3️⃣ Fazendo build..."
+TIMESTAMP=$(date +%Y%m%d%H%M%S)
+IMAGE_TAG="gcr.io/$PROJECT_ID/$SERVICE_NAME:$TIMESTAMP"
+gcloud builds submit --tag $IMAGE_TAG
+gcloud container images add-tag $IMAGE_TAG gcr.io/$PROJECT_ID/$SERVICE_NAME:latest --quiet
+
+echo ""
+echo "4️⃣ Fazendo deploy..."
+gcloud run deploy $SERVICE_NAME \
+    --image gcr.io/$PROJECT_ID/$SERVICE_NAME:latest \
+    --region=$REGION \
+    --platform managed \
+    --allow-unauthenticated \
+    --add-cloudsql-instances=monpec-sistema-rural:us-central1:monpec-db \
+    --set-env-vars "DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,DEBUG=False,CLOUD_SQL_CONNECTION_NAME=monpec-sistema-rural:us-central1:monpec-db,DB_NAME=monpec_db,DB_USER=monpec_user,DB_PASSWORD=L6171r12@@jjms"
+
+echo ""
+echo "5️⃣ Testando..."
+sleep 30
+SERVICE_URL=$(gcloud run services describe $SERVICE_NAME --region=$REGION --format="value(status.url)" --project=$PROJECT_ID)
+HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$SERVICE_URL" 2>/dev/null || echo "000")
+echo "URL: $SERVICE_URL"
+echo "HTTP Status: $HTTP_CODE"
+
+if [ "$HTTP_CODE" != "200" ] && [ "$HTTP_CODE" != "301" ] && [ "$HTTP_CODE" != "302" ]; then
+    echo ""
+    echo "Verificando logs..."
+    gcloud logging read \
+        "resource.type=cloud_run_revision AND resource.labels.service_name=$SERVICE_NAME AND severity>=ERROR" \
+        --limit=3 \
+        --format="value(textPayload)" \
+        --project=$PROJECT_ID | head -100
+fi
+
+echo ""
+echo "✅ Processo concluído!"
+
+
+
+
+

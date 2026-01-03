@@ -1,0 +1,439 @@
+{% extends "base_modulos_unificado.html" %}
+{% load static %}
+
+{% block title %}Resultado da Importação BND/SISBOV · {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .resultado-importacao-wrapper {
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+
+    .resultado-card {
+        background: #ffffff;
+        border-radius: 20px;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        padding: 2rem 2.4rem;
+        box-shadow: 0 32px 70px rgba(15, 23, 42, 0.08);
+        margin-bottom: 2rem;
+    }
+
+    .resultado-card h3 {
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .status-badge {
+        padding: 0.5rem 1rem;
+        border-radius: 999px;
+        font-weight: 600;
+        font-size: 0.875rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .status-badge.conforme {
+        background: linear-gradient(135deg, #4caf50 0%, #43a047 100%);
+        color: #ffffff;
+        box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+    }
+
+    .status-badge.divergente {
+        background: linear-gradient(135deg, #ff9800 0%, #fb8c00 100%);
+        color: #ffffff;
+        box-shadow: 0 2px 8px rgba(255, 152, 0, 0.3);
+    }
+
+    .status-badge.nao-conforme {
+        background: linear-gradient(135deg, #f44336 0%, #e53935 100%);
+        color: #ffffff;
+        box-shadow: 0 2px 8px rgba(244, 67, 54, 0.3);
+    }
+
+    .status-badge.novo {
+        background: linear-gradient(135deg, #2196f3 0%, #3b82f6 100%);
+        color: #ffffff;
+        box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
+    }
+
+    .tabela-resultados {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1rem;
+    }
+
+    .tabela-resultados thead {
+        background: linear-gradient(135deg, #334155, #1e293b);
+        color: #ffffff;
+    }
+
+    .tabela-resultados thead th {
+        padding: 1rem;
+        text-align: left;
+        font-weight: 600;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .tabela-resultados tbody td {
+        padding: 0.85rem 1rem;
+        border: 1px solid rgba(15, 23, 42, 0.1);
+    }
+
+    .tabela-resultados tbody tr:nth-child(even) {
+        background: #f8f9fa;
+    }
+
+    .tabela-resultados tbody tr:hover {
+        background: #e9ecef;
+    }
+
+    .resumo-estatisticas {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+        border-radius: 12px;
+        padding: 1.5rem;
+        border: 1px solid rgba(15, 23, 42, 0.1);
+        text-align: center;
+    }
+
+    .stat-card .stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-card .stat-label {
+        color: #64748b;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+
+    .stat-card.conforme .stat-value { color: #4caf50; }
+    .stat-card.divergente .stat-value { color: #ff9800; }
+    .stat-card.nao-conforme .stat-value { color: #f44336; }
+    .stat-card.novo .stat-value { color: #2196f3; }
+    .stat-card.atualizado .stat-value { color: #9c27b0; }
+
+    .divergencia-item {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        margin: 0.25rem;
+        background: #fff3cd;
+        color: #856404;
+        border-radius: 6px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        color: #64748b;
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header mb-4">
+    <div>
+        <h1 class="page-title">Resultado da Importação BND/SISBOV</h1>
+        <p class="page-subtitle">Detalhes da importação realizada em {{ resultados.timestamp|date:"d/m/Y H:i" }}</p>
+    </div>
+    <div class="breadcrumb">
+        <a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a>
+        <span>/</span>
+        <a href="{% url 'rastreabilidade_dashboard' propriedade.id %}">Rastreabilidade</a>
+        <span>/</span>
+        <a href="{% url 'importar_bnd_sisbov' propriedade.id %}">Importar BND/SISBOV</a>
+        <span>/</span>
+        <span>Resultado</span>
+    </div>
+</div>
+
+<div class="resultado-importacao-wrapper">
+    <!-- Resumo Estatísticas -->
+    <div class="resumo-estatisticas">
+        <div class="stat-card conforme">
+            <div class="stat-value">{{ animais_conformes|length }}</div>
+            <div class="stat-label">Animais Conformes</div>
+        </div>
+        <div class="stat-card divergente">
+            <div class="stat-value">{{ animais_divergentes|length }}</div>
+            <div class="stat-label">Animais Divergentes</div>
+        </div>
+        <div class="stat-card nao-conforme">
+            <div class="stat-value">{{ animais_nao_conformes|length }}</div>
+            <div class="stat-label">Animais Não Conformes</div>
+        </div>
+        <div class="stat-card novo">
+            <div class="stat-value">{{ resultados.animais_criados }}</div>
+            <div class="stat-label">Animais Criados</div>
+        </div>
+        <div class="stat-card atualizado">
+            <div class="stat-value">{{ resultados.animais_atualizados }}</div>
+            <div class="stat-label">Animais Atualizados</div>
+        </div>
+    </div>
+
+    <!-- Animais Conformes -->
+    {% if animais_conformes %}
+    <div class="resultado-card">
+        <h3>
+            <i class="bi bi-check-circle text-success"></i>
+            Animais Conformes ({{ animais_conformes|length }})
+        </h3>
+        <p class="text-muted mb-3">Animais encontrados no BND/SISBOV com dados idênticos ao sistema.</p>
+        <div class="table-responsive">
+            <table class="table tabela-resultados">
+                <thead>
+                    <tr>
+                        <th>Código SISBOV</th>
+                        <th>Nº Brinco</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for animal in animais_conformes %}
+                    <tr>
+                        <td><code>{{ animal.codigo_sisbov }}</code></td>
+                        <td>{{ animal.numero_brinco|default:"—" }}</td>
+                        <td>
+                            <span class="status-badge conforme">
+                                <i class="bi bi-check-circle"></i>
+                                Conforme
+                            </span>
+                            {% if animal.atualizado %}
+                            <span class="badge bg-info ms-2">Atualizado</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if animal.animal_id %}
+                            <a href="{% url 'animal_individual_detalhes' propriedade.id animal.animal_id %}" class="btn btn-sm btn-outline-primary" title="Ver detalhes do animal">
+                                <i class="bi bi-eye"></i> Ver
+                            </a>
+                            {% else %}
+                            <span class="text-muted small">ID não disponível</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Animais Divergentes -->
+    {% if animais_divergentes %}
+    <div class="resultado-card">
+        <h3>
+            <i class="bi bi-exclamation-triangle text-warning"></i>
+            Animais Divergentes ({{ animais_divergentes|length }})
+        </h3>
+        <p class="text-muted mb-3">Animais encontrados no BND/SISBOV mas com dados diferentes do sistema.</p>
+        <div class="table-responsive">
+            <table class="table tabela-resultados">
+                <thead>
+                    <tr>
+                        <th>Código SISBOV</th>
+                        <th>Nº Brinco</th>
+                        <th>Divergências</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for animal in animais_divergentes %}
+                    <tr>
+                        <td><code>{{ animal.codigo_sisbov }}</code></td>
+                        <td>{{ animal.numero_brinco|default:"—" }}</td>
+                        <td>
+                            {% for div in animal.divergencias %}
+                            <span class="divergencia-item">
+                                {% if div == 'sexo' %}Sexo{% endif %}
+                                {% if div == 'raca' %}Raça{% endif %}
+                                {% if div == 'data_nascimento' %}Data Nascimento{% endif %}
+                            </span>
+                            {% endfor %}
+                        </td>
+                        <td>
+                            <span class="status-badge divergente">
+                                <i class="bi bi-exclamation-triangle"></i>
+                                Divergente
+                            </span>
+                            {% if animal.atualizado %}
+                            <span class="badge bg-info ms-2">Atualizado</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if animal.animal_id %}
+                            <a href="{% url 'animal_individual_detalhes' propriedade.id animal.animal_id %}" class="btn btn-sm btn-outline-primary" title="Ver detalhes do animal">
+                                <i class="bi bi-eye"></i> Ver
+                            </a>
+                            {% else %}
+                            <span class="text-muted small">ID não disponível</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Animais Não Conformes -->
+    {% if animais_nao_conformes %}
+    <div class="resultado-card">
+        <h3>
+            <i class="bi bi-x-circle text-danger"></i>
+            Animais Não Conformes ({{ animais_nao_conformes|length }})
+        </h3>
+        <p class="text-muted mb-3">Animais que estão no sistema mas NÃO foram encontrados no BND/SISBOV importado.</p>
+        <div class="table-responsive">
+            <table class="table tabela-resultados">
+                <thead>
+                    <tr>
+                        <th>Código SISBOV</th>
+                        <th>Nº Brinco</th>
+                        <th>Sexo</th>
+                        <th>Raça</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for animal in animais_nao_conformes %}
+                    <tr>
+                        <td><code>{{ animal.codigo_sisbov }}</code></td>
+                        <td>{{ animal.numero_brinco|default:"—" }}</td>
+                        <td>{{ animal.sexo|default:"—" }}</td>
+                        <td>{{ animal.raca|default:"—" }}</td>
+                        <td>
+                            <span class="status-badge nao-conforme">
+                                <i class="bi bi-x-circle"></i>
+                                Não Conforme
+                            </span>
+                        </td>
+                        <td>
+                            {% if animal.animal_id %}
+                            <a href="{% url 'animal_individual_detalhes' propriedade.id animal.animal_id %}" class="btn btn-sm btn-outline-primary" title="Ver detalhes do animal">
+                                <i class="bi bi-eye"></i> Ver
+                            </a>
+                            {% else %}
+                            <span class="text-muted small">ID não disponível</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Animais Criados -->
+    {% if animais_criados %}
+    <div class="resultado-card">
+        <h3>
+            <i class="bi bi-plus-circle text-info"></i>
+            Animais Criados ({{ resultados.animais_criados }})
+        </h3>
+        <p class="text-muted mb-3">Novos animais adicionados ao sistema a partir do BND/SISBOV.</p>
+        <div class="table-responsive">
+            <table class="table tabela-resultados">
+                <thead>
+                    <tr>
+                        <th>Código SISBOV</th>
+                        <th>Nº Brinco</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for animal in animais_criados %}
+                    <tr>
+                        <td><code>{{ animal.codigo_sisbov }}</code></td>
+                        <td>{{ animal.numero_brinco|default:"—" }}</td>
+                        <td>
+                            <span class="status-badge novo">
+                                <i class="bi bi-plus-circle"></i>
+                                Novo
+                            </span>
+                        </td>
+                        <td>
+                            {% if animal.animal_id %}
+                            <a href="{% url 'animal_individual_detalhes' propriedade.id animal.animal_id %}" class="btn btn-sm btn-outline-primary" title="Ver detalhes do animal">
+                                <i class="bi bi-eye"></i> Ver
+                            </a>
+                            {% else %}
+                            <span class="text-muted small">ID não disponível</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Informações Importantes -->
+    <div class="resultado-card">
+        <h5><i class="bi bi-info-circle text-primary me-2"></i>Como Verificar o Status de Conformidade</h5>
+        <div class="alert alert-info mb-0">
+            <p class="mb-2"><strong>Para verificar se um animal está conforme após a importação:</strong></p>
+            <ul class="mb-0">
+                <li><strong>Animais Conformes:</strong> Encontrados no BND/SISBOV com dados idênticos (sexo, raça, data de nascimento). Estes animais estão OK e atualizados.</li>
+                <li><strong>Animais Divergentes:</strong> Encontrados no BND/SISBOV mas com dados diferentes. Clique em "Ver" para revisar e corrigir manualmente se necessário.</li>
+                <li><strong>Animais Não Conformes:</strong> Estão no sistema mas NÃO foram encontrados no BND/SISBOV. Verifique se estes animais realmente existem ou se precisam ser removidos do sistema.</li>
+                <li><strong>Animais Criados:</strong> Novos animais adicionados ao sistema a partir do BND/SISBOV.</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Ações -->
+    <div class="resultado-card">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h5 class="mb-1">Importação Concluída</h5>
+                <p class="text-muted mb-0">Total de animais processados: {{ resultados.total_processados }}</p>
+                {% if resultados.erros %}
+                <p class="text-warning mb-0 small">
+                    <i class="bi bi-exclamation-triangle"></i> {{ resultados.erros|length }} erro(s) encontrado(s)
+                </p>
+                {% endif %}
+            </div>
+            <div>
+                <a href="{% url 'importar_bnd_sisbov' propriedade.id %}" class="btn btn-outline-secondary me-2">
+                    <i class="bi bi-arrow-left"></i> Nova Importação
+                </a>
+                <a href="{% url 'animais_individuais_lista' propriedade.id %}" class="btn btn-primary">
+                    <i class="bi bi-list"></i> Ver Todos os Animais
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+

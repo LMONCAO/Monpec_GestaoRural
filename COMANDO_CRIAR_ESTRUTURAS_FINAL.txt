@@ -1,0 +1,95 @@
+# Comando final para criar estruturas faltantes
+# Copie e cole no PowerShell
+
+$PROJECT_ID = "monpec-sistema-rural"
+$REGION = "us-central1"
+$IMAGE_NAME = "gcr.io/$PROJECT_ID/monpec:latest"
+
+gcloud config set project $PROJECT_ID
+
+Write-Host "🔧 Criando estruturas faltantes..." -ForegroundColor Yellow
+
+gcloud run jobs delete criar-estruturas --region=$REGION --quiet 2>$null
+
+# Script Python completo inline
+$pythonScript = @"
+import os
+import django
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'sistema_rural.settings_gcp')
+django.setup()
+
+from django.db import connection
+cursor = connection.cursor()
+
+print('Verificando e criando estruturas...')
+
+# 1. mercadopago_customer_id
+try:
+    cursor.execute("SELECT column_name FROM information_schema.columns WHERE table_name='gestao_rural_assinaturacliente' AND column_name='mercadopago_customer_id'")
+    if not cursor.fetchone():
+        cursor.execute('ALTER TABLE gestao_rural_assinaturacliente ADD COLUMN mercadopago_customer_id VARCHAR(255) NULL')
+        cursor.execute('CREATE INDEX IF NOT EXISTS gestao_rura_mercado_1a0de9_idx ON gestao_rural_assinaturacliente(mercadopago_customer_id)')
+        print('✅ mercadopago_customer_id criada')
+    else:
+        print('✅ mercadopago_customer_id já existe')
+except Exception as e:
+    print(f'Erro: {e}')
+
+# 2. certificado_digital
+try:
+    cursor.execute("SELECT column_name FROM information_schema.columns WHERE table_name='gestao_rural_produtorrural' AND column_name='certificado_digital'")
+    if not cursor.fetchone():
+        cursor.execute('ALTER TABLE gestao_rural_produtorrural ADD COLUMN certificado_digital VARCHAR(100) NULL')
+        print('✅ certificado_digital criada')
+    else:
+        print('✅ certificado_digital já existe')
+except Exception as e:
+    print(f'Erro: {e}')
+
+# 3. UsuarioAtivo
+try:
+    cursor.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema='public' AND table_name='gestao_rural_usuarioativo')")
+    if not cursor.fetchone()[0]:
+        cursor.execute('CREATE TABLE gestao_rural_usuarioativo (id BIGSERIAL NOT NULL PRIMARY KEY, nome_completo VARCHAR(255) NOT NULL, email VARCHAR(254) NOT NULL, telefone VARCHAR(20), primeiro_acesso TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(), ultimo_acesso TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(), total_acessos INTEGER NOT NULL DEFAULT 0, ativo BOOLEAN NOT NULL DEFAULT true, criado_em TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(), usuario_id BIGINT NOT NULL UNIQUE, CONSTRAINT gestao_rural_usuarioativo_usuario_id_fkey FOREIGN KEY (usuario_id) REFERENCES auth_user(id) DEFERRABLE INITIALLY DEFERRED)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS gestao_rural_usuarioativo_usuario_id_idx ON gestao_rural_usuarioativo(usuario_id)')
+        cursor.execute("INSERT INTO django_migrations (app, name, applied) VALUES ('gestao_rural', '0081_add_usuario_ativo', NOW()) ON CONFLICT (app, name) DO NOTHING")
+        print('✅ UsuarioAtivo criada')
+    else:
+        print('✅ UsuarioAtivo já existe')
+except Exception as e:
+    print(f'Erro: {e}')
+
+print('✅ Concluído!')
+"@
+
+# Converter para uma linha e escapar aspas
+$pythonScriptOneLine = $pythonScript -replace "`r`n", " " -replace '"', '\"'
+
+gcloud run jobs create criar-estruturas `
+  --region=$REGION `
+  --image=$IMAGE_NAME `
+  --set-env-vars="DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,DB_NAME=monpec_db,DB_USER=monpec_user,DB_PASSWORD=L6171r12@@jjms,CLOUD_SQL_CONNECTION_NAME=monpec-sistema-rural:us-central1:monpec-db" `
+  --set-cloudsql-instances=monpec-sistema-rural:us-central1:monpec-db `
+  --command="python" `
+  --args="-c,$pythonScriptOneLine" `
+  --max-retries=1 `
+  --memory=2Gi `
+  --cpu=2 `
+  --task-timeout=300
+
+Write-Host "⏱️  Executando (aguarde 1-2 minutos)..." -ForegroundColor Yellow
+gcloud run jobs execute criar-estruturas --region=$REGION --wait
+
+# Ver logs
+Write-Host ""
+Write-Host "📋 Logs:" -ForegroundColor Yellow
+gcloud logging read "resource.type=cloud_run_job AND resource.labels.job_name=criar-estruturas" `
+  --limit=30 `
+  --format="value(textPayload)" `
+  --freshness=5m
+
+gcloud run jobs delete criar-estruturas --region=$REGION --quiet 2>$null
+
+Write-Host ""
+Write-Host "✅ Pronto! Teste: https://monpec-29862706245.us-central1.run.app/login/" -ForegroundColor Green
+

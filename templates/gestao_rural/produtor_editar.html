@@ -1,0 +1,484 @@
+{% extends "base_modulos_unificado.html" %}
+{% load static %}
+
+{% block title %}Editar Produtor - {{ produtor.nome }}{% endblock %}
+
+{% block content_authenticated %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h2><i class="bi bi-person"></i> Editar Produtor Rural</h2>
+            <hr>
+            
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                <!-- Dados Básicos -->
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">Dados Básicos</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.nome.id_for_label }}" class="form-label">{{ form.nome.label }}</label>
+                                {{ form.nome }}
+                                {% if form.nome.errors %}
+                                    <div class="text-danger small">{{ form.nome.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.cpf_cnpj.id_for_label }}" class="form-label">{{ form.cpf_cnpj.label }}</label>
+                                {{ form.cpf_cnpj }}
+                                {% if form.cpf_cnpj.errors %}
+                                    <div class="text-danger small">{{ form.cpf_cnpj.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.documento_identidade.id_for_label }}" class="form-label">{{ form.documento_identidade.label }}</label>
+                                {{ form.documento_identidade }}
+                                {% if form.documento_identidade.errors %}
+                                    <div class="text-danger small">{{ form.documento_identidade.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.data_nascimento.id_for_label }}" class="form-label">{{ form.data_nascimento.label }}</label>
+                                {{ form.data_nascimento }}
+                                {% if form.data_nascimento.errors %}
+                                    <div class="text-danger small">{{ form.data_nascimento.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.anos_experiencia.id_for_label }}" class="form-label">{{ form.anos_experiencia.label }}</label>
+                                {{ form.anos_experiencia }}
+                                {% if form.anos_experiencia.errors %}
+                                    <div class="text-danger small">{{ form.anos_experiencia.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Contato -->
+                <div class="card mb-4">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">Contato</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.telefone.id_for_label }}" class="form-label">{{ form.telefone.label }}</label>
+                                {{ form.telefone }}
+                                {% if form.telefone.errors %}
+                                    <div class="text-danger small">{{ form.telefone.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.email.id_for_label }}" class="form-label">{{ form.email.label }}</label>
+                                {{ form.email }}
+                                {% if form.email.errors %}
+                                    <div class="text-danger small">{{ form.email.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label for="{{ form.endereco.id_for_label }}" class="form-label">{{ form.endereco.label }}</label>
+                                {{ form.endereco }}
+                                {% if form.endereco.errors %}
+                                    <div class="text-danger small">{{ form.endereco.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Certificado Digital para Emissão de NF-e -->
+                <div class="card mb-4" style="border: 1px solid #dee2e6;">
+                    <div class="card-header bg-success text-white">
+                        <h6 class="mb-0">
+                            <i class="bi bi-shield-check me-2"></i>Certificado Digital para Emissão de NF-e
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <strong>Configuração do Certificado Digital:</strong><br>
+                            Para emitir NF-e diretamente com a SEFAZ, é necessário configurar um certificado digital tipo A1 (arquivo .p12 ou .pfx).
+                            O certificado deve estar no nome do CNPJ que emitirá as notas fiscais.
+                        </div>
+                        
+                        {% if produtor.certificado_digital %}
+                        <div class="alert alert-success">
+                            <i class="bi bi-check-circle me-2"></i>
+                            <strong>Certificado Digital Configurado</strong><br>
+                            Arquivo: {{ produtor.certificado_digital.name|default:"-" }}<br>
+                            {% if produtor.certificado_valido_ate %}
+                                Válido até: {{ produtor.certificado_valido_ate|date:"d/m/Y" }}
+                                {% if produtor.certificado_valido_ate < today %}
+                                    <span class="badge bg-danger ms-2">Vencido</span>
+                                {% else %}
+                                    <span class="badge bg-success ms-2">Válido</span>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                        {% else %}
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            <strong>Nenhum certificado configurado</strong><br>
+                            Sem certificado, a emissão de NF-e será feita via API terceira (se configurado) ou com status PENDENTE.
+                        </div>
+                        {% endif %}
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.certificado_digital.id_for_label }}" class="form-label">
+                                    <i class="bi bi-file-earmark-lock me-1"></i>{{ form.certificado_digital.label }}
+                                </label>
+                                <div class="certificado-upload-area" id="certificado-upload-area" 
+                                     style="border: 2px dashed #dee2e6; border-radius: 8px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.3s; position: relative;"
+                                     ondrop="handleDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+                                    <div id="certificado-upload-content">
+                                        <i class="bi bi-cloud-upload" style="font-size: 2rem; color: #6c757d;"></i>
+                                        <p class="mt-2 mb-0 text-muted">
+                                            <strong>Clique aqui</strong> ou arraste o arquivo .p12 ou .pfx
+                                        </p>
+                                        <small class="text-muted">Arquivo do certificado digital A1</small>
+                                    </div>
+                                    <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;" onclick="document.getElementById('id_certificado_digital').click()">
+                                        {{ form.certificado_digital }}
+                                    </div>
+                                </div>
+                                <div id="certificado-info" class="mt-2" style="display: none;">
+                                    <div class="alert alert-info mb-2">
+                                        <i class="bi bi-info-circle me-1"></i>
+                                        <span id="certificado-nome-arquivo"></span>
+                                    </div>
+                                </div>
+                                {% if form.certificado_digital.errors %}
+                                    <div class="text-danger small">{{ form.certificado_digital.errors }}</div>
+                                {% endif %}
+                                <small class="form-text text-muted">
+                                    Envie o arquivo .p12 ou .pfx do seu certificado digital A1.
+                                    Se um arquivo já estiver configurado, enviar um novo o substituirá.
+                                </small>
+                                {% if produtor.certificado_digital %}
+                                <div class="mt-2">
+                                    <a href="{{ produtor.certificado_digital.url }}" class="btn btn-sm btn-outline-secondary" target="_blank">
+                                        <i class="bi bi-download me-1"></i>Ver certificado atual
+                                    </a>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.certificado_tipo.id_for_label }}" class="form-label">
+                                    {{ form.certificado_tipo.label }}
+                                </label>
+                                {{ form.certificado_tipo }}
+                                {% if form.certificado_tipo.errors %}
+                                    <div class="text-danger small">{{ form.certificado_tipo.errors }}</div>
+                                {% endif %}
+                                <small class="form-text text-muted">
+                                    Tipo A1: arquivo .p12/.pfx | Tipo A3: token/cartão (não suportado ainda)
+                                </small>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.senha_certificado.id_for_label }}" class="form-label">
+                                    <i class="bi bi-key me-1"></i>{{ form.senha_certificado.label }}
+                                </label>
+                                <div class="input-group">
+                                    {{ form.senha_certificado }}
+                                    <button type="button" class="btn btn-outline-secondary" id="btn-validar-certificado-upload" 
+                                            onclick="validarCertificadoUpload()" disabled>
+                                        <i class="bi bi-check-circle me-1"></i>Validar
+                                    </button>
+                                </div>
+                                {% if form.senha_certificado.errors %}
+                                    <div class="text-danger small">{{ form.senha_certificado.errors }}</div>
+                                {% endif %}
+                                <small class="form-text text-muted">
+                                    Senha do certificado digital. Clique em "Validar" para verificar e preencher dados automaticamente.
+                                </small>
+                                <div id="certificado-validacao-upload" class="mt-2"></div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.certificado_valido_ate.id_for_label }}" class="form-label">
+                                    {{ form.certificado_valido_ate.label }}
+                                </label>
+                                {{ form.certificado_valido_ate }}
+                                {% if form.certificado_valido_ate.errors %}
+                                    <div class="text-danger small">{{ form.certificado_valido_ate.errors }}</div>
+                                {% endif %}
+                                <small class="form-text text-muted">
+                                    Data de validade do certificado (útil para alertas de renovação)
+                                </small>
+                            </div>
+                        </div>
+                        
+                        {% if produtor.certificado_digital %}
+                        <div class="mt-3">
+                            <button type="button" class="btn btn-sm btn-outline-success" onclick="validarCertificado()" id="btn-validar-certificado">
+                                <i class="bi bi-check-circle me-1"></i>Validar Certificado
+                            </button>
+                            <div id="certificado-validacao-resultado" class="mt-2"></div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check"></i> Salvar
+                    </button>
+                    <a href="{% url 'dashboard' %}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Voltar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Drag and Drop
+function handleDragOver(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    e.currentTarget.style.borderColor = '#0d6efd';
+    e.currentTarget.style.backgroundColor = '#f0f8ff';
+}
+
+function handleDragLeave(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    e.currentTarget.style.borderColor = '#dee2e6';
+    e.currentTarget.style.backgroundColor = '';
+}
+
+function handleDrop(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    e.currentTarget.style.borderColor = '#dee2e6';
+    e.currentTarget.style.backgroundColor = '';
+    
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+        const fileInput = document.getElementById('id_certificado_digital');
+        fileInput.files = files;
+        handleFileSelect(files[0]);
+    }
+}
+
+// Quando arquivo é selecionado
+const fileInput = document.getElementById('id_certificado_digital');
+if (fileInput) {
+    fileInput.addEventListener('change', function(e) {
+        if (e.target.files.length > 0) {
+            handleFileSelect(e.target.files[0]);
+        }
+    });
+}
+
+function handleFileSelect(file) {
+    const uploadArea = document.getElementById('certificado-upload-area');
+    const uploadContent = document.getElementById('certificado-upload-content');
+    const infoDiv = document.getElementById('certificado-info');
+    const nomeArquivo = document.getElementById('certificado-nome-arquivo');
+    const btnValidar = document.getElementById('btn-validar-certificado-upload');
+    
+    // Validar extensão
+    if (!file.name.toLowerCase().endsWith('.p12') && !file.name.toLowerCase().endsWith('.pfx')) {
+        infoDiv.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle me-1"></i>
+                Arquivo inválido! Use apenas arquivos .p12 ou .pfx
+            </div>
+        `;
+        infoDiv.style.display = 'block';
+        btnValidar.disabled = true;
+        return;
+    }
+    
+    // Atualizar interface
+    uploadContent.innerHTML = `
+        <i class="bi bi-check-circle text-success" style="font-size: 2rem;"></i>
+        <p class="mt-2 mb-0"><strong>${file.name}</strong></p>
+        <small class="text-muted">${(file.size / 1024).toFixed(2)} KB</small>
+    `;
+    uploadArea.style.borderColor = '#28a745';
+    uploadArea.style.backgroundColor = '#f0fff4';
+    
+    nomeArquivo.textContent = `Arquivo selecionado: ${file.name}`;
+    infoDiv.style.display = 'block';
+    btnValidar.disabled = false;
+}
+
+// Validação automática ao fazer upload
+function validarCertificadoUpload() {
+    const fileInput = document.getElementById('id_certificado_digital');
+    const senhaInput = document.getElementById('id_senha_certificado');
+    const btn = document.getElementById('btn-validar-certificado-upload');
+    const resultado = document.getElementById('certificado-validacao-upload');
+    
+    if (!fileInput.files || fileInput.files.length === 0) {
+        resultado.innerHTML = `
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle me-1"></i>
+                Selecione um arquivo de certificado primeiro.
+            </div>
+        `;
+        return;
+    }
+    
+    if (!senhaInput.value) {
+        resultado.innerHTML = `
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle me-1"></i>
+                Informe a senha do certificado.
+            </div>
+        `;
+        senhaInput.focus();
+        return;
+    }
+    
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Validando...';
+    resultado.innerHTML = '<div class="alert alert-info"><i class="bi bi-hourglass-split me-1"></i>Validando certificado...</div>';
+    
+    const formData = new FormData();
+    formData.append('arquivo', fileInput.files[0]);
+    formData.append('senha', senhaInput.value);
+    
+    fetch('{% url "validar_certificado_upload" %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-check-circle me-1"></i>Validar';
+        
+        if (data.sucesso) {
+            resultado.innerHTML = `
+                <div class="alert alert-success">
+                    <i class="bi bi-check-circle me-2"></i>
+                    <strong>Certificado válido!</strong><br>
+                    <strong>CNPJ:</strong> ${data.cnpj || 'Não encontrado'}<br>
+                    <strong>Razão Social:</strong> ${data.razao_social || 'Não encontrado'}<br>
+                    <strong>Válido até:</strong> ${data.validade_ate || 'Não encontrado'}<br>
+                    <strong>Emissor:</strong> ${data.emissor || 'Desconhecido'}
+                </div>
+            `;
+            
+            // Preencher automaticamente a data de validade
+            if (data.validade_ate_iso) {
+                const inputValidade = document.getElementById('id_certificado_valido_ate');
+                if (inputValidade) {
+                    inputValidade.value = data.validade_ate_iso;
+                }
+            }
+            
+            // Verificar se CNPJ corresponde ao cadastrado
+            const cnpjProdutor = '{{ produtor.cpf_cnpj|default:"" }}'.replace(/[^\d]/g, '');
+            const cnpjCertificado = (data.cnpj || '').replace(/[^\d]/g, '');
+            
+            if (cnpjProdutor && cnpjCertificado && cnpjProdutor !== cnpjCertificado) {
+                resultado.innerHTML += `
+                    <div class="alert alert-warning mt-2">
+                        <i class="bi bi-exclamation-triangle me-1"></i>
+                        <strong>Atenção:</strong> O CNPJ do certificado (${data.cnpj}) não corresponde ao CNPJ cadastrado ({{ produtor.cpf_cnpj }}).
+                    </div>
+                `;
+            }
+            
+            if (data.expirado) {
+                resultado.innerHTML += `
+                    <div class="alert alert-danger mt-2">
+                        <i class="bi bi-x-circle me-1"></i>
+                        <strong>Certificado Expirado!</strong> Renove o certificado antes de usar.
+                    </div>
+                `;
+            }
+        } else {
+            resultado.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="bi bi-x-circle me-2"></i>
+                    <strong>Erro na validação:</strong><br>
+                    ${data.erro || 'Erro desconhecido'}
+                </div>
+            `;
+        }
+    })
+    .catch(error => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-check-circle me-1"></i>Validar';
+        resultado.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="bi bi-x-circle me-2"></i>
+                <strong>Erro:</strong> ${error.message}
+            </div>
+        `;
+    });
+}
+
+// Validação do certificado já configurado
+function validarCertificado() {
+    const btn = document.getElementById('btn-validar-certificado');
+    const resultado = document.getElementById('certificado-validacao-resultado');
+    const produtorId = {{ produtor.id }};
+    
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Validando...';
+    resultado.innerHTML = '';
+    
+    fetch(`/produtor/${produtorId}/validar-certificado/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-check-circle me-1"></i>Validar Certificado';
+        
+        if (data.certificado_valido) {
+            resultado.innerHTML = `
+                <div class="alert alert-success">
+                    <i class="bi bi-check-circle me-2"></i>
+                    <strong>Certificado válido!</strong><br>
+                    Válido até: ${data.certificado_valido_ate || 'Não informado'}
+                </div>
+            `;
+        } else {
+            resultado.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="bi bi-x-circle me-2"></i>
+                    <strong>Certificado inválido ou expirado</strong><br>
+                    ${data.certificado_expirado ? 'Certificado expirado. Renove antes de usar.' : 'Verifique a configuração do certificado.'}
+                </div>
+            `;
+        }
+    })
+    .catch(error => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-check-circle me-1"></i>Validar Certificado';
+        resultado.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="bi bi-x-circle me-2"></i>
+                <strong>Erro:</strong> ${error.message}
+            </div>
+        `;
+    });
+}
+</script>
+{% endblock content_authenticated %}

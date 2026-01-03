@@ -1,0 +1,66 @@
+{% extends "base_modulos_unificado.html" %}
+
+{% block title %}Equipamentos - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'operacoes_dashboard' propriedade.id %}">Operações</a></li>
+            <li class="breadcrumb-item active">Equipamentos</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+        <div>
+            <h2 class="mb-0"><i class="bi bi-tools text-primary me-2"></i>Equipamentos cadastrados</h2>
+            <small class="text-muted">Acompanhe status, tipo e manutenções</small>
+        </div>
+        <a href="{% url 'manutencao_nova' propriedade.id %}" class="btn btn-primary"><i class="bi bi-wrench-adjustable-circle me-1"></i>Registrar Manutenção</a>
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Equipamento</th>
+                            <th>Tipo</th>
+                            <th>Status</th>
+                            <th>Ano</th>
+                            <th>Horas / KM</th>
+                            <th>Valor</th>
+                            <th>Observações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for equipamento in equipamentos %}
+                        <tr>
+                            <td><strong>{{ equipamento.nome }}</strong></td>
+                            <td>{{ equipamento.tipo.nome|default:"-" }}</td>
+                            <td>
+                                <span class="badge bg-{% if equipamento.ativo %}success{% else %}secondary{% endif %}">
+                                    {% if equipamento.ativo %}Ativo{% else %}Inativo{% endif %}
+                                </span>
+                            </td>
+                            <td>{{ equipamento.ano_fabricacao|default:"-" }}</td>
+                            <td>{{ equipamento.horas_trabalhadas|default:equipamento.quilometragem|default:"-" }}</td>
+                            <td>{{ equipamento.valor_aquisicao|default:"-" }}</td>
+                            <td>{{ equipamento.observacoes|default:"-" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">Nenhum equipamento cadastrado.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

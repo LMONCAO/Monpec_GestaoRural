@@ -1,0 +1,197 @@
+{% extends 'base_modulos_unificado.html' %}
+{% load static %}
+{% load formatacao_br %}
+
+{% block title %}Endividamento - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block breadcrumb_extra %}
+    <li class="breadcrumb-item">
+        <a href="{% url 'dividas_dashboard' propriedade.id %}">
+            <i class="bi bi-credit-card"></i>
+            Dívidas Financeiras
+        </a>
+    </li>
+    <li class="breadcrumb-item active">
+        <i class="bi bi-exclamation-triangle"></i>
+        Endividamento
+    </li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header da Página -->
+    <div class="submenu-page-header">
+        <div class="d-flex align-items-start gap-4">
+            <div class="submenu-page-icon">
+                <i class="bi bi-exclamation-triangle"></i>
+            </div>
+            <div class="flex-grow-1">
+                <h1 class="submenu-page-title">Análise de Endividamento</h1>
+                <p class="submenu-page-description">
+                    Visualize a situação de endividamento e capacidade de pagamento da propriedade {{ propriedade.nome_propriedade }}.
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-12">
+
+            <!-- Resumo Geral -->
+            <div class="row mb-4">
+                <div class="col-md-3 mb-3">
+                    <div class="card border-primary">
+                        <div class="card-body text-center py-3">
+                            <i class="bi bi-cash-stack fs-3 text-primary"></i>
+                            <h6 class="mt-2 mb-1 small">Total Financiado</h6>
+                            <h4 class="text-primary mb-0">{{ total_principal|moeda_br }}</h4>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3 mb-3">
+                    <div class="card border-warning">
+                        <div class="card-body text-center py-3">
+                            <i class="bi bi-calendar-month fs-3 text-warning"></i>
+                            <h6 class="mt-2 mb-1 small">Parcelas Mensais</h6>
+                            <h4 class="text-warning mb-0">{{ total_parcelas_mes|moeda_br }}</h4>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3 mb-3">
+                    <div class="card border-info">
+                        <div class="card-body text-center py-3">
+                            <i class="bi bi-clock fs-3 text-info"></i>
+                            <h6 class="mt-2 mb-1 small">Vencendo em Breve</h6>
+                            <h4 class="text-info mb-0">{{ vencendo_em_breve|numero_br:0 }}</h4>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3 mb-3">
+                    <div class="card border-success">
+                        <div class="card-body text-center py-3">
+                            <i class="bi bi-graph-up fs-3 text-success"></i>
+                            <h6 class="mt-2 mb-1 small">Financiamentos Ativos</h6>
+                            <h4 class="text-success mb-0">{{ financiamentos.count|numero_br:0 }}</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ações Principais -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card border-success">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0">
+                                <i class="bi bi-tools"></i> Ações Principais
+                            </h5>
+                        </div>
+                        <div class="card-body py-3">
+                            <div class="row">
+                                <div class="col-md-3 mb-2">
+                                    <a href="{% url 'financiamento_novo' propriedade.id %}" class="btn btn-primary btn-sm w-100">
+                                        <i class="bi bi-plus"></i> Novo Financiamento
+                                    </a>
+                                </div>
+                                <div class="col-md-3 mb-2">
+                                    <a href="{% url 'financiamentos_lista' propriedade.id %}" class="btn btn-info btn-sm w-100">
+                                        <i class="bi bi-list"></i> Ver Todos
+                                    </a>
+                                </div>
+                                <div class="col-md-3 mb-2">
+                                    <a href="{% url 'tipos_financiamento_lista' %}" class="btn btn-warning btn-sm w-100">
+                                        <i class="bi bi-gear"></i> Tipos de Financiamento
+                                    </a>
+                                </div>
+                                <div class="col-md-3 mb-2">
+                                    <button class="btn btn-success btn-sm w-100" onclick="alert('Relatório em desenvolvimento')">
+                                        <i class="bi bi-file-earmark-text"></i> Relatório
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Financiamentos Ativos -->
+            {% if financiamentos %}
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-list-check"></i> Financiamentos Ativos
+                    </h5>
+                </div>
+                <div class="card-body py-3">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Tipo</th>
+                                    <th>Valor Principal</th>
+                                    <th>Taxa Juros</th>
+                                    <th>Parcela</th>
+                                    <th>Parcelas Restantes</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for financiamento in financiamentos %}
+                                <tr>
+                                    <td>
+                                        <i class="bi bi-credit-card"></i> {{ financiamento.nome }}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ financiamento.tipo.nome }}</span>
+                                    </td>
+                                    <td>
+                                        <strong>{{ financiamento.valor_principal|moeda_br }}</strong>
+                                    </td>
+                                    <td>
+                                        {{ financiamento.taxa_juros_anual|percentual_br:2 }} {{ financiamento.get_tipo_taxa_display }}
+                                    </td>
+                                    <td>
+                                        <strong>{{ financiamento.valor_parcela|moeda_br }}</strong>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">{{ financiamento.numero_parcelas|numero_br:0 }} parcelas</span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{% url 'financiamento_editar' propriedade.id financiamento.id %}" 
+                                               class="btn btn-outline-primary">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <a href="{% url 'calcular_amortizacao' propriedade.id financiamento.id %}" 
+                                               class="btn btn-outline-info">
+                                                <i class="bi bi-calculator"></i>
+                                            </a>
+                                            <a href="{% url 'financiamento_excluir' propriedade.id financiamento.id %}" 
+                                               class="btn btn-outline-danger">
+                                                <i class="bi bi-trash"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle"></i>
+                <strong>Nenhum financiamento cadastrado!</strong>
+                Comece adicionando um novo financiamento para gerenciar o endividamento da propriedade.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+

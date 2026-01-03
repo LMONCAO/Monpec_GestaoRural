@@ -1,0 +1,326 @@
+{% extends "base_identidade_visual.html" %}
+{% load static %}
+
+{% block title %}Gestão Pecuária - Sistema Monpec{% endblock %}
+
+{% block extra_css %}
+<style>
+    .page-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 40px 0;
+        margin: -20px -15px 30px -15px;
+        border-radius: 0 0 30px 30px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+    
+    .action-card {
+        background: white;
+        border-radius: 16px;
+        padding: 25px;
+        text-align: center;
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+        height: 100%;
+        cursor: pointer;
+    }
+    
+    .action-card:hover {
+        transform: translateY(-8px);
+        border-color: #667eea;
+        box-shadow: 0 15px 35px rgba(102, 126, 234, 0.2);
+    }
+    
+    .action-icon {
+        width: 70px;
+        height: 70px;
+        margin: 0 auto 20px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 30px;
+        color: white;
+    }
+    
+    .icon-inventario { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .icon-projecoes { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+    .icon-movimentacoes { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+    .icon-relatorios { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+    .icon-ia { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+    .icon-analises { background: linear-gradient(135deg, #30cfd0 0%, #330867 100%); }
+    
+    .action-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 10px;
+    }
+    
+    .action-description {
+        color: #6c757d;
+        font-size: 14px;
+        line-height: 1.6;
+    }
+    
+    .quick-stats {
+        background: white;
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 30px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    }
+    
+    .stat-item {
+        text-align: center;
+        padding: 15px;
+    }
+    
+    .stat-value {
+        font-size: 32px;
+        font-weight: 700;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    
+    .stat-label {
+        color: #6c757d;
+        font-size: 13px;
+        margin-top: 5px;
+        text-transform: uppercase;
+    }
+    
+    .recent-activity {
+        background: white;
+        border-radius: 16px;
+        padding: 25px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    }
+    
+    .activity-item {
+        display: flex;
+        align-items: start;
+        padding: 15px;
+        border-left: 3px solid #e9ecef;
+        margin-bottom: 15px;
+        transition: all 0.3s ease;
+    }
+    
+    .activity-item:hover {
+        background: #f8f9fa;
+        border-left-color: #667eea;
+    }
+    
+    .activity-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 15px;
+        font-size: 16px;
+        color: white;
+    }
+    
+    .activity-content h6 {
+        font-size: 14px;
+        margin-bottom: 5px;
+        color: #2c3e50;
+    }
+    
+    .activity-content p {
+        font-size: 13px;
+        color: #6c757d;
+        margin: 0;
+    }
+    
+    .activity-time {
+        font-size: 11px;
+        color: #adb5bd;
+        margin-top: 5px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Cabeçalho -->
+    <div class="page-header">
+        <div class="container">
+            <h1 class="display-5 mb-2">
+                <i class="fas fa-horse"></i> Gestão Pecuária
+            </h1>
+            <p class="lead mb-0">Controle completo do seu rebanho com inteligência artificial</p>
+        </div>
+    </div>
+    
+    <div class="container">
+        <!-- Estatísticas Rápidas -->
+        <div class="quick-stats mb-4">
+            <div class="row">
+                <div class="col-md-3 stat-item">
+                    <div class="stat-value">{{ total_animais|default:"1.430" }}</div>
+                    <div class="stat-label"><i class="fas fa-horse"></i> Total de Animais</div>
+                </div>
+                <div class="col-md-3 stat-item">
+                    <div class="stat-value">{{ total_propriedades|default:"3" }}</div>
+                    <div class="stat-label"><i class="fas fa-map-marked-alt"></i> Propriedades</div>
+                </div>
+                <div class="col-md-3 stat-item">
+                    <div class="stat-value">R$ {{ receita_mes|default:"125k" }}</div>
+                    <div class="stat-label"><i class="fas fa-chart-line"></i> Receita Mensal</div>
+                </div>
+                <div class="col-md-3 stat-item">
+                    <div class="stat-value">{{ margem|default:"23.5" }}%</div>
+                    <div class="stat-label"><i class="fas fa-percentage"></i> Margem de Lucro</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Menu de Ações -->
+        <div class="row g-4 mb-4">
+            <div class="col-lg-4 col-md-6">
+                <a href="{% url 'pecuaria_inventario' propriedade.id %}" class="text-decoration-none">
+                    <div class="action-card">
+                        <div class="action-icon icon-inventario">
+                            <i class="fas fa-clipboard-list"></i>
+                        </div>
+                        <div class="action-title">Inventário de Rebanho</div>
+                        <div class="action-description">
+                            Cadastre e gerencie o inventário completo de animais por propriedade e categoria
+                        </div>
+                    </div>
+                </a>
+            </div>
+            
+            <div class="col-lg-4 col-md-6">
+                <a href="{% url 'pecuaria_projecao' propriedade.id %}" class="text-decoration-none">
+                    <div class="action-card">
+                        <div class="action-icon icon-projecoes">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <div class="action-title">Projeções e Cenários</div>
+                        <div class="action-description">
+                            Visualize projeções de crescimento, receitas e evolução do rebanho para 5 anos
+                        </div>
+                    </div>
+                </a>
+            </div>
+            
+            <div class="col-lg-4 col-md-6">
+                <a href="{% url 'pecuaria_parametros' propriedade.id %}" class="text-decoration-none">
+                    <div class="action-card">
+                        <div class="action-icon icon-movimentacoes">
+                            <i class="fas fa-exchange-alt"></i>
+                        </div>
+                        <div class="action-title">Parâmetros e Movimentações</div>
+                        <div class="action-description">
+                            Configure parâmetros e registre nascimentos, compras, vendas e transferências
+                        </div>
+                    </div>
+                </a>
+            </div>
+            
+            <div class="col-lg-4 col-md-6">
+                <a href="{% url 'pecuaria_parametros_avancados' propriedade.id %}" class="text-decoration-none">
+                    <div class="action-card">
+                        <div class="action-icon icon-ia">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <div class="action-title">Parâmetros Avançados</div>
+                        <div class="action-description">
+                            Configuração detalhada de taxas, custos e parâmetros do sistema de IA
+                        </div>
+                    </div>
+                </a>
+            </div>
+            
+            <div class="col-lg-4 col-md-6">
+                <a href="{% url 'categorias_lista' %}" class="text-decoration-none">
+                    <div class="action-card">
+                        <div class="action-icon icon-analises">
+                            <i class="fas fa-tags"></i>
+                        </div>
+                        <div class="action-title">Categorias de Animais</div>
+                        <div class="action-description">
+                            Gerencie as categorias de animais utilizadas no sistema
+                        </div>
+                    </div>
+                </a>
+            </div>
+            
+            <div class="col-lg-4 col-md-6">
+                <a href="{% url 'relatorio_final' propriedade.id %}" class="text-decoration-none">
+                    <div class="action-card">
+                        <div class="action-icon icon-relatorios">
+                            <i class="fas fa-file-pdf"></i>
+                        </div>
+                        <div class="action-title">Relatório Final</div>
+                        <div class="action-description">
+                            Gere relatórios completos em PDF com todas as informações da propriedade
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+        
+        <!-- Atividade Recente -->
+        <div class="row">
+            <div class="col-12">
+                <div class="recent-activity">
+                    <h5 class="mb-4">
+                        <i class="fas fa-clock"></i> Atividade Recente
+                    </h5>
+                    
+                    <div class="activity-item">
+                        <div class="activity-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                            <i class="fas fa-baby"></i>
+                        </div>
+                        <div class="activity-content">
+                            <h6>45 Nascimentos Registrados</h6>
+                            <p>Fazenda Santa Rita - 25 bezerros e 20 bezerras</p>
+                            <div class="activity-time"><i class="fas fa-calendar"></i> Hoje, 14:30</div>
+                        </div>
+                    </div>
+                    
+                    <div class="activity-item">
+                        <div class="activity-icon" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                            <i class="fas fa-hand-holding-usd"></i>
+                        </div>
+                        <div class="activity-content">
+                            <h6>Venda de 30 Bois Magros</h6>
+                            <p>R$ 135.000,00 - Margem de lucro: 22,5%</p>
+                            <div class="activity-time"><i class="fas fa-calendar"></i> Ontem, 10:15</div>
+                        </div>
+                    </div>
+                    
+                    <div class="activity-item">
+                        <div class="activity-icon" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+                            <i class="fas fa-lightbulb"></i>
+                        </div>
+                        <div class="activity-content">
+                            <h6>IA Detectou Oportunidade</h6>
+                            <p>Compra de 50 garrotes 12% abaixo da média do mercado</p>
+                            <div class="activity-time"><i class="fas fa-calendar"></i> 2 dias atrás</div>
+                        </div>
+                    </div>
+                    
+                    <div class="activity-item">
+                        <div class="activity-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                            <i class="fas fa-exchange-alt"></i>
+                        </div>
+                        <div class="activity-content">
+                            <h6>Transferência Realizada</h6>
+                            <p>20 novilhas de Santa Rita para São José - Economia: R$ 12.000/ano</p>
+                            <div class="activity-time"><i class="fas fa-calendar"></i> 3 dias atrás</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

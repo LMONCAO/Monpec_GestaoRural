@@ -1,0 +1,486 @@
+{% extends "base_moderno.html" %}
+{% load static %}
+
+{% block title %}Inventário de Rebanho - Sistema Monpec{% endblock %}
+
+{% block extra_css %}
+<style>
+    .inventory-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 16px 16px 0 0;
+        margin: -20px -20px 0 -20px;
+    }
+    
+    .category-card {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 15px;
+        border: 2px solid #e9ecef;
+        transition: all 0.3s ease;
+    }
+    
+    .category-card:hover {
+        border-color: #667eea;
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.1);
+    }
+    
+    .category-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+    
+    .category-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 15px;
+        font-size: 24px;
+        color: white;
+    }
+    
+    .icon-bezerro { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .icon-garrote { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+    .icon-boi { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+    .icon-matriz { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+    .icon-touro { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+    
+    .category-info h6 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
+        color: #2c3e50;
+    }
+    
+    .category-info small {
+        color: #6c757d;
+        font-size: 13px;
+    }
+    
+    .input-group-custom {
+        display: grid;
+        grid-template-columns: 2fr 2fr 1fr;
+        gap: 15px;
+        align-items: end;
+    }
+    
+    .form-field label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 8px;
+        display: block;
+    }
+    
+    .form-field input {
+        width: 100%;
+        padding: 12px 16px;
+        border: 2px solid #e9ecef;
+        border-radius: 10px;
+        font-size: 15px;
+        transition: all 0.3s ease;
+    }
+    
+    .form-field input:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+    }
+    
+    .btn-remove {
+        padding: 12px 20px;
+        border: 2px solid #dc3545;
+        background: white;
+        color: #dc3545;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-remove:hover {
+        background: #dc3545;
+        color: white;
+    }
+    
+    .summary-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 16px;
+        padding: 25px;
+        margin-top: 30px;
+    }
+    
+    .summary-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px 0;
+        border-bottom: 1px solid rgba(255,255,255,0.2);
+    }
+    
+    .summary-item:last-child {
+        border-bottom: none;
+        font-size: 20px;
+        font-weight: 700;
+        margin-top: 10px;
+    }
+    
+    .btn-save {
+        width: 100%;
+        padding: 16px;
+        background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 18px;
+        font-weight: 600;
+        margin-top: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-save:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px rgba(67, 233, 123, 0.3);
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #6c757d;
+    }
+    
+    .empty-state i {
+        font-size: 64px;
+        color: #dee2e6;
+        margin-bottom: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="card card-modern">
+        <div class="inventory-header">
+            <h2 class="mb-2">
+                <i class="fas fa-clipboard-list"></i> Inventário de Rebanho
+            </h2>
+            <p class="mb-0">Cadastre a quantidade de animais por categoria</p>
+        </div>
+        
+        <div class="card-body p-4">
+            <form method="post" id="inventarioForm">
+                {% csrf_token %}
+                
+                <!-- Seleção de Propriedade -->
+                <div class="mb-4">
+                    <label class="form-label fw-bold">
+                        <i class="fas fa-map-marked-alt text-primary"></i> Selecione a Propriedade
+                    </label>
+                    <select class="form-select form-select-lg" name="propriedade" required>
+                        <option value="">Escolha uma propriedade...</option>
+                        {% for prop in propriedades %}
+                            <option value="{{ prop.id }}">{{ prop.nome }} - {{ prop.municipio }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <hr class="my-4">
+                
+                <!-- Categorias de Bezerros -->
+                <h5 class="mb-3"><i class="fas fa-baby"></i> Bezerros e Bezerras (0-12 meses)</h5>
+                
+                <div class="category-card">
+                    <div class="category-header">
+                        <div class="category-icon icon-bezerro">
+                            <i class="fas fa-baby"></i>
+                        </div>
+                        <div class="category-info">
+                            <h6>Bezerros (0-12m) ♂</h6>
+                            <small>Machos de 0 a 12 meses</small>
+                        </div>
+                    </div>
+                    <div class="input-group-custom">
+                        <div class="form-field">
+                            <label>Quantidade</label>
+                            <input type="number" name="bezerros_qtd" min="0" value="0" class="calc-total">
+                        </div>
+                        <div class="form-field">
+                            <label>Valor por Cabeça (R$)</label>
+                            <input type="number" name="bezerros_valor" step="0.01" value="2000.00" class="calc-valor">
+                        </div>
+                        <div class="form-field">
+                            <label>Total</label>
+                            <input type="text" readonly class="valor-total bg-light" value="R$ 0,00">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="category-card">
+                    <div class="category-header">
+                        <div class="category-icon icon-bezerro">
+                            <i class="fas fa-baby"></i>
+                        </div>
+                        <div class="category-info">
+                            <h6>Bezerras (0-12m) ♀</h6>
+                            <small>Fêmeas de 0 a 12 meses</small>
+                        </div>
+                    </div>
+                    <div class="input-group-custom">
+                        <div class="form-field">
+                            <label>Quantidade</label>
+                            <input type="number" name="bezerras_qtd" min="0" value="0" class="calc-total">
+                        </div>
+                        <div class="form-field">
+                            <label>Valor por Cabeça (R$)</label>
+                            <input type="number" name="bezerras_valor" step="0.01" value="1800.00" class="calc-valor">
+                        </div>
+                        <div class="form-field">
+                            <label>Total</label>
+                            <input type="text" readonly class="valor-total bg-light" value="R$ 0,00">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Categorias de Recria -->
+                <h5 class="mb-3 mt-4"><i class="fas fa-horse-head"></i> Recria (12-24 meses)</h5>
+                
+                <div class="category-card">
+                    <div class="category-header">
+                        <div class="category-icon icon-garrote">
+                            <i class="fas fa-horse-head"></i>
+                        </div>
+                        <div class="category-info">
+                            <h6>Garrotes (12-24m) ♂</h6>
+                            <small>Machos de 12 a 24 meses</small>
+                        </div>
+                    </div>
+                    <div class="input-group-custom">
+                        <div class="form-field">
+                            <label>Quantidade</label>
+                            <input type="number" name="garrotes_qtd" min="0" value="0" class="calc-total">
+                        </div>
+                        <div class="form-field">
+                            <label>Valor por Cabeça (R$)</label>
+                            <input type="number" name="garrotes_valor" step="0.01" value="3500.00" class="calc-valor">
+                        </div>
+                        <div class="form-field">
+                            <label>Total</label>
+                            <input type="text" readonly class="valor-total bg-light" value="R$ 0,00">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="category-card">
+                    <div class="category-header">
+                        <div class="category-icon icon-garrote">
+                            <i class="fas fa-horse-head"></i>
+                        </div>
+                        <div class="category-info">
+                            <h6>Novilhas (12-24m) ♀</h6>
+                            <small>Fêmeas de 12 a 24 meses</small>
+                        </div>
+                    </div>
+                    <div class="input-group-custom">
+                        <div class="form-field">
+                            <label>Quantidade</label>
+                            <input type="number" name="novilhas_qtd" min="0" value="0" class="calc-total">
+                        </div>
+                        <div class="form-field">
+                            <label>Valor por Cabeça (R$)</label>
+                            <input type="number" name="novilhas_valor" step="0.01" value="4000.00" class="calc-valor">
+                        </div>
+                        <div class="form-field">
+                            <label>Total</label>
+                            <input type="text" readonly class="valor-total bg-light" value="R$ 0,00">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Categorias Adultas -->
+                <h5 class="mb-3 mt-4"><i class="fas fa-horse"></i> Animais Adultos (+24 meses)</h5>
+                
+                <div class="category-card">
+                    <div class="category-header">
+                        <div class="category-icon icon-boi">
+                            <i class="fas fa-horse"></i>
+                        </div>
+                        <div class="category-info">
+                            <h6>Bois Magros (24-36m) ♂</h6>
+                            <small>Machos de 24 a 36 meses</small>
+                        </div>
+                    </div>
+                    <div class="input-group-custom">
+                        <div class="form-field">
+                            <label>Quantidade</label>
+                            <input type="number" name="bois_magros_qtd" min="0" value="0" class="calc-total">
+                        </div>
+                        <div class="form-field">
+                            <label>Valor por Cabeça (R$)</label>
+                            <input type="number" name="bois_magros_valor" step="0.01" value="4500.00" class="calc-valor">
+                        </div>
+                        <div class="form-field">
+                            <label>Total</label>
+                            <input type="text" readonly class="valor-total bg-light" value="R$ 0,00">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Matrizes -->
+                <h5 class="mb-3 mt-4"><i class="fas fa-venus"></i> Matrizes Reprodutoras</h5>
+                
+                <div class="category-card">
+                    <div class="category-header">
+                        <div class="category-icon icon-matriz">
+                            <i class="fas fa-venus"></i>
+                        </div>
+                        <div class="category-info">
+                            <h6>Primíparas (24-36m) ♀</h6>
+                            <small>Fêmeas de primeira cria</small>
+                        </div>
+                    </div>
+                    <div class="input-group-custom">
+                        <div class="form-field">
+                            <label>Quantidade</label>
+                            <input type="number" name="primiparas_qtd" min="0" value="0" class="calc-total">
+                        </div>
+                        <div class="form-field">
+                            <label>Valor por Cabeça (R$)</label>
+                            <input type="number" name="primiparas_valor" step="0.01" value="4500.00" class="calc-valor">
+                        </div>
+                        <div class="form-field">
+                            <label>Total</label>
+                            <input type="text" readonly class="valor-total bg-light" value="R$ 0,00">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="category-card">
+                    <div class="category-header">
+                        <div class="category-icon icon-matriz">
+                            <i class="fas fa-venus"></i>
+                        </div>
+                        <div class="category-info">
+                            <h6>Multíparas (>36m) ♀</h6>
+                            <small>Fêmeas de múltiplas crias</small>
+                        </div>
+                    </div>
+                    <div class="input-group-custom">
+                        <div class="form-field">
+                            <label>Quantidade</label>
+                            <input type="number" name="multiparas_qtd" min="0" value="0" class="calc-total">
+                        </div>
+                        <div class="form-field">
+                            <label>Valor por Cabeça (R$)</label>
+                            <input type="number" name="multiparas_valor" step="0.01" value="5000.00" class="calc-valor">
+                        </div>
+                        <div class="form-field">
+                            <label>Total</label>
+                            <input type="text" readonly class="valor-total bg-light" value="R$ 0,00">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Touros -->
+                <div class="category-card">
+                    <div class="category-header">
+                        <div class="category-icon icon-touro">
+                            <i class="fas fa-mars"></i>
+                        </div>
+                        <div class="category-info">
+                            <h6>Touros ♂</h6>
+                            <small>Reprodutores</small>
+                        </div>
+                    </div>
+                    <div class="input-group-custom">
+                        <div class="form-field">
+                            <label>Quantidade</label>
+                            <input type="number" name="touros_qtd" min="0" value="0" class="calc-total">
+                        </div>
+                        <div class="form-field">
+                            <label>Valor por Cabeça (R$)</label>
+                            <input type="number" name="touros_valor" step="0.01" value="8000.00" class="calc-valor">
+                        </div>
+                        <div class="form-field">
+                            <label>Total</label>
+                            <input type="text" readonly class="valor-total bg-light" value="R$ 0,00">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Resumo Total -->
+                <div class="summary-card">
+                    <h5 class="mb-3"><i class="fas fa-calculator"></i> Resumo do Inventário</h5>
+                    <div class="summary-item">
+                        <span>Total de Animais:</span>
+                        <strong id="total-animais">0</strong>
+                    </div>
+                    <div class="summary-item">
+                        <span>Valor Total do Rebanho:</span>
+                        <strong id="valor-total-rebanho">R$ 0,00</strong>
+                    </div>
+                </div>
+                
+                <!-- Botões de Ação -->
+                <div class="row mt-4">
+                    <div class="col-md-6 mb-2">
+                        <a href="{% url 'pecuaria_dashboard' %}" class="btn btn-outline-secondary w-100 py-3">
+                            <i class="fas fa-arrow-left"></i> Voltar
+                        </a>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <button type="submit" class="btn btn-save">
+                            <i class="fas fa-save"></i> Salvar Inventário
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Calcular totais automaticamente
+    document.querySelectorAll('.calc-total, .calc-valor').forEach(input => {
+        input.addEventListener('input', calcularTotais);
+    });
+    
+    function calcularTotais() {
+        let totalAnimais = 0;
+        let valorTotalRebanho = 0;
+        
+        document.querySelectorAll('.category-card').forEach(card => {
+            const qtdInput = card.querySelector('.calc-total');
+            const valorInput = card.querySelector('.calc-valor');
+            const totalInput = card.querySelector('.valor-total');
+            
+            const qtd = parseInt(qtdInput.value) || 0;
+            const valor = parseFloat(valorInput.value) || 0;
+            const total = qtd * valor;
+            
+            totalInput.value = 'R$ ' + total.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+            
+            totalAnimais += qtd;
+            valorTotalRebanho += total;
+        });
+        
+        document.getElementById('total-animais').textContent = totalAnimais.toLocaleString('pt-BR');
+        document.getElementById('valor-total-rebanho').textContent = 'R$ ' + valorTotalRebanho.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+    }
+    
+    // Loading no submit
+    document.getElementById('inventarioForm').addEventListener('submit', function(e) {
+        const btn = this.querySelector('.btn-save');
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+        btn.disabled = true;
+    });
+    
+    // Calcular totais ao carregar
+    calcularTotais();
+</script>
+{% endblock %}
+

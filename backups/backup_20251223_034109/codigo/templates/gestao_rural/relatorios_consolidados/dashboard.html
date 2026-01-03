@@ -1,0 +1,952 @@
+{% extends "gestao_rural/base.html" %}
+{% load static %}
+{% load formatacao_br %}
+{% load humanize %}
+
+{% block title %}Relatórios Consolidados - {{ produtor.nome }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Layout Full-Width */
+    .dashboard-consolidado {
+        width: 100%;
+        max-width: 100%;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .dashboard-header {
+        background: linear-gradient(135deg, var(--azul-marinho) 0%, var(--azul-marinho-escuro) 100%);
+        color: white;
+        padding: 2rem 2.5rem;
+        margin-bottom: 2rem;
+        box-shadow: var(--shadow-md);
+    }
+    
+    .dashboard-header h1 {
+        color: white;
+        font-size: 2.2rem;
+        font-weight: 800;
+        margin: 0;
+        letter-spacing: -0.02em;
+    }
+    
+    .dashboard-header p {
+        color: rgba(255, 255, 255, 0.9);
+        margin: 0.5rem 0 0 0;
+        font-size: 1rem;
+        font-weight: 500;
+    }
+    
+    /* Filtros com identidade visual */
+    .filtro-section {
+        background: white;
+        padding: 1.75rem 2.5rem;
+        margin: 0 0 2rem 0;
+        box-shadow: var(--shadow-sm);
+        border-radius: var(--border-radius);
+    }
+    
+    .filtro-section .form-label {
+        font-weight: 700;
+        color: var(--texto-principal);
+        font-size: 0.95rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    /* Cards KPI com identidade MONPEC */
+    .kpi-card-monpec {
+        background: white;
+        border: none;
+        border-radius: var(--border-radius-lg);
+        box-shadow: var(--shadow-sm);
+        padding: 1.75rem;
+        transition: var(--transition);
+        position: relative;
+        overflow: hidden;
+        height: 100%;
+    }
+    
+    .kpi-card-monpec::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 5px;
+        background: var(--card-accent-color);
+    }
+    
+    .kpi-card-monpec:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .kpi-card-monpec.rebanho {
+        --card-accent-color: var(--azul-marinho);
+    }
+    
+    .kpi-card-monpec.bens {
+        --card-accent-color: #d69e2e;
+        --card-accent-color-dark: #b8821f;
+    }
+    
+    .kpi-card-monpec.receitas {
+        --card-accent-color: #2d7a4f;
+        --card-accent-color-dark: #1b804f;
+    }
+    
+    .kpi-card-monpec.saldo {
+        --card-accent-color: #6495ed;
+        --card-accent-color-dark: #3d6fd8;
+    }
+    
+    .kpi-icon-monpec {
+        width: 56px;
+        height: 56px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        margin-bottom: 1rem;
+        background: linear-gradient(135deg, var(--card-accent-color), var(--card-accent-color-dark));
+        color: white;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .kpi-card-monpec.rebanho .kpi-icon-monpec {
+        background: linear-gradient(135deg, var(--azul-marinho), var(--azul-marinho-escuro));
+    }
+    
+    .kpi-card-monpec.bens .kpi-icon-monpec {
+        background: linear-gradient(135deg, #d69e2e, #b8821f);
+    }
+    
+    .kpi-card-monpec.receitas .kpi-icon-monpec {
+        background: linear-gradient(135deg, #2d7a4f, #1b804f);
+    }
+    
+    .kpi-card-monpec.saldo .kpi-icon-monpec {
+        background: linear-gradient(135deg, #6495ed, #3d6fd8);
+    }
+    
+    .kpi-label-monpec {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--texto-secundario);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.5rem;
+    }
+    
+    .kpi-value-monpec {
+        font-size: 2.5rem;
+        font-weight: 800;
+        line-height: 1.1;
+        margin: 0.5rem 0;
+        letter-spacing: -0.03em;
+        color: var(--texto-principal);
+    }
+    
+    .kpi-subtitle-monpec {
+        font-size: 0.9rem;
+        color: var(--texto-terciario);
+        font-weight: 500;
+        margin-top: 0.5rem;
+    }
+    
+    /* Cards de Gráficos Grandes */
+    .chart-card-monpec {
+        background: white;
+        border: none;
+        border-radius: var(--border-radius-lg);
+        box-shadow: var(--shadow-sm);
+        padding: 0;
+        transition: var(--transition);
+        overflow: hidden;
+        height: 100%;
+    }
+    
+    .chart-card-monpec:hover {
+        box-shadow: var(--shadow-md);
+    }
+    
+    .chart-header-monpec {
+        background: linear-gradient(135deg, var(--azul-marinho) 0%, var(--azul-marinho-escuro) 100%);
+        color: white;
+        padding: 1.25rem 1.75rem;
+        border-bottom: none;
+    }
+    
+    .chart-header-monpec h5 {
+        color: white;
+        font-size: 1.15rem;
+        font-weight: 700;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    .chart-header-monpec h5 i {
+        font-size: 1.3rem;
+    }
+    
+    .chart-body-monpec {
+        padding: 1.75rem;
+        position: relative;
+    }
+    
+    /* Gráficos maiores */
+    .chart-container-large {
+        position: relative;
+        width: 100%;
+        height: 400px;
+        margin: 0 auto;
+    }
+    
+    .chart-container-medium {
+        position: relative;
+        width: 100%;
+        height: 350px;
+        margin: 0 auto;
+    }
+    
+    /* Cards de Links */
+    .link-card-monpec {
+        background: white;
+        border: none;
+        border-radius: var(--border-radius-lg);
+        box-shadow: var(--shadow-sm);
+        padding: 1.5rem;
+        transition: var(--transition);
+        height: 100%;
+        border-left: 4px solid var(--azul-marinho);
+    }
+    
+    .link-card-monpec:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+        border-left-color: var(--vinho-profundo);
+    }
+    
+    .link-card-monpec .card-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--texto-principal);
+        margin-bottom: 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .link-card-monpec .card-title i {
+        color: var(--azul-marinho);
+        font-size: 1.3rem;
+    }
+    
+    .link-card-monpec .card-text {
+        font-size: 0.9rem;
+        color: var(--texto-secundario);
+        line-height: 1.6;
+        margin-bottom: 1rem;
+    }
+    
+    .btn-monpec {
+        background: linear-gradient(120deg, var(--azul-marinho), var(--vinho-profundo));
+        border: none;
+        color: white;
+        font-weight: 600;
+        padding: 0.65rem 1.5rem;
+        border-radius: var(--border-radius-sm);
+        transition: var(--transition);
+        box-shadow: 0 4px 12px rgba(100, 149, 237, 0.25);
+    }
+    
+    .btn-monpec:hover {
+        background: linear-gradient(120deg, var(--vinho-profundo), var(--vinho-claro));
+        transform: translateY(-2px);
+        box-shadow: 0 6px 18px rgba(122, 45, 75, 0.35);
+        color: white;
+    }
+    
+    /* Layout responsivo */
+    @media (max-width: 1400px) {
+        .chart-container-large {
+            height: 350px;
+        }
+        .chart-container-medium {
+            height: 300px;
+        }
+    }
+    
+    @media (max-width: 1200px) {
+        .chart-container-large {
+            height: 320px;
+        }
+        .chart-container-medium {
+            height: 280px;
+        }
+    }
+    
+    @media (max-width: 992px) {
+        .chart-container-large {
+            height: 300px;
+        }
+        .chart-container-medium {
+            height: 260px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-consolidado">
+    <!-- Header com identidade visual -->
+    <div class="dashboard-header">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <h1>
+                    <i class="bi bi-graph-up-arrow me-3"></i>
+                    Relatórios Consolidados
+                </h1>
+                <p>{{ produtor.nome }} - Sistema para comprovação de empréstimo bancário</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="filtro-section">
+        <form method="get" class="row g-4">
+            <div class="col-lg-6">
+                <label class="form-label">
+                    <i class="bi bi-building me-2"></i>Selecionar Propriedades:
+                </label>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="todas" checked>
+                    <label class="form-check-label fw-bold" for="todas">
+                        Todas as Propriedades
+                    </label>
+                </div>
+                <div class="ms-4">
+                    {% for propriedade in propriedades %}
+                    <div class="form-check mb-2">
+                        <input class="form-check-input propriedade-checkbox" 
+                               type="checkbox" 
+                               name="propriedades" 
+                               value="{{ propriedade.id }}"
+                               id="prop_{{ propriedade.id }}"
+                               {% if propriedade in propriedades_selecionadas %}checked{% endif %}>
+                        <label class="form-check-label" for="prop_{{ propriedade.id }}">
+                            {{ propriedade.nome_propriedade }} - {{ propriedade.municipio }}/{{ propriedade.uf }}
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="col-lg-3">
+                <label class="form-label">
+                    <i class="bi bi-calendar me-2"></i>Ano de Referência:
+                </label>
+                <input type="number" 
+                       name="ano" 
+                       class="form-control form-control-lg" 
+                       value="{{ ano }}" 
+                       min="2020" 
+                       max="2030">
+            </div>
+            <div class="col-lg-3 d-flex align-items-end">
+                <button type="submit" class="btn btn-monpec w-100">
+                    <i class="bi bi-funnel me-2"></i>Filtrar Dados
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Cards KPI -->
+    <div class="container-fluid px-4 mb-4">
+        <div class="row g-4">
+            <div class="col-xl-3 col-md-6">
+                <div class="kpi-card-monpec rebanho">
+                    <div class="kpi-icon-monpec">
+                        <i class="bi bi-cow"></i>
+                    </div>
+                    <div class="kpi-label-monpec">REBANHO</div>
+                    <div class="kpi-value-monpec" style="color: var(--azul-marinho);">
+                        {{ totais.rebanho.total_cabecas|default:0|intcomma }}
+                    </div>
+                    <div class="kpi-subtitle-monpec">cabeças</div>
+                    <div class="mt-3 pt-3 border-top">
+                        <strong class="text-muted" style="font-size: 0.9rem;">Valor Total:</strong>
+                        <div class="fw-bold" style="font-size: 1.1rem; color: var(--azul-marinho);">
+                            {{ totais.rebanho.valor_total|default:0|floatformat:2|moeda_br }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-md-6">
+                <div class="kpi-card-monpec bens">
+                    <div class="kpi-icon-monpec">
+                        <i class="bi bi-building"></i>
+                    </div>
+                    <div class="kpi-label-monpec">BENS IMOBILIZADOS</div>
+                    <div class="kpi-value-monpec" style="color: #d69e2e;">
+                        {{ totais.bens.total_bens|default:0|intcomma }}
+                    </div>
+                    <div class="kpi-subtitle-monpec">bens ativos</div>
+                    <div class="mt-3 pt-3 border-top">
+                        <strong class="text-muted" style="font-size: 0.9rem;">Valor Líquido:</strong>
+                        <div class="fw-bold" style="font-size: 1.1rem; color: #d69e2e;">
+                            {{ totais.bens.valor_liquido|default:0|floatformat:2|moeda_br }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-md-6">
+                <div class="kpi-card-monpec receitas">
+                    <div class="kpi-icon-monpec">
+                        <i class="bi bi-arrow-up-circle"></i>
+                    </div>
+                    <div class="kpi-label-monpec">RECEITAS {{ ano }}</div>
+                    <div class="kpi-value-monpec" style="color: #2d7a4f;">
+                        {{ totais.financeiro.receitas|default:0|floatformat:0|moeda_br }}
+                    </div>
+                    <div class="kpi-subtitle-monpec">ano {{ ano }}</div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-md-6">
+                <div class="kpi-card-monpec saldo">
+                    <div class="kpi-icon-monpec">
+                        <i class="bi bi-cash-stack"></i>
+                    </div>
+                    <div class="kpi-label-monpec">SALDO LÍQUIDO</div>
+                    <div class="kpi-value-monpec" style="color: {% if totais.financeiro.saldo >= 0 %}#2d7a4f{% else %}#c53030{% endif %};">
+                        {{ totais.financeiro.saldo|default:0|floatformat:2|moeda_br }}
+                    </div>
+                    <div class="kpi-subtitle-monpec">ano {{ ano }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos Grandes -->
+    <div class="container-fluid px-4 mb-4">
+        <div class="row g-4">
+            <!-- Gráfico 1: Evolução Histórica do Rebanho -->
+            <div class="col-lg-6">
+                <div class="chart-card-monpec">
+                    <div class="chart-header-monpec">
+                        <h5>
+                            <i class="bi bi-graph-up"></i>
+                            Evolução Histórica do Rebanho (Últimos 5 Anos)
+                        </h5>
+                    </div>
+                    <div class="chart-body-monpec">
+                        <div class="chart-container-large">
+                            <canvas id="graficoRebanhoHistorico"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Gráfico 2: Distribuição do Rebanho por Categoria -->
+            <div class="col-lg-6">
+                <div class="chart-card-monpec">
+                    <div class="chart-header-monpec">
+                        <h5>
+                            <i class="bi bi-pie-chart"></i>
+                            Distribuição do Rebanho por Categoria ({{ ano }})
+                        </h5>
+                    </div>
+                    <div class="chart-body-monpec">
+                        <div class="chart-container-large">
+                            <canvas id="graficoDistribuicaoRebanho"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Gráfico 3: Receitas vs Despesas (Full Width) -->
+            <div class="col-12">
+                <div class="chart-card-monpec">
+                    <div class="chart-header-monpec">
+                        <h5>
+                            <i class="bi bi-bar-chart-line"></i>
+                            Receitas vs Despesas (Últimos 5 Anos)
+                        </h5>
+                    </div>
+                    <div class="chart-body-monpec">
+                        <div class="chart-container-medium">
+                            <canvas id="graficoFinanceiroHistorico"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Links para Relatórios -->
+    <div class="container-fluid px-4 mb-4">
+        <div class="row g-4">
+            <div class="col-lg-4 col-md-6">
+                <div class="link-card-monpec">
+                    <h5 class="card-title">
+                        <i class="bi bi-cow"></i>
+                        Relatório de Rebanho
+                    </h5>
+                    <p class="card-text">
+                        Inventário consolidado do rebanho com quantidade e valores por categoria.
+                    </p>
+                    <a href="{% url 'relatorio_rebanho_consolidado' %}?ano={{ ano }}{% for p in propriedades_selecionadas %}&propriedades={{ p.id }}{% endfor %}" 
+                       class="btn btn-monpec w-100">
+                        <i class="bi bi-file-earmark-text me-2"></i>Ver Relatório
+                    </a>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="link-card-monpec">
+                    <h5 class="card-title">
+                        <i class="bi bi-building"></i>
+                        Relatório de Bens
+                    </h5>
+                    <p class="card-text">
+                        Bens imobilizados consolidados com valores de aquisição e depreciação.
+                    </p>
+                    <a href="{% url 'relatorio_bens_consolidado' %}?ano={{ ano }}{% for p in propriedades_selecionadas %}&propriedades={{ p.id }}{% endfor %}" 
+                       class="btn btn-monpec w-100">
+                        <i class="bi bi-file-earmark-text me-2"></i>Ver Relatório
+                    </a>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="link-card-monpec">
+                    <h5 class="card-title">
+                        <i class="bi bi-diagram-3"></i>
+                        Análise de Cenários
+                    </h5>
+                    <p class="card-text">
+                        Compare diferentes cenários financeiros e avalie impactos nas receitas e despesas.
+                    </p>
+                    <a href="{% url 'cenarios_consolidados' %}?ano={{ ano }}{% for p in propriedades_selecionadas %}&propriedades={{ p.id }}{% endfor %}" 
+                       class="btn btn-monpec w-100">
+                        <i class="bi bi-diagram-3 me-2"></i>Ver Cenários
+                    </a>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="link-card-monpec">
+                    <h5 class="card-title">
+                        <i class="bi bi-graph-up"></i>
+                        DRE Consolidado
+                    </h5>
+                    <p class="card-text">
+                        Demonstração do Resultado do Exercício consolidado de todas as propriedades.
+                    </p>
+                    <a href="{% url 'relatorio_dre_consolidado' %}?ano={{ ano }}{% for p in propriedades_selecionadas %}&propriedades={{ p.id }}{% endfor %}" 
+                       class="btn btn-monpec w-100">
+                        <i class="bi bi-file-earmark-text me-2"></i>Ver Relatório
+                    </a>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="link-card-monpec">
+                    <h5 class="card-title">
+                        <i class="bi bi-cash-stack"></i>
+                        Fluxo de Caixa
+                    </h5>
+                    <p class="card-text">
+                        Fluxo de caixa mensal consolidado com receitas e despesas.
+                    </p>
+                    <a href="{% url 'relatorio_fluxo_caixa_consolidado' %}?ano={{ ano }}{% for p in propriedades_selecionadas %}&propriedades={{ p.id }}{% endfor %}" 
+                       class="btn btn-monpec w-100">
+                        <i class="bi bi-file-earmark-text me-2"></i>Ver Relatório
+                    </a>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="link-card-monpec" style="border-left-color: var(--vinho-profundo); background: linear-gradient(135deg, #fff 0%, #f8f9ff 100%);">
+                    <h5 class="card-title" style="color: var(--vinho-profundo);">
+                        <i class="bi bi-file-earmark-pdf"></i>
+                        Relatório Completo para Empréstimo
+                    </h5>
+                    <p class="card-text">
+                        Relatório consolidado completo com todos os dados: Rebanho, Bens, DRE e Fluxo de Caixa.
+                        <br>
+                        <strong style="color: var(--vinho-profundo);">Valor do Empréstimo: R$ 20.000.000,00</strong>
+                    </p>
+                    <a href="{% url 'relatorio_completo_emprestimo' %}?ano={{ ano }}{% for p in propriedades_selecionadas %}&propriedades={{ p.id }}{% endfor %}" 
+                       class="btn btn-monpec w-100">
+                        <i class="bi bi-file-earmark-pdf me-2"></i>Gerar Relatório Completo
+                    </a>
+                </div>
+            </div>
+            <div class="col-lg-4 col-md-6">
+                <div class="link-card-monpec" style="border-left-color: #d69e2e;">
+                    <h5 class="card-title" style="color: #d69e2e;">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        Justificativa de Endividamento
+                    </h5>
+                    <p class="card-text">
+                        Documente e justifique o endividamento atual, incluindo contexto financeiro, capacidade de pagamento e garantias.
+                    </p>
+                    <a href="{% url 'justificativa_endividamento' %}" 
+                       class="btn btn-monpec w-100">
+                        <i class="bi bi-file-earmark-text me-2"></i>Ver Justificativa
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{ grafico_historico|json_script:"grafico-rebanho-data" }}
+{{ grafico_historico|json_script:"grafico-financeiro-data" }}
+{{ distribuicao_rebanho|json_script:"grafico-distribuicao-data" }}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Checkbox "Todas"
+    const checkboxTodas = document.getElementById('todas');
+    const checkboxesPropriedades = document.querySelectorAll('.propriedade-checkbox');
+    
+    checkboxTodas.addEventListener('change', function() {
+        checkboxesPropriedades.forEach(cb => {
+            cb.checked = this.checked;
+        });
+    });
+    
+    checkboxesPropriedades.forEach(cb => {
+        cb.addEventListener('change', function() {
+            if (!this.checked) {
+                checkboxTodas.checked = false;
+            } else {
+                const todasMarcadas = Array.from(checkboxesPropriedades).every(c => c.checked);
+                checkboxTodas.checked = todasMarcadas;
+            }
+        });
+    });
+
+    // Cores da identidade visual MONPEC
+    const coresMonpec = {
+        azulMarinho: '#6495ed',
+        azulMarinhoEscuro: '#3d6fd8',
+        vinho: '#7f2d4b',
+        vinhoClaro: '#9a3a5f',
+        success: '#2d7a4f',
+        warning: '#d69e2e',
+        danger: '#c53030',
+    };
+
+    // Gráfico de Evolução Histórica do Rebanho
+    const dataRebanho = JSON.parse(document.getElementById('grafico-rebanho-data').textContent);
+    const ctxRebanho = document.getElementById('graficoRebanhoHistorico');
+    if (ctxRebanho) {
+        new Chart(ctxRebanho, {
+            type: 'line',
+            data: {
+                labels: dataRebanho.labels,
+                datasets: [{
+                    label: 'Total de Cabeças',
+                    data: dataRebanho.rebanho,
+                    borderColor: coresMonpec.azulMarinho,
+                    backgroundColor: 'rgba(100, 149, 237, 0.15)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 6,
+                    pointHoverRadius: 8,
+                    pointBackgroundColor: coresMonpec.azulMarinho,
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            font: {
+                                family: 'Poppins, Inter, sans-serif',
+                                size: 13,
+                                weight: 600
+                            },
+                            padding: 15,
+                            usePointStyle: true,
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                        padding: 12,
+                        titleFont: {
+                            family: 'Poppins, Inter, sans-serif',
+                            size: 13,
+                            weight: 600
+                        },
+                        bodyFont: {
+                            family: 'Poppins, Inter, sans-serif',
+                            size: 12
+                        },
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.raw.toLocaleString('pt-BR') + ' cabeças';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)',
+                        },
+                        ticks: {
+                            font: {
+                                family: 'Poppins, Inter, sans-serif',
+                                size: 11,
+                                weight: 600
+                            },
+                            callback: function(value) {
+                                return value.toLocaleString('pt-BR');
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Número de Cabeças',
+                            font: {
+                                family: 'Poppins, Inter, sans-serif',
+                                size: 12,
+                                weight: 600
+                            }
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false,
+                        },
+                        ticks: {
+                            font: {
+                                family: 'Poppins, Inter, sans-serif',
+                                size: 11,
+                                weight: 600
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Gráfico de Distribuição do Rebanho por Categoria
+    const dataDistribuicao = JSON.parse(document.getElementById('grafico-distribuicao-data').textContent);
+    const ctxDistribuicao = document.getElementById('graficoDistribuicaoRebanho');
+    if (ctxDistribuicao && dataDistribuicao && dataDistribuicao.length > 0) {
+        const coresPizza = [
+            coresMonpec.azulMarinho,
+            coresMonpec.success,
+            coresMonpec.warning,
+            coresMonpec.vinho,
+            '#8b5cf6',
+            '#06b6d4',
+            '#ec4899',
+            '#14b8a6',
+            '#f97316',
+            '#6366f1'
+        ];
+        
+        new Chart(ctxDistribuicao, {
+            type: 'pie',
+            data: {
+                labels: dataDistribuicao.map(d => d.categoria),
+                datasets: [{
+                    data: dataDistribuicao.map(d => d.quantidade),
+                    backgroundColor: coresPizza.slice(0, dataDistribuicao.length),
+                    borderColor: '#fff',
+                    borderWidth: 3,
+                    hoverOffset: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            font: {
+                                family: 'Poppins, Inter, sans-serif',
+                                size: 12,
+                                weight: 600
+                            },
+                            padding: 15,
+                            usePointStyle: true,
+                            pointStyle: 'circle'
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                        padding: 12,
+                        titleFont: {
+                            family: 'Poppins, Inter, sans-serif',
+                            size: 13,
+                            weight: 600
+                        },
+                        bodyFont: {
+                            family: 'Poppins, Inter, sans-serif',
+                            size: 12
+                        },
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed !== null) {
+                                    label += context.parsed.toLocaleString('pt-BR') + ' cabeças';
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+                    }
+                }
+            }
+        });
+    }
+
+    // Gráfico de Receitas vs Despesas Histórico
+    const dataFinanceiro = JSON.parse(document.getElementById('grafico-financeiro-data').textContent);
+    const ctxFinanceiro = document.getElementById('graficoFinanceiroHistorico');
+    if (ctxFinanceiro) {
+        new Chart(ctxFinanceiro, {
+            type: 'bar',
+            data: {
+                labels: dataFinanceiro.labels,
+                datasets: [
+                    {
+                        label: 'Receitas',
+                        data: dataFinanceiro.receitas,
+                        backgroundColor: coresMonpec.success,
+                        borderColor: coresMonpec.success,
+                        borderWidth: 2,
+                        borderRadius: 6,
+                    },
+                    {
+                        label: 'Despesas',
+                        data: dataFinanceiro.despesas,
+                        backgroundColor: coresMonpec.danger,
+                        borderColor: coresMonpec.danger,
+                        borderWidth: 2,
+                        borderRadius: 6,
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            font: {
+                                family: 'Poppins, Inter, sans-serif',
+                                size: 13,
+                                weight: 600
+                            },
+                            padding: 15,
+                            usePointStyle: true,
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                        padding: 12,
+                        titleFont: {
+                            family: 'Poppins, Inter, sans-serif',
+                            size: 13,
+                            weight: 600
+                        },
+                        bodyFont: {
+                            family: 'Poppins, Inter, sans-serif',
+                            size: 12
+                        },
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + 
+                                    context.parsed.y.toLocaleString('pt-BR', { 
+                                        style: 'currency', 
+                                        currency: 'BRL' 
+                                    });
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        stacked: false,
+                        grid: {
+                            display: false,
+                        },
+                        ticks: {
+                            font: {
+                                family: 'Poppins, Inter, sans-serif',
+                                size: 11,
+                                weight: 600
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Ano',
+                            font: {
+                                family: 'Poppins, Inter, sans-serif',
+                                size: 12,
+                                weight: 600
+                            }
+                        }
+                    },
+                    y: {
+                        stacked: false,
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)',
+                        },
+                        ticks: {
+                            font: {
+                                family: 'Poppins, Inter, sans-serif',
+                                size: 11,
+                                weight: 600
+                            },
+                            callback: function(value) {
+                                return value.toLocaleString('pt-BR', { 
+                                    style: 'currency', 
+                                    currency: 'BRL',
+                                    minimumFractionDigits: 0,
+                                    maximumFractionDigits: 0
+                                });
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Valor (R$)',
+                            font: {
+                                family: 'Poppins, Inter, sans-serif',
+                                size: 12,
+                                weight: 600
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

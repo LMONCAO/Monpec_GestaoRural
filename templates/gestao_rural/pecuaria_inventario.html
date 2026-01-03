@@ -1,0 +1,432 @@
+{% extends 'base_modulos_unificado.html' %}
+{% load static %}
+{% load formatacao_br %}
+
+{% block title %}Saldo do Rebanho - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block breadcrumb_extra %}
+    <li class="breadcrumb-item">
+        <a href="{% url 'pecuaria_dashboard' propriedade.id %}">
+            <i class="bi bi-cow"></i>
+            Pecuária
+        </a>
+    </li>
+    <li class="breadcrumb-item active">
+        <i class="bi bi-clipboard-data"></i>
+        Saldo do Rebanho
+    </li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header da Página -->
+    <div class="submenu-page-header">
+        <div class="d-flex align-items-start gap-4">
+            <div class="submenu-page-icon">
+                <i class="bi bi-clipboard-data"></i>
+            </div>
+            <div class="flex-grow-1">
+                <h1 class="submenu-page-title">Saldo do Rebanho</h1>
+                <p class="submenu-page-description">
+                    Cadastre e gerencie o inventário do rebanho por categoria. Informe a quantidade e o valor por cabeça para cada categoria.
+                </p>
+            </div>
+            <div>
+                <a href="{% url 'pecuaria_dashboard' propriedade.id %}" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i>Voltar ao Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    {% include 'gestao_rural/module_navigation.html' with module_name="Pecuária" current_page='inventario' propriedade=propriedade %}
+
+    <!-- Formulário de Inventário -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-light border-0">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <div>
+                    <h5 class="mb-0 fw-semibold">
+                        <i class="bi bi-table me-2 text-primary"></i>Inventário por Categoria
+                    </h5>
+                    <small class="text-muted">Preencha a quantidade e valor por cabeça para cada categoria</small>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <label for="data_inventario" class="form-label mb-0 small fw-semibold text-muted">Data do Inventário:</label>
+                    <input type="date" 
+                           class="form-control form-control-sm" 
+                           id="data_inventario" 
+                           name="data_inventario"
+                           value="{% if data_inventario_atual %}{{ data_inventario_atual|date:'Y-m-d' }}{% else %}{% now 'Y-m-d' %}{% endif %}" 
+                           style="max-width: 150px;">
+                    {% if tem_inventario %}
+                    <div class="btn-group btn-group-sm" role="group">
+                        <a href="{% url 'exportar_inventario_excel' propriedade.id %}" class="btn btn-success" title="Exportar para Excel">
+                            <i class="bi bi-file-earmark-excel me-1"></i>Excel
+                        </a>
+                        <a href="{% url 'exportar_inventario_pdf' propriedade.id %}" class="btn btn-danger" title="Exportar para PDF">
+                            <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+                        </a>
+                    </div>
+                    {% endif %}
+                    <a href="{% url 'categoria_nova' %}?next={{ request.path }}" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-plus-circle me-1"></i>Nova Categoria
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <form method="post" id="form-inventario">
+                {% csrf_token %}
+                <input type="hidden" name="data_inventario" id="data_inventario_hidden" value="{% if data_inventario_atual %}{{ data_inventario_atual|date:'Y-m-d' }}{% else %}{% now 'Y-m-d' %}{% endif %}">
+                
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" id="tabela-inventario">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="min-width: 200px;">Categoria</th>
+                                <th class="text-center" style="min-width: 100px;">Idade</th>
+                                <th class="text-center" style="min-width: 100px;">Sexo</th>
+                                <th class="text-center" style="min-width: 120px;">Raça</th>
+                                <th class="text-center" style="min-width: 130px;">Quantidade</th>
+                                <th class="text-center" style="min-width: 160px;">Valor por Cabeça (R$)</th>
+                                <th class="text-center" style="min-width: 150px;">Valor Total (R$)</th>
+                                <th class="text-center" style="min-width: 100px;">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if categorias_com_inventario %}
+                                {% for item in categorias_com_inventario %}
+                                    {% with categoria=item.categoria %}
+                                    <tr data-categoria-id="{{ categoria.id }}" class="categoria-row">
+                                        <td>
+                                            <strong class="text-dark">{{ categoria.nome }}</strong>
+                                        </td>
+                                        <td class="text-center">
+                                            {% if categoria.idade_minima_meses is not None or categoria.idade_maxima_meses is not None %}
+                                                {% if categoria.idade_minima_meses is not None and categoria.idade_maxima_meses is not None %}
+                                                    {{ categoria.idade_minima_meses }}-{{ categoria.idade_maxima_meses }} M
+                                                {% elif categoria.idade_minima_meses is not None %}
+                                                    {{ categoria.idade_minima_meses }}+ M
+                                                {% elif categoria.idade_maxima_meses is not None %}
+                                                    Até {{ categoria.idade_maxima_meses }} M
+                                                {% endif %}
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-center">
+                                            {% if categoria.sexo == 'F' %}
+                                                <span class="badge bg-danger-subtle text-danger border border-danger">
+                                                    <i class="bi bi-gender-female me-1"></i>Fêmea
+                                                </span>
+                                            {% elif categoria.sexo == 'M' %}
+                                                <span class="badge bg-primary-subtle text-primary border border-primary">
+                                                    <i class="bi bi-gender-male me-1"></i>Macho
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-info-subtle text-info border border-info">
+                                                {{ categoria.get_raca_display|default:"-" }}
+                                            </span>
+                                        </td>
+                                        <td class="text-center">
+                                            <input type="number" 
+                                                   class="form-control form-control-sm text-center campo-edicao" 
+                                                   name="quantidade_{{ categoria.id }}" 
+                                                   value="{{ item.quantidade }}" 
+                                                   min="0" 
+                                                   step="1"
+                                                   placeholder="0"
+                                                   data-categoria="{{ categoria.id }}"
+                                                   data-tipo="quantidade">
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="input-group input-group-sm" style="max-width: 150px; margin: 0 auto;">
+                                                <span class="input-group-text bg-light">R$</span>
+                                                <input type="number" 
+                                                       class="form-control text-center campo-edicao" 
+                                                       name="valor_por_cabeca_{{ categoria.id }}" 
+                                                       value="{{ item.valor_por_cabeca|floatformat:2 }}" 
+                                                       min="0" 
+                                                       step="0.01" 
+                                                       placeholder="0,00"
+                                                       data-categoria="{{ categoria.id }}"
+                                                       data-tipo="valor">
+                                            </div>
+                                        </td>
+                                        <td class="text-center">
+                                            <span id="valor_total_{{ categoria.id }}" class="fw-bold text-success">
+                                                R$ {{ item.valor_total|floatformat:2 }}
+                                            </span>
+                                        </td>
+                                        <td class="text-center">
+                                            <button type="button"
+                                                   class="btn btn-sm btn-outline-danger btn-excluir-item"
+                                                   data-categoria-id="{{ categoria.id }}"
+                                                   data-categoria-nome="{{ categoria.nome }}"
+                                                   title="Limpar valores desta categoria">
+                                                <i class="bi bi-x-circle"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% endwith %}
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="8" class="text-center py-5">
+                                        <div class="text-muted">
+                                            <i class="bi bi-info-circle me-2"></i>
+                                            <p class="mb-1">Nenhuma categoria encontrada.</p>
+                                            <small>Cadastre categorias com sexo e raça definidos para usar o inventário.</small>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                        <tfoot class="table-light">
+                            <tr>
+                                <th colspan="4" class="text-end">
+                                    <strong class="text-dark">TOTAIS</strong>
+                                </th>
+                                <th class="text-center">
+                                    <strong id="total-quantidade" class="fw-bold text-dark">
+                                        {{ total_quantidade|numero_br }}
+                                    </strong>
+                                </th>
+                                <th class="text-center">
+                                    <strong id="total-valor-medio" class="fw-bold text-muted small">
+                                        R$ {{ valor_medio|moeda_br }}
+                                    </strong>
+                                </th>
+                                <th class="text-center">
+                                    <strong id="total-geral" class="fw-bold text-success fs-5">
+                                        R$ {{ total_valor|moeda_br }}
+                                    </strong>
+                                </th>
+                                <th></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                
+                <div class="card-footer bg-light border-0 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div>
+                        {% if tem_inventario %}
+                            <button type="submit" name="excluir_todos" class="btn btn-outline-danger btn-sm" onclick="return confirm('Tem certeza que deseja excluir todo o inventário?')">
+                                <i class="bi bi-trash me-1"></i>Excluir Tudo
+                            </button>
+                        {% endif %}
+                    </div>
+                    <div class="d-flex gap-2">
+                        {% if tem_inventario %}
+                        <div class="btn-group btn-group-sm" role="group">
+                            <a href="{% url 'exportar_inventario_excel' propriedade.id %}" class="btn btn-success" title="Gerar relatório em Excel">
+                                <i class="bi bi-file-earmark-excel me-1"></i>Excel
+                            </a>
+                            <a href="{% url 'exportar_inventario_pdf' propriedade.id %}" class="btn btn-danger" title="Gerar relatório em PDF">
+                                <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+                            </a>
+                        </div>
+                        {% endif %}
+                        <a href="{% url 'pecuaria_dashboard' propriedade.id %}" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-arrow-left me-1"></i>Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="bi bi-check-circle me-1"></i>Salvar Inventário
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+.campo-edicao {
+    transition: all 0.2s ease;
+}
+
+.campo-edicao:focus {
+    border-color: #6495ed;
+    box-shadow: 0 0 0 0.2rem rgba(100, 149, 237, 0.25);
+    background-color: #fff;
+}
+
+.categoria-row:hover {
+    background-color: #f8f9fa;
+}
+
+.submenu-page-header {
+    background: linear-gradient(135deg, rgba(30, 58, 95, 0.05) 0%, rgba(45, 80, 130, 0.08) 100%);
+    padding: 1.25rem 1.5rem;
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+    border: 1px solid rgba(0,0,0,0.05);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+.submenu-page-icon {
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0.25) 100%);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+}
+
+.submenu-page-icon i {
+    font-size: 1.5rem;
+    color: #6495ed;
+}
+
+.submenu-page-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 0.25rem;
+}
+
+.submenu-page-description {
+    color: #6b7280;
+    font-size: 0.9rem;
+    margin-bottom: 0;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const dataInput = document.getElementById('data_inventario');
+    const dataHidden = document.getElementById('data_inventario_hidden');
+    
+    // Sincronizar data - inicializar e manter sincronizado
+    if (dataInput && dataHidden) {
+        // Inicializar o campo hidden com o valor do campo visível
+        dataHidden.value = dataInput.value;
+        
+        // Sincronizar quando o campo visível mudar
+        dataInput.addEventListener('change', function() {
+            dataHidden.value = this.value;
+        });
+        
+        // Também sincronizar em input (para garantir)
+        dataInput.addEventListener('input', function() {
+            dataHidden.value = this.value;
+        });
+    }
+    
+    // Calcular totais ao carregar
+    calcularTotais();
+    
+    // Event listeners para campos de edição
+    document.querySelectorAll('.campo-edicao').forEach(campo => {
+        campo.addEventListener('input', function() {
+            const categoriaId = this.dataset.categoria;
+            calcularTotalCategoria(categoriaId);
+            calcularTotais();
+        });
+        
+        campo.addEventListener('blur', function() {
+            if (this.value === '') {
+                this.value = this.dataset.tipo === 'quantidade' ? '0' : '0.00';
+                const categoriaId = this.dataset.categoria;
+                calcularTotalCategoria(categoriaId);
+                calcularTotais();
+            }
+        });
+    });
+    
+    // Botões de excluir item
+    document.querySelectorAll('.btn-excluir-item').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const categoriaId = this.dataset.categoriaId;
+            const categoriaNome = this.dataset.categoriaNome;
+            
+            if (confirm(`Deseja limpar os valores da categoria "${categoriaNome}"?`)) {
+                const linha = document.querySelector(`tr[data-categoria-id="${categoriaId}"]`);
+                if (linha) {
+                    linha.querySelector(`input[data-tipo="quantidade"]`).value = '0';
+                    linha.querySelector(`input[data-tipo="valor"]`).value = '0.00';
+                    calcularTotalCategoria(categoriaId);
+                    calcularTotais();
+                }
+            }
+        });
+    });
+});
+
+function calcularTotalCategoria(categoriaId) {
+    const quantidadeInput = document.querySelector(`input[name="quantidade_${categoriaId}"]`);
+    const valorInput = document.querySelector(`input[name="valor_por_cabeca_${categoriaId}"]`);
+    const totalSpan = document.getElementById(`valor_total_${categoriaId}`);
+    
+    if (!quantidadeInput || !valorInput || !totalSpan) return;
+    
+    const quantidade = parseFloat(quantidadeInput.value) || 0;
+    const valor = parseFloat(valorInput.value) || 0;
+    const total = quantidade * valor;
+    
+    totalSpan.textContent = `R$ ${total.toLocaleString('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    })}`;
+}
+
+function calcularTotais() {
+    let totalQuantidade = 0;
+    let somaValores = 0;
+    let contadorValores = 0;
+    let totalGeral = 0;
+    
+    // Calcular total de quantidade
+    document.querySelectorAll('input[data-tipo="quantidade"]').forEach(input => {
+        const valor = parseFloat(input.value) || 0;
+        totalQuantidade += valor;
+    });
+    
+    // Calcular valor médio e total geral
+    document.querySelectorAll('input[data-tipo="valor"]').forEach(input => {
+        const valor = parseFloat(input.value) || 0;
+        if (valor > 0) {
+            somaValores += valor;
+            contadorValores++;
+        }
+    });
+    
+    // Calcular total geral
+    document.querySelectorAll('[id^="valor_total_"]').forEach(span => {
+        const texto = span.textContent.replace('R$ ', '').replace(/\./g, '').replace(',', '.');
+        const valor = parseFloat(texto) || 0;
+        totalGeral += valor;
+    });
+    
+    const valorMedio = contadorValores > 0 ? somaValores / contadorValores : 0;
+    
+    // Atualizar totais
+    const totalQuantidadeEl = document.getElementById('total-quantidade');
+    const totalValorMedioEl = document.getElementById('total-valor-medio');
+    const totalGeralEl = document.getElementById('total-geral');
+    
+    if (totalQuantidadeEl) {
+        totalQuantidadeEl.textContent = totalQuantidade.toLocaleString('pt-BR');
+    }
+    
+    if (totalValorMedioEl) {
+        totalValorMedioEl.textContent = `R$ ${valorMedio.toLocaleString('pt-BR', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        })}`;
+    }
+    
+    if (totalGeralEl) {
+        totalGeralEl.textContent = `R$ ${totalGeral.toLocaleString('pt-BR', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        })}`;
+    }
+}
+</script>
+{% endblock %}

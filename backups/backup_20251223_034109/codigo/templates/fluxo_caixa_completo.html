@@ -1,0 +1,554 @@
+{% extends 'base_navegacao_inteligente.html' %}
+
+{% block title %}Fluxo de Caixa - {{ propriedade.nome }} - MONPEC{% endblock %}
+
+{% block breadcrumb_extra %}
+<li class="breadcrumb-item">
+    <a href="{% url 'financeiro_dashboard' propriedade.id %}">Financeiro</a>
+</li>
+<li class="breadcrumb-item active">Fluxo de Caixa</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Cabeçalho -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card card-modulo card-financeiro">
+                <div class="card-header-colorido card-header">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h3 class="mb-0">
+                                <i class="bi bi-cash-stack"></i> Fluxo de Caixa
+                            </h3>
+                            <p class="mb-0 mt-2">
+                                <i class="bi bi-calendar"></i> {{ propriedade.nome }} • 
+                                Período: {{ periodo_atual|default:"Mês Atual" }}
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <button class="btn btn-modulo-financeiro" data-bs-toggle="modal" data-bs-target="#modalNovoLancamento">
+                                <i class="bi bi-plus-circle"></i> Novo Lançamento
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cards de Resumo -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-success bg-opacity-10 border-success h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-arrow-up-circle-fill text-success display-4 mb-2"></i>
+                    <h3 class="text-success mb-0">R$ 45.850,00</h3>
+                    <h6 class="text-muted">ENTRADAS</h6>
+                    <small class="text-success">
+                        <i class="bi bi-arrow-up"></i> +15% vs mês anterior
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-danger bg-opacity-10 border-danger h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-arrow-down-circle-fill text-danger display-4 mb-2"></i>
+                    <h3 class="text-danger mb-0">R$ 28.340,00</h3>
+                    <h6 class="text-muted">SAÍDAS</h6>
+                    <small class="text-danger">
+                        <i class="bi bi-arrow-up"></i> +8% vs mês anterior
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-primary bg-opacity-10 border-primary h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-wallet-fill text-primary display-4 mb-2"></i>
+                    <h3 class="text-primary mb-0">R$ 17.510,00</h3>
+                    <h6 class="text-muted">SALDO ATUAL</h6>
+                    <small class="text-primary">
+                        <i class="bi bi-check-circle"></i> Positivo
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-info bg-opacity-10 border-info h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-graph-up text-info display-4 mb-2"></i>
+                    <h3 class="text-info mb-0">R$ 22.180,00</h3>
+                    <h6 class="text-muted">PROJEÇÃO</h6>
+                    <small class="text-info">
+                        <i class="bi bi-calendar"></i> Próximos 30 dias
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráfico e Tabela -->
+    <div class="row mb-4">
+        <!-- Gráfico de Fluxo -->
+        <div class="col-lg-8 mb-4">
+            <div class="card card-modulo h-100">
+                <div class="card-header-colorido card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-graph-up"></i> Evolução do Fluxo de Caixa
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="graficoFluxoCaixa" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Resumo por Categoria -->
+        <div class="col-lg-4 mb-4">
+            <div class="card card-modulo h-100">
+                <div class="card-header-colorido card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-pie-chart"></i> Por Categoria
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="categoria-item mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="badge bg-success me-2"></span>
+                                <strong>Vendas</strong>
+                            </div>
+                            <span class="text-success">R$ 38.450,00</span>
+                        </div>
+                        <div class="progress mt-1" style="height: 6px;">
+                            <div class="progress-bar bg-success" style="width: 84%"></div>
+                        </div>
+                    </div>
+
+                    <div class="categoria-item mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="badge bg-info me-2"></span>
+                                <strong>Outros Recebimentos</strong>
+                            </div>
+                            <span class="text-info">R$ 7.400,00</span>
+                        </div>
+                        <div class="progress mt-1" style="height: 6px;">
+                            <div class="progress-bar bg-info" style="width: 16%"></div>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="categoria-item mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="badge bg-danger me-2"></span>
+                                <strong>Custos Operacionais</strong>
+                            </div>
+                            <span class="text-danger">R$ -18.200,00</span>
+                        </div>
+                        <div class="progress mt-1" style="height: 6px;">
+                            <div class="progress-bar bg-danger" style="width: 64%"></div>
+                        </div>
+                    </div>
+
+                    <div class="categoria-item mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="badge bg-warning me-2"></span>
+                                <strong>Despesas Administrativas</strong>
+                            </div>
+                            <span class="text-warning">R$ -10.140,00</span>
+                        </div>
+                        <div class="progress mt-1" style="height: 6px;">
+                            <div class="progress-bar bg-warning" style="width: 36%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabela de Lançamentos -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card card-modulo">
+                <div class="card-header-colorido card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-list-ul"></i> Lançamentos Recentes
+                    </h5>
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-outline-secondary active" data-filter="todos">Todos</button>
+                        <button class="btn btn-sm btn-outline-success" data-filter="entradas">Entradas</button>
+                        <button class="btn btn-sm btn-outline-danger" data-filter="saidas">Saídas</button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0" id="tabelaLancamentos">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Descrição</th>
+                                    <th>Categoria</th>
+                                    <th>Tipo</th>
+                                    <th class="text-end">Valor</th>
+                                    <th class="text-center">Status</th>
+                                    <th class="text-center">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr data-tipo="entrada">
+                                    <td>25/10/2024</td>
+                                    <td>Venda de Gado - Lote 15</td>
+                                    <td><span class="badge bg-success">Vendas</span></td>
+                                    <td><i class="bi bi-arrow-up-circle text-success me-1"></i>Entrada</td>
+                                    <td class="text-end text-success fw-bold">+R$ 15.800,00</td>
+                                    <td class="text-center"><span class="badge bg-success">Recebido</span></td>
+                                    <td class="text-center">
+                                        <button class="btn btn-sm btn-outline-secondary" title="Editar">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger ms-1" title="Excluir">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+
+                                <tr data-tipo="saida">
+                                    <td>24/10/2024</td>
+                                    <td>Ração - Fornecedor XYZ</td>
+                                    <td><span class="badge bg-warning">Insumos</span></td>
+                                    <td><i class="bi bi-arrow-down-circle text-danger me-1"></i>Saída</td>
+                                    <td class="text-end text-danger fw-bold">-R$ 3.200,00</td>
+                                    <td class="text-center"><span class="badge bg-success">Pago</span></td>
+                                    <td class="text-center">
+                                        <button class="btn btn-sm btn-outline-secondary" title="Editar">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger ms-1" title="Excluir">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+
+                                <tr data-tipo="entrada">
+                                    <td>23/10/2024</td>
+                                    <td>Venda de Leite - Outubro</td>
+                                    <td><span class="badge bg-success">Vendas</span></td>
+                                    <td><i class="bi bi-arrow-up-circle text-success me-1"></i>Entrada</td>
+                                    <td class="text-end text-success fw-bold">+R$ 8.450,00</td>
+                                    <td class="text-center"><span class="badge bg-warning">Pendente</span></td>
+                                    <td class="text-center">
+                                        <button class="btn btn-sm btn-outline-secondary" title="Editar">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger ms-1" title="Excluir">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+
+                                <tr data-tipo="saida">
+                                    <td>22/10/2024</td>
+                                    <td>Salários - Outubro</td>
+                                    <td><span class="badge bg-primary">Pessoal</span></td>
+                                    <td><i class="bi bi-arrow-down-circle text-danger me-1"></i>Saída</td>
+                                    <td class="text-end text-danger fw-bold">-R$ 12.500,00</td>
+                                    <td class="text-center"><span class="badge bg-success">Pago</span></td>
+                                    <td class="text-center">
+                                        <button class="btn btn-sm btn-outline-secondary" title="Editar">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger ms-1" title="Excluir">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+
+                                <tr data-tipo="saida">
+                                    <td>21/10/2024</td>
+                                    <td>Medicamentos Veterinários</td>
+                                    <td><span class="badge bg-info">Saúde Animal</span></td>
+                                    <td><i class="bi bi-arrow-down-circle text-danger me-1"></i>Saída</td>
+                                    <td class="text-end text-danger fw-bold">-R$ 1.850,00</td>
+                                    <td class="text-center"><span class="badge bg-success">Pago</span></td>
+                                    <td class="text-center">
+                                        <button class="btn btn-sm btn-outline-secondary" title="Editar">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger ms-1" title="Excluir">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer text-center">
+                    <button class="btn btn-outline-primary">
+                        <i class="bi bi-arrow-down"></i> Carregar Mais Lançamentos
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Novo Lançamento -->
+<div class="modal fade" id="modalNovoLancamento" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-plus-circle"></i> Novo Lançamento
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formNovoLancamento">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Tipo *</label>
+                            <select class="form-select" required>
+                                <option value="">Selecione...</option>
+                                <option value="entrada">💰 Entrada</option>
+                                <option value="saida">💸 Saída</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Data *</label>
+                            <input type="date" class="form-control" required>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label class="form-label">Descrição *</label>
+                            <input type="text" class="form-control" placeholder="Ex: Venda de gado, compra de ração..." required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Valor *</label>
+                            <div class="input-group">
+                                <span class="input-group-text">R$</span>
+                                <input type="number" class="form-control" step="0.01" placeholder="0,00" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Categoria *</label>
+                            <select class="form-select" required>
+                                <option value="">Selecione...</option>
+                                <optgroup label="Entradas">
+                                    <option value="vendas">Vendas</option>
+                                    <option value="servicos">Serviços</option>
+                                    <option value="outros_recebimentos">Outros Recebimentos</option>
+                                </optgroup>
+                                <optgroup label="Saídas">
+                                    <option value="custos_operacionais">Custos Operacionais</option>
+                                    <option value="insumos">Insumos</option>
+                                    <option value="pessoal">Pessoal</option>
+                                    <option value="administrativo">Administrativo</option>
+                                    <option value="saude_animal">Saúde Animal</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Status</label>
+                            <select class="form-select">
+                                <option value="realizado">✅ Realizado</option>
+                                <option value="pendente">⏳ Pendente</option>
+                                <option value="agendado">📅 Agendado</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Observações</label>
+                        <textarea class="form-control" rows="3" placeholder="Informações adicionais (opcional)"></textarea>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Centro de Custo</label>
+                            <select class="form-select">
+                                <option value="">Selecione (opcional)</option>
+                                <option value="pecuaria">Pecuária</option>
+                                <option value="agricultura">Agricultura</option>
+                                <option value="administrativo">Administrativo</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Forma de Pagamento</label>
+                            <select class="form-select">
+                                <option value="">Selecione (opcional)</option>
+                                <option value="dinheiro">💵 Dinheiro</option>
+                                <option value="pix">📱 PIX</option>
+                                <option value="transferencia">🏦 Transferência</option>
+                                <option value="cartao">💳 Cartão</option>
+                                <option value="cheque">📄 Cheque</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-circle"></i> Salvar Lançamento
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .categoria-item {
+        border-bottom: 1px solid #f0f0f0;
+        padding-bottom: 0.5rem;
+    }
+
+    .categoria-item:last-child {
+        border-bottom: none;
+    }
+
+    .table tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+
+    .btn-group .btn.active {
+        background-color: var(--bs-primary);
+        color: white;
+        border-color: var(--bs-primary);
+    }
+
+    #tabelaLancamentos tbody tr {
+        transition: all 0.3s ease;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Gráfico de Fluxo de Caixa
+    const ctx = document.getElementById('graficoFluxoCaixa').getContext('2d');
+    const chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ['01/10', '05/10', '10/10', '15/10', '20/10', '25/10', 'Hoje'],
+            datasets: [{
+                label: 'Entradas',
+                data: [5200, 8900, 12400, 15800, 18200, 22100, 25800],
+                borderColor: '#28a745',
+                backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                tension: 0.4,
+                fill: true
+            }, {
+                label: 'Saídas',
+                data: [3100, 5200, 7800, 9400, 11900, 14200, 16800],
+                borderColor: '#dc3545',
+                backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                tension: 0.4,
+                fill: true
+            }, {
+                label: 'Saldo Acumulado',
+                data: [2100, 5800, 10400, 16800, 23100, 31000, 40000],
+                borderColor: '#007bff',
+                backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                tension: 0.4,
+                fill: false,
+                borderWidth: 3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return 'R$ ' + value.toLocaleString('pt-BR');
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Filtros da tabela
+    document.querySelectorAll('[data-filter]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            // Atualizar botões ativos
+            document.querySelectorAll('[data-filter]').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+
+            // Filtrar linhas
+            const filter = this.getAttribute('data-filter');
+            const rows = document.querySelectorAll('#tabelaLancamentos tbody tr');
+            
+            rows.forEach(row => {
+                const tipo = row.getAttribute('data-tipo');
+                if (filter === 'todos' || filter === tipo || (filter === 'entradas' && tipo === 'entrada') || (filter === 'saidas' && tipo === 'saida')) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+    });
+
+    // Form de novo lançamento
+    document.getElementById('formNovoLancamento').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Simular salvamento
+        const modal = bootstrap.Modal.getInstance(document.getElementById('modalNovoLancamento'));
+        modal.hide();
+        
+        // Mostrar sucesso
+        alert('✅ Lançamento salvo com sucesso!');
+        
+        // Reset form
+        this.reset();
+    });
+
+    // Animação dos valores
+    function animateValues() {
+        const cards = document.querySelectorAll('.card-body h3');
+        cards.forEach(card => {
+            const text = card.textContent;
+            if (text.includes('R$')) {
+                card.style.transform = 'scale(1.05)';
+                setTimeout(() => {
+                    card.style.transform = 'scale(1)';
+                }, 200);
+            }
+        });
+    }
+
+    // Animar a cada 5 segundos
+    setInterval(animateValues, 5000);
+});
+</script>
+{% endblock %}

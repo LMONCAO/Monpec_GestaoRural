@@ -1,0 +1,147 @@
+{% extends "base_modulos_unificado.html" %}
+{% load formatacao_br %}
+
+{% block title %}Nova IATF Individual - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'iatf_dashboard' propriedade.id %}">IATF</a></li>
+            <li class="breadcrumb-item active">Nova IATF</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-heart-pulse text-danger me-2"></i>Nova IATF Individual</h2>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">Dados da IATF</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="animal_individual" class="form-label">Animal *</label>
+                                <select class="form-select" id="animal_individual" name="animal_individual" required>
+                                    <option value="">Selecione...</option>
+                                    {% for animal in animais %}
+                                    <option value="{{ animal.id }}">{{ animal.numero_brinco }} - {{ animal.categoria.nome|default:"-" }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="protocolo" class="form-label">Protocolo *</label>
+                                <select class="form-select" id="protocolo" name="protocolo" required>
+                                    <option value="">Selecione...</option>
+                                    {% for protocolo in protocolos %}
+                                    <option value="{{ protocolo.id }}">{{ protocolo.nome }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="data_inicio_protocolo" class="form-label">Data de Início do Protocolo *</label>
+                                <input type="date" class="form-control" id="data_inicio_protocolo" name="data_inicio_protocolo" required>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="lote_iatf" class="form-label">Lote de IATF</label>
+                                <select class="form-select" id="lote_iatf" name="lote_iatf">
+                                    <option value="">Nenhum</option>
+                                    {% for lote in lotes_iatf %}
+                                    <option value="{{ lote.id }}">{{ lote.nome_lote }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="touro_semen" class="form-label">Touro (Sêmen)</label>
+                                <select class="form-select" id="touro_semen" name="touro_semen">
+                                    <option value="">Selecione...</option>
+                                    {% for touro in touros %}
+                                    <option value="{{ touro.id }}">{{ touro.nome_touro }} ({{ touro.raca }})</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="lote_semen" class="form-label">Lote de Sêmen</label>
+                                <select class="form-select" id="lote_semen" name="lote_semen">
+                                    <option value="">Selecione...</option>
+                                    {% for lote in lotes_semen %}
+                                    <option value="{{ lote.id }}">{{ lote.numero_lote }} - {{ lote.touro.nome_touro }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="condicao_corporal" class="form-label">Condição Corporal (1-5)</label>
+                                <input type="number" min="1" max="5" class="form-control" id="condicao_corporal" name="condicao_corporal">
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <label for="peso_kg" class="form-label">Peso (kg)</label>
+                                <input type="number" step="0.01" class="form-control" id="peso_kg" name="peso_kg">
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <label for="dias_vazia" class="form-label">Dias Vazia</label>
+                                <input type="number" class="form-control" id="dias_vazia" name="dias_vazia">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="custo_protocolo" class="form-label">Custo Protocolo (R$)</label>
+                                <input type="number" step="0.01" class="form-control" id="custo_protocolo" name="custo_protocolo" value="0">
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <label for="custo_semen" class="form-label">Custo Sêmen (R$)</label>
+                                <input type="number" step="0.01" class="form-control" id="custo_semen" name="custo_semen" value="0">
+                            </div>
+                            
+                            <div class="col-md-4 mb-3">
+                                <label for="custo_inseminacao" class="form-label">Custo Inseminação (R$)</label>
+                                <input type="number" step="0.01" class="form-control" id="custo_inseminacao" name="custo_inseminacao" value="0">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="observacoes" class="form-label">Observações</label>
+                            <textarea class="form-control" id="observacoes" name="observacoes" rows="3"></textarea>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-danger">
+                                <i class="bi bi-check-circle me-1"></i>Registrar IATF
+                            </button>
+                            <a href="{% url 'iatf_dashboard' propriedade.id %}" class="btn btn-secondary">
+                                <i class="bi bi-x-circle me-1"></i>Cancelar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+

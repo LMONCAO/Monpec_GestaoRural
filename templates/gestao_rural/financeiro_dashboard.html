@@ -1,0 +1,207 @@
+{% extends "base_modulos_unificado.html" %}
+{% load formatacao_br %}
+
+{% block title %}Financeiro - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item active">Financeiro</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-2 mb-4">
+        <div>
+            <h2 class="mb-1"><i class="bi bi-cash-coin text-success me-2"></i>Centro Financeiro</h2>
+            <p class="text-muted mb-0">
+                Controle simplificado de caixa e compromissos da fazenda {{ propriedade.nome_propriedade }}.
+            </p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{% url 'financeiro_lancamento_novo' propriedade.id %}?tipo=SAIDA" class="btn btn-outline-danger">
+                <i class="bi bi-arrow-down-circle me-1"></i>Nova Conta a Pagar
+            </a>
+            <a href="{% url 'financeiro_lancamento_novo' propriedade.id %}?tipo=ENTRADA" class="btn btn-outline-success">
+                <i class="bi bi-arrow-up-circle me-1"></i>Nova Conta a Receber
+            </a>
+        </div>
+    </div>
+
+    <form method="get" class="card shadow-sm mb-4">
+        <div class="card-body row g-3 align-items-end">
+            <div class="col-sm-4 col-md-3">
+                <label class="form-label">Início</label>
+                <input type="date" class="form-control" name="inicio" value="{{ periodo_inicio|date:'Y-m-d' }}">
+            </div>
+            <div class="col-sm-4 col-md-3">
+                <label class="form-label">Fim</label>
+                <input type="date" class="form-control" name="fim" value="{{ periodo_fim|date:'Y-m-d' }}">
+            </div>
+            <div class="col-sm-4 col-md-3">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-funnel me-1"></i>Aplicar período
+                </button>
+            </div>
+            <div class="col-sm-12 col-md-3">
+                <span class="text-muted small">
+                    Resultados apresentados entre {{ periodo_inicio|date:"d/m/Y" }} e {{ periodo_fim|date:"d/m/Y" }}.
+                </span>
+            </div>
+        </div>
+    </form>
+
+    <div class="row g-3 mb-4">
+        <div class="col-lg-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0 text-uppercase text-muted">Resultados realizados</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <span>Entradas</span>
+        <strong class="text-success">{{ resumo_realizado.entradas|moeda_br }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span>Saídas</span>
+                        <strong class="text-danger">{{ resumo_realizado.saidas|moeda_br }}</strong>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between">
+                        <span>Saldo do período</span>
+                        <strong class="{% if resumo_realizado.saldo >= 0 %}text-success{% else %}text-danger{% endif %}">
+                            {{ resumo_realizado.saldo|moeda_br }}
+                        </strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0 text-uppercase text-muted">Previstos</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <span>A receber</span>
+                        <strong class="text-success">{{ total_previsto_receber|moeda_br }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span>A pagar</span>
+                        <strong class="text-danger">{{ total_previsto_pagar|moeda_br }}</strong>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between">
+                        <span>Saldo projetado</span>
+                        <strong class="{% if saldo_previsto >= 0 %}text-success{% else %}text-danger{% endif %}">
+                            {{ saldo_previsto|moeda_br }}
+                        </strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0 text-uppercase text-muted">Contas financeiras</h6>
+                </div>
+                <div class="card-body">
+                    {% for item in contas_financeiras %}
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div>
+                            <strong>{{ item.obj.nome }}</strong><br>
+                            <small class="text-muted">{{ item.obj.get_tipo_display }}</small>
+                        </div>
+                        <span class="fw-semibold {% if item.saldo >= 0 %}text-primary{% else %}text-danger{% endif %}">
+                            {{ item.saldo|moeda_br }}
+                        </span>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted mb-0">Nenhuma conta cadastrada.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-xl-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-arrow-down-circle me-1 text-danger"></i>Próximas contas a pagar</h5>
+                    <a href="{% url 'financeiro_lancamentos' propriedade.id %}?tipo=SAIDA" class="btn btn-sm btn-outline-secondary">Ver todas</a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped mb-0 align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Descrição</th>
+                                    <th>Vencimento</th>
+                                    <th class="text-end">Valor</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for parcela in parcelas_pagar %}
+                                <tr class="{% if parcela.vencimento < periodo_fim and parcela.status == 'ABERTA' and parcela.vencimento < today %}table-danger{% endif %}">
+                                    <td>
+                                        <strong>{{ parcela.titulo.descricao }}</strong><br>
+                                        <small class="text-muted">{{ parcela.titulo.pessoa|default:"-" }}</small>
+                                    </td>
+                                    <td>{{ parcela.vencimento|date:"d/m/Y" }}</td>
+                                    <td class="text-end">{{ parcela.valor_previsto|moeda_br }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted py-4">Nenhuma conta prevista.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-arrow-up-circle me-1 text-success"></i>Próximas contas a receber</h5>
+                    <a href="{% url 'financeiro_lancamentos' propriedade.id %}?tipo=ENTRADA" class="btn btn-sm btn-outline-secondary">Ver todas</a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped mb-0 align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Descrição</th>
+                                    <th>Vencimento</th>
+                                    <th class="text-end">Valor</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for parcela in parcelas_receber %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ parcela.titulo.descricao }}</strong><br>
+                                        <small class="text-muted">{{ parcela.titulo.pessoa|default:"-" }}</small>
+                                    </td>
+                                    <td>{{ parcela.vencimento|date:"d/m/Y" }}</td>
+                                    <td class="text-end">{{ parcela.valor_previsto|moeda_br }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted py-4">Nenhuma conta prevista.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

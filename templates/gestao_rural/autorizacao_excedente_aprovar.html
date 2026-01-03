@@ -1,0 +1,145 @@
+{% extends "base_modulos_unificado.html" %}
+{% load formatacao_br %}
+
+{% block title %}Aprovar Autorização de Excedente - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'compras_dashboard' propriedade.id %}">Compras</a></li>
+            <li class="breadcrumb-item active">Aprovar Autorização</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="bi bi-shield-check me-2"></i>Aprovar Autorização de Excedente de Orçamento</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h6><i class="bi bi-info-circle me-2"></i>Informações da Solicitação</h6>
+                        <hr>
+                        <div class="row mb-2">
+                            <div class="col-md-6">
+                                <strong>Orçamento:</strong><br>
+                                {{ autorizacao.orcamento.get_mes_display }}/{{ autorizacao.orcamento.ano }}
+                                {% if autorizacao.orcamento.setor %}
+                                    - {{ autorizacao.orcamento.setor.nome }}
+                                {% else %}
+                                    - Geral
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Limite do Orçamento:</strong><br>
+                                {{ autorizacao.orcamento.total_limite|moeda_br }}
+                            </div>
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col-md-6">
+                                <strong>Valor Total da Compra:</strong><br>
+                                <span class="text-danger fs-5">{{ autorizacao.valor_total_compra|moeda_br }}</span>
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Valor Excedente:</strong><br>
+                                <span class="text-danger fs-5">{{ autorizacao.valor_excedente|moeda_br }}</span>
+                            </div>
+                        </div>
+                        {% if autorizacao.ordem_compra %}
+                        <div class="row mb-2">
+                            <div class="col-md-12">
+                                <strong>Ordem de Compra:</strong><br>
+                                <a href="{% url 'ordem_compra_detalhes' propriedade.id autorizacao.ordem_compra.id %}">
+                                    {{ autorizacao.ordem_compra.numero_ordem }}
+                                </a>
+                            </div>
+                        </div>
+                        {% endif %}
+                        <div class="row mb-2">
+                            <div class="col-md-12">
+                                <strong>Solicitado por:</strong><br>
+                                {{ autorizacao.solicitado_por.get_full_name|default:autorizacao.solicitado_por.username }}
+                                em {{ autorizacao.data_solicitacao|date:"d/m/Y H:i" }}
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <strong>Justificativa:</strong><br>
+                                <div class="bg-light p-3 rounded mt-2">
+                                    {{ autorizacao.justificativa|linebreaks }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="observacoes" class="form-label">
+                                <strong>Observações da Aprovação/Reprovação</strong>
+                            </label>
+                            <textarea class="form-control" id="observacoes" name="observacoes" rows="4" 
+                                placeholder="Informe observações sobre sua decisão..."></textarea>
+                        </div>
+
+                        <div class="d-flex gap-2 justify-content-end">
+                            <a href="{% url 'compras_dashboard' propriedade.id %}" class="btn btn-secondary">
+                                <i class="bi bi-x-circle me-1"></i>Cancelar
+                            </a>
+                            <button type="submit" name="acao" value="reprovar" class="btn btn-danger">
+                                <i class="bi bi-x-octagon me-1"></i>Reprovar
+                            </button>
+                            <button type="submit" name="acao" value="aprovar" class="btn btn-success">
+                                <i class="bi bi-check-circle me-1"></i>Aprovar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

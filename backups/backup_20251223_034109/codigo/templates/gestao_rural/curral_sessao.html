@@ -1,0 +1,862 @@
+{% extends "base_modulos_unificado.html" %}
+{% load humanize %}
+{% load static %}
+
+{% block title %}Trabalho no Curral - {{ sessao.nome }} - MONPEC{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'gestao_rural/css/curral.css' %}">
+<style>
+    .trabalho-curral {
+        background: #f0f2f5;
+        min-height: 100vh;
+        padding: 1.5rem 0;
+    }
+    
+    .header-sessao {
+        background: linear-gradient(135deg, #1e3a5f 0%, #2d5082 100%);
+        color: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    .header-sessao h1 {
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin: 0 0 0.5rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        background: rgba(255,255,255,0.2);
+        border-radius: 20px;
+        font-size: 0.875rem;
+        margin-right: 0.75rem;
+    }
+    
+    .status-badge.active::before {
+        content: '';
+        width: 8px;
+        height: 8px;
+        background: #4ade80;
+        border-radius: 50%;
+        display: inline-block;
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+    
+    .stats-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .stat-card {
+        background: white;
+        padding: 1rem;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        text-align: center;
+    }
+    
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #1e3a5f;
+        margin-bottom: 0.25rem;
+    }
+    
+    .stat-label {
+        font-size: 0.75rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .area-principal {
+        display: grid;
+        grid-template-columns: 1fr 400px;
+        gap: 1.5rem;
+    }
+    
+    @media (max-width: 1200px) {
+        .area-principal {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    .card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        margin-bottom: 1.5rem;
+    }
+    
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.25rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #f0f0f0;
+    }
+    
+    .card-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1e3a5f;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    /* Scanner */
+    .scanner-box {
+        background: linear-gradient(135deg, #1e3a5f 0%, #2d5082 100%);
+        padding: 1.5rem;
+        border-radius: 12px;
+        margin-bottom: 1.5rem;
+        color: white;
+    }
+    
+    .scanner-input-wrapper {
+        position: relative;
+        margin-top: 1rem;
+    }
+    
+    .scanner-input {
+        width: 100%;
+        padding: 1rem 3rem 1rem 1.25rem;
+        font-size: 1.5rem;
+        font-weight: 600;
+        border: none;
+        border-radius: 10px;
+        background: white;
+        color: #1e3a5f;
+        letter-spacing: 2px;
+        text-align: center;
+    }
+    
+    .scanner-input:focus {
+        outline: none;
+        box-shadow: 0 0 0 4px rgba(255,255,255,0.3);
+    }
+    
+    .scanner-icon {
+        position: absolute;
+        right: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 1.5rem;
+        color: #1e3a5f;
+    }
+    
+    /* Formulário de Evento */
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    @media (max-width: 768px) {
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    .form-group {
+        margin-bottom: 1rem;
+    }
+    
+    .form-group label {
+        display: block;
+        font-weight: 500;
+        color: #2c3e50;
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        transition: border-color 0.3s;
+    }
+    
+    .form-control:focus {
+        outline: none;
+        border-color: #1e3a5f;
+        box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.1);
+    }
+    
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 600;
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.9rem;
+    }
+    
+    .btn-primary {
+        background: #1e3a5f;
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background: #2d5082;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(30, 58, 95, 0.3);
+    }
+    
+    .btn-success {
+        background: #28a745;
+        color: white;
+    }
+    
+    .btn-success:hover {
+        background: #218838;
+    }
+    
+    .btn-danger {
+        background: #dc3545;
+        color: white;
+    }
+    
+    .btn-danger:hover {
+        background: #c82333;
+    }
+    
+    .btn-outline {
+        background: transparent;
+        color: #1e3a5f;
+        border: 2px solid #1e3a5f;
+    }
+    
+    .btn-outline:hover {
+        background: #1e3a5f;
+        color: white;
+    }
+    
+    /* Ações Rápidas */
+    .acoes-rapidas {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+        margin-bottom: 1rem;
+    }
+    
+    .acao-rapida {
+        padding: 0.5rem 1rem;
+        background: #f8f9fa;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-size: 0.875rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .acao-rapida:hover {
+        background: #1e3a5f;
+        color: white;
+        border-color: #1e3a5f;
+    }
+    
+    /* Lista de Animais */
+    .lista-animais {
+        max-height: 600px;
+        overflow-y: auto;
+    }
+    
+    .animal-item {
+        padding: 1rem;
+        border-bottom: 1px solid #f0f0f0;
+        cursor: pointer;
+        transition: background 0.3s;
+        border-radius: 8px;
+        margin-bottom: 0.5rem;
+    }
+    
+    .animal-item:hover {
+        background: #f8f9fa;
+    }
+    
+    .animal-item.active {
+        background: #e3f2fd;
+        border-left: 4px solid #1976d2;
+    }
+    
+    .animal-brinco {
+        font-weight: 700;
+        font-size: 1.1rem;
+        color: #1e3a5f;
+        margin-bottom: 0.25rem;
+    }
+    
+    .animal-info {
+        font-size: 0.875rem;
+        color: #6c757d;
+    }
+    
+    .animal-badge {
+        display: inline-block;
+        padding: 0.25rem 0.5rem;
+        background: #e9ecef;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        margin-top: 0.5rem;
+    }
+    
+    /* Histórico */
+    .historico-item {
+        padding: 0.75rem;
+        border-left: 3px solid #1e3a5f;
+        background: #f8f9fa;
+        border-radius: 6px;
+        margin-bottom: 0.75rem;
+    }
+    
+    .historico-tipo {
+        font-weight: 600;
+        color: #1e3a5f;
+        margin-bottom: 0.25rem;
+    }
+    
+    .historico-detalhes {
+        font-size: 0.875rem;
+        color: #6c757d;
+    }
+    
+    .historico-data {
+        font-size: 0.75rem;
+        color: #999;
+        margin-top: 0.25rem;
+    }
+    
+    /* Toast */
+    .toast {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: white;
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 9999;
+        display: none;
+        align-items: center;
+        gap: 1rem;
+        min-width: 300px;
+        animation: slideInRight 0.3s ease;
+    }
+    
+    .toast.show {
+        display: flex;
+    }
+    
+    .toast.success {
+        border-left: 4px solid #28a745;
+    }
+    
+    .toast.error {
+        border-left: 4px solid #dc3545;
+    }
+    
+    @keyframes slideInRight {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1rem;
+        color: #6c757d;
+    }
+    
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="trabalho-curral">
+    <div class="container-fluid">
+        <!-- Header -->
+        <div class="header-sessao">
+            <div class="d-flex justify-content-between align-items-start flex-wrap">
+                <div>
+                    <h1>
+                        <i class="bi bi-clipboard-data"></i>
+                        {{ sessao.nome }}
+                    </h1>
+                    <div>
+                        <span class="status-badge {% if sessao.status == 'ABERTA' %}active{% endif %}">
+                            {{ sessao.get_status_display }}
+                        </span>
+                        <span class="status-badge">
+                            <i class="bi bi-calendar"></i>
+                            {{ sessao.data_inicio|date:"d/m/Y H:i" }}
+                        </span>
+                        <span class="status-badge">
+                            <i class="bi bi-geo-alt"></i>
+                            {{ propriedade.nome_propriedade }}
+                        </span>
+                    </div>
+                </div>
+                <div class="d-flex gap-2 flex-wrap mt-3 mt-md-0">
+                    <a href="{% url 'curral_dashboard' propriedade.id %}" class="btn btn-outline">
+                        <i class="bi bi-arrow-left"></i> Voltar
+                    </a>
+                    {% if sessao.status == 'ABERTA' %}
+                    <form method="post" action="{% url 'curral_encerrar_sessao' propriedade.id sessao.id %}" 
+                          onsubmit="return confirm('Encerrar este trabalho no curral?');" class="d-inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-stop-circle"></i> Encerrar Trabalho
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Estatísticas -->
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-value">{{ estatisticas.total_animais }}</div>
+                <div class="stat-label">Animais</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ estatisticas.total_eventos }}</div>
+                <div class="stat-label">Eventos</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ estatisticas.pesagens }}</div>
+                <div class="stat-label">Pesagens</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ estatisticas.sanidade }}</div>
+                <div class="stat-label">Sanidade</div>
+            </div>
+        </div>
+
+        <!-- Área Principal -->
+        <div class="area-principal">
+            <!-- Coluna Principal -->
+            <div>
+                <!-- Scanner -->
+                <div class="scanner-box">
+                    <h4 style="margin: 0 0 0.5rem 0; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="bi bi-upc-scan"></i>
+                        Scanner de Código
+                    </h4>
+                    <div class="scanner-input-wrapper">
+                        <input type="text" 
+                               id="scannerInput" 
+                               class="scanner-input" 
+                               placeholder="Escaneie ou digite o código do animal"
+                               autocomplete="off"
+                               autofocus>
+                        <i class="bi bi-upc-scan scanner-icon"></i>
+                    </div>
+                    <small style="display: block; margin-top: 0.75rem; opacity: 0.9;">
+                        <i class="bi bi-info-circle"></i>
+                        Pressione Enter após escanear ou digitar o código
+                    </small>
+                </div>
+
+                <!-- Formulário de Registro -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="bi bi-plus-circle"></i>
+                            Registrar Evento
+                        </h3>
+                        <div class="acoes-rapidas">
+                            <button type="button" class="acao-rapida" data-tipo="PESAGEM">
+                                <i class="bi bi-speedometer2"></i> Pesagem
+                            </button>
+                            <button type="button" class="acao-rapida" data-tipo="SANIDADE">
+                                <i class="bi bi-capsule"></i> Sanidade
+                            </button>
+                            <button type="button" class="acao-rapida" data-tipo="REPRODUCAO">
+                                <i class="bi bi-heart-pulse"></i> Reprodução
+                            </button>
+                            <button type="button" class="acao-rapida" data-tipo="DIAGNOSTICO">
+                                <i class="bi bi-clipboard-check"></i> Diagnóstico
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <form method="post" action="{% url 'curral_registrar_evento' propriedade.id sessao.id %}" id="eventoForm">
+                        {% csrf_token %}
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Animal *</label>
+                                {{ evento_form.animal }}
+                            </div>
+                            <div class="form-group">
+                                <label>Tipo de Evento *</label>
+                                {{ evento_form.tipo_evento }}
+                            </div>
+                            <div class="form-group">
+                                <label>Peso (kg)</label>
+                                {{ evento_form.peso_kg }}
+                            </div>
+                            <div class="form-group">
+                                <label>Status Reprodutivo</label>
+                                {{ evento_form.prenhez_status }}
+                            </div>
+                            <div class="form-group">
+                                <label>Previsão de Parto</label>
+                                {{ evento_form.data_previsao_parto }}
+                            </div>
+                            <div class="form-group">
+                                <label>Lote Destino</label>
+                                {{ evento_form.lote_destino }}
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Observações</label>
+                            {{ evento_form.observacoes }}
+                        </div>
+                        <div class="d-flex justify-content-end gap-2 mt-3">
+                            <button type="button" class="btn btn-outline" onclick="limparFormulario()">
+                                <i class="bi bi-x-circle"></i> Limpar
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save2"></i> Salvar Evento
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Lotes -->
+                {% if sessao.lotes.exists %}
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="bi bi-diagram-2"></i>
+                            Lotes Criados
+                        </h3>
+                    </div>
+                    <div class="row g-3">
+                        {% for lote in sessao.lotes.all %}
+                        <div class="col-md-6">
+                            <div class="p-3 border rounded">
+                                <strong>{{ lote.nome }}</strong>
+                                <div class="text-muted small mb-2">{{ lote.get_finalidade_display }}</div>
+                                <span class="animal-badge">{{ lote.eventos.count }} eventos</span>
+                                <button type="button" class="btn btn-outline btn-sm w-100 mt-2" 
+                                        onclick="selecionarLote({{ lote.id }})">
+                                    <i class="bi bi-send"></i> Usar este Lote
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Sidebar -->
+            <div>
+                <!-- Animais na Sessão -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="bi bi-list-check"></i>
+                            Animais Trabalhados
+                        </h3>
+                    </div>
+                    <div class="lista-animais" id="listaAnimais">
+                        {% if resumo_animais %}
+                            {% for resumo in resumo_animais %}
+                            <div class="animal-item" 
+                                 data-animal-id="{{ resumo.animal.id }}"
+                                 onclick="selecionarAnimal({{ resumo.animal.id }})">
+                                <div class="animal-brinco">{{ resumo.animal.numero_brinco }}</div>
+                                <div class="animal-info">
+                                    {{ resumo.animal.categoria.nome }}
+                                    {% if resumo.peso_atual %}
+                                    <br><i class="bi bi-speedometer2"></i> {{ resumo.peso_atual|floatformat:1 }} kg
+                                    {% endif %}
+                                </div>
+                                <span class="animal-badge">{{ resumo.total_eventos }} evento{{ resumo.total_eventos|pluralize }}</span>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="empty-state">
+                                <i class="bi bi-inbox"></i>
+                                <p>Nenhum animal trabalhado ainda</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Histórico Recente -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="bi bi-clock-history"></i>
+                            Histórico Recente
+                        </h3>
+                    </div>
+                    <div id="historicoContainer">
+                        {% if eventos %}
+                            {% for evento in eventos|slice:":10" %}
+                            <div class="historico-item">
+                                <div class="historico-tipo">{{ evento.get_tipo_evento_display }}</div>
+                                <div class="historico-detalhes">
+                                    {% if evento.animal %}
+                                    <i class="bi bi-tag"></i> {{ evento.animal.numero_brinco }}
+                                    {% endif %}
+                                    {% if evento.peso_kg %}
+                                    · <i class="bi bi-speedometer2"></i> {{ evento.peso_kg|floatformat:2 }} kg
+                                    {% endif %}
+                                </div>
+                                <div class="historico-data">
+                                    <i class="bi bi-clock"></i> {{ evento.data_evento|date:"d/m/Y H:i" }}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="empty-state">
+                                <i class="bi bi-inbox"></i>
+                                <p>Nenhum evento registrado ainda</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{ animais_info|json_script:"animal-info-data" }}
+
+<!-- Toast -->
+<div class="toast" id="toast">
+    <i class="bi" id="toastIcon"></i>
+    <span id="toastMessage"></span>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const scannerInput = document.getElementById('scannerInput');
+    const animalField = document.querySelector('#eventoForm select[name="animal"]');
+    const tipoEventoField = document.querySelector('#eventoForm select[name="tipo_evento"]');
+    const loteField = document.querySelector('#eventoForm select[name="lote_destino"]');
+    const eventoForm = document.getElementById('eventoForm');
+    const animaisInfo = JSON.parse(document.getElementById('animal-info-data').textContent);
+    const animalItems = document.querySelectorAll('.animal-item');
+    const acoesRapidas = document.querySelectorAll('.acao-rapida');
+
+    // Scanner
+    if (scannerInput) {
+        scannerInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const codigo = this.value.trim();
+                if (codigo) {
+                    buscarAnimal(codigo);
+                    this.value = '';
+                }
+            }
+        });
+
+        // Auto-busca após digitar
+        scannerInput.addEventListener('input', function() {
+            const codigo = this.value.trim();
+            if (codigo.length >= 7) {
+                buscarAnimal(codigo);
+            }
+        });
+    }
+
+    // Buscar animal por código
+    function buscarAnimal(codigo) {
+        let encontrado = null;
+        
+        Object.entries(animaisInfo).forEach(([id, dados]) => {
+            const brinco = String(dados.numero_brinco || '').replace(/\D/g, '');
+            const sisbov = String(dados.identificacao_sisbov || '').replace(/\D/g, '');
+            const codigoLimpo = codigo.replace(/\D/g, '');
+            
+            if (brinco.includes(codigoLimpo) || sisbov.includes(codigoLimpo) || 
+                codigoLimpo.includes(brinco.slice(-7)) || codigoLimpo.includes(sisbov.slice(-7))) {
+                encontrado = id;
+            }
+        });
+        
+        if (encontrado && animalField) {
+            animalField.value = encontrado;
+            animalField.dispatchEvent(new Event('change'));
+            selecionarAnimalVisual(parseInt(encontrado));
+            mostrarToast('Animal encontrado!', 'success');
+            scannerInput.value = '';
+        } else {
+            mostrarToast('Animal não encontrado. Verifique o código.', 'error');
+        }
+    }
+
+    // Selecionar animal
+    function selecionarAnimal(animalId) {
+        if (animalField) {
+            animalField.value = animalId;
+            animalField.dispatchEvent(new Event('change'));
+            selecionarAnimalVisual(animalId);
+        }
+    }
+
+    function selecionarAnimalVisual(animalId) {
+        animalItems.forEach(item => {
+            item.classList.remove('active');
+            if (parseInt(item.dataset.animalId) === animalId) {
+                item.classList.add('active');
+                item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        });
+    }
+
+    // Ações rápidas
+    acoesRapidas.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const tipo = this.dataset.tipo;
+            if (tipo && tipoEventoField) {
+                tipoEventoField.value = tipo;
+                tipoEventoField.dispatchEvent(new Event('change'));
+                mostrarToast(`Tipo de evento: ${this.textContent.trim()}`, 'success');
+            }
+        });
+    });
+
+    // Selecionar lote
+    window.selecionarLote = function(loteId) {
+        if (loteField) {
+            loteField.value = loteId;
+            loteField.dispatchEvent(new Event('change'));
+            mostrarToast('Lote selecionado!', 'success');
+        }
+    };
+
+    // Limpar formulário
+    window.limparFormulario = function() {
+        if (eventoForm) {
+            eventoForm.reset();
+            animalItems.forEach(item => item.classList.remove('active'));
+            if (scannerInput) scannerInput.focus();
+            mostrarToast('Formulário limpo', 'success');
+        }
+    };
+
+    // Toast
+    function mostrarToast(mensagem, tipo = 'success') {
+        const toast = document.getElementById('toast');
+        const toastMessage = document.getElementById('toastMessage');
+        const toastIcon = document.getElementById('toastIcon');
+        
+        if (!toast) return;
+        
+        toastMessage.textContent = mensagem;
+        toast.className = `toast ${tipo} show`;
+        
+        const icons = {
+            success: 'bi-check-circle-fill',
+            error: 'bi-x-circle-fill',
+            info: 'bi-info-circle-fill'
+        };
+        
+        toastIcon.className = `bi ${icons[tipo] || icons.success}`;
+        
+        setTimeout(() => {
+            toast.classList.remove('show');
+        }, 3000);
+    }
+
+    // Validação do formulário
+    if (eventoForm) {
+        eventoForm.addEventListener('submit', function(e) {
+            if (!animalField.value) {
+                e.preventDefault();
+                mostrarToast('Selecione um animal antes de salvar!', 'error');
+                scannerInput.focus();
+                return false;
+            }
+            
+            if (!tipoEventoField.value) {
+                e.preventDefault();
+                mostrarToast('Selecione o tipo de evento!', 'error');
+                tipoEventoField.focus();
+                return false;
+            }
+        });
+    }
+
+    // Atalhos de teclado
+    document.addEventListener('keydown', function(e) {
+        // Foco no scanner com F2
+        if (e.key === 'F2') {
+            e.preventDefault();
+            if (scannerInput) {
+                scannerInput.focus();
+                scannerInput.select();
+            }
+        }
+        
+        // Ctrl+S para salvar
+        if (e.ctrlKey && e.key === 's') {
+            e.preventDefault();
+            if (eventoForm) {
+                eventoForm.requestSubmit();
+            }
+        }
+    });
+
+    // Auto-focus no scanner
+    if (scannerInput) {
+        setTimeout(() => {
+            scannerInput.focus();
+        }, 500);
+    }
+});
+</script>
+{% endblock %}
+
+
+
+

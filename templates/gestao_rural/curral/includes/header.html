@@ -1,0 +1,155 @@
+<!-- Header do Curral Dashboard V2 -->
+<!-- Contador de itens pendentes de sincronização -->
+<div class="sync-pendentes" id="syncPendentesV2" onclick="curralSync.sincronizarPendentes()">
+  <i class="fas fa-sync-alt"></i> <span id="syncPendentesCountV2">0</span> pendente(s)
+</div>
+
+<div class="curral-v2-wrapper">
+  <div class="curral-v2-header">
+    <div class="curral-v2-header-left">
+      <h1 class="curral-v2-header-title">
+        Super Tela
+      </h1>
+      <div class="curral-v2-header-fazenda">
+        MONPEC CURRAL - {{ propriedade.nome_propriedade }}
+      </div>
+    </div>
+    <div class="curral-v2-header-right">
+      <!-- Menu de Relatórios -->
+      <div class="relatorios-menu-dropdown" style="position: relative; margin-right: 12px;">
+        <button class="btn-relatorios-menu" id="btnRelatoriosMenu" onclick="toggleRelatoriosMenu()">
+          <i class="fas fa-file-alt"></i> Relatórios
+          <i class="fas fa-chevron-down" style="margin-left: 6px; font-size: 0.7rem;"></i>
+        </button>
+        <div class="relatorios-submenu" id="relatoriosSubmenu" style="display: none;">
+          <a href="{% url 'curral_relatorio_reprodutivo' propriedade.id %}" class="relatorios-submenu-item">
+            <i class="fas fa-baby-carriage"></i> Reprodutivo
+          </a>
+          <a href="{% url 'curral_relatorio_iatf' propriedade.id %}" class="relatorios-submenu-item">
+            <i class="fas fa-syringe"></i> Criar IATF CURRAL
+          </a>
+        </div>
+      </div>
+      
+      <!-- Indicador de status de conexão -->
+      <div class="status-conexao" id="statusConexaoV2">
+        <span class="status-conexao-badge"></span>
+        <span id="statusConexaoTextoV2">Online</span>
+      </div>
+      
+      <!-- Indicador de sessão ativa - Layout compacto em 2 linhas -->
+      <div class="sessao-ativa-header" id="sessaoAtivaHeaderV2">
+        <!-- Linha 1: Título e Nome da Sessão -->
+        <div class="sessao-ativa-linha1">
+          <div class="sessao-ativa-titulo">
+            <i class="fas fa-circle" style="font-size: 0.4rem; color: #4caf50;"></i>
+            Sessão Ativa
+          </div>
+          <div class="sessao-ativa-nome" id="sessaoAtivaNomeV2">
+            {% if sessao_ativa %}{{ sessao_ativa.nome }} {{ super_tela.sessao_data|default:"" }}{% else %}Nenhuma sessão ativa{% endif %}
+          </div>
+        </div>
+        
+        <!-- Linha 2: Estatísticas e Botões -->
+        <div id="sessaoAtivaStatsV2" style="display: {% if sessao_ativa %}flex{% else %}none{% endif %};" class="sessao-ativa-linha2">
+          <div class="sessao-ativa-stats">
+            <div class="sessao-stat-item">
+              <div class="sessao-stat-valor" id="sessaoStatEventosV2">{{ stats_sessao.total_eventos|default:0 }}</div>
+              <div class="sessao-stat-label">Eventos</div>
+            </div>
+            <div class="sessao-stat-item">
+              <div class="sessao-stat-valor" id="sessaoStatAnimaisV2">{{ stats_sessao.animais_processados|default:0 }}</div>
+              <div class="sessao-stat-label">Animais</div>
+            </div>
+            <div class="sessao-stat-item">
+              <div class="sessao-stat-valor" id="sessaoStatPesagensV2">{{ stats_sessao.pesagens|default:0 }}</div>
+              <div class="sessao-stat-label">Pesagens</div>
+            </div>
+          </div>
+          <div class="sessao-ativa-acoes">
+            {% if sessao_ativa %}
+            <button type="button" class="sessao-btn sessao-btn-ver" data-url="{% url 'curral_sessao' propriedade.id sessao_ativa.id %}" onclick="window.verSessaoV2(this)">
+              <i class="fas fa-eye"></i> Ver
+            </button>
+            <button type="button" class="sessao-btn sessao-btn-encerrar" onclick="window.encerrarSessaoV2()">
+              <i class="fas fa-stop"></i> Encerrar
+            </button>
+            {% else %}
+            <button type="button" class="sessao-btn sessao-btn-nova" onclick="abrirModalNovaSessaoV2()">
+              <i class="fas fa-plus"></i> Nova
+            </button>
+            {% endif %}
+          </div>
+        </div>
+        <!-- Modal de Cadastro de Trabalho -->
+        <div id="modalCadastroTrabalhoV2" class="modal-cadastro-trabalho" style="display: none;">
+          <div class="modal-cadastro-trabalho-content">
+            <div class="modal-cadastro-trabalho-header">
+              <h3><i class="fas fa-clipboard-list"></i> Cadastro de Trabalho</h3>
+              <button type="button" class="modal-close" onclick="fecharModalCadastroTrabalhoV2()">&times;</button>
+            </div>
+            <div class="modal-cadastro-trabalho-body">
+              <form id="formCadastroTrabalhoV2">
+                <div class="form-group">
+                  <label for="tipoTrabalhoV2">Tipo de Trabalho <span style="color: red;">*</span>:</label>
+                  <select id="tipoTrabalhoV2" class="form-control" required>
+                    <option value="">Selecione o tipo de trabalho</option>
+                    {% for tipo in tipos_trabalho %}
+                    <option value="{{ tipo.valor }}">{{ tipo.rotulo }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                
+                <div class="form-group">
+                  <label for="quantidadeEsperadaV2">Quantidade Esperada:</label>
+                  <input type="number" id="quantidadeEsperadaV2" class="form-control" min="1" placeholder="Ex: 50">
+                </div>
+                
+                <div class="form-group">
+                  <label for="nomeLoteV2">Nome do Lote:</label>
+                  <input type="text" id="nomeLoteV2" class="form-control" placeholder="Ex: Lote 1, Lote Engorda, etc.">
+                </div>
+                
+                <div class="form-group">
+                  <label for="dataTrabalhoV2">Data do Trabalho:</label>
+                  <input type="date" id="dataTrabalhoV2" class="form-control" required>
+                </div>
+                
+                <div class="form-group">
+                  <label for="pastoOrigemV2">Pasto de Origem:</label>
+                  <select id="pastoOrigemV2" class="form-control">
+                    <option value="">Selecione o pasto de origem</option>
+                    {% for pastagem in pastagens_disponiveis %}
+                    <option value="{{ pastagem.nome }}">{{ pastagem.nome }}{% if pastagem.area_ha %} ({{ pastagem.area_ha|floatformat:2 }} ha){% endif %}</option>
+                    {% endfor %}
+                  </select>
+                  <small class="form-text text-muted">Ou digite o nome do pasto manualmente</small>
+                  <input type="text" id="pastoOrigemManualV2" class="form-control" style="margin-top: 5px;" placeholder="Digite o nome do pasto">
+                </div>
+                
+                <div class="form-group">
+                  <label for="observacoesTrabalhoV2">Observações:</label>
+                  <textarea id="observacoesTrabalhoV2" class="form-control" rows="3" placeholder="Observações adicionais sobre o trabalho"></textarea>
+                </div>
+              </form>
+            </div>
+            <div class="modal-cadastro-trabalho-footer">
+              <button type="button" class="btn btn-secondary" onclick="fecharModalCadastroTrabalhoV2()">Cancelar</button>
+              <button type="button" class="btn btn-primary" onclick="salvarCadastroTrabalhoV2()">
+                <i class="fas fa-save"></i> Salvar e Iniciar Trabalho
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <div id="sessaoAtivaSemSessaoV2" style="display: {% if sessao_ativa %}none{% else %}block{% endif %};">
+          <div style="font-size: 0.65rem; color: #78909c; margin-bottom: 6px;">
+            Crie uma sessão para organizar os eventos
+          </div>
+          <button type="button" class="sessao-btn sessao-btn-nova" onclick="abrirModalNovaSessaoV2()" style="width: 100%;">
+            <i class="fas fa-plus"></i> Criar Sessão
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>

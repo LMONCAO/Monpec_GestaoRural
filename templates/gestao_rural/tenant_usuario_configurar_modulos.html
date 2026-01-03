@@ -1,0 +1,139 @@
+{% extends "base_modulos_unificado.html" %}
+
+{% block title %}Configurar Módulos - {{ tenant_usuario.nome_exibicao }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12 col-lg-8 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-gear"></i> Configurar Módulos - {{ tenant_usuario.nome_exibicao }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if eh_admin %}
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> Este usuário é <strong>Administrador</strong> e tem acesso a todos os módulos disponíveis no plano.
+                    </div>
+                    {% endif %}
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Módulos Disponíveis</label>
+                            <p class="text-muted small">
+                                Selecione os módulos que <strong>{{ tenant_usuario.nome_exibicao }}</strong> poderá acessar no sistema.
+                                {% if eh_admin %}Como administrador, todos os módulos estão habilitados automaticamente.{% endif %}
+                            </p>
+                            
+                            <div class="row g-3">
+                                {% for modulo_valor, modulo_label in modulos_choices %}
+                                <div class="col-12 col-md-6 col-lg-4">
+                                    <div class="form-check p-3 border rounded">
+                                        <input 
+                                            class="form-check-input" 
+                                            type="checkbox" 
+                                            name="modulos" 
+                                            value="{{ modulo_valor }}" 
+                                            id="modulo_{{ modulo_valor }}"
+                                            {% if modulo_valor in modulos_selecionados or eh_admin %}checked{% endif %}
+                                            {% if eh_admin %}disabled{% endif %}
+                                        >
+                                        <label class="form-check-label fw-medium" for="modulo_{{ modulo_valor }}">
+                                            {{ modulo_label }}
+                                        </label>
+                                    </div>
+                                </div>
+                                {% empty %}
+                                <div class="col-12">
+                                    <p class="text-muted">Nenhum módulo disponível no plano atual.</p>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between align-items-center">
+                            <a href="{% url 'tenant_usuarios_dashboard' %}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Voltar
+                            </a>
+                            <button type="submit" class="btn btn-primary" {% if eh_admin %}disabled title="Administradores têm acesso a todos os módulos"{% endif %}>
+                                <i class="bi bi-check-circle"></i> Salvar Configurações
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.form-check-input:checked {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+.form-check {
+    transition: all 0.2s ease;
+}
+
+.form-check:hover {
+    background-color: #f8f9fa;
+}
+
+.form-check-input:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+</style>
+{% endblock %}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

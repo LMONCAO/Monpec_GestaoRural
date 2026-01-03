@@ -1,0 +1,231 @@
+{% extends "base_modulos_unificado.html" %}
+
+{% block title %}{% if modo == 'editar' %}Editar Setor{% else %}Novo Setor{% endif %} - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'compras_dashboard' propriedade.id %}">Compras</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'setores_compra_lista' propriedade.id %}">Setores</a></li>
+            <li class="breadcrumb-item active">
+                {% if modo == 'editar' %}Editar{% else %}Novo{% endif %}
+            </li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-building-check me-2"></i>
+                        {% if modo == 'editar' %}Editar setor{% else %}Cadastrar setor{% endif %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {{ form.non_field_errors }}
+                        </div>
+                        {% endif %}
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label" for="{{ form.nome.id_for_label }}">Nome do setor *</label>
+                                {{ form.nome }}
+                                {% for error in form.nome.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="{{ form.codigo.id_for_label }}">Código</label>
+                                {{ form.codigo }}
+                                {% for error in form.codigo.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label" for="{{ form.descricao.id_for_label }}">Descrição</label>
+                                {{ form.descricao }}
+                                {% for error in form.descricao.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="{{ form.responsavel.id_for_label }}">Responsável</label>
+                                {{ form.responsavel }}
+                                {% if form.responsavel.help_text %}
+                                <div class="form-text">{{ form.responsavel.help_text }}</div>
+                                {% endif %}
+                                {% for error in form.responsavel.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-3 d-flex align-items-center">
+                                <div class="form-check mt-4">
+                                    {{ form.ativo }}
+                                    <label class="form-check-label" for="{{ form.ativo.id_for_label }}">Ativo</label>
+                                </div>
+                                {% for error in form.ativo.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center mt-4 flex-wrap gap-2">
+                            <a href="{% url 'setores_compra_lista' propriedade.id %}" class="btn btn-outline-secondary">
+                                Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle me-1"></i>
+                                {% if modo == 'editar' %}Salvar alterações{% else %}Cadastrar setor{% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Boas práticas</h6>
+                </div>
+                <div class="card-body small text-muted">
+                    <ul class="mb-0">
+                        <li>Utilize códigos curtos para facilitar relatórios e integrações.</li>
+                        <li>Associe um responsável para liberar ordens de compra do setor.</li>
+                        <li>Mantenha apenas setores relevantes ativos para agilizar o fluxo.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+{% block title %}{% if modo == 'editar' %}Editar Setor{% else %}Novo Setor{% endif %} - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'compras_dashboard' propriedade.id %}">Compras</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'setores_compra_lista' propriedade.id %}">Setores</a></li>
+            <li class="breadcrumb-item active">
+                {% if modo == 'editar' %}Editar{% else %}Novo{% endif %}
+            </li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-building-check me-2"></i>
+                        {% if modo == 'editar' %}Editar setor{% else %}Cadastrar setor{% endif %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {{ form.non_field_errors }}
+                        </div>
+                        {% endif %}
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label" for="{{ form.nome.id_for_label }}">Nome do setor *</label>
+                                {{ form.nome }}
+                                {% for error in form.nome.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="{{ form.codigo.id_for_label }}">Código</label>
+                                {{ form.codigo }}
+                                {% for error in form.codigo.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label" for="{{ form.descricao.id_for_label }}">Descrição</label>
+                                {{ form.descricao }}
+                                {% for error in form.descricao.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="{{ form.responsavel.id_for_label }}">Responsável</label>
+                                {{ form.responsavel }}
+                                {% if form.responsavel.help_text %}
+                                <div class="form-text">{{ form.responsavel.help_text }}</div>
+                                {% endif %}
+                                {% for error in form.responsavel.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-3 d-flex align-items-center">
+                                <div class="form-check mt-4">
+                                    {{ form.ativo }}
+                                    <label class="form-check-label" for="{{ form.ativo.id_for_label }}">Ativo</label>
+                                </div>
+                                {% for error in form.ativo.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center mt-4 flex-wrap gap-2">
+                            <a href="{% url 'setores_compra_lista' propriedade.id %}" class="btn btn-outline-secondary">
+                                Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle me-1"></i>
+                                {% if modo == 'editar' %}Salvar alterações{% else %}Cadastrar setor{% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Boas práticas</h6>
+                </div>
+                <div class="card-body small text-muted">
+                    <ul class="mb-0">
+                        <li>Utilize códigos curtos para facilitar relatórios e integrações.</li>
+                        <li>Associe um responsável para liberar ordens de compra do setor.</li>
+                        <li>Mantenha apenas setores relevantes ativos para agilizar o fluxo.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+
+
+
+
+
+

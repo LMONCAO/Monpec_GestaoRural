@@ -1,0 +1,101 @@
+{% extends 'base_moderno.html' %}
+
+{% block title %}Editar Produtor - Sistema Rural{% endblock %}
+
+{% block page_title %}Editar Produtor Rural{% endblock %}
+
+{% block content_authenticated %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-pencil"></i> Editar Produtor: {{ produtor.nome }}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.nome.id_for_label }}" class="form-label">{{ form.nome.label }}</label>
+                            {{ form.nome }}
+                            {% if form.nome.errors %}
+                                <div class="text-danger">{{ form.nome.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.cpf_cnpj.id_for_label }}" class="form-label">{{ form.cpf_cnpj.label }}</label>
+                            {{ form.cpf_cnpj }}
+                            {% if form.cpf_cnpj.errors %}
+                                <div class="text-danger">{{ form.cpf_cnpj.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.documento_identidade.id_for_label }}" class="form-label">{{ form.documento_identidade.label }}</label>
+                            {{ form.documento_identidade }}
+                            {% if form.documento_identidade.errors %}
+                                <div class="text-danger">{{ form.documento_identidade.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.data_nascimento.id_for_label }}" class="form-label">{{ form.data_nascimento.label }}</label>
+                            {{ form.data_nascimento }}
+                            {% if form.data_nascimento.errors %}
+                                <div class="text-danger">{{ form.data_nascimento.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.anos_experiencia.id_for_label }}" class="form-label">{{ form.anos_experiencia.label }}</label>
+                            {{ form.anos_experiencia }}
+                            {% if form.anos_experiencia.errors %}
+                                <div class="text-danger">{{ form.anos_experiencia.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.telefone.id_for_label }}" class="form-label">{{ form.telefone.label }}</label>
+                            {{ form.telefone }}
+                            {% if form.telefone.errors %}
+                                <div class="text-danger">{{ form.telefone.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.email.id_for_label }}" class="form-label">{{ form.email.label }}</label>
+                            {{ form.email }}
+                            {% if form.email.errors %}
+                                <div class="text-danger">{{ form.email.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.endereco.id_for_label }}" class="form-label">{{ form.endereco.label }}</label>
+                        {{ form.endereco }}
+                        {% if form.endereco.errors %}
+                            <div class="text-danger">{{ form.endereco.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check"></i> Salvar
+                        </button>
+                        <a href="{% url 'dashboard' %}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Voltar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content_authenticated %}

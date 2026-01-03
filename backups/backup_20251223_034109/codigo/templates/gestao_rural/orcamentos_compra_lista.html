@@ -1,0 +1,172 @@
+{% extends "base_modulos_unificado.html" %}
+
+{% block title %}Orçamentos de Compras - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'compras_dashboard' propriedade.id %}">Compras</a></li>
+            <li class="breadcrumb-item active">Orçamentos</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-journal-richtext me-2"></i>Orçamentos mensais</h5>
+                    <form method="get" class="d-flex align-items-center gap-2">
+                        <label class="form-label mb-0 me-2">Ano</label>
+                        <select name="ano" class="form-select form-select-sm" onchange="this.form.submit()">
+                            {% for ano in anos_disponiveis %}
+                            <option value="{{ ano }}" {% if ano == ano_filtro %}selected{% endif %}>{{ ano }}</option>
+                            {% endfor %}
+                        </select>
+                    </form>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Mês</th>
+                                <th>Setor</th>
+                                <th class="text-end">Limite base</th>
+                                <th class="text-end">Extra</th>
+                                <th class="text-end">Utilizado</th>
+                                <th class="text-end">Disponível</th>
+                                <th class="text-center">% uso</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if orcamentos %}
+                            {% for item in orcamentos %}
+                            {% with obj=item.obj %}
+                            <tr class="{% if item.saldo < 0 %}table-danger{% elif item.percentual > 90 %}table-warning{% endif %}">
+                                <td>{{ obj.get_mes_display }}/{{ obj.ano }}</td>
+                                <td>{% if obj.setor %}{{ obj.setor.nome }}{% else %}<span class="badge text-bg-secondary">Geral</span>{% endif %}</td>
+                                <td class="text-end">R$ {{ obj.valor_limite|floatformat:2 }}</td>
+                                <td class="text-end">R$ {{ obj.limite_extra|floatformat:2 }}</td>
+                                <td class="text-end">R$ {{ item.utilizado|floatformat:2 }}</td>
+                                <td class="text-end">R$ {{ item.saldo|floatformat:2 }}</td>
+                                <td class="text-center">{{ item.percentual|floatformat:0 }}%</td>
+                            </tr>
+                            {% endwith %}
+                            {% endfor %}
+                            {% else %}
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-4">
+                                    Nenhum orçamento cadastrado para {{ ano_filtro }}.
+                                </td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-plus-circle me-2"></i>Novo orçamento mensal</h6>
+                </div>
+                <div class="card-body">
+                    <form method="post" class="row g-3">
+                        {% csrf_token %}
+                        <input type="hidden" name="acao" value="definir_orcamento">
+                        <div class="col-12">
+                            <label class="form-label">{{ form.setor.label }}</label>
+                            {{ form.setor }}
+                            {% for error in form.setor.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">{{ form.mes.label }}</label>
+                            {{ form.mes }}
+                            {% for error in form.mes.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">{{ form.ano.label }}</label>
+                            {{ form.ano }}
+                            {% for error in form.ano.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">{{ form.valor_limite.label }}</label>
+                            {{ form.valor_limite }}
+                            {% for error in form.valor_limite.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">{{ form.observacoes.label }}</label>
+                            {{ form.observacoes }}
+                            {% for error in form.observacoes.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-12 d-grid">
+                            <button type="submit" class="btn btn-primary"><i class="bi bi-save me-1"></i>Salvar orçamento</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-lightning-charge me-2"></i>Ajuste emergencial</h6>
+                </div>
+                <div class="card-body">
+                    <form method="post" class="row g-3">
+                        {% csrf_token %}
+                        <input type="hidden" name="acao" value="ajuste_orcamento">
+                        <div class="col-12">
+                            <label class="form-label">Selecionar orçamento</label>
+                            <select name="orcamento_id" class="form-select" required>
+                                <option value="">Escolha o orçamento</option>
+                                {% for obj in orcamentos_objs %}
+                                <option value="{{ obj.id }}">{{ obj.get_mes_display }}/{{ obj.ano }}{% if obj.setor %} - {{ obj.setor.nome }}{% else %} - Geral{% endif %}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">{{ ajuste_form.valor.label }}</label>
+                            {{ ajuste_form.valor }}
+                            {% for error in ajuste_form.valor.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">{{ ajuste_form.justificativa.label }}</label>
+                            {{ ajuste_form.justificativa }}
+                            {% for error in ajuste_form.justificativa.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-12 d-grid">
+                            <button type="submit" class="btn btn-outline-warning"><i class="bi bi-plus-lg me-1"></i>Adicionar limite extra</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+
+
+
+
+
+
+
+
+

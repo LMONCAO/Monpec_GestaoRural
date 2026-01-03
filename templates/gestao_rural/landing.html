@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monpec Projetista - Automatize seus Projetos de Crédito Rural</title>
+    
+    <!-- Google Search Console Verification -->
+    <meta name="google-site-verification" content="vy8t3EcEx9vc6NSvlKvFB6D2j5MkvkrXT9xXJIztghk" />
+    
+    <style>
+        /* --- Configurações Gerais --- */
+        :root {
+            --cor-principal: #28a745; /* Verde Monpec */
+            --cor-principal-hover: #218838;
+            --cor-secundaria: #004a99; /* Azul Marinho */
+            --cor-secundaria-hover: #003366;
+            --cor-texto: #333;
+            --cor-fundo: #fdfdfd;
+            --cor-fundo-alt: #f9f9f9;
+        }
+
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            line-height: 1.6; 
+            background: var(--cor-fundo); 
+            color: var(--cor-texto); 
+            margin: 0; 
+        }
+        .container { 
+            max-width: 1100px; 
+            margin: 0 auto; 
+            padding: 0 20px; 
+        }
+        h1, h2, h3 { color: #222; font-weight: 700; }
+        a { text-decoration: none; transition: all 0.2s ease; }
+        section { padding: 70px 0; }
+
+        /* --- 1. Topo (Header) --- */
+        .header { 
+            background: #fff; 
+            padding: 18px 0; 
+            border-bottom: 1px solid #eee; 
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        .nav-bar { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+        }
+        .logo { 
+            font-size: 28px; 
+            font-weight: 700; 
+            color: #222; 
+        }
+        .logo-dot { 
+            color: var(--cor-principal);
+        }
+        
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 25px; 
+        }
+        .nav-links a { 
+            color: #444; 
+            font-weight: 600; 
+            padding: 5px;
+            font-size: 16px;
+        }
+        .nav-links a:hover {
+            color: var(--cor-principal); 
+        }
+        
+        .cta-button-nav { 
+            padding: 9px 20px; 
+            border-radius: 6px; 
+            font-weight: 600; 
+            font-size: 15px;
+            border: 2px solid transparent; 
+            line-height: 1.5;
+        }
+        
+        .cta-button-demo {
+            background: var(--cor-principal); 
+            border-color: var(--cor-principal);
+            color: #fff; 
+        }
+        .cta-button-demo:hover {
+            background: var(--cor-principal-hover); 
+            border-color: var(--cor-principal-hover);
+            color: #fff;
+        }
+        
+        .cta-button-login {
+            background: #fff;
+            border-color: var(--cor-secundaria);
+            color: var(--cor-secundaria); 
+        }
+        .cta-button-login:hover {
+            background: var(--cor-secundaria);
+            border-color: var(--cor-secundaria);
+            color: #fff; 
+        }
+
+        /* --- 2. Seção Principal (Hero) --- */
+        .hero { 
+            background: #fff; 
+            text-align: center; 
+            padding: 90px 20px; 
+        }
+        .hero h1 { 
+            font-size: 48px; 
+            margin-bottom: 15px; 
+            line-height: 1.2;
+        }
+        .hero p { 
+            font-size: 20px; 
+            color: #555; 
+            margin-bottom: 30px; 
+            max-width: 600px; 
+            margin-left: auto; 
+            margin-right: auto; 
+        }
+        .cta-button { 
+            background: var(--cor-principal); 
+            color: #fff; 
+            padding: 15px 30px; 
+            border-radius: 8px; 
+            font-size: 18px; 
+            font-weight: 600; 
+            display: inline-block; 
+        }
+        .cta-button:hover {
+            background: var(--cor-principal-hover);
+            transform: translateY(-2px);
+        }
+
+        /* --- 3. Imagem do Sistema (Dashboard) --- */
+        .dashboard-image { 
+            padding: 50px 0 70px 0; 
+            background: #fff; 
+            text-align: center; 
+        }
+        .dashboard-image img { 
+            max-width: 90%; 
+            height: auto; 
+            border-radius: 8px; 
+            box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+            border: 1px solid #ddd;
+        }
+
+        /* --- 4. Seção de Funcionalidades --- */
+        .features h2 { 
+            text-align: center; 
+            font-size: 36px; 
+            margin-bottom: 50px; 
+        }
+        
+        /* CSS CORRIGIDO PARA A GRADE DE 3 COLUNAS */
+        .features-grid { 
+            display: grid; 
+            /* Força 3 colunas em telas largas, e 1 em telas pequenas */
+            grid-template-columns: repeat(3, 1fr); 
+            gap: 40px; 
+        }
+        
+        .feature-item { 
+            background: #fff; 
+            padding: 30px; 
+            border-radius: 8px; 
+            border: 1px solid #eee;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03); 
+        }
+        .feature-item h3 { 
+            font-size: 22px; 
+            color: var(--cor-principal); 
+            margin-bottom: 10px; 
+        }
+        .feature-item p { font-size: 16px; color: #444; }
+
+        /* --- 5. Prova Social (Depoimentos) --- */
+        .testimonials {
+            background: var(--cor-fundo-alt);
+        }
+        .testimonials h2 {
+            text-align: center;
+            font-size: 36px;
+            margin-bottom: 50px;
+        }
+        .testimonials-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+        }
+        .testimonial-item {
+            background: #fff;
+            padding: 25px;
+            border-radius: 8px;
+            border: 1px solid #eee;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+        }
+        .testimonial-item p { font-style: italic; color: #333; margin-bottom: 15px; }
+        .testimonial-item span { font-weight: 600; color: var(--cor-principal); }
+
+        /* --- 6. Seção de Preços --- */
+        .pricing {
+            background: #fff;
+        }
+        .pricing h2 {
+            text-align: center;
+            font-size: 36px;
+            margin-bottom: 10px;
+        }
+        .pricing-subtitle {
+            text-align: center;
+            font-size: 18px;
+            color: #555;
+            margin-bottom: 50px;
+        }
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 30px;
+            align-items: stretch;
+        }
+        .pricing-card {
+            background: #fff;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.04);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+        .pricing-card-popular {
+            border-color: var(--cor-principal);
+            border-width: 2px;
+            transform: scale(1.03);
+        }
+        .popular-badge {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--cor-principal);
+            color: #fff;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .plan-name {
+            font-size: 22px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        .plan-price {
+            font-size: 42px;
+            font-weight: 700;
+            color: var(--cor-principal);
+        }
+        .plan-price span {
+            font-size: 18px;
+            font-weight: 500;
+            color: #777;
+        }
+        .plan-description {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 15px 0;
+        }
+        .plan-features {
+            list-style: none;
+            padding: 0;
+            margin: 20px 0;
+            text-align: left;
+            color: #444;
+            flex-grow: 1; 
+        }
+        .plan-features li {
+            margin-bottom: 10px;
+            padding-left: 25px;
+            position: relative;
+        }
+        .plan-features li::before {
+            content: '✓';
+            color: var(--cor-principal);
+            position: absolute;
+            left: 0;
+            font-weight: 600;
+        }
+        .cta-button-price {
+            display: block;
+            background: var(--cor-principal);
+            color: #fff;
+            padding: 12px 20px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 16px;
+        }
+        .cta-button-price:hover {
+            background: var(--cor-principal-hover);
+        }
+        .pricing-card-popular .cta-button-price {
+            background: var(--cor-principal);
+        }
+         .pricing-card-popular .cta-button-price:hover {
+            background: var(--cor-principal-hover);
+        }
+        .pricing-card:not(.pricing-card-popular) .cta-button-price {
+            background: #fff;
+            color: var(--cor-principal);
+            border: 2px solid var(--cor-principal);
+        }
+        .pricing-card:not(.pricing-card-popular) .cta-button-price:hover {
+            background: var(--cor-fundo-alt);
+        }
+
+        /* --- 7. CTA Final (Chamada para Ação) --- */
+        .final-cta { 
+            background: #222; 
+            color: #fff; 
+            text-align: center; 
+            padding: 80px 20px; 
+        }
+        .final-cta h2 { 
+            font-size: 36px; 
+            margin-bottom: 15px; 
+            color: #fff;
+        }
+        .final-cta p { 
+            font-size: 18px; 
+            margin-bottom: 30px; 
+            opacity: 0.9; 
+        }
+
+        /* --- 8. Contato --- */
+        .contact {
+            background: #fff;
+            text-align: center;
+        }
+         .contact h2 { font-size: 36px; margin-bottom: 20px; }
+        .contact p { font-size: 18px; color: #555; }
+
+        /* --- 9. Rodapé (Footer) --- */
+        .footer { 
+            text-align: center; 
+            padding: 40px 20px; 
+            background: var(--cor-fundo-alt); 
+            border-top: 1px solid #eee; 
+        }
+        .footer p { margin: 10px 0 0 0; color: #777; }
+
+        /* --- Responsividade (Mobile) --- */
+        @media (max-width: 900px) {
+            /* Faz os grids de 3 colunas virarem 2 colunas */
+            .features-grid, .testimonials-grid, .pricing-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+             .pricing-card-popular {
+                transform: scale(1.03); /* Mantém o zoom em tablet */
+            }
+        }
+        
+        @media (max-width: 600px) {
+            .nav-links { display: none; } /* Esconde links no celular */
+            
+            /* Faz todos os grids virarem 1 coluna */
+            .features-grid, .testimonials-grid, .pricing-grid {
+                grid-template-columns: 1fr;
+            }
+            .hero h1 { font-size: 36px; }
+            .hero p { font-size: 18px; }
+            .pricing-card-popular {
+                transform: scale(1); /* Tira o zoom no celular */
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <div class="container nav-bar">
+            <a href="#" class="logo">Monpec<span class="logo-dot">.</span></a>
+            <nav class="nav-links">
+                <a href="#funcionalidades">Funcionalidades</a>
+                <a href="#precos">Preços</a>
+                <a href="#contato">Contato</a>
+                
+                <a href="{% url 'login' %}" class="cta-button-nav cta-button-login">Acessar Sistema</a>
+                <a href="#demo" class="cta-button-nav cta-button-demo">Solicitar Demo</a>
+            </nav>
+        </div>
+    </header>
+
+    <section class="hero">
+        <h1>Diga adeus à burocracia. Olá, automação.</h1>
+        <p>O Monpec Projetista é o sistema definitivo para projetistas de crédito rural que buscam organizar documentos e automatizar processos repetitivos.</p>
+        <a href="{% url 'login' %}" class="cta-button">Comece sua avaliação gratuita</a>
+    </section>
+
+    <section class="dashboard-image">
+        <div class="container">
+            <img src="https://i.imgur.com/g8fHwUj.png" alt="Dashboard do sistema Monpec Projetista">
+            <p style="margin-top: 15px; font-style: italic; color: #666;">Uma interface intuitiva que centraliza todos os seus projetos e pendências.</p>
+        </div>
+    </section>
+
+    <section class="features" id="funcionalidades">
+        <div class="container">
+            <h2>Organização e Automação na prática</h2>
+            
+            <div class="features-grid">
+                
+                <div class="feature-item">
+                    <h3>Gestão Documental Inteligente</h3>
+                    <p>
+                        Chega de pastas perdidas. Crie checklists de documentos personalizados por linha de crédito e anexe tudo na nuvem. O sistema notifica sobre pendências e organiza automaticamente os arquivos.
+                    </p>
+                </div>
+                <div class="feature-item">
+                    <h3>Automação de Processos</h3>
+                    <p>
+                        Gere laudos, orçamentos e planilhas técnicas com um clique. O Monpec preenche automaticamente os dados nos seus modelos, calcula a viabilidade e formata o projeto final para envio ao banco.
+                    </p>
+                </div>
+                <div class="feature-item">
+                    <h3>Fluxo de Trabalho Visual (Kanban)</h3>
+                    <p>
+                        Acompanhe o status de cada projeto de forma visual. Mova os cartões de "Coleta de Documentos" para "Em Análise" e "Aprovado". Tenha clareza imediata de onde está o gargalo.
+                    </p>
+                </div>
+
+                <div class="feature-item">
+                    <h3>Modelos Prontos para Bancos</h3>
+                    <p>
+                        Utilize nossa biblioteca de modelos de projetos e laudos já formatados para as exigências do Banco do Brasil, Sicredi, Sicoob e outros. Exporte o projeto final em PDF com um clique.
+                    </p>
+                </div>
+                
+                <div class="feature-item">
+                    <h3>Central de Clientes e Propriedades</h3>
+                    <p>
+                        Mantenha um cadastro completo dos seus clientes, dados de propriedades rurais, matrículas e contatos. Acesse o histórico de projetos de cada cliente em um só lugar.
+                    </p>
+                </div>
+
+                <div class="feature-item">
+                    <h3>Relatórios de Desempenho</h3>
+                    <p>
+                        Entenda sua produtividade. Gere relatórios de projetos aprovados, pendentes e recusados. Identifique gargalos e veja o tempo médio de aprovação por linha de crédito.
+                    </p>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <section class="testimonials">
+        <div class="container">
+            <h2>Quem usa, confia</h2>
+            <div class="testimonials-grid">
+                <div class="testimonial-item">
+                    <p>"O Monpec mudou meu jogo. Eu gastava 3 dias para montar um projeto e hoje faço em 4 horas. A organização dos documentos é o melhor."</p>
+                    <span>- João Silva, Projetista em Maracaju/MS</span>
+                </div>
+                <div class="testimonial-item">
+                    <p>"Finalmente um sistema que entende a gente. O fluxo de aprovação e os modelos prontos para o banco economizam um tempo absurdo."</p>
+                    <span>- Maria Andrade, Consultoria Agro</span>
+                </div>
+                <div class="testimonial-item">
+                    <p>"Dobrei o número de projetos aprovados depois que comecei a usar o Monpec. Não perco mais nenhum prazo de documento."</p>
+                    <span>- Carlos Souza, Engenheiro Agrônomo</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="pricing" id="precos">
+        <div class="container">
+            <h2>Planos transparentes para o seu escritório</h2>
+            <p class="pricing-subtitle">Escolha o plano que melhor se adapta ao seu volume de projetos.</p>
+
+            <div class="pricing-grid">
+                
+                <div class="pricing-card">
+                    <h3 class="plan-name">Básico</h3>
+                    <div class="plan-price">R$ 99<span>,00/mês</span></div>
+                    <p class="plan-description">Até 20 projetos/mês</p>
+                    <ul class="plan-features">
+                        <li>Gestão de Clientes e Propriedades</li>
+                        <li>Gestão Documental (Checklist)</li>
+                        <li>Fluxo de Trabalho (Kanban)</li>
+                        <li>Suporte por Email</li>
+                    </ul>
+                    <a href="{% url 'login' %}" class="cta-button-price">Começar com o Básico</a>
+                </div>
+
+                <div class="pricing-card pricing-card-popular">
+                    <div class="popular-badge">Mais Popular</div>
+                    <h3 class="plan-name">Profissional</h3>
+                    <div class="plan-price">R$ 199<span>,00/mês</span></div>
+                    <p class="plan-description">Até 70 projetos/mês</p>
+                    <ul class="plan-features">
+                        <li><strong>Tudo do Básico, mais:</strong></li>
+                        <li>Automação de Documentos</li>
+                        <li>Cálculos de Viabilidade</li>
+                        <li>Biblioteca de Modelos (Bancos)</li>
+                        <li>Suporte Prioritário (WhatsApp)</li>
+                    </ul>
+                    <a href="{% url 'login' %}" class="cta-button-price">Escolher Profissional</a>
+                </div>
+
+                <div class="pricing-card">
+                    <h3 class="plan-name">Premium</h3>
+                    <div class="plan-price">R$ 399<span>,00/mês</span></div>
+                    <p class="plan-description">Projetos Ilimitados</p>
+                    <ul class="plan-features">
+                        <li><strong>Tudo do Profissional, mais:</strong></li>
+                        <li>Múltiplos Usuários (Equipe)</li>
+                        <li>Relatórios Gerenciais Avançados</li>
+                        <li>Integrações (API)</li>
+                        <li>Gerente de Contas Dedicado</li>
+                    </ul>
+                    <a href="{% url 'login' %}" class="cta-button-price">Falar com Vendas</a>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <section class="final-cta" id="demo">
+        <h2>Pronto para eliminar o retrabalho?</h2>
+        <p>Descubra como o Monpec Projetista pode economizar horas do seu dia.</p>
+        <a href="{% url 'login' %}" class="cta-button">Solicite uma Demonstração Gratuita</a>
+    </section>
+
+    <section class="contact" id="contato">
+        <div class="container">
+            <h2>Entre em contato</h2>
+            <p>Tem alguma dúvida? Envie um email para</p>
+            <p style="font-size: 24px; font-weight: 600; color: var(--cor-principal);">contato@monpec.com.br</p>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <a href="#" class="logo">Monpec<span class="logo-dot">.</span></a>
+            <p>© 2025 Monpec Projetista. Todos os direitos reservados.</p>
+        </div>
+    </footer>
+
+</body>
+</html>
+
+

@@ -1,0 +1,229 @@
+{% extends "base_modulos_unificado.html" %}
+{% load formatacao_br %}
+
+{% block title %}IATF Individual - {{ iatf.animal_individual.numero_brinco }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'iatf_dashboard' propriedade.id %}">IATF</a></li>
+            <li class="breadcrumb-item active">{{ iatf.animal_individual.numero_brinco }}</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1"><i class="bi bi-heart-pulse text-danger me-2"></i>IATF - {{ iatf.animal_individual.numero_brinco }}</h2>
+            <p class="text-muted mb-0">{{ propriedade.nome_propriedade }}</p>
+        </div>
+        <div>
+            <span class="badge bg-{% if iatf.status == 'REALIZADA' %}success{% elif iatf.status == 'CANCELADA' %}danger{% else %}warning{% endif %} fs-6">
+                {{ iatf.get_status_display }}
+            </span>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Informações Principais -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">Informações da IATF</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-5">Animal:</dt>
+                        <dd class="col-sm-7">
+                            <a href="{% url 'animal_individual_detalhes' propriedade.id iatf.animal_individual.id %}">
+                                {{ iatf.animal_individual.numero_brinco }}
+                            </a>
+                        </dd>
+                        
+                        <dt class="col-sm-5">Protocolo:</dt>
+                        <dd class="col-sm-7">{{ iatf.protocolo.nome }}</dd>
+                        
+                        <dt class="col-sm-5">Data Início Protocolo:</dt>
+                        <dd class="col-sm-7">{{ iatf.data_inicio_protocolo|date:"d/m/Y" }}</dd>
+                        
+                        <dt class="col-sm-5">Data Dia 0 (GnRH):</dt>
+                        <dd class="col-sm-7">{{ iatf.data_dia_0_gnrh|date:"d/m/Y"|default:"-" }}</dd>
+                        
+                        <dt class="col-sm-5">Data Dia 7 (PGF2α):</dt>
+                        <dd class="col-sm-7">{{ iatf.data_dia_7_pgf2a|date:"d/m/Y"|default:"-" }}</dd>
+                        
+                        <dt class="col-sm-5">Data Dia 9 (GnRH):</dt>
+                        <dd class="col-sm-7">{{ iatf.data_dia_9_gnrh|date:"d/m/Y"|default:"-" }}</dd>
+                        
+                        <dt class="col-sm-5">Data IATF:</dt>
+                        <dd class="col-sm-7">{{ iatf.data_iatf|date:"d/m/Y"|default:"-" }}</dd>
+                        
+                        <dt class="col-sm-5">Touro (Sêmen):</dt>
+                        <dd class="col-sm-7">{{ iatf.touro_semen.nome_touro|default:"-" }}</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <!-- Resultado e Condição -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Resultado e Condição</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-5">Resultado:</dt>
+                        <dd class="col-sm-7">
+                            {% if iatf.resultado %}
+                            <span class="badge bg-{% if iatf.resultado == 'PREMIDA' %}success{% elif iatf.resultado == 'VAZIA' %}danger{% else %}secondary{% endif %}">
+                                {{ iatf.get_resultado_display }}
+                            </span>
+                            {% else %}
+                            <span class="badge bg-secondary">Pendente</span>
+                            {% endif %}
+                        </dd>
+                        
+                        <dt class="col-sm-5">Data Diagnóstico:</dt>
+                        <dd class="col-sm-7">{{ iatf.data_diagnostico|date:"d/m/Y"|default:"-" }}</dd>
+                        
+                        <dt class="col-sm-5">Método Diagnóstico:</dt>
+                        <dd class="col-sm-7">{{ iatf.metodo_diagnostico|default:"-" }}</dd>
+                        
+                        <dt class="col-sm-5">Condição Corporal:</dt>
+                        <dd class="col-sm-7">{{ iatf.condicao_corporal|default:"-" }}</dd>
+                        
+                        <dt class="col-sm-5">Peso (kg):</dt>
+                        <dd class="col-sm-7">{{ iatf.peso_kg|numero_br:2|default:"-" }}</dd>
+                        
+                        <dt class="col-sm-5">Dias Vazia:</dt>
+                        <dd class="col-sm-7">{{ iatf.dias_vazia|default:"-" }}</dd>
+                        
+                        <dt class="col-sm-5">Custo Total:</dt>
+                        <dd class="col-sm-7">{{ iatf.custo_total|moeda_br }}</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <!-- Aplicações de Medicamentos -->
+        <div class="col-md-12 mb-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-prescription2 me-2"></i>Aplicações de Medicamentos</h5>
+                    {% if iatf.status != 'REALIZADA' and iatf.status != 'CANCELADA' %}
+                    <a href="{% url 'iatf_registrar_aplicacao' propriedade.id iatf.id %}" class="btn btn-light btn-sm">
+                        <i class="bi bi-plus-circle me-1"></i>Registrar Aplicação
+                    </a>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Dia Protocolo</th>
+                                    <th>Tipo</th>
+                                    <th>Medicamento</th>
+                                    <th>Data</th>
+                                    <th>Hora</th>
+                                    <th>Aplicado Por</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for aplicacao in aplicacoes %}
+                                <tr>
+                                    <td><strong>Dia {{ aplicacao.dia_protocolo }}</strong></td>
+                                    <td>{{ aplicacao.get_tipo_medicamento_display }}</td>
+                                    <td>{{ aplicacao.nome_medicamento }}</td>
+                                    <td>{{ aplicacao.data_aplicacao|date:"d/m/Y" }}</td>
+                                    <td>{{ aplicacao.hora_aplicacao|default:"-" }}</td>
+                                    <td>{{ aplicacao.aplicado_por.get_full_name|default:aplicacao.aplicado_por.username }}</td>
+                                    <td>
+                                        {% if aplicacao.aplicado_corretamente %}
+                                        <span class="badge bg-success">OK</span>
+                                        {% else %}
+                                        <span class="badge bg-warning">Atenção</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted">Nenhuma aplicação registrada</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Próxima Etapa -->
+        {% if proxima_etapa %}
+        <div class="col-md-12 mb-4">
+            <div class="alert alert-info">
+                <h5 class="alert-heading"><i class="bi bi-info-circle me-2"></i>Próxima Etapa</h5>
+                <p class="mb-0"><strong>{{ proxima_etapa }}</strong></p>
+                {% if proxima_data %}
+                <p class="mb-0">Data: {{ proxima_data|date:"d/m/Y" }}</p>
+                {% endif %}
+                
+                {% if iatf.status == 'DIA_9_GNRH' %}
+                <hr>
+                <a href="{% url 'iatf_registrar_inseminacao' propriedade.id iatf.id %}" class="btn btn-success">
+                    <i class="bi bi-check-circle me-1"></i>Registrar Inseminação Realizada
+                </a>
+                {% elif iatf.status == 'REALIZADA' and iatf.resultado == 'PENDENTE' %}
+                <hr>
+                <a href="{% url 'iatf_registrar_diagnostico' propriedade.id iatf.id %}" class="btn btn-primary">
+                    <i class="bi bi-clipboard-check me-1"></i>Registrar Diagnóstico
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Ações -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-lightning-charge me-2"></i>Ações</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex gap-2 flex-wrap">
+                        {% if iatf.status != 'REALIZADA' and iatf.status != 'CANCELADA' %}
+                        <a href="{% url 'iatf_registrar_aplicacao' propriedade.id iatf.id %}" class="btn btn-primary">
+                            <i class="bi bi-prescription2 me-1"></i>Registrar Aplicação
+                        </a>
+                        {% endif %}
+                        
+                        {% if iatf.status == 'DIA_9_GNRH' %}
+                        <a href="{% url 'iatf_registrar_inseminacao' propriedade.id iatf.id %}" class="btn btn-success">
+                            <i class="bi bi-check-circle me-1"></i>Registrar Inseminação
+                        </a>
+                        {% endif %}
+                        
+                        {% if iatf.status == 'REALIZADA' and iatf.resultado == 'PENDENTE' %}
+                        <a href="{% url 'iatf_registrar_diagnostico' propriedade.id iatf.id %}" class="btn btn-info">
+                            <i class="bi bi-clipboard-check me-1"></i>Registrar Diagnóstico
+                        </a>
+                        {% endif %}
+                        
+                        <a href="{% url 'iatfs_lista' propriedade.id %}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left me-1"></i>Voltar para Lista
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+

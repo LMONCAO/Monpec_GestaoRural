@@ -1,0 +1,164 @@
+{% extends "base_modulos_unificado.html" %}
+
+{% block title %}Inventário SISBOV - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'rastreabilidade_dashboard' propriedade.id %}">Rastreabilidade</a></li>
+            <li class="breadcrumb-item active">Inventário SISBOV</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+        <div>
+            <h2 class="mb-0"><i class="bi bi-clipboard-data text-primary me-2"></i>Inventário Oficial SISBOV</h2>
+            <small class="text-muted">Emitido em {{ data_relatorio|date:"d/m/Y" }}</small>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-secondary" onclick="window.print()"><i class="bi bi-printer me-1"></i>Imprimir / PDF</button>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label">Status</label>
+                    <select name="status" class="form-select">
+                        <option value="">Todos</option>
+                        <option value="ATIVO" {% if status_filtro == 'ATIVO' %}selected{% endif %}>Ativo</option>
+                        <option value="VENDIDO" {% if status_filtro == 'VENDIDO' %}selected{% endif %}>Vendido</option>
+                        <option value="TRANSFERIDO" {% if status_filtro == 'TRANSFERIDO' %}selected{% endif %}>Transferido</option>
+                        <option value="MORTO" {% if status_filtro == 'MORTO' %}selected{% endif %}>Morto</option>
+                        <option value="DESAPARECIDO" {% if status_filtro == 'DESAPARECIDO' %}selected{% endif %}>Desaparecido</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Categoria</label>
+                    <select name="categoria" class="form-select">
+                        <option value="">Todas</option>
+                        {% for categoria in categorias %}
+                        <option value="{{ categoria.id }}" {% if categoria_filtro|add:"" == categoria.id|stringformat:"s" %}selected{% endif %}>{{ categoria.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100"><i class="bi bi-search me-1"></i>Filtrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-primary h-100">
+                <div class="card-body">
+                    <small class="text-muted">Total de animais</small>
+                    <h3 class="mb-0 text-primary">{{ total_animais }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-9">
+            <div class="card h-100">
+                <div class="card-body p-0">
+                    <div class="table-responsive mb-0">
+                        <table class="table table-sm mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Status</th>
+                                    <th class="text-end">Quantidade</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in totais_por_status %}
+                                <tr>
+                                    <td>{{ item.status }}</td>
+                                    <td class="text-end">{{ item.total }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="2" class="text-center text-muted">Sem dados</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0"><i class="bi bi-bar-chart me-2"></i>Resumo por Categoria</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Categoria</th>
+                            <th class="text-end">Quantidade</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in totais_por_categoria %}
+                        <tr>
+                            <td>{{ item.categoria__nome }}</td>
+                            <td class="text-end">{{ item.total }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="2" class="text-center text-muted">Sem registros</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header bg-light">
+            <h5 class="mb-0"><i class="bi bi-list-ul me-2"></i>Inventário Detalhado</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Brinco</th>
+                            <th>Categoria</th>
+                            <th>Status</th>
+                            <th>Sexo</th>
+                            <th>Data Nasc.</th>
+                            <th>Origem</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for animal in animais %}
+                        <tr>
+                            <td><strong>{{ animal.numero_brinco }}</strong></td>
+                            <td>{{ animal.categoria.nome }}</td>
+                            <td>{{ animal.get_status_display }}</td>
+                            <td>{% if animal.sexo == 'F' %}Fêmea{% else %}Macho{% endif %}</td>
+                            <td>{{ animal.data_nascimento|date:"d/m/Y"|default:"-" }}</td>
+                            <td>{{ animal.propriedade_origem.nome_propriedade|default:"Propriedade" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">Nenhum animal encontrado para os filtros informados.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

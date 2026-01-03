@@ -1,0 +1,1278 @@
+{% extends 'base_modulos_unificado.html' %}
+{% load static %}
+{% load formatacao_br %}
+
+{% block title %}Relatório de Vendas da Projeção - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block breadcrumb_extra %}
+    <li class="breadcrumb-item">
+        <a href="{% url 'pecuaria_dashboard' propriedade.id %}">
+            <i class="bi bi-cow"></i>
+            Pecuária
+        </a>
+    </li>
+    <li class="breadcrumb-item">
+        <a href="{% url 'pecuaria_planejamento_dashboard' propriedade.id %}">
+            <i class="bi bi-calendar-check"></i>
+            Planejamento
+        </a>
+    </li>
+    <li class="breadcrumb-item">
+        <a href="{% url 'analise_cenarios' propriedade.id %}">
+            <i class="bi bi-diagram-3"></i>
+            Cenários
+        </a>
+    </li>
+    <li class="breadcrumb-item active">
+        <i class="bi bi-file-earmark-spreadsheet"></i>
+        Relatório de Vendas
+    </li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header da Página -->
+    <div class="submenu-page-header">
+        <div class="d-flex align-items-start gap-4">
+            <div class="submenu-page-icon">
+                <i class="bi bi-file-earmark-spreadsheet"></i>
+            </div>
+            <div class="flex-grow-1">
+                <h1 class="submenu-page-title">Relatório de Vendas da Projeção</h1>
+                {% if planejamento %}
+                <div class="mb-2">
+                    <span class="badge bg-primary fs-6 me-2">
+                        <i class="bi bi-hash me-1"></i>
+                        ID: {{ planejamento.codigo }}
+                    </span>
+                    <span class="text-muted">
+                        Ano: {{ planejamento.ano }} | 
+                        Status: {{ planejamento.get_status_display }}
+                    </span>
+                </div>
+                {% endif %}
+                <p class="submenu-page-description">
+                    Relatório detalhado de vendas projetadas por cenário, com consolidações mensais e anuais.
+                </p>
+            </div>
+            <div class="d-flex gap-2">
+                {% if cenarios %}
+                <div class="btn-group">
+                    <button type="button" class="btn btn-success dropdown-toggle" data-bs-toggle="dropdown">
+                        <i class="bi bi-cart-plus me-2"></i>
+                        Gerar Vendas
+                    </button>
+                    <ul class="dropdown-menu">
+                        {% for cenario in cenarios %}
+                        <li>
+                            <a class="dropdown-item" href="{% url 'gerar_vendas_cenario' propriedade.id cenario.id %}">
+                                <i class="bi bi-play-circle me-2"></i>
+                                Gerar para {{ cenario.nome }}
+                            </a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+                <div class="btn-group">
+                    <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown">
+                        <i class="bi bi-download me-2"></i>
+                        Exportar
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <a class="dropdown-item" href="{% url 'exportar_relatorio_vendas_pdf' propriedade.id %}{% if planejamento and planejamento.codigo %}?codigo={{ planejamento.codigo }}{% if cenario_selecionado %}&cenario={{ cenario_selecionado }}{% endif %}{% if ano_selecionado %}&ano={{ ano_selecionado }}{% endif %}{% if mes_selecionado %}&mes={{ mes_selecionado }}{% endif %}{% elif cenario_selecionado %}?cenario={{ cenario_selecionado }}{% if ano_selecionado %}&ano={{ ano_selecionado }}{% endif %}{% if mes_selecionado %}&mes={{ mes_selecionado }}{% endif %}{% endif %}">
+                                <i class="bi bi-file-pdf me-2 text-danger"></i>
+                                Exportar PDF
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{% url 'exportar_relatorio_vendas_excel' propriedade.id %}{% if planejamento and planejamento.codigo %}?codigo={{ planejamento.codigo }}{% if cenario_selecionado %}&cenario={{ cenario_selecionado }}{% endif %}{% if ano_selecionado %}&ano={{ ano_selecionado }}{% endif %}{% if mes_selecionado %}&mes={{ mes_selecionado }}{% endif %}{% elif cenario_selecionado %}?cenario={{ cenario_selecionado }}{% if ano_selecionado %}&ano={{ ano_selecionado }}{% endif %}{% if mes_selecionado %}&mes={{ mes_selecionado }}{% endif %}{% endif %}">
+                                <i class="bi bi-file-excel me-2 text-success"></i>
+                                Exportar Excel
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <a href="{% url 'analise_cenarios' propriedade.id %}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left me-2"></i>
+                    Voltar aos Cenários
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="content-card">
+                <div class="content-card-header">
+                    <h5 class="mb-0 text-dark fw-semibold">
+                        <i class="bi bi-funnel me-2"></i>
+                        Filtros
+                    </h5>
+                </div>
+                <div class="content-card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Cenário</label>
+                            <select name="cenario" class="form-select">
+                                <option value="">Todos os Cenários</option>
+                                {% for cenario in cenarios %}
+                                <option value="{{ cenario.id }}" {% if cenario_selecionado == cenario.id %}selected{% endif %}>
+                                    {{ cenario.nome }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Ano</label>
+                            <select name="ano" class="form-select">
+                                <option value="">Todos os anos ({{ anos_disponiveis|join:", " }})</option>
+                                {% for ano_opcao in anos_choices %}
+                                <option value="{{ ano_opcao }}" {% if ano_selecionado == ano_opcao %}selected{% endif %}>
+                                    {{ ano_opcao }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            {% if anos_disponiveis|length > 1 %}
+                            <small class="text-muted">Projeção de {{ anos_disponiveis|first }} a {{ anos_disponiveis|last }}</small>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Mês</label>
+                            <select name="mes" class="form-select">
+                                <option value="">Todos os meses</option>
+                                {% for i in "123456789101112"|make_list %}
+                                <option value="{{ i }}" {% if mes_selecionado == i|add:"0" %}selected{% endif %}>
+                                    {% cycle "Janeiro" "Fevereiro" "Março" "Abril" "Maio" "Junho" "Julho" "Agosto" "Setembro" "Outubro" "Novembro" "Dezembro" %}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-search me-2"></i>
+                                Filtrar
+                            </button>
+                            <a href="{% url 'relatorio_vendas_projecao' propriedade.id %}" class="btn btn-secondary ms-2">
+                                <i class="bi bi-x-circle me-2"></i>
+                                Limpar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Estatísticas Gerais -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="content-card">
+                <div class="content-card-body text-center">
+                    <h6 class="text-muted mb-2">Total de Vendas</h6>
+                    <h3 class="mb-0">{{ total_vendas }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="content-card">
+                <div class="content-card-body text-center">
+                    <h6 class="text-muted mb-2">Quantidade de Animais</h6>
+                    <h3 class="mb-0">{{ total_quantidade }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="content-card">
+                <div class="content-card-body text-center">
+                    <h6 class="text-muted mb-2">Valor Total (R$)</h6>
+                    <h3 class="mb-0 text-success">{{ total_valor|moeda_br }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="content-card">
+                <div class="content-card-body text-center">
+                    <h6 class="text-muted mb-2">Peso Total (kg)</h6>
+                    <h3 class="mb-0">{{ total_peso|numero_br:2 }} kg</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabela de Vendas - Formato Projeção -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="content-card">
+                <div class="content-card-header">
+                    <h5 class="mb-0 text-dark fw-semibold">
+                        <i class="bi bi-table me-2"></i>
+                        Vendas Detalhadas
+                    </h5>
+                </div>
+                <div class="content-card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-bordered mb-0">
+                            <thead class="table-light sticky-top" style="background-color: #f8f9fa !important;">
+                                <tr>
+                                    <th style="min-width: 100px;">Data</th>
+                                    <th style="min-width: 120px;">Cenário</th>
+                                    <th class="text-center" style="min-width: 100px;">Quantidade</th>
+                                    <th style="min-width: 180px;">Categoria</th>
+                                    <th style="min-width: 150px;">Cliente</th>
+                                    <th class="text-end" style="min-width: 120px;">Peso Unit. (kg)</th>
+                                    <th class="text-end" style="min-width: 120px;">Peso Total (kg)</th>
+                                    <th class="text-end" style="min-width: 120px;">Vlr por KG (R$)</th>
+                                    <th class="text-end" style="min-width: 130px;">Vlr por Animal (R$)</th>
+                                    <th class="text-end" style="min-width: 140px;">Valor Total (R$)</th>
+                                    <th style="min-width: 120px;">Data Recebimento</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for lote in vendas_agrupadas %}
+                                {% if lote.clientes|length > 1 %}
+                                    <!-- Lote com múltiplos clientes - Linha principal -->
+                                    <tr class="lote-principal" style="background-color: #f0f8ff; font-weight: bold;" data-lote-id="lote-{{ forloop.counter }}">
+                                        <td>
+                                            <strong>{{ lote.data_venda|date:"d/m/Y" }}</strong>
+                                        </td>
+                                        <td>
+                                            {% if lote.cenario %}
+                                            <span class="badge bg-primary">{{ lote.cenario.nome }}</span>
+                                            {% else %}
+                                            <span class="badge bg-secondary">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-center">
+                                            <strong>{{ lote.quantidade_total }}</strong>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-light text-dark">
+                                                {{ lote.categoria.nome }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-info text-white" 
+                                                  onclick="toggleClientes('lote-{{ forloop.counter }}')" 
+                                                  style="cursor: pointer;"
+                                                  title="Clique para ver detalhes dos clientes">
+                                                {{ lote.clientes|length }} cliente(s)
+                                                <i class="bi bi-chevron-down ms-1" id="chevron-lote-{{ forloop.counter }}"></i>
+                                            </span>
+                                            <a href="{% url 'editar_cliente_venda' propriedade.id lote.vendas.0.id %}{% if planejamento and planejamento.codigo %}?codigo={{ planejamento.codigo }}{% if cenario_selecionado %}&cenario={{ cenario_selecionado }}{% endif %}{% elif cenario_selecionado %}?cenario={{ cenario_selecionado }}{% endif %}" 
+                                               class="btn btn-sm btn-outline-light ms-2"
+                                               title="Adicionar/Editar cliente">
+                                                <i class="bi bi-person-plus"></i>
+                                            </a>
+                                        </td>
+                                        <td class="text-end">
+                                            {# Peso Unitário: média (peso_total / quantidade_total) #}
+                                            {% if lote.peso_medio_kg %}
+                                                <strong>{{ lote.peso_medio_kg|numero_br:2 }}</strong>
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end">
+                                            {# Peso Total: soma de todos os pesos #}
+                                            {% if lote.peso_total %}
+                                                <strong>{{ lote.peso_total|numero_br:2 }}</strong>
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end">
+                                            {# Valor por KG: média ponderada (valor_total / peso_total) #}
+                                            {% if lote.clientes|length > 1 %}
+                                                {# Quando há múltiplos clientes, mostrar média ponderada calculada na view #}
+                                                {% if lote.valor_por_kg %}
+                                                    <span class="text-muted" title="Média ponderada. Edite o valor por KG nas linhas individuais dos clientes abaixo">
+                                                        {{ lote.valor_por_kg|moeda_br }}
+                                                    </span>
+                                                {% else %}
+                                                    <span class="text-muted">-</span>
+                                                {% endif %}
+                                            {% else %}
+                                                {# Quando há apenas um cliente, permitir edição na linha principal #}
+                                                {% if lote.valor_por_kg %}
+                                                    <span class="valor-por-kg-editavel" 
+                                                          data-venda-id="{{ lote.vendas.0.id }}"
+                                                          data-propriedade-id="{{ propriedade.id }}"
+                                                          contenteditable="true"
+                                                          style="cursor: pointer; padding: 4px 8px; border: 1px dashed #ccc; border-radius: 4px; min-width: 80px; display: inline-block;"
+                                                          title="Clique para editar o valor por KG">
+                                                        {{ lote.valor_por_kg|moeda_br }}
+                                                    </span>
+                                                {% else %}
+                                                    <span class="valor-por-kg-editavel text-muted" 
+                                                          data-venda-id="{{ lote.vendas.0.id }}"
+                                                          data-propriedade-id="{{ propriedade.id }}"
+                                                          contenteditable="true"
+                                                          style="cursor: pointer; padding: 4px 8px; border: 1px dashed #ccc; border-radius: 4px; min-width: 80px; display: inline-block;"
+                                                          title="Clique para editar o valor por KG">
+                                                        -
+                                                    </span>
+                                                {% endif %}
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end">
+                                            {% if lote.valor_por_animal %}
+                                                {{ lote.valor_por_animal|moeda_br }}
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end">
+                                            <strong class="text-success valor-total-cell">{{ lote.valor_total|moeda_br }}</strong>
+                                        </td>
+                                        <td>
+                                            {% if lote.data_recebimento %}
+                                                {{ lote.data_recebimento|date:"d/m/Y" }}
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    <!-- Linhas detalhadas dos clientes (ocultas inicialmente) -->
+                                    {% for cliente in lote.clientes %}
+                                    <tr class="cliente-detalhe d-none" data-lote-id="lote-{{ forloop.parentloop.counter }}" style="background-color: #f9f9f9;">
+                                        <td></td>
+                                        <td></td>
+                                        <td class="text-center">
+                                            <small>{{ cliente.quantidade }}</small>
+                                        </td>
+                                        <td></td>
+                                        <td style="padding-left: 30px;">
+                                            <i class="bi bi-person me-1"></i>
+                                            <small>{{ cliente.nome }}</small>
+                                            {% for venda in lote.vendas %}
+                                                {% if venda.cliente_nome == cliente.nome %}
+                                                    <a href="{% url 'editar_cliente_venda' propriedade.id venda.id %}{% if planejamento and planejamento.codigo %}?codigo={{ planejamento.codigo }}{% if cenario_selecionado %}&cenario={{ cenario_selecionado }}{% endif %}{% elif cenario_selecionado %}?cenario={{ cenario_selecionado }}{% endif %}" 
+                                                       class="btn btn-xs btn-outline-primary ms-2"
+                                                       title="Editar cliente"
+                                                       onclick="event.stopPropagation();">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </a>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </td>
+                                        <td class="text-end">
+                                            {% for venda in lote.vendas %}
+                                                {% if venda.cliente_nome == cliente.nome %}
+                                                    {% if venda.peso_medio_kg %}
+                                                        <small class="peso-unitario-editavel" 
+                                                               data-venda-id="{{ venda.id }}"
+                                                               data-propriedade-id="{{ propriedade.id }}"
+                                                               contenteditable="true"
+                                                               style="cursor: pointer; padding: 2px 4px; border: 1px dashed #ccc; border-radius: 4px; min-width: 60px; display: inline-block;"
+                                                               title="Clique para editar o peso unitário">
+                                                            {{ venda.peso_medio_kg|numero_br:2 }}
+                                                        </small>
+                                                    {% else %}
+                                                        <small class="peso-unitario-editavel text-muted" 
+                                                               data-venda-id="{{ venda.id }}"
+                                                               data-propriedade-id="{{ propriedade.id }}"
+                                                               contenteditable="true"
+                                                               style="cursor: pointer; padding: 2px 4px; border: 1px dashed #ccc; border-radius: 4px; min-width: 60px; display: inline-block;"
+                                                               title="Clique para editar o peso unitário">
+                                                            -
+                                                        </small>
+                                                    {% endif %}
+                                                {% endif %}
+                                            {% endfor %}
+                                        </td>
+                                        <td class="text-end">
+                                            <small>{{ cliente.peso|numero_br:2 }}</small>
+                                        </td>
+                                        <td class="text-end">
+                                            {% for venda in lote.vendas %}
+                                                {% if venda.cliente_nome == cliente.nome %}
+                                                    {% if venda.valor_por_kg %}
+                                                        <small class="valor-por-kg-editavel" 
+                                                               data-venda-id="{{ venda.id }}"
+                                                               data-propriedade-id="{{ propriedade.id }}"
+                                                               contenteditable="true"
+                                                               style="cursor: pointer; padding: 2px 4px; border: 1px dashed #ccc; border-radius: 4px; min-width: 60px; display: inline-block;"
+                                                               title="Clique para editar o valor por KG">
+                                                            {{ venda.valor_por_kg|moeda_br }}
+                                                        </small>
+                                                    {% else %}
+                                                        <small class="valor-por-kg-editavel text-muted" 
+                                                               data-venda-id="{{ venda.id }}"
+                                                               data-propriedade-id="{{ propriedade.id }}"
+                                                               contenteditable="true"
+                                                               style="cursor: pointer; padding: 2px 4px; border: 1px dashed #ccc; border-radius: 4px; min-width: 60px; display: inline-block;"
+                                                               title="Clique para editar o valor por KG">
+                                                            -
+                                                        </small>
+                                                    {% endif %}
+                                                {% endif %}
+                                            {% endfor %}
+                                        </td>
+                                        <td class="text-end">
+                                            {% for venda in lote.vendas %}
+                                                {% if venda.cliente_nome == cliente.nome %}
+                                                    {% if venda.valor_por_animal %}
+                                                        <small>{{ venda.valor_por_animal|moeda_br }}</small>
+                                                    {% else %}
+                                                        <small class="text-muted">-</small>
+                                                    {% endif %}
+                                                {% endif %}
+                                            {% endfor %}
+                                        </td>
+                                        <td class="text-end">
+                                            <small class="text-info valor-total-cliente-cell">{{ cliente.valor|moeda_br }}</small>
+                                        </td>
+                                        <td>
+                                            {% for venda in lote.vendas %}
+                                                {% if venda.cliente_nome == cliente.nome %}
+                                                    {% if venda.data_recebimento %}
+                                                        <small>{{ venda.data_recebimento|date:"d/m/Y" }}</small>
+                                                    {% else %}
+                                                        <small class="text-muted">-</small>
+                                                    {% endif %}
+                                                {% endif %}
+                                            {% endfor %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <!-- Lote com um único cliente - Linha normal -->
+                                    <tr>
+                                        <td>
+                                            <strong>{{ lote.data_venda|date:"d/m/Y" }}</strong>
+                                        </td>
+                                        <td>
+                                            {% if lote.cenario %}
+                                            <span class="badge bg-primary">{{ lote.cenario.nome }}</span>
+                                            {% else %}
+                                            <span class="badge bg-secondary">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-center">
+                                            <strong>{{ lote.quantidade_total }}</strong>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-light text-dark">
+                                                {{ lote.categoria.nome }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {% if lote.clientes|length > 0 %}
+                                                {{ lote.clientes.0.nome }}
+                                            {% else %}
+                                                Cliente não definido
+                                            {% endif %}
+                                            <a href="{% url 'editar_cliente_venda' propriedade.id lote.vendas.0.id %}{% if planejamento and planejamento.codigo %}?codigo={{ planejamento.codigo }}{% if cenario_selecionado %}&cenario={{ cenario_selecionado }}{% endif %}{% elif cenario_selecionado %}?cenario={{ cenario_selecionado }}{% endif %}" 
+                                               class="btn btn-sm btn-outline-primary ms-2"
+                                               title="Editar cliente">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                        </td>
+                                        <td class="text-end">
+                                            {% if lote.peso_medio_kg %}
+                                                <span class="peso-unitario-editavel" 
+                                                      data-venda-id="{{ lote.vendas.0.id }}"
+                                                      data-propriedade-id="{{ propriedade.id }}"
+                                                      contenteditable="true"
+                                                      style="cursor: pointer; padding: 4px 8px; border: 1px dashed #ccc; border-radius: 4px; min-width: 80px; display: inline-block;"
+                                                      title="Clique para editar o peso unitário">
+                                                    {{ lote.peso_medio_kg|numero_br:2 }}
+                                                </span>
+                                            {% else %}
+                                                <span class="peso-unitario-editavel text-muted" 
+                                                      data-venda-id="{{ lote.vendas.0.id }}"
+                                                      data-propriedade-id="{{ propriedade.id }}"
+                                                      contenteditable="true"
+                                                      style="cursor: pointer; padding: 4px 8px; border: 1px dashed #ccc; border-radius: 4px; min-width: 80px; display: inline-block;"
+                                                      title="Clique para editar o peso unitário">
+                                                    -
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end">
+                                            {% if lote.peso_total %}
+                                                {{ lote.peso_total|numero_br:2 }}
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end">
+                                            {% if lote.valor_por_kg %}
+                                                <span class="valor-por-kg-editavel" 
+                                                      data-venda-id="{{ lote.vendas.0.id }}"
+                                                      data-propriedade-id="{{ propriedade.id }}"
+                                                      contenteditable="true"
+                                                      style="cursor: pointer; padding: 4px 8px; border: 1px dashed #ccc; border-radius: 4px; min-width: 80px; display: inline-block;"
+                                                      title="Clique para editar o valor por KG">
+                                                    {{ lote.valor_por_kg|moeda_br }}
+                                                </span>
+                                            {% else %}
+                                                <span class="valor-por-kg-editavel text-muted" 
+                                                      data-venda-id="{{ lote.vendas.0.id }}"
+                                                      data-propriedade-id="{{ propriedade.id }}"
+                                                      contenteditable="true"
+                                                      style="cursor: pointer; padding: 4px 8px; border: 1px dashed #ccc; border-radius: 4px; min-width: 80px; display: inline-block;"
+                                                      title="Clique para editar o valor por KG">
+                                                    -
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end">
+                                            {% if lote.valor_por_animal %}
+                                                {{ lote.valor_por_animal|moeda_br }}
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end">
+                                            <strong class="text-success valor-total-cell">{{ lote.valor_total|moeda_br }}</strong>
+                                        </td>
+                                        <td>
+                                            {% if lote.data_recebimento %}
+                                                {{ lote.data_recebimento|date:"d/m/Y" }}
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                                {% empty %}
+                                <tr>
+                                    <td colspan="11" class="text-center text-muted py-4">
+                                        <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+                                        <p class="mt-2 mb-0">Nenhuma venda encontrada para os filtros selecionados.</p>
+                                        <small class="d-block mb-3">Gere vendas a partir dos cenários na página de Análise de Cenários.</small>
+                                        {% if cenarios %}
+                                        <div class="d-flex gap-2 justify-content-center">
+                                            {% for cenario in cenarios %}
+                                            <a href="{% url 'gerar_vendas_cenario' propriedade.id cenario.id %}" 
+                                               class="btn btn-sm btn-success"
+                                               onclick="return confirm('Gerar vendas para o cenário {{ cenario.nome }}?')">
+                                                <i class="bi bi-cart-plus me-1"></i>
+                                                Gerar Vendas - {{ cenario.nome }}
+                                            </a>
+                                            {% endfor %}
+                                        </div>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot class="table-light">
+                                <tr style="font-weight: bold;">
+                                    <th colspan="5" class="text-end">TOTAL:</th>
+                                    <th class="text-end">{{ total_quantidade }}</th>
+                                    <th></th>
+                                    <th class="text-end">{{ total_peso|numero_br:2 }} kg</th>
+                                    <th colspan="1"></th>
+                                    <th class="text-end text-success">{{ total_valor|moeda_br }}</th>
+                                    <th></th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Planilha Consolidação por Ano e Mês -->
+    {% if vendas_por_ano %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="content-card">
+                <div class="content-card-header">
+                    <h5 class="mb-0 text-dark fw-semibold">
+                        <i class="bi bi-table me-2"></i>
+                        Planilha de Vendas - Anual e Mensal
+                    </h5>
+                </div>
+                <div class="content-card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-bordered mb-0" id="planilha-vendas">
+                            <thead class="table-light sticky-top" style="background-color: #f8f9fa !important;">
+                                <tr>
+                                    <th style="width: 200px; min-width: 200px;">
+                                        <i class="bi bi-calendar-year me-2"></i>Ano / Mês
+                                    </th>
+                                    <th class="text-end" style="min-width: 100px;">Quantidade</th>
+                                    <th class="text-end" style="min-width: 120px;">Peso Total (kg)</th>
+                                    <th class="text-end" style="min-width: 140px;">Valor Total (R$)</th>
+                                    <th class="text-center" style="width: 100px;">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item_ano in vendas_por_ano %}
+                                <!-- Linha do Ano - Clicável para expandir/recolher -->
+                                <tr class="ano-row" 
+                                    onclick="toggleAnoPlanilha({{ item_ano.ano }})"
+                                    style="cursor: pointer; background-color: #e3f2fd; font-weight: bold;"
+                                    onmouseover="this.style.backgroundColor='#bbdefb'"
+                                    onmouseout="if (!this.classList.contains('expanded')) this.style.backgroundColor='#e3f2fd';">
+                                    <td>
+                                        <i class="bi bi-chevron-right me-2" id="chevron-{{ item_ano.ano }}"></i>
+                                        <strong>{{ item_ano.ano }}</strong>
+                                    </td>
+                                    <td class="text-end">
+                                        <strong>{{ item_ano.total_quantidade }}</strong>
+                                    </td>
+                                    <td class="text-end">
+                                        <strong>{{ item_ano.total_peso|numero_br:2 }} kg</strong>
+                                    </td>
+                                    <td class="text-end">
+                                        <strong class="text-success">{{ item_ano.total_valor|moeda_br }}</strong>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-primary">{{ item_ano.meses|length }} meses</span>
+                                    </td>
+                                </tr>
+                                <!-- Linhas dos Meses - Ocultas inicialmente -->
+                                {% for item_mes in item_ano.meses %}
+                                <tr class="mes-row d-none" 
+                                    data-ano="{{ item_ano.ano }}"
+                                    style="background-color: #f5f5f5;">
+                                    <td style="padding-left: 40px;">
+                                        <i class="bi bi-dot me-2"></i>
+                                        {{ item_mes.mes_nome }}/{{ item_ano.ano }}
+                                    </td>
+                                    <td class="text-end">{{ item_mes.total_quantidade }}</td>
+                                    <td class="text-end">{{ item_mes.total_peso|numero_br:2 }} kg</td>
+                                    <td class="text-end">
+                                        <span class="text-info">{{ item_mes.total_valor|moeda_br }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <a href="{% url 'relatorio_vendas_mensal' propriedade.id item_ano.ano item_mes.mes %}{% if planejamento and planejamento.codigo %}?codigo={{ planejamento.codigo }}{% if cenario_selecionado %}&cenario={{ cenario_selecionado }}{% endif %}{% elif cenario_selecionado %}?cenario={{ cenario_selecionado }}{% endif %}" 
+                                           class="btn btn-xs btn-outline-primary"
+                                           onclick="event.stopPropagation();"
+                                           title="Ver detalhes do mês">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                {% endfor %}
+                            </tbody>
+                            <tfoot class="table-secondary">
+                                <tr style="font-weight: bold;">
+                                    <td>
+                                        <strong>TOTAL GERAL</strong>
+                                    </td>
+                                    <td class="text-end">
+                                        <strong>{{ total_quantidade }}</strong>
+                                    </td>
+                                    <td class="text-end">
+                                        <strong>{{ total_peso|numero_br:2 }} kg</strong>
+                                    </td>
+                                    <td class="text-end">
+                                        <strong class="text-success">{{ total_valor|moeda_br }}</strong>
+                                    </td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Consolidação por Mês -->
+    {% if vendas_por_mes %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="content-card">
+                <div class="content-card-header">
+                    <h5 class="mb-0 text-dark fw-semibold">
+                        <i class="bi bi-calendar3 me-2"></i>
+                        Consolidação Mensal
+                    </h5>
+                </div>
+                <div class="content-card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-bordered mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="min-width: 150px;">Mês/Ano</th>
+                                    <th class="text-center" style="min-width: 120px;">Quantidade</th>
+                                    <th class="text-end" style="min-width: 140px;">Peso Total (kg)</th>
+                                    <th class="text-end" style="min-width: 150px;">Valor Total (R$)</th>
+                                    <th class="text-center" style="min-width: 120px;">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in vendas_por_mes %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ item.mes_nome }}/{{ item.ano }}</strong>
+                                    </td>
+                                    <td class="text-center">
+                                        <strong>{{ item.total_quantidade }}</strong>
+                                    </td>
+                                    <td class="text-end">{{ item.total_peso|numero_br:2 }} kg</td>
+                                    <td class="text-end">
+                                        <strong class="text-success">{{ item.total_valor|moeda_br }}</strong>
+                                    </td>
+                                    <td class="text-center">
+                                        <a href="{% url 'relatorio_vendas_mensal' propriedade.id item.ano item.mes %}{% if planejamento and planejamento.codigo %}?codigo={{ planejamento.codigo }}{% if cenario_selecionado %}&cenario={{ cenario_selecionado }}{% endif %}{% elif cenario_selecionado %}?cenario={{ cenario_selecionado }}{% endif %}" 
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-eye me-1"></i>
+                                            Ver Detalhes
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot class="table-light">
+                                <tr style="font-weight: bold;">
+                                    <th>TOTAL</th>
+                                    <th class="text-center">{{ total_quantidade }}</th>
+                                    <th class="text-end">{{ total_peso|numero_br:2 }} kg</th>
+                                    <th class="text-end text-success">{{ total_valor|moeda_br }}</th>
+                                    <th></th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Consolidação por Categoria -->
+    {% if vendas_por_categoria %}
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="content-card">
+                <div class="content-card-header">
+                    <h5 class="mb-0 text-dark fw-semibold">
+                        <i class="bi bi-tags me-2"></i>
+                        Por Categoria
+                    </h5>
+                </div>
+                <div class="content-card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-bordered mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Categoria</th>
+                                    <th class="text-center">Quantidade</th>
+                                    <th class="text-end">Valor Total (R$)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for categoria, dados in vendas_por_categoria.items %}
+                                <tr>
+                                    <td>
+                                        <span class="badge bg-light text-dark">
+                                            {{ categoria }}
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        <strong>{{ dados.total_quantidade }}</strong>
+                                    </td>
+                                    <td class="text-end">
+                                        <strong class="text-success">{{ dados.total_valor|moeda_br }}</strong>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="content-card">
+                <div class="content-card-header">
+                    <h5 class="mb-0 text-dark fw-semibold">
+                        <i class="bi bi-people me-2"></i>
+                        Por Cliente
+                    </h5>
+                </div>
+                <div class="content-card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-bordered mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Cliente</th>
+                                    <th class="text-center">Quantidade</th>
+                                    <th class="text-end">Valor Total (R$)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for cliente, dados in vendas_por_cliente.items %}
+                                <tr>
+                                    <td>{{ cliente }}</td>
+                                    <td class="text-center">
+                                        <strong>{{ dados.total_quantidade }}</strong>
+                                    </td>
+                                    <td class="text-end">
+                                        <strong class="text-success">{{ dados.total_valor|moeda_br }}</strong>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Link para Relatório Anual -->
+    <div class="row">
+        <div class="col-12 text-center">
+            <a href="{% url 'relatorio_vendas_anual' propriedade.id planejamento.ano %}{% if planejamento and planejamento.codigo %}?codigo={{ planejamento.codigo }}{% if cenario_selecionado %}&cenario={{ cenario_selecionado }}{% endif %}{% elif cenario_selecionado %}?cenario={{ cenario_selecionado }}{% endif %}" 
+               class="btn btn-lg btn-primary">
+                <i class="bi bi-file-earmark-bar-graph me-2"></i>
+                Ver Relatório Anual Consolidado
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Estilo das tabelas - Formato Projeção */
+table.table-bordered {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+table.table-bordered thead th {
+    border: 1px solid #dee2e6;
+    background-color: #f8f9fa !important;
+    font-weight: 600;
+    vertical-align: middle;
+}
+
+table.table-bordered tbody td {
+    border: 1px solid #dee2e6;
+    vertical-align: middle;
+}
+
+table.table-bordered tfoot th {
+    border: 1px solid #dee2e6;
+    background-color: #f8f9fa !important;
+    font-weight: 600;
+}
+
+table.table-bordered tbody tr:hover {
+    background-color: #f5f5f5;
+}
+
+table.table-bordered .sticky-top {
+    z-index: 10;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+#planilha-vendas {
+    font-size: 0.95rem;
+}
+
+#planilha-vendas .ano-row:hover {
+    background-color: #bbdefb !important;
+    transition: background-color 0.2s;
+}
+
+#planilha-vendas .mes-row {
+    transition: all 0.3s ease;
+}
+
+#planilha-vendas .mes-row:hover {
+    background-color: #e8e8e8 !important;
+}
+
+#planilha-vendas .ano-row.expanded {
+    background-color: #90caf9 !important;
+}
+
+#planilha-vendas .sticky-top {
+    z-index: 10;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.chevron-rotated {
+    transform: rotate(90deg);
+    transition: transform 0.3s ease;
+}
+
+/* Estilos para lotes com múltiplos clientes */
+.lote-principal {
+    cursor: pointer;
+}
+
+.lote-principal:hover {
+    background-color: #e3f2fd !important;
+}
+
+.cliente-detalhe {
+    font-size: 0.9rem;
+}
+
+.cliente-detalhe:hover {
+    background-color: #f0f0f0 !important;
+}
+</style>
+
+<script>
+function toggleAnoPlanilha(ano) {
+    const mesesRows = document.querySelectorAll(`.mes-row[data-ano="${ano}"]`);
+    const chevron = document.getElementById(`chevron-${ano}`);
+    const anoRow = event.currentTarget;
+    
+    if (!chevron || mesesRows.length === 0) return;
+    
+    // Verificar se está expandido (verificar se a primeira linha de mês está visível)
+    const isExpanded = !mesesRows[0].classList.contains('d-none');
+    
+    if (isExpanded) {
+        // Recolher - ocultar meses
+        mesesRows.forEach(row => {
+            row.classList.add('d-none');
+        });
+        chevron.classList.remove('chevron-rotated');
+        chevron.classList.remove('bi-chevron-down');
+        chevron.classList.add('bi-chevron-right');
+        anoRow.classList.remove('expanded');
+        anoRow.style.backgroundColor = '#e3f2fd';
+    } else {
+        // Expandir - mostrar meses
+        mesesRows.forEach(row => {
+            row.classList.remove('d-none');
+        });
+        chevron.classList.add('chevron-rotated');
+        chevron.classList.remove('bi-chevron-right');
+        chevron.classList.add('bi-chevron-down');
+        anoRow.classList.add('expanded');
+        anoRow.style.backgroundColor = '#90caf9';
+    }
+}
+
+function toggleClientes(loteId) {
+    const clienteRows = document.querySelectorAll(`.cliente-detalhe[data-lote-id="${loteId}"]`);
+    const chevron = document.getElementById(`chevron-${loteId}`);
+    
+    if (!chevron || clienteRows.length === 0) return;
+    
+    // Verificar se está expandido
+    const isExpanded = !clienteRows[0].classList.contains('d-none');
+    
+    if (isExpanded) {
+        // Recolher - ocultar clientes
+        clienteRows.forEach(row => {
+            row.classList.add('d-none');
+        });
+        chevron.classList.remove('chevron-rotated');
+        chevron.classList.remove('bi-chevron-up');
+        chevron.classList.add('bi-chevron-down');
+    } else {
+        // Expandir - mostrar clientes
+        clienteRows.forEach(row => {
+            row.classList.remove('d-none');
+        });
+        chevron.classList.add('chevron-rotated');
+        chevron.classList.remove('bi-chevron-down');
+        chevron.classList.add('bi-chevron-up');
+    }
+}
+
+// Edição inline do peso unitário
+document.addEventListener('DOMContentLoaded', function() {
+    const pesoUnitarioElements = document.querySelectorAll('.peso-unitario-editavel');
+    
+    pesoUnitarioElements.forEach(element => {
+        let valorOriginal = element.textContent.trim();
+        
+        element.addEventListener('focus', function() {
+            valorOriginal = this.textContent.trim();
+            this.style.backgroundColor = '#fff3cd';
+            this.style.border = '2px solid #ffc107';
+        });
+        
+        element.addEventListener('blur', function() {
+            const novoValor = this.textContent.trim();
+            
+            // Se não mudou, apenas restaurar estilo
+            if (novoValor === valorOriginal || novoValor === '-') {
+                this.style.backgroundColor = '';
+                this.style.border = '1px dashed #ccc';
+                if (novoValor === '-') {
+                    this.textContent = '-';
+                }
+                return;
+            }
+            
+            // Validar formato (número com vírgula ou ponto)
+            const valorNumerico = novoValor.replace(',', '.').replace(/[^\d.]/g, '');
+            if (!valorNumerico || isNaN(parseFloat(valorNumerico))) {
+                alert('Por favor, insira um valor numérico válido.');
+                this.textContent = valorOriginal;
+                this.style.backgroundColor = '';
+                this.style.border = '1px dashed #ccc';
+                return;
+            }
+            
+            // Enviar para o servidor
+            const vendaId = this.getAttribute('data-venda-id');
+            const propriedadeId = this.getAttribute('data-propriedade-id');
+            
+            const formData = new FormData();
+            formData.append('peso_unitario', valorNumerico);
+            
+            // Mostrar indicador de carregamento
+            this.style.backgroundColor = '#e3f2fd';
+            this.style.border = '2px solid #2196f3';
+            const textoOriginal = this.textContent;
+            this.textContent = 'Salvando...';
+            
+            fetch(`/propriedade/${propriedadeId}/pecuaria/venda/${vendaId}/atualizar-peso-unitario/`, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.sucesso) {
+                    // Formatar o valor retornado
+                    const pesoFormatado = parseFloat(data.peso_unitario).toLocaleString('pt-BR', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    });
+                    this.textContent = pesoFormatado;
+                    this.style.backgroundColor = '#d4edda';
+                    this.style.border = '2px solid #28a745';
+                    
+                    // Atualizar peso total se retornado
+                    if (data.peso_total) {
+                        // Atualizar a célula de peso total na mesma linha
+                        const row = this.closest('tr');
+                        const pesoTotalCell = row.querySelector('td:nth-child(7)'); // 7ª coluna (Peso Total)
+                        if (pesoTotalCell) {
+                            const pesoTotalFormatado = parseFloat(data.peso_total).toLocaleString('pt-BR', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2
+                            });
+                            pesoTotalCell.textContent = pesoTotalFormatado + ' kg';
+                        }
+                    }
+                    
+                    // Restaurar estilo após 2 segundos
+                    setTimeout(() => {
+                        this.style.backgroundColor = '';
+                        this.style.border = '1px dashed #ccc';
+                    }, 2000);
+                    
+                    // Recarregar a página após 1 segundo para atualizar todos os valores
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                } else {
+                    alert('Erro ao salvar: ' + (data.erro || 'Erro desconhecido'));
+                    this.textContent = valorOriginal;
+                    this.style.backgroundColor = '';
+                    this.style.border = '1px dashed #ccc';
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                alert('Erro ao salvar o peso unitário. Tente novamente.');
+                this.textContent = valorOriginal;
+                this.style.backgroundColor = '';
+                this.style.border = '1px dashed #ccc';
+            });
+        });
+        
+        element.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                this.blur();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                this.textContent = valorOriginal;
+                this.blur();
+            }
+        });
+    });
+});
+
+// Função auxiliar para obter cookie CSRF
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Edição inline do valor por KG
+document.addEventListener('DOMContentLoaded', function() {
+    const valorPorKgElements = document.querySelectorAll('.valor-por-kg-editavel');
+    
+    valorPorKgElements.forEach(element => {
+        let valorOriginal = element.textContent.trim();
+        
+        element.addEventListener('focus', function() {
+            valorOriginal = this.textContent.trim();
+            this.style.backgroundColor = '#fff3cd';
+            this.style.border = '2px solid #ffc107';
+        });
+        
+        element.addEventListener('blur', function() {
+            const novoValor = this.textContent.trim();
+            
+            // Se não mudou, apenas restaurar estilo
+            if (novoValor === valorOriginal || novoValor === '-') {
+                this.style.backgroundColor = '';
+                this.style.border = '1px dashed #ccc';
+                if (novoValor === '-') {
+                    this.textContent = '-';
+                }
+                return;
+            }
+            
+            // Remover R$ e espaços, substituir vírgula por ponto
+            const valorNumerico = novoValor.replace('R$', '').replace(/\s/g, '').replace(',', '.').replace(/[^\d.]/g, '');
+            if (!valorNumerico || isNaN(parseFloat(valorNumerico))) {
+                alert('Por favor, insira um valor numérico válido.');
+                this.textContent = valorOriginal;
+                this.style.backgroundColor = '';
+                this.style.border = '1px dashed #ccc';
+                return;
+            }
+            
+            // Enviar para o servidor
+            const vendaId = this.getAttribute('data-venda-id');
+            const propriedadeId = this.getAttribute('data-propriedade-id');
+            
+            const formData = new FormData();
+            formData.append('valor_por_kg', valorNumerico);
+            
+            // Mostrar indicador de carregamento
+            this.style.backgroundColor = '#e3f2fd';
+            this.style.border = '2px solid #2196f3';
+            const textoOriginal = this.textContent;
+            this.textContent = 'Salvando...';
+            
+            fetch(`/propriedade/${propriedadeId}/pecuaria/venda/${vendaId}/atualizar-valor-por-kg/`, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.sucesso) {
+                    // Formatar o valor retornado como moeda
+                    const valorFormatado = parseFloat(data.valor_por_kg).toLocaleString('pt-BR', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                        style: 'currency',
+                        currency: 'BRL'
+                    });
+                    this.textContent = valorFormatado;
+                    this.style.backgroundColor = '#d4edda';
+                    this.style.border = '2px solid #28a745';
+                    
+                    // Atualizar valor total se retornado
+                    if (data.valor_total) {
+                        const row = this.closest('tr');
+                        const valorTotalCell = row.querySelector('.valor-total-cell');
+                        if (valorTotalCell) {
+                            const valorTotalFormatado = parseFloat(data.valor_total).toLocaleString('pt-BR', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                                style: 'currency',
+                                currency: 'BRL'
+                            });
+                            valorTotalCell.textContent = valorTotalFormatado;
+                        }
+                    }
+                    
+                    // Atualizar valor por animal se retornado
+                    if (data.valor_por_animal) {
+                        const row = this.closest('tr');
+                        // Procurar a célula de valor por animal (geralmente a 9ª coluna)
+                        const valorPorAnimalCell = row.querySelector('td:nth-child(9)');
+                        if (valorPorAnimalCell) {
+                            const valorPorAnimalFormatado = parseFloat(data.valor_por_animal).toLocaleString('pt-BR', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                                style: 'currency',
+                                currency: 'BRL'
+                            });
+                            valorPorAnimalCell.textContent = valorPorAnimalFormatado;
+                        }
+                    }
+                    
+                    // Atualizar valor total do cliente se estiver em linha de detalhe
+                    if (data.valor_total) {
+                        const row = this.closest('tr');
+                        const valorTotalClienteCell = row.querySelector('.valor-total-cliente-cell');
+                        if (valorTotalClienteCell) {
+                            const valorTotalFormatado = parseFloat(data.valor_total).toLocaleString('pt-BR', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                                style: 'currency',
+                                currency: 'BRL'
+                            });
+                            valorTotalClienteCell.textContent = valorTotalFormatado;
+                        }
+                    }
+                    
+                    // Restaurar estilo após 2 segundos
+                    setTimeout(() => {
+                        this.style.backgroundColor = '';
+                        this.style.border = '1px dashed #ccc';
+                    }, 2000);
+                    
+                    // Recarregar a página após 1 segundo para atualizar todos os valores
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                } else {
+                    alert('Erro ao salvar: ' + (data.erro || 'Erro desconhecido'));
+                    this.textContent = valorOriginal;
+                    this.style.backgroundColor = '';
+                    this.style.border = '1px dashed #ccc';
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                alert('Erro ao salvar o valor por KG. Tente novamente.');
+                this.textContent = valorOriginal;
+                this.style.backgroundColor = '';
+                this.style.border = '1px dashed #ccc';
+            });
+        });
+        
+        element.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                this.blur();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                this.textContent = valorOriginal;
+                this.blur();
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
+

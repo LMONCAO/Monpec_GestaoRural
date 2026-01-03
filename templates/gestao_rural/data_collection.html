@@ -1,0 +1,585 @@
+{% extends "base_modulos_unificado.html" %}
+{% load static %}
+
+{% block title %}Data Collection - Sessão de Coleta{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'gestao_rural/css/data_collection.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="classic-wrapper" data-page="data-collection">
+    <header class="classic-header">
+        <div class="classic-header__meta">
+            <div class="classic-header__title-group">
+                <h1 class="classic-header__title">Data Collection</h1>
+                <p class="classic-header__subtitle">
+                    Sessão {{ sessao.nome|default:"SISBOV" }} · {{ sessao.get_status_display|default:"Ativa" }} · {{ propriedade.nome_propriedade|default:"Propriedade não informada" }}
+                </p>
+            </div>
+            <div class="classic-header__tags">
+                {% if sessao.data_inicio %}
+                <span class="classic-tag">Iniciada em {{ sessao.data_inicio|date:"d/m/Y" }}</span>
+                {% endif %}
+                <span class="classic-tag">Atualizado às {{ resumo_atualizado_em|default:"--:--" }}</span>
+            </div>
+        </div>
+        <nav class="classic-menu" aria-label="Atalhos">
+            <a href="#" class="classic-menu__item">Configuração</a>
+            <a href="#" class="classic-menu__item">Atualizações</a>
+            <a href="#" class="classic-menu__item">Backup</a>
+            <a href="#" class="classic-menu__item">Ajuda</a>
+            <a href="#" class="classic-menu__item">Trato Alimentar</a>
+        </nav>
+    </header>
+
+    <div class="classic-layout">
+        <section class="classic-panel">
+            <div class="classic-form-row">
+                <label for="classicCriatorio" class="classic-label">Criatório</label>
+                <div class="classic-input-group">
+                    <select id="classicCriatorio" class="classic-select">
+                        {% for criatorio in criatorios %}
+                        <option value="{{ criatorio.id }}">{{ criatorio.nome }}</option>
+                        {% empty %}
+                        <option value="" selected>Nenhum criatório disponível</option>
+                        {% endfor %}
+                    </select>
+                    <button type="button" class="classic-button classic-button--ghost">Limpar</button>
+                </div>
+            </div>
+
+            <div class="classic-actions" role="group" aria-label="Ações principais">
+                <button class="classic-action" data-classic-action="importacao">
+                    <span class="classic-action__badge">1</span>
+                    <div class="classic-action__content">
+                        <span class="classic-action__title">Importar / Exportar dados</span>
+                        <span class="classic-action__description">Carga de dispositivos e relatórios consolidados</span>
+                    </div>
+                    <i class="bi bi-arrow-right"></i>
+                </button>
+                <button class="classic-action" data-classic-action="trabalho">
+                    <span class="classic-action__badge">2</span>
+                    <div class="classic-action__content">
+                        <span class="classic-action__title">Iniciar trabalho de curral</span>
+                        <span class="classic-action__description">Registro operacional de manejo em tempo real</span>
+                    </div>
+                    <i class="bi bi-arrow-right"></i>
+                </button>
+                <button class="classic-action" data-classic-action="aparte">
+                    <span class="classic-action__badge">3</span>
+                    <div class="classic-action__content">
+                        <span class="classic-action__title">Aparte</span>
+                        <span class="classic-action__description">Organize lotes e transferências de animais</span>
+                    </div>
+                    <i class="bi bi-arrow-right"></i>
+                </button>
+                <button class="classic-action" data-classic-action="gtas">
+                    <span class="classic-action__badge">4</span>
+                    <div class="classic-action__content">
+                        <span class="classic-action__title">Gerenciar GTAs</span>
+                        <span class="classic-action__description">Emissão e acompanhamento de documentos</span>
+                    </div>
+                    <i class="bi bi-arrow-right"></i>
+                </button>
+                <button class="classic-action" data-classic-action="cadastros">
+                    <span class="classic-action__badge">5</span>
+                    <div class="classic-action__content">
+                        <span class="classic-action__title">Cadastros básicos</span>
+                        <span class="classic-action__description">Protocolos, rebanho e parâmetros de coleta</span>
+                    </div>
+                    <i class="bi bi-arrow-right"></i>
+                </button>
+                <button class="classic-action" data-classic-action="documentacao">
+                    <span class="classic-action__badge">6</span>
+                    <div class="classic-action__content">
+                        <span class="classic-action__title">Documentação SISBOV</span>
+                        <span class="classic-action__description">Check-list de conformidade e emissão</span>
+                    </div>
+                    <i class="bi bi-arrow-right"></i>
+                </button>
+                <button class="classic-action" data-classic-action="exportar-relatorios">
+                    <span class="classic-action__badge">7</span>
+                    <div class="classic-action__content">
+                        <span class="classic-action__title">Relatórios consolidados</span>
+                        <span class="classic-action__description">Exportar dados coletados e indicadores</span>
+                    </div>
+                    <i class="bi bi-arrow-right"></i>
+                </button>
+                <button class="classic-action" data-classic-action="consultar-animal">
+                    <span class="classic-action__badge">8</span>
+                    <div class="classic-action__content">
+                        <span class="classic-action__title">Consultar dados do animal</span>
+                        <span class="classic-action__description">Histórico completo, RFID e coleta individual</span>
+                    </div>
+                    <i class="bi bi-arrow-right"></i>
+                </button>
+                <button class="classic-action" data-classic-action="comparar-lotes">
+                    <span class="classic-action__badge">9</span>
+                    <div class="classic-action__content">
+                        <span class="classic-action__title">Comparar lotes</span>
+                        <span class="classic-action__description">Desempenho e evolução dos grupos</span>
+                    </div>
+                    <i class="bi bi-arrow-right"></i>
+                </button>
+                <button class="classic-action" data-classic-action="vistoria">
+                    <span class="classic-action__badge">10</span>
+                    <div class="classic-action__content">
+                        <span class="classic-action__title">Vistoria</span>
+                        <span class="classic-action__description">Checklist de campo e auditorias</span>
+                    </div>
+                    <i class="bi bi-arrow-right"></i>
+                </button>
+                <button class="classic-action" data-classic-action="apagar-dados">
+                    <span class="classic-action__badge">11</span>
+                    <div class="classic-action__content">
+                        <span class="classic-action__title">Apagar dados coletados</span>
+                        <span class="classic-action__description">Limpeza da sessão e ajustes controlados</span>
+                    </div>
+                    <i class="bi bi-arrow-right"></i>
+                </button>
+                <button class="classic-action" data-classic-action="sair">
+                    <span class="classic-action__badge">12</span>
+                    <div class="classic-action__content">
+                        <span class="classic-action__title">Encerrar</span>
+                        <span class="classic-action__description">Finalizar a coleta e sair da sessão</span>
+                    </div>
+                    <i class="bi bi-arrow-right"></i>
+                </button>
+            </div>
+
+            <div class="classic-status-panel">
+                <dl class="classic-definition">
+                    <div>
+                        <dt>Responsável geral</dt>
+                        <dd>{{ responsavel_master|default:"Não atribuído" }}</dd>
+                    </div>
+                    <div>
+                        <dt>Total de eventos</dt>
+                        <dd>{{ indicadores.amostras_coletadas|default:0 }}</dd>
+                    </div>
+                    <div>
+                        <dt>Equipe ativa</dt>
+                        <dd>{{ coletores|length }} integrantes</dd>
+                    </div>
+                </dl>
+                <div class="classic-status-panel__tags">
+                    {% for etiqueta in etiquetas %}
+                    <span class="classic-tag">{{ etiqueta }}</span>
+                    {% empty %}
+                    <span class="classic-tag">Sessão sem etiquetas</span>
+                    {% endfor %}
+                </div>
+                <a href="#" class="classic-link">Ver histórico da sessão</a>
+            </div>
+        </section>
+
+        <aside class="classic-summary">
+            <section class="classic-card" aria-labelledby="resumo-sessao">
+                <header class="classic-card__header" id="resumo-sessao">
+                    <span class="classic-card__title">Resumo da sessão</span>
+                    <span class="classic-card__hint">Indicadores atualizados com base nos eventos registrados</span>
+                </header>
+                <div class="classic-metric-grid">
+                    <article class="classic-metric">
+                        <span class="classic-metric__label">Execução</span>
+                        <strong class="classic-metric__value">{{ indicadores.percentual_execucao|default:"0%" }}</strong>
+                        <span class="classic-metric__detail">{{ indicadores.amostras_coletadas|default:0 }} de {{ indicadores.amostras_planejadas|default:0 }} etapas concluídas</span>
+                    </article>
+                    <article class="classic-metric">
+                        <span class="classic-metric__label">Pendências críticas</span>
+                        <strong class="classic-metric__value">{{ indicadores.pendencias|default:0 }}</strong>
+                        <span class="classic-metric__detail">{{ indicadores.pendencias_maiores|default:0 }} além do prazo</span>
+                    </article>
+                    <article class="classic-metric">
+                        <span class="classic-metric__label">Conformidade</span>
+                        <strong class="classic-metric__value">{{ indicadores.conformidade|default:"100%" }}</strong>
+                        <span class="classic-metric__detail">{{ indicadores.nao_conformidades_abertas|default:0 }} não conformidades abertas</span>
+                    </article>
+                </div>
+            </section>
+
+            <section class="classic-card" aria-labelledby="equipes-campo">
+                <header class="classic-card__header" id="equipes-campo">
+                    <span class="classic-card__title">Equipe em campo</span>
+                    <span class="classic-card__hint">Sincronização e andamento por coletor</span>
+                </header>
+                <ul class="classic-team-list">
+                    {% for coletor in coletores %}
+                    <li class="classic-team-item">
+                        <div class="classic-team-item__main">
+                            <div class="classic-avatar" aria-hidden="true">{{ coletor.sigla|default:"CC" }}</div>
+                            <div>
+                                <strong>{{ coletor.nome }}</strong>
+                                <span class="classic-team-item__detail">Última sync: {{ coletor.ultima_sync|default:"--:--" }}</span>
+                            </div>
+                        </div>
+                        <div class="classic-team-item__meta">
+                            <span>{{ coletor.total_coletas|default:0 }} coletas</span>
+                            <span>Bateria {{ coletor.bateria|default:"--%" }}</span>
+                        </div>
+                        <span class="classic-badge {% if coletor.status == 'atrasado' %}is-warning{% elif coletor.status == 'offline' %}is-danger{% endif %}">
+                            {{ coletor.status|default:"Ativo" }}
+                        </span>
+                    </li>
+                    {% empty %}
+                    <li class="classic-empty">Nenhum coletor atribuído à sessão.</li>
+                    {% endfor %}
+                </ul>
+            </section>
+
+            <section class="classic-card" aria-labelledby="alertas-sessao">
+                <header class="classic-card__header" id="alertas-sessao">
+                    <span class="classic-card__title">Alertas e não conformidades</span>
+                    <span class="classic-card__hint">Priorize tratativas antes de prosseguir</span>
+                </header>
+                <ul class="classic-alert-list">
+                    {% for alerta in alertas %}
+                    <li class="classic-alert {% if alerta.nivel == 'critico' %}is-danger{% elif alerta.nivel == 'alerta' %}is-warning{% endif %}">
+                        <div class="classic-alert__icon">
+                            <i class="bi {% if alerta.nivel == 'critico' %}bi-x-octagon{% elif alerta.nivel == 'alerta' %}bi-exclamation-triangle{% else %}bi-info-circle{% endif %}"></i>
+                        </div>
+                        <div class="classic-alert__content">
+                            <strong>{{ alerta.titulo }}</strong>
+                            <span>{{ alerta.descricao }}</span>
+                            <span class="classic-alert__meta">Prazo {{ alerta.prazo|default:"-" }}</span>
+                        </div>
+                    </li>
+                    {% empty %}
+                    <li class="classic-empty">Nenhum alerta ativo.</li>
+                    {% endfor %}
+                </ul>
+            </section>
+        </aside>
+    </div>
+
+    <footer class="classic-footer">
+        <div class="classic-footer__info">
+            <span>Última sincronização: {{ resumo_atualizado_em|default:"--/-- --:--" }}</span>
+            <span>Responsável: {{ responsavel_master|default:"Não atribuído" }}</span>
+        </div>
+        <div class="classic-footer__links">
+            <span>AgroSoftware</span>
+            <span>TraceSUS</span>
+            <span>FIN-IED</span>
+        </div>
+    </footer>
+
+    <!-- Modal Aparte -->
+    <div class="classic-modal" data-classic-modal="aparte" hidden role="dialog" aria-modal="true" aria-labelledby="modal-aparte-title">
+        <div class="classic-modal__content">
+            <header class="classic-modal__header">
+                <h2 id="modal-aparte-title">Aparte</h2>
+                <button type="button" class="classic-modal__close" data-classic-dismiss aria-label="Fechar">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </header>
+            <div class="classic-modal__body classic-modal__body--scroll">
+                <section class="classic-section">
+                    <header class="classic-section__header">
+                        <h3>Filtros</h3>
+                        <p>Refine a consulta de apartes e operações recentes</p>
+                    </header>
+                    <div class="classic-filter-grid">
+                        <label>Operação
+                            <select>
+                                <option value="cadastramento">Cadastramento</option>
+                                <option value="aparte">Aparte</option>
+                            </select>
+                        </label>
+                        <label>Período inicial
+                            <input type="date">
+                        </label>
+                        <label>Período final
+                            <input type="date">
+                        </label>
+                        <div class="classic-filter-grid__actions">
+                            <button class="classic-button classic-button--ghost">Limpar</button>
+                            <button class="classic-button classic-button--solid">Buscar</button>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="classic-section">
+                    <header class="classic-section__header">
+                        <h3>Operações registradas</h3>
+                        <p>Últimas movimentações desta sessão</p>
+                    </header>
+                    <div class="classic-table-card">
+                        <table class="classic-table">
+                            <thead>
+                                <tr>
+                                    <th>ID Operação</th>
+                                    <th>Tipo</th>
+                                    <th>Descrição</th>
+                                    <th>Data</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for operacao in operacoes_aparte %}
+                                <tr>
+                                    <td>{{ operacao.id }}</td>
+                                    <td>{{ operacao.tipo }}</td>
+                                    <td>{{ operacao.descricao }}</td>
+                                    <td>{{ operacao.data }}</td>
+                                    <td>{{ operacao.total }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="classic-empty">Nenhuma operação encontrada.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="classic-section">
+                    <header class="classic-section__header">
+                        <h3>Transferência entre lotes</h3>
+                        <p>Selecione os animais e defina o destino</p>
+                    </header>
+                    <div class="classic-transfer">
+                        <div class="classic-transfer__column">
+                            <h4>Origem</h4>
+                            <div class="classic-table-card">
+                                <table class="classic-table">
+                                    <thead>
+                                        <tr>
+                                            <th>SISBOV</th>
+                                            <th>Raça</th>
+                                            <th>Sexo</th>
+                                            <th>Idade</th>
+                                            <th>Peso</th>
+                                            <th>ID</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for animal in animais_transferencia %}
+                                        <tr>
+                                            <td>{{ animal.sisbov }}</td>
+                                            <td>{{ animal.raca }}</td>
+                                            <td>{{ animal.sexo }}</td>
+                                            <td>{{ animal.idade }}</td>
+                                            <td>{{ animal.peso }}</td>
+                                            <td>{{ animal.id }}</td>
+                                        </tr>
+                                        {% empty %}
+                                        <tr>
+                                            <td colspan="6" class="classic-empty">Sem animais disponíveis.</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="classic-transfer__actions" aria-hidden="true">
+                            <button class="classic-button classic-button--ghost" title="Mover seleção para o destino">&rsaquo;</button>
+                            <button class="classic-button classic-button--ghost" title="Mover tudo para o destino">&raquo;</button>
+                            <button class="classic-button classic-button--ghost" title="Retornar seleção para a origem">&lsaquo;</button>
+                            <button class="classic-button classic-button--ghost" title="Retornar tudo para a origem">&laquo;</button>
+                        </div>
+                        <div class="classic-transfer__column">
+                            <h4>Destino</h4>
+                            <div class="classic-table-card">
+                                <table class="classic-table">
+                                    <thead>
+                                        <tr>
+                                            <th>ID Pasto</th>
+                                            <th>Nome</th>
+                                            <th>Lote destino</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for pasto in pastos_disponiveis %}
+                                        <tr>
+                                            <td>{{ pasto.id }}</td>
+                                            <td>{{ pasto.nome }}</td>
+                                            <td>{{ pasto.lote_destino }}</td>
+                                        </tr>
+                                        {% empty %}
+                                        <tr>
+                                            <td colspan="3" class="classic-empty">Nenhum pasto configurado.</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+            <footer class="classic-modal__footer">
+                <button class="classic-button classic-button--ghost" data-classic-dismiss>Voltar</button>
+                <button class="classic-button classic-button--ghost">Limpar</button>
+                <button class="classic-button classic-button--solid">Gravar</button>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Modal Consulta Animal -->
+    <div class="classic-modal" data-classic-modal="consultar-animal" hidden role="dialog" aria-modal="true" aria-labelledby="modal-consulta-title">
+        <div class="classic-modal__content classic-modal__content--wide">
+            <header class="classic-modal__header">
+                <h2 id="modal-consulta-title">Consultar dados do animal</h2>
+                <button type="button" class="classic-modal__close" data-classic-dismiss aria-label="Fechar">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </header>
+            <div class="classic-modal__body classic-modal__body--scroll">
+                <section class="classic-section">
+                    <header class="classic-section__header">
+                        <h3>Identificação</h3>
+                        <p>Informações essenciais do animal monitorado</p>
+                    </header>
+                    <div class="classic-form-grid classic-form-grid--columns">
+                        <label>SISBOV / Manejo
+                            <input type="text" value="{{ dados_animal.sisbov }}">
+                        </label>
+                        <label>RFID
+                            <input type="text" value="{{ dados_animal.rfid }}">
+                        </label>
+                        <label>Status do animal
+                            <input type="text" value="{{ dados_animal.status }}">
+                        </label>
+                        <label>Código
+                            <input type="text" value="{{ dados_animal.status_codigo }}">
+                        </label>
+                    </div>
+                </section>
+
+                <section class="classic-section">
+                    <header class="classic-section__header">
+                        <h3>Última medição</h3>
+                    </header>
+                    <div class="classic-form-grid classic-form-grid--columns">
+                        <label>Sexo <input type="text" value="{{ dados_animal.sexo }}"></label>
+                        <label>Raça <input type="text" value="{{ dados_animal.raca }}"></label>
+                        <label>Último peso (kg) <input type="text" value="{{ dados_animal.ultimo_peso }}"></label>
+                        <label>Data da última pesagem <input type="text" value="{{ dados_animal.data_ultima_pesagem }}"></label>
+                    </div>
+                </section>
+
+                <section class="classic-section">
+                    <div class="classic-tabs">
+                        <div class="classic-tabs__header" role="tablist">
+                            <button class="classic-tabs__button is-active" data-classic-tab="dados-propriedade" role="tab" aria-selected="true">Dados da propriedade</button>
+                            <button class="classic-tabs__button" data-classic-tab="dados-adicionais" role="tab" aria-selected="false">Dados adicionais</button>
+                            <button class="classic-tabs__button" data-classic-tab="operacoes-coleta" role="tab" aria-selected="false">Operações de coleta</button>
+                        </div>
+                        <div class="classic-tabs__content is-active" data-classic-tab-panel="dados-propriedade">
+                            <div class="classic-form-grid classic-form-grid--columns">
+                                <label>Nome do animal <input type="text" value="{{ dados_animal.nome }}"></label>
+                                <label>SISBOV Pai <input type="text" value="{{ dados_animal.nome_pai }}"></label>
+                                <label>SISBOV Mãe <input type="text" value="{{ dados_animal.nome_mae }}"></label>
+                                <label>Peso aos 205 dias (kg) <input type="text" value="{{ dados_animal.peso_205 }}"></label>
+                                <label>Data de nascimento <input type="text" value="{{ dados_animal.data_nascimento }}"></label>
+                            </div>
+                        </div>
+                        <div class="classic-tabs__content" data-classic-tab-panel="dados-adicionais">
+                            <textarea rows="4">{{ dados_animal.dados_adicionais }}</textarea>
+                        </div>
+                        <div class="classic-tabs__content" data-classic-tab-panel="operacoes-coleta">
+                            <ul class="classic-list">
+                                {% for operacao in dados_animal.operacoes %}
+                                <li><strong>{{ operacao.data }}</strong> — {{ operacao.descricao }}</li>
+                                {% empty %}
+                                <li>Nenhuma operação registrada.</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+            </div>
+            <footer class="classic-modal__footer">
+                <button class="classic-button classic-button--ghost" data-classic-dismiss>Voltar</button>
+                <button class="classic-button classic-button--ghost">Limpar</button>
+                <button class="classic-button classic-button--solid">Salvar alterações</button>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Modal Cadastros Básicos / Protocolo IATF -->
+    <div class="classic-modal" data-classic-modal="cadastros" hidden role="dialog" aria-modal="true" aria-labelledby="modal-cadastros-title">
+        <div class="classic-modal__content classic-modal__content--medium">
+            <header class="classic-modal__header">
+                <h2 id="modal-cadastros-title">Cadastro de Protocolo IATF</h2>
+                <button type="button" class="classic-modal__close" data-classic-dismiss aria-label="Fechar">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </header>
+            <div class="classic-modal__body classic-modal__body--scroll">
+                <section class="classic-section">
+                    <header class="classic-section__header">
+                        <h3>Dados do protocolo</h3>
+                    </header>
+                    <div class="classic-form-grid classic-form-grid--columns">
+                        <label>Protocolo existente
+                            <select>
+                                <option value="">Selecione</option>
+                                {% for protocolo in protocolos_iatf %}
+                                <option value="{{ protocolo.id }}">{{ protocolo.nome }}</option>
+                                {% endfor %}
+                            </select>
+                        </label>
+                        <label>Usuário responsável
+                            <input type="text" value="{{ responsavel_master|default:'Usuário padrão' }}">
+                        </label>
+                        <label>Data de cadastro
+                            <input type="date" value="{{ now|date:'Y-m-d' }}">
+                        </label>
+                    </div>
+                </section>
+
+                <section class="classic-section">
+                    <header class="classic-section__header">
+                        <h3>Fases do protocolo</h3>
+                    </header>
+                    <div class="classic-table-card">
+                        <table class="classic-table">
+                            <thead>
+                                <tr>
+                                    <th>Descrição da fase</th>
+                                    <th>Tipo</th>
+                                    <th>Intervalo</th>
+                                    <th>Ordem</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for fase in fases_protocolo %}
+                                <tr>
+                                    <td>{{ fase.descricao }}</td>
+                                    <td>{{ fase.tipo }}</td>
+                                    <td>{{ fase.intervalo }}</td>
+                                    <td>{{ fase.ordem }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="classic-empty">Nenhuma fase cadastrada.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+            <footer class="classic-modal__footer">
+                <button class="classic-button classic-button--ghost" data-classic-dismiss>Voltar</button>
+                <button class="classic-button classic-button--ghost">Limpar campos</button>
+                <button class="classic-button classic-button--solid">Gravar</button>
+            </footer>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'gestao_rural/js/data_collection.js' %}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        document.body.classList.add('classic-fullscreen');
+    });
+</script>
+{% endblock %}
+

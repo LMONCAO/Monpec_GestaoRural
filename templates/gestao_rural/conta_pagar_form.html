@@ -1,0 +1,113 @@
+{% extends "base_modulos_unificado.html" %}
+
+{% block title %}Conta a Pagar - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'financeiro_dashboard' propriedade.id %}">Financeiro</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'contas_pagar_lista' propriedade.id %}">Contas a pagar</a></li>
+            <li class="breadcrumb-item active">Nova conta</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-cash-coin me-2"></i>Dados da conta</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" class="row g-3" novalidate>
+                        {% csrf_token %}
+
+                        {% if form.errors %}
+                        <div class="col-12">
+                            <div class="alert alert-danger" role="alert">
+                                <strong>Verifique os erros abaixo antes de salvar:</strong>
+                                <ul class="mb-0 mt-2">
+                                    {% for field in form %}
+                                        {% for error in field.errors %}
+                                        <li>{{ error }}</li>
+                                        {% endfor %}
+                                    {% endfor %}
+                                    {% for error in form.non_field_errors %}
+                                    <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <div class="col-md-8">
+                            <label class="form-label" for="{{ form.descricao.id_for_label }}">Descrição *</label>
+                            {{ form.descricao }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="{{ form.plano_conta.id_for_label }}">Plano de contas *</label>
+                            {{ form.plano_conta }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="{{ form.centro_custo.id_for_label }}">Centro de custo</label>
+                            {{ form.centro_custo }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="{{ form.conta_preferencial.id_for_label }}">Conta financeira</label>
+                            {{ form.conta_preferencial }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="{{ form.pessoa.id_for_label }}">Fornecedor</label>
+                            {{ form.pessoa }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="{{ form.documento_referencia.id_for_label }}">Documento</label>
+                            {{ form.documento_referencia }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="{{ form.valor.id_for_label }}">Valor (R$) *</label>
+                            {{ form.valor }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="{{ form.vencimento.id_for_label }}">Vencimento *</label>
+                            {{ form.vencimento }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="{{ form.data_emissao.id_for_label }}">Data de emissão</label>
+                            {{ form.data_emissao }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="{{ form.data_competencia.id_for_label }}">Competência</label>
+                            {{ form.data_competencia }}
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="{{ form.observacoes.id_for_label }}">Observações</label>
+                            {{ form.observacoes }}
+                        </div>
+                        <div class="col-12 d-flex gap-2">
+                            <button type="submit" class="btn btn-primary"><i class="bi bi-check-circle me-1"></i>Salvar</button>
+                            <a href="{% url 'contas_pagar_lista' propriedade.id %}" class="btn btn-outline-secondary">Cancelar</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Boas práticas</h6>
+                </div>
+                <div class="card-body small text-muted">
+                    <ul class="mb-0">
+                        <li>Associe fornecedores para conciliar com compras e NF-e.</li>
+                        <li>Registre contas antecipadamente para planejar o fluxo de caixa.</li>
+                        <li>Use observações para vincular documentos e contratos.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

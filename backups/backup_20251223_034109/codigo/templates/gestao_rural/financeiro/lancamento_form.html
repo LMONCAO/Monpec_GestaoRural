@@ -1,0 +1,128 @@
+{% extends 'base_modulos_unificado.html' %}
+{% load formatacao_br %}
+
+{% block title %}{{ titulo }} - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block breadcrumb_extra %}
+    <li class="breadcrumb-item">
+        <a href="{% url 'financeiro_dashboard' propriedade.id %}">
+            <i class="bi bi-cash-coin me-1"></i>Financeiro
+        </a>
+    </li>
+    <li class="breadcrumb-item">
+        <a href="{% url 'financeiro_lancamentos' propriedade.id %}">
+            Lançamentos
+        </a>
+    </li>
+    <li class="breadcrumb-item active">{{ titulo }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="submenu-page-header">
+        <div class="d-flex align-items-start gap-4">
+            <div class="submenu-page-icon bg-primary bg-opacity-10 text-primary">
+                <i class="bi bi-journal-plus"></i>
+            </div>
+            <div class="flex-grow-1">
+                <h1 class="submenu-page-title mb-1">{{ titulo }}</h1>
+                <p class="submenu-page-description mb-0">
+                    Informe os dados do lançamento financeiro vinculados à propriedade {{ propriedade.nome_propriedade }}.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="card-moderno">
+        <div class="card-body-moderno">
+            <form method="post" novalidate>
+                {% csrf_token %}
+                {{ form.propriedade }}
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {{ form.non_field_errors }}
+                    </div>
+                {% endif %}
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Categoria</label>
+                        {{ form.categoria }}
+                        {{ form.categoria.errors }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Centro de Custo</label>
+                        {{ form.centro_custo }}
+                        {{ form.centro_custo.errors }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Conta de Origem</label>
+                        {{ form.conta_origem }}
+                        {{ form.conta_origem.errors }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Conta de Destino</label>
+                        {{ form.conta_destino }}
+                        {{ form.conta_destino.errors }}
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label">Descrição</label>
+                        {{ form.descricao }}
+                        {{ form.descricao.errors }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Valor</label>
+                        {{ form.valor }}
+                        {{ form.valor.errors }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Forma de Pagamento</label>
+                        {{ form.forma_pagamento }}
+                        {{ form.forma_pagamento.errors }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Status</label>
+                        {{ form.status }}
+                        {{ form.status.errors }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Data de Competência</label>
+                        {{ form.data_competencia }}
+                        {{ form.data_competencia.errors }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Data de Vencimento</label>
+                        {{ form.data_vencimento }}
+                        {{ form.data_vencimento.errors }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Data de Quitação</label>
+                        {{ form.data_quitacao }}
+                        {{ form.data_quitacao.errors }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Documento</label>
+                        {{ form.documento_referencia }}
+                        {{ form.documento_referencia.errors }}
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label">Observações</label>
+                        {{ form.observacoes }}
+                        {{ form.observacoes.errors }}
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mt-4">
+                    <a href="{% url 'financeiro_lancamentos' propriedade.id %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-1"></i> Voltar
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle me-1"></i> Salvar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

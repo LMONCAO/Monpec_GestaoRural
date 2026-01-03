@@ -1,0 +1,1360 @@
+{% extends "base_modulos_unificado.html" %}
+{% load static %}
+
+{% block title %}Importar BND/SISBOV · {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .importar-bnd-wrapper {
+        max-width: 100%;
+        margin: 0 auto;
+    }
+
+    .importar-bnd-card {
+        background: #ffffff;
+        border-radius: 20px;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        padding: 2rem 2.4rem;
+        box-shadow: 0 32px 70px rgba(15, 23, 42, 0.08);
+    }
+
+    .importar-bnd-card h2 {
+        font-weight: 700;
+        color: #1e293b;
+    }
+
+    .importar-bnd-card p {
+        color: #475569;
+        line-height: 1.7;
+    }
+
+    .importar-bnd-steps {
+        list-style: none;
+        padding: 0;
+        margin: 1.8rem 0 0;
+    }
+
+    .importar-bnd-steps li {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.9rem;
+        padding: 1rem 0;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.35);
+    }
+
+    .importar-bnd-steps li:last-child {
+        border-bottom: none;
+    }
+
+    .badge-step {
+        width: 36px;
+        height: 36px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #334155, #1e293b);
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+    }
+
+    .importar-bnd-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-top: 2.4rem;
+    }
+
+    .btn-bnd-main {
+        background: linear-gradient(135deg, #0f172a, #1d3a70);
+        color: #ffffff;
+        border-radius: 999px;
+        padding: 0.85rem 2.4rem;
+        border: none;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.6rem;
+        box-shadow: 0 18px 40px rgba(30, 58, 138, 0.28);
+    }
+
+    .btn-bnd-main:hover {
+        color: #ffffff;
+        transform: translateY(-1px);
+    }
+
+    .btn-bnd-outline {
+        border-radius: 999px;
+        border: 1px solid rgba(15, 23, 42, 0.24);
+        padding: 0.85rem 2.2rem;
+        color: #0f172a;
+        font-weight: 500;
+        background: #fff;
+    }
+
+    @media (max-width: 768px) {
+        .importar-bnd-card {
+            padding: 1.8rem;
+        }
+    }
+
+    /* Modal de Preview */
+    .modal-preview-importacao {
+        z-index: 1055;
+    }
+
+    .modal-preview-importacao .modal-content {
+        border-radius: 20px;
+        border: none;
+        box-shadow: 0 32px 70px rgba(15, 23, 42, 0.15);
+    }
+
+    .modal-preview-importacao .modal-header {
+        background: linear-gradient(135deg, #0f172a, #1d3a70);
+        color: #ffffff;
+        border-radius: 20px 20px 0 0;
+        padding: 1.5rem 2rem;
+        border-bottom: none;
+    }
+
+    .modal-preview-importacao .modal-header .btn-close {
+        filter: invert(1);
+    }
+
+    .modal-preview-importacao .modal-title {
+        font-weight: 700;
+        font-size: 1.5rem;
+        color: #ffffff !important;
+    }
+
+    .modal-preview-importacao .modal-body {
+        padding: 2rem;
+    }
+
+    .tabela-comparativa {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1rem;
+    }
+
+    .tabela-comparativa thead {
+        background: linear-gradient(135deg, #334155, #1e293b);
+        color: #ffffff;
+    }
+
+    .tabela-comparativa thead th {
+        padding: 1rem;
+        text-align: center;
+        font-weight: 600;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .tabela-comparativa tbody td {
+        padding: 0.85rem 1rem;
+        text-align: center;
+        border: 1px solid rgba(15, 23, 42, 0.1);
+    }
+
+    .tabela-comparativa tbody tr:nth-child(even) {
+        background: #f8f9fa;
+    }
+
+    .tabela-comparativa tbody tr:hover {
+        background: #e9ecef;
+    }
+
+    .badge-diferenca {
+        padding: 0.35rem 0.75rem;
+        border-radius: 999px;
+        font-weight: 600;
+        font-size: 0.875rem;
+    }
+
+    .badge-diferenca.positivo {
+        background: linear-gradient(135deg, #4caf50 0%, #43a047 100%);
+        color: #ffffff;
+        box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+    }
+
+    .badge-diferenca.negativo {
+        background: linear-gradient(135deg, #f44336 0%, #e53935 100%);
+        color: #ffffff;
+        box-shadow: 0 2px 8px rgba(244, 67, 54, 0.3);
+    }
+
+    .badge-diferenca.zero {
+        background: linear-gradient(135deg, #2196f3 0%, #3b82f6 100%);
+        color: #ffffff;
+        box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
+    }
+
+    .resumo-importacao {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-top: 1.5rem;
+    }
+
+    .resumo-importacao h5 {
+        color: #1e293b;
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+    }
+
+    .resumo-tabela {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 1rem;
+    }
+
+    .resumo-tabela th {
+        background: #e9ecef;
+        padding: 0.75rem;
+        text-align: left;
+        font-weight: 600;
+        color: #495057;
+        border: 1px solid #dee2e6;
+        font-size: 0.875rem;
+    }
+
+    .resumo-tabela td {
+        padding: 0.75rem;
+        border: 1px solid #dee2e6;
+        background: #ffffff;
+        font-size: 0.875rem;
+    }
+
+    .resumo-tabela tbody tr:hover {
+        background: #f8f9fa;
+    }
+
+    .resumo-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid rgba(15, 23, 42, 0.1);
+    }
+
+    .resumo-item:last-child {
+        border-bottom: none;
+    }
+
+    .resumo-item strong {
+        color: #475569;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .resumo-item span {
+        color: #1e293b;
+        font-weight: 600;
+    }
+
+    .loading-preview {
+        text-align: center;
+        padding: 2rem;
+    }
+
+    .spinner-preview {
+        border: 4px solid #f3f4f6;
+        border-top: 4px solid #1d3a70;
+        border-radius: 50%;
+        width: 48px;
+        height: 48px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 1rem;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .progress-bar-container {
+        margin-top: 1.5rem;
+        padding: 1rem;
+        background: #f8f9fa;
+        border-radius: 8px;
+    }
+
+    .progress-bar {
+        height: 24px;
+        background: #e9ecef;
+        border-radius: 12px;
+        overflow: hidden;
+        margin-top: 0.5rem;
+    }
+
+    .progress-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #1d3a70, #3b82f6);
+        transition: width 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+
+    .modal-header-info {
+        background: #f8f9fa;
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid #dee2e6;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+        align-items: center;
+    }
+
+    .modal-header-info-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.9rem;
+        white-space: nowrap;
+    }
+
+    .modal-header-info-item strong {
+        color: #495057;
+        font-weight: 600;
+    }
+
+    .modal-header-info-item span {
+        color: #1e293b;
+        font-weight: 500;
+    }
+
+    @media (max-width: 768px) {
+        .modal-header-info {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+    }
+
+    .tabela-comparativa {
+        font-size: 0.85rem;
+    }
+
+    .tabela-comparativa thead th {
+        font-size: 0.8rem;
+        padding: 0.75rem 0.5rem;
+    }
+
+    .tabela-comparativa tbody td {
+        padding: 0.65rem 0.5rem;
+        font-size: 0.85rem;
+    }
+
+    .total-row {
+        background: #f8f9fa !important;
+        font-weight: 700;
+        border-top: 2px solid #1d3a70 !important;
+    }
+
+    /* Responsividade do Modal */
+    .modal-preview-importacao .modal-dialog {
+        max-width: 95%;
+        margin: 1rem auto;
+    }
+
+    @media (max-width: 1200px) {
+        .modal-preview-importacao .modal-dialog {
+            max-width: 98%;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .modal-preview-importacao .modal-dialog {
+            max-width: 100%;
+            margin: 0;
+            height: 100vh;
+        }
+        
+        .modal-preview-importacao .modal-content {
+            border-radius: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .modal-preview-importacao .modal-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+        
+        .tabela-comparativa {
+            font-size: 0.75rem;
+        }
+        
+        .tabela-comparativa thead th {
+            padding: 0.5rem 0.25rem;
+            font-size: 0.7rem;
+        }
+        
+        .tabela-comparativa tbody td {
+            padding: 0.5rem 0.25rem;
+            font-size: 0.75rem;
+        }
+        
+        .resumo-tabela {
+            font-size: 0.75rem;
+        }
+        
+        .resumo-tabela th,
+        .resumo-tabela td {
+            padding: 0.5rem;
+            font-size: 0.75rem;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .modal-preview-importacao .modal-header {
+            padding: 1rem;
+        }
+        
+        .modal-preview-importacao .modal-title {
+            font-size: 1.1rem;
+        }
+        
+        .modal-header-info {
+            padding: 0.75rem 1rem;
+        }
+        
+        .resumo-importacao {
+            padding: 1rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('formImportarBND');
+    const btnImportar = document.getElementById('btnImportar');
+    const inputArquivo = document.getElementById('arquivo');
+    const btnDemonstracao = document.getElementById('btnDemonstracaoImportacao');
+    const propriedadeId = {{ propriedade.id }};
+    const isDemo = {% if IS_DEMO_USER %}true{% else %}false{% endif %};
+    
+    // Criar modal dinamicamente
+    const propriedadeNome = '{{ propriedade.nome_propriedade }}';
+    const produtorNome = '{{ propriedade.produtor.nome|default:"N/A" }}';
+    const codigoBND = 'BND-{{ propriedade.id|default:"N/A" }}';
+    
+    const modalHTML = `
+        <div class="modal fade modal-preview-importacao" id="modalPreviewImportacao" tabindex="-1" aria-labelledby="modalPreviewImportacaoLabel" aria-hidden="true">
+            <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="modalPreviewImportacaoLabel">
+                            <i class="bi bi-graph-up me-2"></i>
+                            Comparação de Importação BND/SISBOV
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                    </div>
+                    <div class="modal-header-info">
+                        <div class="modal-header-info-item">
+                            <strong><i class="bi bi-person-badge"></i> Criador:</strong>
+                            <span>${produtorNome}</span>
+                        </div>
+                        <div class="modal-header-info-item">
+                            <strong><i class="bi bi-house-door"></i> Propriedade:</strong>
+                            <span>${propriedadeNome}</span>
+                        </div>
+                        <div class="modal-header-info-item">
+                            <strong><i class="bi bi-upc-scan"></i> Código BND:</strong>
+                            <span>${codigoBND}</span>
+                        </div>
+                    </div>
+                    <div class="modal-body" id="modalPreviewBody">
+                        <div class="loading-preview">
+                            <div class="spinner-preview"></div>
+                            <p id="loadingText">Processando arquivo e comparando dados...</p>
+                            <div class="progress-bar-container" id="progressContainer" style="display: none;">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span id="progressText" style="font-size: 0.9rem; font-weight: 500;">Processando animal 0 de 0</span>
+                                    <span id="progressPercent" style="font-size: 0.9rem; font-weight: 600; color: #1d3a70;">0%</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-bar-fill" id="progressBarFill" style="width: 0%;">0%</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-primary" id="btnConfirmarImportacao" style="display: none;">
+                            <i class="bi bi-check-circle me-2"></i>
+                            Confirmar Importação
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Adicionar modal ao body
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // Aguardar um pouco para garantir que o modal foi inserido
+    setTimeout(function() {
+        const modalElement = document.getElementById('modalPreviewImportacao');
+        if (!modalElement) {
+            console.error('[BND/SISBOV] Erro: Modal não foi criado corretamente');
+            return;
+        }
+    }, 100);
+    
+    const modal = new bootstrap.Modal(document.getElementById('modalPreviewImportacao'));
+    let arquivoParaImportar = null;
+    
+    let confirmado = false;
+    
+    // Interceptar submit do formulário (apenas se não for demo e form existe)
+    if (form && !isDemo && inputArquivo) {
+    form.addEventListener('submit', function(e) {
+        // Se já foi confirmado, deixar submit normal
+        if (confirmado) {
+            return true;
+        }
+        
+        e.preventDefault();
+        
+        const arquivo = inputArquivo.files[0];
+        if (!arquivo) {
+            alert('Por favor, selecione um arquivo para importar.');
+            return;
+        }
+        
+        arquivoParaImportar = arquivo;
+        
+        // Mostrar modal com loading
+        const modalBody = document.getElementById('modalPreviewBody');
+        modalBody.innerHTML = `
+            <div class="loading-preview">
+                <div class="spinner-preview"></div>
+                <p>Processando arquivo e comparando dados...</p>
+            </div>
+        `;
+        modal.show();
+        
+        // Fazer preview via AJAX
+        const formData = new FormData();
+        formData.append('arquivo', arquivo);
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+        
+        fetch(`/propriedade/${propriedadeId}/rastreabilidade/importar-bnd/preview/`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.erro) {
+                let erroHTML = `
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        <strong>Erro:</strong> ${data.erro}
+                    </div>
+                `;
+                
+                // Se for erro de biblioteca faltante, adicionar instruções
+                if (data.erro.includes('Biblioteca') && data.erro.includes('não está instalada')) {
+                    erroHTML += `
+                        <div class="alert alert-info mt-3">
+                            <h6 class="fw-bold mb-2"><i class="bi bi-info-circle me-2"></i>Como resolver:</h6>
+                            <ol class="mb-0">
+                                <li>Abra o terminal/PowerShell</li>
+                                <li>Navegue até a pasta do projeto</li>
+                                <li>Execute: <code>pip install PyPDF2 pdfplumber</code></li>
+                                <li>Reinicie o servidor Django</li>
+                            </ol>
+                        </div>
+                    `;
+                }
+                
+                modalBody.innerHTML = erroHTML;
+                document.getElementById('btnConfirmarImportacao').style.display = 'none';
+                return;
+            }
+            
+            // Filtrar dados: remover sexo, raça e indefinido
+            const dadosFiltrados = data.tabela_comparativa.filter(item => 
+                item.sexo !== 'Indefinido' && item.era !== 'Indefinido'
+            );
+            
+            // Agrupar apenas por idade (sem sexo)
+            const dadosAgrupados = {};
+            let totalSistema = 0;
+            let totalArquivo = 0;
+            
+            dadosFiltrados.forEach(item => {
+                const chave = item.era;
+                if (!dadosAgrupados[chave]) {
+                    dadosAgrupados[chave] = {
+                        era: item.era,
+                        quantidade_sistema: 0,
+                        quantidade_arquivo: 0
+                    };
+                }
+                dadosAgrupados[chave].quantidade_sistema += item.quantidade_sistema;
+                dadosAgrupados[chave].quantidade_arquivo += item.quantidade_arquivo;
+                totalSistema += item.quantidade_sistema;
+                totalArquivo += item.quantidade_arquivo;
+            });
+            
+            // Ordenar por era (ordem: 0-12, 12-24, 24-36, +36)
+            const ordemEra = {'0-12': 1, '12-24': 2, '24-36': 3, '+36': 4};
+            const tabelaOrdenada = Object.values(dadosAgrupados).sort((a, b) => {
+                return (ordemEra[a.era] || 99) - (ordemEra[b.era] || 99);
+            });
+            
+            // Agrupar por idade e sexo
+            const dadosAgrupadosPorSexo = {};
+            dadosFiltrados.forEach(item => {
+                const chave = `${item.era}_${item.sexo || 'N/A'}`;
+                if (!dadosAgrupadosPorSexo[chave]) {
+                    dadosAgrupadosPorSexo[chave] = {
+                        era: item.era,
+                        sexo: item.sexo || 'N/A',
+                        quantidade_sistema: 0,
+                        quantidade_arquivo: 0
+                    };
+                }
+                dadosAgrupadosPorSexo[chave].quantidade_sistema += item.quantidade_sistema;
+                dadosAgrupadosPorSexo[chave].quantidade_arquivo += item.quantidade_arquivo;
+            });
+            
+            // Ordenar: primeiro por era, depois por sexo (Fêmea primeiro)
+            // Reutilizar ordemEra já declarada acima
+            const ordemSexo = {'Fêmea': 1, 'Macho': 2, 'N/A': 3};
+            const tabelaOrdenadaComSexo = Object.values(dadosAgrupadosPorSexo).sort((a, b) => {
+                const ordemEraA = ordemEra[a.era] || 99;
+                const ordemEraB = ordemEra[b.era] || 99;
+                if (ordemEraA !== ordemEraB) {
+                    return ordemEraA - ordemEraB;
+                }
+                const ordemSexoA = ordemSexo[a.sexo] || 99;
+                const ordemSexoB = ordemSexo[b.sexo] || 99;
+                return ordemSexoA - ordemSexoB;
+            });
+            
+            // Construir tabela comparativa
+            let tabelaHTML = `
+                <div class="mb-4">
+                    <h6 class="fw-bold mb-3">Comparação por Idade (meses) e Sexo</h6>
+                    <div class="table-responsive">
+                        <table class="table tabela-comparativa">
+                            <thead>
+                                <tr>
+                                    <th>Idade (meses)</th>
+                                    <th class="text-center">Sexo</th>
+                                    <th class="text-center">No Sistema</th>
+                                    <th class="text-center">BND/SISBOV</th>
+                                    <th class="text-center">Diferença</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+            `;
+            
+            tabelaOrdenadaComSexo.forEach(item => {
+                const diferenca = item.quantidade_arquivo - item.quantidade_sistema;
+                let classeDiferenca = 'zero';
+                let simboloDiferenca = '';
+                if (diferenca > 0) {
+                    classeDiferenca = 'positivo';
+                    simboloDiferenca = '+';
+                } else if (diferenca < 0) {
+                    classeDiferenca = 'negativo';
+                }
+                
+                // Formatar era para mostrar "meses"
+                let eraDisplay = item.era;
+                if (!item.era.includes('meses')) {
+                    eraDisplay = item.era + ' meses';
+                }
+                
+                // Converter sexo para sigla
+                let sexoSigla = 'N/A';
+                if (item.sexo === 'Fêmea' || item.sexo === 'F') {
+                    sexoSigla = 'FE';
+                } else if (item.sexo === 'Macho' || item.sexo === 'M') {
+                    sexoSigla = 'MA';
+                }
+                
+                tabelaHTML += `
+                    <tr>
+                        <td><strong>${eraDisplay}</strong></td>
+                        <td class="text-center"><span class="badge bg-secondary">${sexoSigla}</span></td>
+                        <td class="text-center">${item.quantidade_sistema}</td>
+                        <td class="text-center">${item.quantidade_arquivo}</td>
+                        <td class="text-center">
+                            <span class="badge-diferenca ${classeDiferenca}">
+                                ${simboloDiferenca}${diferenca}
+                            </span>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            // Adicionar linha de totais
+            const diferencaTotal = totalArquivo - totalSistema;
+            let classeTotal = 'zero';
+            let simboloTotal = '';
+            if (diferencaTotal > 0) {
+                classeTotal = 'positivo';
+                simboloTotal = '+';
+            } else if (diferencaTotal < 0) {
+                classeTotal = 'negativo';
+            }
+            
+            tabelaHTML += `
+                    <tr class="total-row">
+                        <td><strong>TOTAL</strong></td>
+                        <td class="text-center">-</td>
+                        <td class="text-center"><strong>${totalSistema}</strong></td>
+                        <td class="text-center"><strong>${totalArquivo}</strong></td>
+                        <td class="text-center">
+                            <span class="badge-diferenca ${classeTotal}">
+                                ${simboloTotal}${diferencaTotal}
+                            </span>
+                        </td>
+                    </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="resumo-importacao">
+                    <h5><i class="bi bi-info-circle me-2"></i>Resumo da Importação</h5>
+                    
+                    <div class="mb-4">
+                        <h6 class="fw-bold mb-3 text-muted">Estatísticas Gerais</h6>
+                        <table class="resumo-tabela">
+                            <thead>
+                                <tr>
+                                    <th style="width: 60%;">Descrição</th>
+                                    <th class="text-center" style="width: 40%;">Quantidade</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Total de animais no sistema</strong></td>
+                                    <td class="text-center"><span class="badge bg-secondary">${data.total_sistema}</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Total de animais no arquivo</strong></td>
+                                    <td class="text-center"><span class="badge bg-info">${data.total_arquivo}</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h6 class="fw-bold mb-3 text-muted">Status dos Animais</h6>
+                        <table class="resumo-tabela">
+                            <thead>
+                                <tr>
+                                    <th style="width: 50%;">Status</th>
+                                    <th class="text-center" style="width: 20%;">Quantidade</th>
+                                    <th style="width: 30%;">Descrição</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong><i class="bi bi-check-circle text-success me-1"></i>Animais Conformes</strong></td>
+                                    <td class="text-center"><span class="badge bg-success">${data.resumo.animais_conformes || 0}</span></td>
+                                    <td><small class="text-muted">Encontrados no BND/SISBOV com dados idênticos</small></td>
+                                </tr>
+                                <tr>
+                                    <td><strong><i class="bi bi-exclamation-triangle text-warning me-1"></i>Animais Divergentes</strong></td>
+                                    <td class="text-center"><span class="badge bg-warning">${data.resumo.animais_divergentes || 0}</span></td>
+                                    <td><small class="text-muted">Encontrados no BND/SISBOV mas com dados diferentes</small></td>
+                                </tr>
+                                <tr>
+                                    <td><strong><i class="bi bi-x-circle text-danger me-1"></i>Animais Não Conformes</strong></td>
+                                    <td class="text-center"><span class="badge bg-danger">${data.resumo.animais_nao_conformes || 0}</span></td>
+                                    <td><small class="text-muted">No sistema mas NÃO encontrados no BND/SISBOV</small></td>
+                                </tr>
+                                <tr>
+                                    <td><strong><i class="bi bi-plus-circle text-info me-1"></i>Animais que serão criados</strong></td>
+                                    <td class="text-center"><span class="badge bg-info">${data.resumo.animais_que_serao_criados || 0}</span></td>
+                                    <td><small class="text-muted">No BND/SISBOV mas não no sistema</small></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    ${(data.resumo.divergencias_data || 0) > 0 ? `
+                    <div class="mb-4">
+                        <h6 class="fw-bold mb-3 text-muted">Detalhes das Divergências</h6>
+                        <table class="resumo-tabela">
+                            <thead>
+                                <tr>
+                                    <th style="width: 60%;">Tipo de Divergência</th>
+                                    <th class="text-center" style="width: 40%;">Quantidade</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Divergências de data de nascimento</strong></td>
+                                    <td class="text-center"><span class="badge bg-warning">${data.resumo.divergencias_data}</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    ` : ''}
+                    
+                    ${(data.detalhes && (data.detalhes.divergentes.length > 0 || data.detalhes.nao_conformes.length > 0)) ? `
+                    <div class="mb-3 pt-2 border-top">
+                        <h6 class="fw-bold mb-2 text-muted">Detalhes dos Problemas</h6>
+                        ${data.detalhes.divergentes.length > 0 ? `
+                        <div class="mb-2">
+                            <strong class="text-warning">Animais Divergentes (primeiros ${Math.min(10, data.detalhes.divergentes.length)}):</strong>
+                            <div class="mt-2" style="max-height: 150px; overflow-y: auto;">
+                                ${data.detalhes.divergentes.slice(0, 10).map(animal => {
+                                    const divs = animal.divergencias.map(d => {
+                                        if (d === 'sexo') return `Sexo: ${animal.sexo_sistema} → ${animal.sexo_arquivo}`;
+                                        if (d === 'raca') return `Raça: ${animal.raca_sistema || 'N/A'} → ${animal.raca_arquivo || 'N/A'}`;
+                                        if (d === 'data_nascimento') return 'Data de nascimento diferente';
+                                        return d;
+                                    }).join(', ');
+                                    return `<div class="small mb-1"><code>${animal.codigo_sisbov}</code> - ${divs}</div>`;
+                                }).join('')}
+                            </div>
+                        </div>
+                        ` : ''}
+                        ${data.detalhes.nao_conformes && data.detalhes.nao_conformes.length > 0 ? `
+                        <div class="mb-2">
+                            <strong class="text-danger">Animais Não Conformes (primeiros ${Math.min(10, data.detalhes.nao_conformes.length)}):</strong>
+                            <small class="text-muted d-block mb-2">Animais que estão no sistema mas não foram encontrados no BND/SISBOV</small>
+                            <div class="mt-2" style="max-height: 150px; overflow-y: auto;">
+                                ${data.detalhes.nao_conformes.slice(0, 10).map(animal => 
+                                    `<div class="small mb-1"><code>${animal.codigo_sisbov || animal.numero_brinco || 'N/A'}</code> - Brinco: ${animal.numero_brinco || 'N/A'}</div>`
+                                ).join('')}
+                            </div>
+                        </div>
+                        ` : ''}
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+            
+            modalBody.innerHTML = tabelaHTML;
+            document.getElementById('btnConfirmarImportacao').style.display = 'inline-block';
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            modalBody.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <strong>Erro:</strong> Não foi possível processar o arquivo. Tente novamente.
+                </div>
+            `;
+            document.getElementById('btnConfirmarImportacao').style.display = 'none';
+        });
+    });
+    
+    // Confirmar importação
+    document.getElementById('btnConfirmarImportacao').addEventListener('click', function() {
+        if (!arquivoParaImportar) {
+            return;
+        }
+        
+        // Fechar modal
+        modal.hide();
+        
+        // Marcar como confirmado e fazer submit do form original
+        confirmado = true;
+        
+        // Desabilitar botão e mostrar loading
+        btnImportar.disabled = true;
+        btnImportar.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Importando...';
+        
+        // Garantir que o arquivo ainda está no input
+        if (inputArquivo.files.length === 0) {
+            // Recriar input file com o arquivo
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(arquivoParaImportar);
+            inputArquivo.files = dataTransfer.files;
+        }
+        
+        // Fazer submit do form original
+        if (form) {
+        form.submit();
+        }
+    });
+    }
+    
+    // Função para demonstração (usuários demo)
+    if (isDemo) {
+        // Função para processar a demonstração
+        function processarDemonstracao() {
+            console.log('[BND/SISBOV] Iniciando demonstração...');
+                
+            // Verificar se o modal existe
+            const modalElement = document.getElementById('modalPreviewImportacao');
+            if (!modalElement) {
+                console.error('[BND/SISBOV] Modal não encontrado!');
+                alert('Erro: Modal não encontrado. Por favor, recarregue a página.');
+                return;
+            }
+            
+            // Mostrar modal com loading e barra de progresso
+            const modalBody = document.getElementById('modalPreviewBody');
+            if (!modalBody) {
+                console.error('[BND/SISBOV] Modal body não encontrado!');
+                return;
+            }
+            
+            const totalAnimais = 350; // Total simulado
+            let animaisProcessados = 0;
+            
+            modalBody.innerHTML = `
+                <div class="loading-preview">
+                    <div class="spinner-preview"></div>
+                    <p id="loadingText">Processando arquivo e comparando dados...</p>
+                    <div class="progress-bar-container" id="progressContainer">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span id="progressText" style="font-size: 0.9rem; font-weight: 500;">Processando animal 0 de ${totalAnimais}</span>
+                            <span id="progressPercent" style="font-size: 0.9rem; font-weight: 600; color: #1d3a70;">0%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-bar-fill" id="progressBarFill" style="width: 0%;">0%</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Garantir que o modal Bootstrap está inicializado
+            let modalInstance = bootstrap.Modal.getInstance(modalElement);
+            if (!modalInstance) {
+                modalInstance = new bootstrap.Modal(modalElement);
+            }
+            modalInstance.show();
+            
+            // Simular processamento com barra de progresso durante 20 segundos
+            const duracaoTotal = 20000; // 20 segundos
+            const intervalo = 200; // Atualizar a cada 200ms
+            const incrementoPorIntervalo = (totalAnimais / (duracaoTotal / intervalo));
+            
+            const progressBarFill = document.getElementById('progressBarFill');
+            const progressText = document.getElementById('progressText');
+            const progressPercent = document.getElementById('progressPercent');
+            
+            let tempoDecorrido = 0;
+            const progressInterval = setInterval(function() {
+                tempoDecorrido += intervalo;
+                animaisProcessados = Math.min(Math.floor((tempoDecorrido / duracaoTotal) * totalAnimais), totalAnimais);
+                const percentual = Math.min((tempoDecorrido / duracaoTotal) * 100, 100);
+                
+                if (progressBarFill) {
+                    progressBarFill.style.width = percentual + '%';
+                    progressBarFill.textContent = Math.round(percentual) + '%';
+                }
+                if (progressText) {
+                    progressText.textContent = `Processando animal ${animaisProcessados} de ${totalAnimais}`;
+                }
+                if (progressPercent) {
+                    progressPercent.textContent = Math.round(percentual) + '%';
+                }
+                
+                if (tempoDecorrido >= duracaoTotal) {
+                    clearInterval(progressInterval);
+                }
+            }, intervalo);
+            
+            // Continuar com a exibição dos dados após 20 segundos (fora do setInterval)
+            setTimeout(function() {
+                // Dados de demonstração simulados (com sexo)
+                const dadosDemo = {
+                    tabela_comparativa: [
+                        {era: '0-12', sexo: 'Fêmea', quantidade_sistema: 50, quantidade_arquivo: 53},
+                        {era: '0-12', sexo: 'Macho', quantidade_sistema: 47, quantidade_arquivo: 50},
+                        {era: '12-24', sexo: 'Fêmea', quantidade_sistema: 58, quantidade_arquivo: 60},
+                        {era: '12-24', sexo: 'Macho', quantidade_sistema: 52, quantidade_arquivo: 55},
+                        {era: '24-36', sexo: 'Fêmea', quantidade_sistema: 38, quantidade_arquivo: 40},
+                        {era: '24-36', sexo: 'Macho', quantidade_sistema: 35, quantidade_arquivo: 38},
+                        {era: '+36', sexo: 'Fêmea', quantidade_sistema: 23, quantidade_arquivo: 25},
+                        {era: '+36', sexo: 'Macho', quantidade_sistema: 20, quantidade_arquivo: 23}
+                    ],
+                    total_sistema: 323,
+                    total_arquivo: 344,
+                    resumo: {
+                        animais_conformes: 280,
+                        animais_divergentes: 12,
+                        animais_nao_conformes: 8,
+                        animais_que_serao_criados: 22,
+                        divergencias_data: 4
+                    },
+                    detalhes: {
+                        divergentes: [
+                            {codigo_sisbov: '105500376200386', divergencias: ['data_nascimento']}
+                        ],
+                        nao_conformes: [
+                            {codigo_sisbov: '105500376200394', numero_brinco: 'MON001'},
+                            {codigo_sisbov: '105500376200402', numero_brinco: 'MON002'}
+                        ]
+                    }
+                };
+                
+                // Calcular totais
+                let totalSistema = 0;
+                let totalArquivo = 0;
+                dadosDemo.tabela_comparativa.forEach(item => {
+                    totalSistema += item.quantidade_sistema;
+                    totalArquivo += item.quantidade_arquivo;
+                });
+                
+                // Ordenar por era e sexo
+                const ordemEra = {'0-12': 1, '12-24': 2, '24-36': 3, '+36': 4};
+                const ordemSexo = {'Fêmea': 1, 'Macho': 2, 'N/A': 3};
+                const tabelaOrdenada = [...dadosDemo.tabela_comparativa].sort((a, b) => {
+                    const ordemEraA = ordemEra[a.era] || 99;
+                    const ordemEraB = ordemEra[b.era] || 99;
+                    if (ordemEraA !== ordemEraB) {
+                        return ordemEraA - ordemEraB;
+                    }
+                    const ordemSexoA = ordemSexo[a.sexo] || 99;
+                    const ordemSexoB = ordemSexo[b.sexo] || 99;
+                    return ordemSexoA - ordemSexoB;
+                });
+                
+                // Construir tabela comparativa
+                let tabelaHTML = `
+                    <div class="mb-4">
+                        <h6 class="fw-bold mb-3">Comparação por Idade (meses) e Sexo</h6>
+                        <div class="table-responsive">
+                            <table class="table tabela-comparativa">
+                                <thead>
+                                    <tr>
+                                        <th>Idade (meses)</th>
+                                        <th class="text-center">Sexo</th>
+                                        <th class="text-center">No Sistema</th>
+                                        <th class="text-center">BND/SISBOV</th>
+                                        <th class="text-center">Diferença</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                `;
+                
+                tabelaOrdenada.forEach(item => {
+                    const diferenca = item.quantidade_arquivo - item.quantidade_sistema;
+                    let classeDiferenca = 'zero';
+                    let simboloDiferenca = '';
+                    if (diferenca > 0) {
+                        classeDiferenca = 'positivo';
+                        simboloDiferenca = '+';
+                    } else if (diferenca < 0) {
+                        classeDiferenca = 'negativo';
+                    }
+                    
+                    let eraDisplay = item.era;
+                    if (!item.era.includes('meses')) {
+                        eraDisplay = item.era + ' meses';
+                    }
+                    
+                    // Converter sexo para sigla
+                    let sexoSigla = 'N/A';
+                    if (item.sexo === 'Fêmea' || item.sexo === 'F') {
+                        sexoSigla = 'FE';
+                    } else if (item.sexo === 'Macho' || item.sexo === 'M') {
+                        sexoSigla = 'MA';
+                    }
+                    
+                    tabelaHTML += `
+                        <tr>
+                            <td><strong>${eraDisplay}</strong></td>
+                            <td class="text-center"><span class="badge bg-secondary">${sexoSigla}</span></td>
+                            <td class="text-center">${item.quantidade_sistema}</td>
+                            <td class="text-center">${item.quantidade_arquivo}</td>
+                            <td class="text-center">
+                                <span class="badge-diferenca ${classeDiferenca}">
+                                    ${simboloDiferenca}${diferenca}
+                                </span>
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                // Adicionar linha de totais
+                const diferencaTotal = totalArquivo - totalSistema;
+                let classeTotal = 'zero';
+                let simboloTotal = '';
+                if (diferencaTotal > 0) {
+                    classeTotal = 'positivo';
+                    simboloTotal = '+';
+                } else if (diferencaTotal < 0) {
+                    classeTotal = 'negativo';
+                }
+                
+                tabelaHTML += `
+                    <tr class="total-row">
+                        <td><strong>TOTAL</strong></td>
+                        <td class="text-center">-</td>
+                        <td class="text-center"><strong>${totalSistema}</strong></td>
+                        <td class="text-center"><strong>${totalArquivo}</strong></td>
+                        <td class="text-center">
+                            <span class="badge-diferenca ${classeTotal}">
+                                ${simboloTotal}${diferencaTotal}
+                            </span>
+                        </td>
+                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>
+                        <strong>Versão Demonstração:</strong> Esta é uma simulação da importação. Na versão completa, os dados serão processados do arquivo real enviado.
+                    </div>
+                    
+                    <div class="resumo-importacao">
+                        <h5><i class="bi bi-info-circle me-2"></i>Resumo da Importação</h5>
+                        
+                        <div class="mb-4">
+                            <h6 class="fw-bold mb-3 text-muted">Estatísticas Gerais</h6>
+                            <table class="resumo-tabela">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 60%;">Descrição</th>
+                                        <th class="text-center" style="width: 40%;">Quantidade</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><strong>Total de animais no sistema</strong></td>
+                                        <td class="text-center"><span class="badge bg-secondary">${dadosDemo.total_sistema}</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Total de animais no arquivo</strong></td>
+                                        <td class="text-center"><span class="badge bg-info">${dadosDemo.total_arquivo}</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <h6 class="fw-bold mb-3 text-muted">Status dos Animais</h6>
+                            <table class="resumo-tabela">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 50%;">Status</th>
+                                        <th class="text-center" style="width: 20%;">Quantidade</th>
+                                        <th style="width: 30%;">Descrição</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><strong><i class="bi bi-check-circle text-success me-1"></i>Animais Conformes</strong></td>
+                                        <td class="text-center"><span class="badge bg-success">${dadosDemo.resumo.animais_conformes}</span></td>
+                                        <td><small class="text-muted">Encontrados no BND/SISBOV com dados idênticos</small></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong><i class="bi bi-exclamation-triangle text-warning me-1"></i>Animais Divergentes</strong></td>
+                                        <td class="text-center"><span class="badge bg-warning">${dadosDemo.resumo.animais_divergentes}</span></td>
+                                        <td><small class="text-muted">Encontrados no BND/SISBOV mas com dados diferentes</small></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong><i class="bi bi-x-circle text-danger me-1"></i>Animais Não Conformes</strong></td>
+                                        <td class="text-center"><span class="badge bg-danger">${dadosDemo.resumo.animais_nao_conformes}</span></td>
+                                        <td><small class="text-muted">No sistema mas NÃO encontrados no BND/SISBOV</small></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong><i class="bi bi-plus-circle text-info me-1"></i>Animais que serão criados</strong></td>
+                                        <td class="text-center"><span class="badge bg-info">${dadosDemo.resumo.animais_que_serao_criados}</span></td>
+                                        <td><small class="text-muted">No BND/SISBOV mas não no sistema</small></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <h6 class="fw-bold mb-3 text-muted">Detalhes das Divergências</h6>
+                            <table class="resumo-tabela">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 60%;">Tipo de Divergência</th>
+                                        <th class="text-center" style="width: 40%;">Quantidade</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><strong>Divergências de data de nascimento</strong></td>
+                                        <td class="text-center"><span class="badge bg-warning">${dadosDemo.resumo.divergencias_data}</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <h6 class="fw-bold mb-3 text-muted">Detalhes dos Problemas</h6>
+                            <div class="mb-3">
+                                <strong class="text-warning">Animais Divergentes (primeiros ${dadosDemo.detalhes.divergentes.length}):</strong>
+                                <div class="mt-2" style="max-height: 150px; overflow-y: auto;">
+                                    ${dadosDemo.detalhes.divergentes.map(animal => {
+                                        const divs = animal.divergencias.map(d => {
+                                            if (d === 'data_nascimento') return 'Data de nascimento diferente';
+                                            return d;
+                                        }).join(', ');
+                                        return `<div class="small mb-1"><code>${animal.codigo_sisbov}</code> - ${divs}</div>`;
+                                    }).join('')}
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <strong class="text-danger">Animais Não Conformes (primeiros ${dadosDemo.detalhes.nao_conformes.length}):</strong>
+                                <small class="text-muted d-block mb-2">Animais que estão no sistema mas não foram encontrados no BND/SISBOV</small>
+                                <div class="mt-2" style="max-height: 150px; overflow-y: auto;">
+                                    ${dadosDemo.detalhes.nao_conformes.map(animal => 
+                                        `<div class="small mb-1"><code>${animal.codigo_sisbov || animal.numero_brinco || 'N/A'}</code> - Brinco: ${animal.numero_brinco || 'N/A'}</div>`
+                                    ).join('')}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                modalBody.innerHTML = tabelaHTML;
+                // Ocultar botão de confirmar para demo
+                const btnConfirmar = document.getElementById('btnConfirmarImportacao');
+                if (btnConfirmar) {
+                    btnConfirmar.style.display = 'none';
+                }
+            }, duracaoTotal); // Fechar o setTimeout (após 20 segundos)
+        }
+        
+        // Usar event delegation no document para garantir que funcione
+        // mesmo se o botão for adicionado dinamicamente
+        document.addEventListener('click', function(e) {
+            // Verificar se o clique foi no botão ou em seus filhos
+            const btn = e.target.closest('#btnDemonstracaoImportacao');
+            if (btn) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('[BND/SISBOV] Botão de demonstração clicado via event delegation');
+                processarDemonstracao();
+            }
+        });
+        
+        console.log('[BND/SISBOV] Event delegation configurado para botão de demonstração');
+    } // Fechar o if (isDemo)
+}); // Fechar o DOMContentLoaded
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="page-header mb-4">
+    <div>
+        <h1 class="page-title">Importar BND/SISBOV</h1>
+        <p class="page-subtitle">Centralize a atualização do rebanho com dados oficiais emitidos no Portal SISBOV.</p>
+    </div>
+    <div class="breadcrumb">
+        <a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a>
+        <span>/</span>
+        <a href="{% url 'rastreabilidade_dashboard' propriedade.id %}">Rastreabilidade</a>
+        <span>/</span>
+        <span>Importar BND/SISBOV</span>
+    </div>
+</div>
+
+<div class="importar-bnd-wrapper">
+    <div class="importar-bnd-card">
+        <h2>Importar dados BND/SISBOV</h2>
+        <p>
+            Importe dados de animais diretamente dos arquivos exportados do Portal SISBOV.
+            Suportamos arquivos Excel (.xlsx, .xls), CSV (.csv) e PDF (.pdf) da Base Nacional de Dados (BND).
+        </p>
+        <p>
+            O sistema irá extrair automaticamente os códigos SISBOV, números de brinco, raças, sexo,
+            datas de nascimento e outras informações dos animais, atualizando ou criando novos registros.
+        </p>
+
+        <form method="post" enctype="multipart/form-data" class="mt-4" id="formImportarBND">
+            {% csrf_token %}
+            <div class="mb-4">
+                {% if IS_DEMO_USER %}
+                <label class="form-label fw-bold">Versão Demonstração</label>
+                <div class="alert alert-info d-flex align-items-center gap-2 mb-3">
+                    <i class="bi bi-info-circle-fill fs-4"></i>
+                    <div>
+                        <strong>Esta é uma versão de demonstração.</strong> Clique no botão abaixo para ver como funciona a importação de arquivos BND/SISBOV.
+                    </div>
+                </div>
+                <button type="button" class="btn btn-primary btn-lg w-100" id="btnDemonstracaoImportacao" style="padding: 1rem; font-size: 1.1rem;">
+                    <i class="bi bi-play-circle me-2"></i>
+                    Clicar para ver a demonstração
+                </button>
+                <div class="form-text mt-2 text-center">
+                    A demonstração mostrará como o sistema processa e importa dados do arquivo BND/SISBOV
+                </div>
+                {% else %}
+                <label for="arquivo" class="form-label fw-bold">Selecione o arquivo BND/SISBOV</label>
+                <input type="file" class="form-control form-control-lg" id="arquivo" name="arquivo" 
+                       accept=".xlsx,.xls,.csv,.pdf" required>
+                <div class="form-text">
+                    Formatos aceitos: Excel (.xlsx, .xls), CSV (.csv) ou PDF (.pdf)
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="importar-bnd-actions">
+                {% if not IS_DEMO_USER %}
+                <button class="btn-bnd-main" type="submit" id="btnImportar">
+                    <i class="bi bi-cloud-arrow-up"></i>
+                    Importar arquivo SISBOV
+                </button>
+                {% endif %}
+                <a class="btn-bnd-outline" href="{% url 'brincos_lista' propriedade.id %}" target="_blank">
+                    <i class="bi bi-tag me-1"></i> Gerenciar estoque de brincos
+                </a>
+            </div>
+        </form>
+
+        <ul class="importar-bnd-steps mt-4">
+            <li>
+                <span class="badge-step">1</span>
+                <div>
+                    <strong>Baixe o arquivo BND/SISBOV</strong>
+                    <p class="mb-0">No Portal SISBOV, exporte o arquivo atualizado dos animais para a propriedade (Excel, CSV ou PDF).</p>
+                </div>
+            </li>
+            <li>
+                <span class="badge-step">2</span>
+                <div>
+                    <strong>Importação automática</strong>
+                    <p class="mb-0">Envie o arquivo e o sistema processará automaticamente, extraindo todos os dados dos animais.</p>
+                </div>
+            </li>
+            <li>
+                <span class="badge-step">3</span>
+                <div>
+                    <strong>Consolidação automática</strong>
+                    <p class="mb-0">Os dados compatíveis serão aplicados diretamente ao cadastro dos animais e ao estoque de brincos.</p>
+                </div>
+            </li>
+        </ul>
+    </div>
+</div>
+{% endblock %}
+
+
+
+
+
+
+
+
+
+
+
+
+

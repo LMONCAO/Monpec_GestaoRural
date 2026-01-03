@@ -1,0 +1,259 @@
+{% extends "base_moderno.html" %}
+{% load static %}
+
+{% block title %}Análise Financeira - Sistema Monpec{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/identidade_visual.css' %}">
+<style>
+    .financial-header {
+        background: linear-gradient(135deg, #6495ed 0%, #8cb5ff 100%);
+        color: white;
+        padding: 50px 0;
+        margin: -20px -15px 40px -15px;
+        border-radius: 0 0 30px 30px;
+    }
+    
+    .submenu-card {
+        background: white;
+        border-radius: var(--border-radius-lg);
+        padding: 25px;
+        text-align: center;
+        transition: var(--transition);
+        border: 2px solid transparent;
+        height: 100%;
+        cursor: pointer;
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .submenu-card:hover {
+        transform: translateY(-8px);
+        border-color: #8b6f47;
+        box-shadow: var(--shadow-lg);
+    }
+    
+    .submenu-icon {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 20px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 36px;
+        color: white;
+    }
+    
+    .icon-fluxo { background: linear-gradient(135deg, #6495ed 0%, #8cb5ff 100%); }
+    .icon-dre { background: linear-gradient(135deg, #8b6f47 0%, #a88b61 100%); }
+    .icon-custos { background: linear-gradient(135deg, #2d7a4f 0%, #38a169 100%); }
+    .icon-indicadores { background: linear-gradient(135deg, #c53030 0%, #e53e3e 100%); }
+    .icon-projecao { background: linear-gradient(135deg, #2b6cb0 0%, #3182ce 100%); }
+    .icon-relatorios { background: linear-gradient(135deg, #6d5838 0%, #8b6f47 100%); }
+    
+    .submenu-title {
+        font-size: 18px;
+        font-weight: 700;
+        color: #6495ed;
+        margin-bottom: 10px;
+    }
+    
+    .submenu-description {
+        color: #8895a7;
+        font-size: 14px;
+    }
+    
+    .kpi-financial {
+        background: white;
+        border-radius: var(--border-radius);
+        padding: 20px;
+        text-align: center;
+        box-shadow: var(--shadow-sm);
+        border-left: 4px solid;
+    }
+    
+    .kpi-financial.kpi-receita { border-left-color: #2d7a4f; }
+    .kpi-financial.kpi-lucro { border-left-color: #6495ed; }
+    .kpi-financial.kpi-margem { border-left-color: #8b6f47; }
+    .kpi-financial.kpi-roi { border-left-color: #2b6cb0; }
+    
+    .kpi-value {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #6495ed;
+        margin: 10px 0;
+    }
+    
+    .kpi-label {
+        color: #8895a7;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        font-weight: 600;
+    }
+    
+    .kpi-trend {
+        font-size: 1rem;
+        margin-top: 10px;
+        font-weight: 600;
+    }
+    
+    .trend-positive {
+        color: #2d7a4f;
+    }
+    
+    .trend-negative {
+        color: #c53030;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Cabeçalho -->
+    <div class="financial-header">
+        <div class="container">
+            <h1 class="display-4 mb-3">
+                <i class="fas fa-chart-line"></i> Análise Financeira
+            </h1>
+            <p class="lead">Gestão financeira completa com 5 submódulos especializados</p>
+        </div>
+    </div>
+    
+    <div class="container">
+        <!-- KPIs Principais -->
+        <div class="row mb-5 g-4">
+            <div class="col-lg-3 col-md-6">
+                <div class="kpi-financial kpi-receita">
+                    <div class="kpi-label">Receita Mensal</div>
+                    <div class="kpi-value">R$ 133k</div>
+                    <div class="kpi-trend trend-positive">
+                        <i class="fas fa-arrow-up"></i> +12.5%
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-3 col-md-6">
+                <div class="kpi-financial kpi-lucro">
+                    <div class="kpi-label">Lucro Líquido</div>
+                    <div class="kpi-value">R$ 33k</div>
+                    <div class="kpi-trend trend-positive">
+                        <i class="fas fa-arrow-up"></i> +15.2%
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-3 col-md-6">
+                <div class="kpi-financial kpi-margem">
+                    <div class="kpi-label">Margem Líquida</div>
+                    <div class="kpi-value">24.8%</div>
+                    <div class="kpi-trend trend-positive">
+                        <i class="fas fa-check-circle"></i> Meta atingida
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-3 col-md-6">
+                <div class="kpi-financial kpi-roi">
+                    <div class="kpi-label">ROI Anual</div>
+                    <div class="kpi-value">19.8%</div>
+                    <div class="kpi-trend trend-positive">
+                        <i class="fas fa-trophy"></i> Acima do mercado
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Submódulos -->
+        <h3 class="mb-4 text-azul-marinho">
+            <i class="fas fa-th-large"></i> Submódulos de Análise
+        </h3>
+        
+        <div class="row g-4">
+            <div class="col-lg-4 col-md-6">
+                <a href="{% url 'financeiro_fluxo_caixa' %}" class="text-decoration-none">
+                    <div class="submenu-card">
+                        <div class="submenu-icon icon-fluxo">
+                            <i class="fas fa-money-bill-wave"></i>
+                        </div>
+                        <div class="submenu-title">Fluxo de Caixa</div>
+                        <div class="submenu-description">
+                            Entradas, saídas, saldos diários e projeções de caixa
+                        </div>
+                    </div>
+                </a>
+            </div>
+            
+            <div class="col-lg-4 col-md-6">
+                <a href="{% url 'financeiro_dre' %}" class="text-decoration-none">
+                    <div class="submenu-card">
+                        <div class="submenu-icon icon-dre">
+                            <i class="fas fa-file-invoice-dollar"></i>
+                        </div>
+                        <div class="submenu-title">DRE</div>
+                        <div class="submenu-description">
+                            Demonstração completa de resultados, custos e lucros
+                        </div>
+                    </div>
+                </a>
+            </div>
+            
+            <div class="col-lg-4 col-md-6">
+                <a href="{% url 'financeiro_custos' %}" class="text-decoration-none">
+                    <div class="submenu-card">
+                        <div class="submenu-icon icon-custos">
+                            <i class="fas fa-calculator"></i>
+                        </div>
+                        <div class="submenu-title">Análise de Custos</div>
+                        <div class="submenu-description">
+                            Custos por animal, por categoria e comparativos
+                        </div>
+                    </div>
+                </a>
+            </div>
+            
+            <div class="col-lg-4 col-md-6">
+                <a href="{% url 'financeiro_indicadores' %}" class="text-decoration-none">
+                    <div class="submenu-card">
+                        <div class="submenu-icon icon-indicadores">
+                            <i class="fas fa-tachometer-alt"></i>
+                        </div>
+                        <div class="submenu-title">Indicadores</div>
+                        <div class="submenu-description">
+                            KPIs, ROI, liquidez, rentabilidade e score financeiro
+                        </div>
+                    </div>
+                </a>
+            </div>
+            
+            <div class="col-lg-4 col-md-6">
+                <a href="{% url 'financeiro_projecoes' %}" class="text-decoration-none">
+                    <div class="submenu-card">
+                        <div class="submenu-icon icon-projecao">
+                            <i class="fas fa-chart-area"></i>
+                        </div>
+                        <div class="submenu-title">Projeções</div>
+                        <div class="submenu-description">
+                            Projeções financeiras 5 anos com 3 cenários
+                        </div>
+                    </div>
+                </a>
+            </div>
+            
+            <div class="col-lg-4 col-md-6">
+                <a href="{% url 'financeiro_relatorios' %}" class="text-decoration-none">
+                    <div class="submenu-card">
+                        <div class="submenu-icon icon-relatorios">
+                            <i class="fas fa-file-pdf"></i>
+                        </div>
+                        <div class="submenu-title">Relatórios</div>
+                        <div class="submenu-description">
+                            Relatórios financeiros em PDF e Excel
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

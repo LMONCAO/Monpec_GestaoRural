@@ -1,0 +1,139 @@
+{% extends "base_navegacao.html" %}
+
+{% block title %}Gestão Pecuária - Sistema Monpec{% endblock %}
+
+{% block breadcrumbs %}
+<li><a href="{% url 'dashboard' %}">Início</a></li>
+<li class="breadcrumb-separator">›</li>
+<li><a href="{% url 'propriedades_lista' propriedade.produtor_id %}">Propriedades</a></li>
+<li class="breadcrumb-separator">›</li>
+<li class="active">{{ propriedade.nome }}</li>
+{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div class="d-flex justify-content-between align-items-start">
+        <div>
+            <h1 class="page-title">Gestão Pecuária</h1>
+            <p class="page-subtitle">{{ propriedade.nome }} - {{ propriedade.municipio }}/{{ propriedade.estado }}</p>
+        </div>
+        <a href="{% url 'propriedades_lista' propriedade.produtor_id %}" class="btn-outline">
+            Voltar
+        </a>
+    </div>
+</div>
+
+<!-- Estatísticas -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card-clean text-center">
+            <div class="card-valor-destaque" style="font-size: 2rem; margin-bottom: 0.5rem;">
+                {{ total_animais|default:"0" }}
+            </div>
+            <div style="font-size: 12px; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.05em;">
+                Total de Animais
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card-clean text-center">
+            <div class="card-valor-destaque" style="font-size: 2rem; margin-bottom: 0.5rem;">
+                {{ propriedade.area_total|default:"0" }}
+            </div>
+            <div style="font-size: 12px; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.05em;">
+                Hectares
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card-clean text-center">
+            <div class="card-valor-destaque" style="margin-bottom: 0.5rem;">
+                R$ {{ receita_mes|default:"0,00" }}
+            </div>
+            <div style="font-size: 12px; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.05em;">
+                Receita Mensal
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card-clean text-center">
+            <div class="card-valor-destaque" style="font-size: 2rem; margin-bottom: 0.5rem;">
+                {{ margem|default:"0" }}%
+            </div>
+            <div style="font-size: 12px; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.05em;">
+                Margem de Lucro
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Módulos -->
+<div class="cards-grid">
+    <!-- 1. Categorias PRIMEIRO -->
+    <a href="{% url 'categorias_lista' %}" style="text-decoration: none;">
+        <div class="card-clean">
+            <h3 class="card-title">Categorias de Animais</h3>
+            <p style="color: var(--text-light); font-size: 14px; margin-bottom: 1rem;">
+                9 categorias padrão já configuradas: Bezerros, Garrotes, Novilhas, Bois, Vacas, Touros
+            </p>
+            <span class="btn-navy" style="padding: 0.5rem 1rem; font-size: 13px; display: inline-block;">
+                Gerenciar
+            </span>
+        </div>
+    </a>
+    
+    <!-- 2. Dashboard IA -->
+    <a href="{% url 'pecuaria_inventario' propriedade.id %}" style="text-decoration: none;">
+        <div class="card-clean">
+            <h3 class="card-title">Dashboard IA e Inventário</h3>
+            <p style="color: var(--text-light); font-size: 14px; margin-bottom: 1rem;">
+                Inventário atual + Sugestões inteligentes de movimentações e oportunidades
+            </p>
+            <span class="btn-outline" style="padding: 0.5rem 1rem; font-size: 13px; display: inline-block;">
+                Acessar
+            </span>
+        </div>
+    </a>
+    
+    <!-- 3. Inteligência Artificial -->
+    <a href="{% url 'pecuaria_parametros' propriedade.id %}" style="text-decoration: none;">
+        <div class="card-clean">
+            <h3 class="card-title">Inteligência Artificial</h3>
+            <p style="color: var(--text-light); font-size: 14px; margin-bottom: 1rem;">
+                Parâmetros inteligentes e projeções automáticas com IA
+            </p>
+            <span class="btn-outline" style="padding: 0.5rem 1rem; font-size: 13px; display: inline-block;">
+                Acessar
+            </span>
+        </div>
+    </a>
+    
+    <!-- 4. Projeções -->
+    <a href="{% url 'pecuaria_projecao' propriedade.id %}" style="text-decoration: none;">
+        <div class="card-clean">
+            <h3 class="card-title">Projeções e Cenários</h3>
+            <p style="color: var(--text-light); font-size: 14px; margin-bottom: 1rem;">
+                Visualize projeções de crescimento e evolução do rebanho para 5 anos
+            </p>
+            <span class="btn-outline" style="padding: 0.5rem 1rem; font-size: 13px; display: inline-block;">
+                Acessar
+            </span>
+        </div>
+    </a>
+    
+    <!-- 5. Relatórios -->
+    <a href="{% url 'relatorio_final' propriedade.id %}" style="text-decoration: none;">
+        <div class="card-clean">
+            <h3 class="card-title">Relatório Final</h3>
+            <p style="color: var(--text-light); font-size: 14px; margin-bottom: 1rem;">
+                Gere relatórios completos em PDF com todas as informações
+            </p>
+            <span class="btn-navy" style="padding: 0.5rem 1rem; font-size: 13px; display: inline-block;">
+                Gerar
+            </span>
+        </div>
+    </a>
+</div>
+{% endblock %}
+

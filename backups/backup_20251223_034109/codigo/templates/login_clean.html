@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Sistema Monpec</title>
+    
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    
+    <!-- Responsividade e Ícones Global -->
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/responsividade_icones.css' %}">
+    
+    <style>
+        :root {
+            --primary-navy: #6495ed;
+            --primary-navy-light: #8cb5ff;
+            --earth-brown: #8b6f47;
+            --light-gray: #f5f7fa;
+            --border-gray: #e1e8ed;
+            --text-primary: #2c3e50;
+            --text-secondary: #5a6c7d;
+            --white: #ffffff;
+            --font-primary: 'Inter', sans-serif;
+            --font-display: 'Playfair Display', serif;
+        }
+        
+        body {
+            font-family: var(--font-primary);
+            background-color: var(--light-gray);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 2rem 1rem;
+        }
+        
+        .login-container {
+            max-width: 450px;
+            width: 100%;
+        }
+        
+        .login-card {
+            background-color: var(--white);
+            border: 1px solid var(--border-gray);
+            border-radius: 12px;
+            padding: 3rem 2.5rem;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+        }
+        
+        .login-logo {
+            font-family: var(--font-display);
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary-navy);
+            text-align: center;
+            margin-bottom: 1rem;
+            letter-spacing: -0.02em;
+        }
+        
+        .login-subtitle {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 15px;
+            margin-bottom: 2.5rem;
+        }
+        
+        .form-label {
+            font-weight: 500;
+            font-size: 14px;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+        
+        .form-control {
+            border: 1px solid var(--border-gray);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+        
+        .form-control:focus {
+            border-color: var(--primary-navy);
+            box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.1);
+            outline: none;
+        }
+        
+        .btn-login {
+            background-color: var(--primary-navy);
+            color: var(--white);
+            border: none;
+            padding: 0.875rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 15px;
+            letter-spacing: 0.02em;
+            width: 100%;
+            transition: all 0.2s ease;
+            margin-top: 1.5rem;
+        }
+        
+        .btn-login:hover {
+            background-color: var(--primary-navy-light);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(30, 58, 95, 0.2);
+        }
+        
+        .alert {
+            border-radius: 8px;
+            padding: 0.875rem 1rem;
+            font-size: 14px;
+            border: none;
+        }
+        
+        .alert-danger {
+            background-color: #fee;
+            color: #c33;
+        }
+        
+        .form-check-input:checked {
+            background-color: var(--primary-navy);
+            border-color: var(--primary-navy);
+        }
+        
+        .form-check-label {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+        
+        .login-footer {
+            text-align: center;
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border-gray);
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
+        
+        /* Ícones melhorados */
+        .login-logo::before {
+            content: '🐮';
+            display: block;
+            font-size: 3rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .form-label i {
+            margin-right: 0.5rem;
+            color: var(--primary-navy);
+        }
+        
+        /* Responsividade */
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+            
+            .login-container {
+                max-width: 100%;
+            }
+            
+            .login-card {
+                padding: 2rem 1.5rem;
+                border-radius: 10px;
+            }
+            
+            .login-logo {
+                font-size: 2rem;
+            }
+            
+            .login-logo::before {
+                font-size: 2.5rem;
+            }
+            
+            .login-subtitle {
+                font-size: 14px;
+                margin-bottom: 2rem;
+            }
+            
+            .form-control {
+                padding: 0.65rem 0.875rem;
+                font-size: 14px;
+            }
+            
+            .btn-login {
+                padding: 0.75rem;
+                font-size: 14px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .login-card {
+                padding: 1.5rem 1.25rem;
+            }
+            
+            .login-logo {
+                font-size: 1.75rem;
+            }
+            
+            .login-logo::before {
+                font-size: 2rem;
+            }
+            
+            .form-label {
+                font-size: 13px;
+            }
+            
+            .form-control {
+                padding: 0.6rem 0.75rem;
+                font-size: 13px;
+            }
+            
+            .btn-login {
+                padding: 0.7rem;
+                font-size: 13px;
+            }
+            
+            .login-footer {
+                font-size: 12px;
+                margin-top: 1.5rem;
+                padding-top: 1.5rem;
+            }
+        }
+        
+        /* Melhorias de acessibilidade e usabilidade */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <h1 class="login-logo">MONPEC</h1>
+            <p class="login-subtitle">Sistema de Gestão Rural Profissional</p>
+            
+            {% if messages %}
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} mb-4" role="alert">
+                    {{ message }}
+                </div>
+                {% endfor %}
+            {% endif %}
+            
+            <form method="post" action="{% url 'login' %}">
+                {% csrf_token %}
+                
+                <div class="mb-3">
+                    <label for="username" class="form-label">
+                        <i class="fas fa-user"></i> Usuário
+                    </label>
+                    <input type="text" class="form-control" id="username" name="username" required autofocus placeholder="Digite seu usuário">
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <label for="password" class="form-label mb-0">
+                            <i class="fas fa-lock"></i> Senha
+                        </label>
+                        <a href="{% url 'password_reset' %}" class="text-decoration-none" style="font-size: 13px; color: var(--primary-navy);">Esqueceu a senha?</a>
+                    </div>
+                    <input type="password" class="form-control" id="password" name="password" required placeholder="Digite sua senha">
+                </div>
+                
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="remember" name="remember">
+                    <label class="form-check-label" for="remember">
+                        Lembrar de mim
+                    </label>
+                </div>
+                
+                <button type="submit" class="btn-login">
+                    Entrar no Sistema
+                </button>
+            </form>
+            
+            <div class="login-footer">
+                © {% now "Y" %} MONPEC - Todos os direitos reservados
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+

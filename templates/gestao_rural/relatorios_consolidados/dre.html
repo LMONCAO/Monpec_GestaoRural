@@ -1,0 +1,451 @@
+{% extends "gestao_rural/base.html" %}
+{% load static %}
+{% load formatacao_br %}
+
+{% block title %}DRE Consolidado - {{ produtor.nome }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dre-table {
+        font-size: 0.9rem;
+    }
+    .dre-table th {
+        background-color: #f8f9fa;
+        font-weight: 600;
+        border-bottom: 2px solid #dee2e6;
+    }
+    .dre-table td {
+        border-right: 1px solid #dee2e6;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-0">
+                        <i class="bi bi-graph-up"></i>
+                        Demonstração do Resultado do Exercício (DRE) Consolidado
+                    </h1>
+                    <p class="text-muted">{{ produtor.nome }} - Ano {{ ano }}</p>
+                </div>
+                <div class="btn-group">
+                    <a href="{% url 'relatorios_consolidados_dashboard' %}?ano={{ ano }}{% for p in propriedades_selecionadas %}&propriedades={{ p.id }}{% endfor %}" 
+                       class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Voltar ao Dashboard
+                    </a>
+                    <div class="btn-group">
+                        <a href="{% url 'exportar_dre_balanco_excel' %}?ano={{ ano }}{% for p in propriedades_selecionadas %}&propriedades={{ p.id }}{% endfor %}" 
+                           class="btn btn-success">
+                            <i class="bi bi-file-earmark-excel"></i> Exportar {{ ano }}
+                        </a>
+                        <a href="{% url 'exportar_dre_balanco_excel' %}?anos=2022&anos=2023&anos=2024&anos=2025{% for p in propriedades_selecionadas %}&propriedades={{ p.id }}{% endfor %}" 
+                           class="btn btn-primary">
+                            <i class="bi bi-file-earmark-excel"></i> Exportar Comparativo (2022-2025)
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cabeçalho Contábil -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <h3 class="mb-1" style="font-weight: bold; color: #1a5490;">DEMONSTRAÇÃO DO RESULTADO DO EXERCÍCIO</h3>
+                        <h4 class="mb-3" style="font-weight: 600; color: #495057;">CONSOLIDADO - {{ produtor.nome|upper }}</h4>
+                        <p class="mb-1 text-muted">
+                            <strong>CPF/CNPJ:</strong> {{ produtor.cpf_cnpj }}
+                        </p>
+                        <p class="mb-0 text-muted"><strong>Exercício Social:</strong> {{ ano }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Propriedades:</label>
+                    {% for propriedade in propriedades %}
+                    <div class="form-check">
+                        <input class="form-check-input" 
+                               type="checkbox" 
+                               name="propriedades" 
+                               value="{{ propriedade.id }}"
+                               id="prop_{{ propriedade.id }}"
+                               {% if propriedade in propriedades_selecionadas %}checked{% endif %}>
+                        <label class="form-check-label" for="prop_{{ propriedade.id }}">
+                            {{ propriedade.nome_propriedade }}
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Ano:</label>
+                    <input type="number" name="ano" class="form-control" value="{{ ano }}" min="2020" max="2030">
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-funnel"></i> Filtrar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- DRE Consolidado Completo -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-bordered mb-0 dre-table" style="font-size: 0.9rem;">
+                            <thead style="background-color: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+                                <tr>
+                                    <th style="width: 12%; text-align: left; padding: 12px; font-weight: 600; border-right: 1px solid #dee2e6;">CÓDIGO</th>
+                                    <th style="width: 58%; text-align: left; padding: 12px; font-weight: 600; border-right: 1px solid #dee2e6;">DESCRIÇÃO</th>
+                                    <th style="width: 30%; text-align: right; padding: 12px; font-weight: 600;">VALOR (R$)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- 1. RECEITA BRUTA DE VENDAS -->
+                                <tr style="background-color: #e3f2fd; border-top: 2px solid #1976d2;">
+                                    <td style="padding: 10px; font-weight: 600; border-right: 1px solid #dee2e6;">3.01.01.01.01</td>
+                                    <td style="padding: 10px; font-weight: 600; border-right: 1px solid #dee2e6;">RECEITA BRUTA DE VENDAS</td>
+                                    <td style="padding: 10px; text-align: right; font-weight: 600;">{{ dre_consolidado.receita_bruta|moeda_br }}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 8px 10px 8px 30px; border-right: 1px solid #dee2e6;">3.01.01.01.01.0001</td>
+                                    <td style="padding: 8px 10px; border-right: 1px solid #dee2e6;">Vendas Mercadorias Produção Própria</td>
+                                    <td style="padding: 8px 10px; text-align: right;">{{ dre_consolidado.receita_bruta|moeda_br }}</td>
+                                </tr>
+                                
+                                <!-- 2. DEDUÇÕES DA RECEITA BRUTA -->
+                                {% if dre_consolidado.total_deducoes > 0 %}
+                                <tr style="background-color: #f8f9fa; border-top: 1px solid #dee2e6;">
+                                    <td colspan="3" style="padding: 10px; font-weight: 600; border-right: 1px solid #dee2e6;">3.01.01.01.02 DEDUÇÕES DA RECEITA BRUTA</td>
+                                </tr>
+                                {% if dre_consolidado.funrural_vendas > 0 %}
+                                <tr>
+                                    <td style="padding: 6px 10px 6px 30px; border-right: 1px solid #dee2e6;">3.01.01.01.02.0004</td>
+                                    <td style="padding: 6px 10px; border-right: 1px solid #dee2e6;">Funrural s/Vendas</td>
+                                    <td style="padding: 6px 10px; text-align: right; color: #dc3545;">({{ dre_consolidado.funrural_vendas|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                {% if dre_consolidado.icms_vendas > 0 %}
+                                <tr>
+                                    <td style="padding: 6px 10px 6px 30px; border-right: 1px solid #dee2e6;">3.01.01.01.02.0005</td>
+                                    <td style="padding: 6px 10px; border-right: 1px solid #dee2e6;">ICMS s/Vendas</td>
+                                    <td style="padding: 6px 10px; text-align: right; color: #dc3545;">({{ dre_consolidado.icms_vendas|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                {% if dre_consolidado.outros_impostos_vendas > 0 %}
+                                <tr>
+                                    <td style="padding: 6px 10px 6px 30px; border-right: 1px solid #dee2e6;">3.01.01.01.02.0006</td>
+                                    <td style="padding: 6px 10px; border-right: 1px solid #dee2e6;">Outros Impostos s/Vendas</td>
+                                    <td style="padding: 6px 10px; text-align: right; color: #dc3545;">({{ dre_consolidado.outros_impostos_vendas|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                {% if dre_consolidado.devolucoes_vendas > 0 %}
+                                <tr>
+                                    <td style="padding: 6px 10px 6px 30px; border-right: 1px solid #dee2e6;">3.01.01.01.02.0007</td>
+                                    <td style="padding: 6px 10px; border-right: 1px solid #dee2e6;">Devoluções de Vendas</td>
+                                    <td style="padding: 6px 10px; text-align: right; color: #dc3545;">({{ dre_consolidado.devolucoes_vendas|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                {% if dre_consolidado.abatimentos_vendas > 0 %}
+                                <tr>
+                                    <td style="padding: 6px 10px 6px 30px; border-right: 1px solid #dee2e6;">3.01.01.01.02.0008</td>
+                                    <td style="padding: 6px 10px; border-right: 1px solid #dee2e6;">Abatimentos sobre Vendas</td>
+                                    <td style="padding: 6px 10px; text-align: right; color: #dc3545;">({{ dre_consolidado.abatimentos_vendas|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                <tr style="background-color: #f8f9fa;">
+                                    <td style="padding: 8px 10px; font-weight: 600; border-right: 1px solid #dee2e6;">3.01.01.01.02</td>
+                                    <td style="padding: 8px 10px; font-weight: 600; border-right: 1px solid #dee2e6;">Total Deduções</td>
+                                    <td style="padding: 8px 10px; text-align: right; font-weight: 600; color: #dc3545;">({{ dre_consolidado.total_deducoes|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                
+                                <!-- 3. RECEITA LÍQUIDA -->
+                                <tr style="background-color: #c8e6c9; border-top: 2px solid #4caf50;">
+                                    <td style="padding: 10px; font-weight: 600; border-right: 1px solid #dee2e6;">3.01.01.01.03</td>
+                                    <td style="padding: 10px; font-weight: 600; border-right: 1px solid #dee2e6;">RECEITA LÍQUIDA</td>
+                                    <td style="padding: 10px; text-align: right; font-weight: 600;">{{ dre_consolidado.receita_liquida|moeda_br }}</td>
+                                </tr>
+                                
+                                <!-- 4. CUSTO DOS PRODUTOS VENDIDOS -->
+                                {% if dre_consolidado.cpv > 0 %}
+                                <tr style="background-color: #f8f9fa; border-top: 1px solid #dee2e6;">
+                                    <td colspan="3" style="padding: 10px; font-weight: 600; border-right: 1px solid #dee2e6;">3.01.01.01.03. CUSTOS MERCADORIAS VENDIDAS</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 6px 10px 6px 30px; border-right: 1px solid #dee2e6;">3.01.01.01.03.0001</td>
+                                    <td style="padding: 6px 10px; border-right: 1px solid #dee2e6;">Custos Mercadorias Produção Própria Vendidas</td>
+                                    <td style="padding: 6px 10px; text-align: right; font-weight: 600; color: #dc3545;">({{ dre_consolidado.cpv|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                
+                                <!-- 5. LUCRO BRUTO -->
+                                <tr style="background-color: #c8e6c9; border-top: 2px solid #4caf50;">
+                                    <td style="padding: 10px; font-weight: 600; border-right: 1px solid #dee2e6;">3.01.01.01.04</td>
+                                    <td style="padding: 10px; font-weight: 600; border-right: 1px solid #dee2e6;">LUCRO BRUTO</td>
+                                    <td style="padding: 10px; text-align: right; font-weight: 600;">{{ dre_consolidado.lucro_bruto|moeda_br }}</td>
+                                </tr>
+                                
+                                <!-- 6. DESPESAS OPERACIONAIS -->
+                                <tr style="background-color: #f8f9fa; border-top: 2px solid #dee2e6;">
+                                    <td colspan="3" style="padding: 10px; font-weight: 600; border-right: 1px solid #dee2e6;">3.01.01.07. DESPESAS OPERACIONAIS</td>
+                                </tr>
+                                
+                                <!-- Despesas Detalhadas -->
+                                {% if dre_consolidado.despesas_detalhadas > 0 %}
+                                <tr style="background-color: #f1f3f5;">
+                                    <td colspan="3" style="padding: 8px 10px 8px 30px; font-weight: 600; border-right: 1px solid #dee2e6;">3.01.01.07.01. DESPESAS DIVERSAS</td>
+                                </tr>
+                                {% if dre_consolidado.retirada_labore > 0 %}
+                                <tr>
+                                    <td style="padding: 6px 10px 6px 50px; border-right: 1px solid #dee2e6;">3.01.01.07.01.0001</td>
+                                    <td style="padding: 6px 10px; border-right: 1px solid #dee2e6;">Retirada Labore</td>
+                                    <td style="padding: 6px 10px; text-align: right; color: #dc3545;">({{ dre_consolidado.retirada_labore|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                {% if dre_consolidado.assistencia_contabil > 0 %}
+                                <tr>
+                                    <td style="padding: 6px 10px 6px 50px; border-right: 1px solid #dee2e6;">3.01.01.07.01.0002</td>
+                                    <td style="padding: 6px 10px; border-right: 1px solid #dee2e6;">Assistência Contábil</td>
+                                    <td style="padding: 6px 10px; text-align: right; color: #dc3545;">({{ dre_consolidado.assistencia_contabil|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                {% if dre_consolidado.encargos_inss > 0 %}
+                                <tr>
+                                    <td style="padding: 6px 10px 6px 50px; border-right: 1px solid #dee2e6;">3.01.01.07.01.0003</td>
+                                    <td style="padding: 6px 10px; border-right: 1px solid #dee2e6;">Encargos INSS</td>
+                                    <td style="padding: 6px 10px; text-align: right; color: #dc3545;">({{ dre_consolidado.encargos_inss|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                {% if dre_consolidado.taxas_diversas > 0 %}
+                                <tr>
+                                    <td style="padding: 6px 10px 6px 50px; border-right: 1px solid #dee2e6;">3.01.01.07.01.0004</td>
+                                    <td style="padding: 6px 10px; border-right: 1px solid #dee2e6;">Taxas Diversas</td>
+                                    <td style="padding: 6px 10px; text-align: right; color: #dc3545;">({{ dre_consolidado.taxas_diversas|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                {% if dre_consolidado.despesas_administrativas > 0 %}
+                                <tr>
+                                    <td style="padding: 6px 10px 6px 50px; border-right: 1px solid #dee2e6;">3.01.01.07.01.0005</td>
+                                    <td style="padding: 6px 10px; border-right: 1px solid #dee2e6;">Despesas Administrativas</td>
+                                    <td style="padding: 6px 10px; text-align: right; color: #dc3545;">({{ dre_consolidado.despesas_administrativas|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                {% if dre_consolidado.material_uso_consumo > 0 %}
+                                <tr>
+                                    <td style="padding: 6px 10px 6px 50px; border-right: 1px solid #dee2e6;">3.01.01.07.01.0006</td>
+                                    <td style="padding: 6px 10px; border-right: 1px solid #dee2e6;">Material de Uso e Consumo</td>
+                                    <td style="padding: 6px 10px; text-align: right; color: #dc3545;">({{ dre_consolidado.material_uso_consumo|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                {% if dre_consolidado.despesas_comunicacao > 0 %}
+                                <tr>
+                                    <td style="padding: 6px 10px 6px 50px; border-right: 1px solid #dee2e6;">3.01.01.07.01.0007</td>
+                                    <td style="padding: 6px 10px; border-right: 1px solid #dee2e6;">Despesas Comunicação</td>
+                                    <td style="padding: 6px 10px; text-align: right; color: #dc3545;">({{ dre_consolidado.despesas_comunicacao|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                {% if dre_consolidado.despesas_viagens > 0 %}
+                                <tr>
+                                    <td style="padding: 6px 10px 6px 50px; border-right: 1px solid #dee2e6;">3.01.01.07.01.0008</td>
+                                    <td style="padding: 6px 10px; border-right: 1px solid #dee2e6;">Despesas Viagens</td>
+                                    <td style="padding: 6px 10px; text-align: right; color: #dc3545;">({{ dre_consolidado.despesas_viagens|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                {% if dre_consolidado.despesas_energia_eletrica > 0 %}
+                                <tr>
+                                    <td style="padding: 6px 10px 6px 50px; border-right: 1px solid #dee2e6;">3.01.01.07.01.0009</td>
+                                    <td style="padding: 6px 10px; border-right: 1px solid #dee2e6;">Despesas Energia Elétrica</td>
+                                    <td style="padding: 6px 10px; text-align: right; color: #dc3545;">({{ dre_consolidado.despesas_energia_eletrica|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                {% if dre_consolidado.despesas_transportes > 0 %}
+                                <tr>
+                                    <td style="padding: 6px 10px 6px 50px; border-right: 1px solid #dee2e6;">3.01.01.07.01.0010</td>
+                                    <td style="padding: 6px 10px; border-right: 1px solid #dee2e6;">Despesas Transportes</td>
+                                    <td style="padding: 6px 10px; text-align: right; color: #dc3545;">({{ dre_consolidado.despesas_transportes|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                {% if dre_consolidado.despesas_combustivel > 0 %}
+                                <tr>
+                                    <td style="padding: 6px 10px 6px 50px; border-right: 1px solid #dee2e6;">3.01.01.07.01.0011</td>
+                                    <td style="padding: 6px 10px; border-right: 1px solid #dee2e6;">Despesas Combustível</td>
+                                    <td style="padding: 6px 10px; text-align: right; color: #dc3545;">({{ dre_consolidado.despesas_combustivel|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                {% if dre_consolidado.despesas_manutencao > 0 %}
+                                <tr>
+                                    <td style="padding: 6px 10px 6px 50px; border-right: 1px solid #dee2e6;">3.01.01.07.01.0012</td>
+                                    <td style="padding: 6px 10px; border-right: 1px solid #dee2e6;">Despesas Manutenção</td>
+                                    <td style="padding: 6px 10px; text-align: right; color: #dc3545;">({{ dre_consolidado.despesas_manutencao|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                {% if dre_consolidado.depreciacao > 0 %}
+                                <tr>
+                                    <td style="padding: 6px 10px 6px 50px; border-right: 1px solid #dee2e6;">3.01.01.07.01.0013</td>
+                                    <td style="padding: 6px 10px; border-right: 1px solid #dee2e6;">Despesas Encargos Depreciação</td>
+                                    <td style="padding: 6px 10px; text-align: right; color: #dc3545;">({{ dre_consolidado.depreciacao|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                <tr style="background-color: #f8f9fa;">
+                                    <td style="padding: 8px 10px 8px 30px; font-weight: 600; border-right: 1px solid #dee2e6;">3.01.01.07.01</td>
+                                    <td style="padding: 8px 10px; font-weight: 600; border-right: 1px solid #dee2e6;">Total Despesas Diversas</td>
+                                    <td style="padding: 8px 10px; text-align: right; font-weight: 600; color: #dc3545;">({{ dre_consolidado.despesas_detalhadas|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                
+                                <!-- Despesas Variáveis -->
+                                {% if dre_consolidado.total_despesas_variaveis > 0 %}
+                                <tr style="background-color: #f1f3f5;">
+                                    <td colspan="3" style="padding: 8px 10px 8px 30px; font-weight: 600; border-right: 1px solid #dee2e6;">3.01.01.07.02. Despesas Variáveis</td>
+                                </tr>
+                                {% for grupo, dados in dre_consolidado.despesas_por_grupo.items %}
+                                    {% if dados.variaveis > 0 %}
+                                    <tr>
+                                        <td style="padding: 6px 10px 6px 50px; border-right: 1px solid #dee2e6;">3.01.01.07.02.{{ forloop.counter|stringformat:"04d" }}</td>
+                                        <td style="padding: 6px 10px; border-right: 1px solid #dee2e6;">{{ grupo }}</td>
+                                        <td style="padding: 6px 10px; text-align: right; color: #dc3545;">({{ dados.variaveis|moeda_br }})</td>
+                                    </tr>
+                                    {% endif %}
+                                {% endfor %}
+                                <tr style="background-color: #f8f9fa;">
+                                    <td style="padding: 8px 10px 8px 30px; font-weight: 600; border-right: 1px solid #dee2e6;">3.01.01.07.02</td>
+                                    <td style="padding: 8px 10px; font-weight: 600; border-right: 1px solid #dee2e6;">Total Despesas Variáveis</td>
+                                    <td style="padding: 8px 10px; text-align: right; font-weight: 600; color: #dc3545;">({{ dre_consolidado.total_despesas_variaveis|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                
+                                <!-- Despesas Fixas -->
+                                {% if dre_consolidado.total_despesas_fixas > 0 %}
+                                <tr style="background-color: #f1f3f5;">
+                                    <td colspan="3" style="padding: 8px 10px 8px 30px; font-weight: 600; border-right: 1px solid #dee2e6;">3.01.01.07.03. Despesas Fixas</td>
+                                </tr>
+                                {% for grupo, dados in dre_consolidado.despesas_por_grupo.items %}
+                                    {% if dados.fixas > 0 %}
+                                    <tr>
+                                        <td style="padding: 6px 10px 6px 50px; border-right: 1px solid #dee2e6;">3.01.01.07.03.{{ forloop.counter|stringformat:"04d" }}</td>
+                                        <td style="padding: 6px 10px; border-right: 1px solid #dee2e6;">{{ grupo }}</td>
+                                        <td style="padding: 6px 10px; text-align: right; color: #dc3545;">({{ dados.fixas|moeda_br }})</td>
+                                    </tr>
+                                    {% endif %}
+                                {% endfor %}
+                                <tr style="background-color: #f8f9fa;">
+                                    <td style="padding: 8px 10px 8px 30px; font-weight: 600; border-right: 1px solid #dee2e6;">3.01.01.07.03</td>
+                                    <td style="padding: 8px 10px; font-weight: 600; border-right: 1px solid #dee2e6;">Total Despesas Fixas</td>
+                                    <td style="padding: 8px 10px; text-align: right; font-weight: 600; color: #dc3545;">({{ dre_consolidado.total_despesas_fixas|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                
+                                <tr style="background-color: #f8f9fa; border-top: 1px solid #dee2e6;">
+                                    <td style="padding: 10px; font-weight: 600; border-right: 1px solid #dee2e6;">3.01.01.07</td>
+                                    <td style="padding: 10px; font-weight: 600; border-right: 1px solid #dee2e6;">Total Despesas Operacionais</td>
+                                    <td style="padding: 10px; text-align: right; font-weight: 600; color: #dc3545;">({{ dre_consolidado.despesas_operacionais|moeda_br }})</td>
+                                </tr>
+                                
+                                <!-- 7. RESULTADO OPERACIONAL -->
+                                <tr style="background-color: {% if dre_consolidado.resultado_operacional >= 0 %}#c8e6c9{% else %}#ffcdd2{% endif %}; border-top: 2px solid {% if dre_consolidado.resultado_operacional >= 0 %}#4caf50{% else %}#f44336{% endif %};">
+                                    <td style="padding: 10px; font-weight: 600; border-right: 1px solid #dee2e6;">3.01.01.01.01</td>
+                                    <td style="padding: 10px; font-weight: 600; border-right: 1px solid #dee2e6;">RESULTADO OPERACIONAL</td>
+                                    <td style="padding: 10px; text-align: right; font-weight: 600;">{{ dre_consolidado.resultado_operacional|moeda_br }}</td>
+                                </tr>
+                                
+                                <!-- 8. RESULTADO FINANCEIRO -->
+                                {% if dre_consolidado.despesas_financeiras > 0 or dre_consolidado.receitas_financeiras > 0 %}
+                                <tr style="background-color: #f8f9fa; border-top: 1px solid #dee2e6;">
+                                    <td colspan="3" style="padding: 10px; font-weight: 600; border-right: 1px solid #dee2e6;">3.01.01.08. DESPESAS E RECEITAS NÃO OPERACIONAIS</td>
+                                </tr>
+                                {% if dre_consolidado.despesas_financeiras > 0 %}
+                                <tr>
+                                    <td style="padding: 6px 10px 6px 30px; border-right: 1px solid #dee2e6;">3.01.01.08.0001</td>
+                                    <td style="padding: 6px 10px; border-right: 1px solid #dee2e6;">Despesas Juros e Multas</td>
+                                    <td style="padding: 6px 10px; text-align: right; color: #dc3545;">({{ dre_consolidado.despesas_financeiras|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                {% if dre_consolidado.receitas_financeiras > 0 %}
+                                <tr>
+                                    <td style="padding: 6px 10px 6px 30px; border-right: 1px solid #dee2e6;">3.01.01.08.0002</td>
+                                    <td style="padding: 6px 10px; border-right: 1px solid #dee2e6;">Receitas Rendimentos Financeiros</td>
+                                    <td style="padding: 6px 10px; text-align: right; color: #28a745;">{{ dre_consolidado.receitas_financeiras|moeda_br }}</td>
+                                </tr>
+                                {% endif %}
+                                <tr style="background-color: #f8f9fa;">
+                                    <td style="padding: 8px 10px; font-weight: 600; border-right: 1px solid #dee2e6;">3.01.01.08</td>
+                                    <td style="padding: 8px 10px; font-weight: 600; border-right: 1px solid #dee2e6;">Resultado Não Operacional</td>
+                                    <td style="padding: 8px 10px; text-align: right; font-weight: 600; color: {% if dre_consolidado.resultado_financeiro >= 0 %}#28a745{% else %}#dc3545{% endif %};">{{ dre_consolidado.resultado_financeiro|moeda_br }}</td>
+                                </tr>
+                                {% endif %}
+                                
+                                <!-- 9. LAIR -->
+                                <tr style="background-color: {% if dre_consolidado.lair >= 0 %}#c8e6c9{% else %}#ffcdd2{% endif %}; border-top: 2px solid {% if dre_consolidado.lair >= 0 %}#4caf50{% else %}#f44336{% endif %};">
+                                    <td style="padding: 10px; font-weight: 600; border-right: 1px solid #dee2e6;">3.01.01.09</td>
+                                    <td style="padding: 10px; font-weight: 600; border-right: 1px solid #dee2e6;">RESULTADO ANTES DO IMPOSTO DE RENDA (LAIR)</td>
+                                    <td style="padding: 10px; text-align: right; font-weight: 600;">{{ dre_consolidado.lair|moeda_br }}</td>
+                                </tr>
+                                
+                                <!-- 10. PROVISÃO DE IMPOSTOS -->
+                                {% if dre_consolidado.total_impostos > 0 %}
+                                <tr style="background-color: #f8f9fa; border-top: 1px solid #dee2e6;">
+                                    <td colspan="3" style="padding: 10px; font-weight: 600; border-right: 1px solid #dee2e6;">3.01.01.10. PROVISÃO DE IMPOSTOS</td>
+                                </tr>
+                                {% if not is_pessoa_fisica and dre_consolidado.csll > 0 %}
+                                <tr>
+                                    <td style="padding: 6px 10px 6px 30px; border-right: 1px solid #dee2e6;">3.01.01.10.0001</td>
+                                    <td style="padding: 6px 10px; border-right: 1px solid #dee2e6;">CSLL</td>
+                                    <td style="padding: 6px 10px; text-align: right; color: #dc3545;">({{ dre_consolidado.csll|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                {% if dre_consolidado.irpj > 0 %}
+                                <tr>
+                                    <td style="padding: 6px 10px 6px 30px; border-right: 1px solid #dee2e6;">3.01.01.10.{% if is_pessoa_fisica %}0001{% else %}0002{% endif %}</td>
+                                    <td style="padding: 6px 10px; border-right: 1px solid #dee2e6;">{% if is_pessoa_fisica %}IR{% else %}IRPJ{% endif %}</td>
+                                    <td style="padding: 6px 10px; text-align: right; color: #dc3545;">({{ dre_consolidado.irpj|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                <tr style="background-color: #f8f9fa;">
+                                    <td style="padding: 8px 10px; font-weight: 600; border-right: 1px solid #dee2e6;">3.01.01.10</td>
+                                    <td style="padding: 8px 10px; font-weight: 600; border-right: 1px solid #dee2e6;">Total Provisão de Impostos</td>
+                                    <td style="padding: 8px 10px; text-align: right; font-weight: 600; color: #dc3545;">({{ dre_consolidado.total_impostos|moeda_br }})</td>
+                                </tr>
+                                {% endif %}
+                                
+                                <!-- 11. RESULTADO LÍQUIDO -->
+                                <tr style="background-color: {% if dre_consolidado.resultado_liquido >= 0 %}#c8e6c9{% else %}#ffcdd2{% endif %}; border-top: 3px solid {% if dre_consolidado.resultado_liquido >= 0 %}#4caf50{% else %}#f44336{% endif %};">
+                                    <td style="padding: 12px; font-weight: 700; font-size: 1.05rem; border-right: 1px solid #dee2e6;">3.01</td>
+                                    <td style="padding: 12px; font-weight: 700; font-size: 1.05rem; border-right: 1px solid #dee2e6;">RESULTADO LÍQUIDO DO EXERCÍCIO</td>
+                                    <td style="padding: 12px; text-align: right; font-weight: 700; font-size: 1.05rem;">{{ dre_consolidado.resultado_liquido|moeda_br }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botões de Ação -->
+    <div class="row mt-4">
+        <div class="col-12 text-center">
+            <button onclick="window.print()" class="btn btn-primary">
+                <i class="bi bi-printer"></i> Imprimir
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}

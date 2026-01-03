@@ -1,0 +1,357 @@
+{% extends 'base_modulos_unificado.html' %}
+{% load static %}
+{% load formato_numeros %}
+{% load formatacao_br %}
+
+{% block title %}Relatório de Endividamento - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- Cabeçalho do Relatório -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2><i class="bi bi-credit-card"></i> Relatório de Endividamento</h2>
+                    <p class="text-muted mb-0">Propriedade: {{ propriedade.nome_propriedade }}</p>
+                    <p class="text-muted mb-0">Data do Relatório: {{ data_relatorio|date:"d/m/Y" }}</p>
+                </div>
+                <div>
+                    <a href="{% url 'relatorios_dashboard' propriedade.id %}" class="btn btn-secondary me-2">
+                        <i class="bi bi-arrow-left"></i> Voltar
+                    </a>
+                    <a href="{% url 'exportar_relatorio_endividamento_pdf' propriedade.id %}" class="btn btn-danger me-2">
+                        <i class="bi bi-file-pdf"></i> PDF
+                    </a>
+                    <a href="{% url 'exportar_relatorio_endividamento_excel' propriedade.id %}" class="btn btn-success me-2">
+                        <i class="bi bi-file-excel"></i> Excel
+                    </a>
+                    <button class="btn btn-primary" onclick="window.print()">
+                        <i class="bi bi-printer"></i> Imprimir
+                    </button>
+                </div>
+            </div>
+
+            <!-- Resumo de Endividamento -->
+            <div class="row mb-4">
+                <div class="col-md-4 mb-3">
+                    <div class="card border-danger">
+                        <div class="card-body text-center py-3">
+                            <i class="bi bi-bank fs-3 text-danger"></i>
+                            <h6 class="mt-2 mb-1 small">Total Financiado</h6>
+                            <h4 class="text-danger mb-0">R$ {{ total_financiado|default:0|floatformat:2 }}</h4>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4 mb-3">
+                    <div class="card border-warning">
+                        <div class="card-body text-center py-3">
+                            <i class="bi bi-calendar fs-3 text-warning"></i>
+                            <h6 class="mt-2 mb-1 small">Parcelas/Mês</h6>
+                            <h4 class="text-warning mb-0">R$ {{ total_parcelas_mes|default:0|floatformat:2 }}</h4>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4 mb-3">
+                    <div class="card border-info">
+                        <div class="card-body text-center py-3">
+                            <i class="bi bi-graph-up fs-3 text-info"></i>
+                            <h6 class="mt-2 mb-1 small">Parcelas/Ano</h6>
+                            <h4 class="text-info mb-0">R$ {{ total_parcelas_ano|default:0|floatformat:2 }}</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Financiamentos por Tipo -->
+            {% if financiamentos_por_tipo %}
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card border-danger">
+                        <div class="card-header bg-danger text-white">
+                            <h5 class="mb-0">
+                                <i class="bi bi-credit-card"></i> Financiamentos por Tipo
+                            </h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover mb-0">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>Tipo de Financiamento</th>
+                                            <th class="text-center">Total Principal</th>
+                                            <th class="text-center">Parcelas/Mês</th>
+                                            <th class="text-center">% do Total</th>
+                                            <th class="text-center">Contratos</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for tipo, dados in financiamentos_por_tipo.items %}
+                                        <tr>
+                                            <td>
+                                                <strong>{{ tipo }}</strong>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge bg-danger">R$ {{ dados.total_principal|floatformat:2 }}</span>
+                                            </td>
+                                            <td class="text-center">
+                                                <strong>R$ {{ dados.total_parcelas_mes|floatformat:2 }}</strong>
+                                            </td>
+                                            <td class="text-center">
+                                                {% if total_financiado > 0 %}
+                                                    {{ dados.total_principal|div:total_financiado|mul:100|floatformat:1 }}%
+                                                {% else %}
+                                                    0,0%
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge bg-secondary">{{ dados.financiamentos|length }}</span>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                    <tfoot class="table-dark">
+                                        <tr>
+                                            <th>TOTAL GERAL</th>
+                                            <th class="text-center">R$ {{ total_financiado|default:0|floatformat:2 }}</th>
+                                            <th class="text-center">R$ {{ total_parcelas_mes|default:0|floatformat:2 }}</th>
+                                            <th class="text-center">100,0%</th>
+                                            <th class="text-center">{{ financiamentos|length }}</th>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Detalhamento de Financiamentos -->
+            {% if financiamentos %}
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card border-secondary">
+                        <div class="card-header bg-secondary text-white">
+                            <h5 class="mb-0">
+                                <i class="bi bi-list-check"></i> Detalhamento de Financiamentos
+                            </h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover mb-0">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>Descrição</th>
+                                            <th class="text-center">Tipo</th>
+                                            <th class="text-center">Valor Principal</th>
+                                            <th class="text-center">Valor Parcela</th>
+                                            <th class="text-center">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for financiamento in financiamentos %}
+                                        <tr>
+                                            <td>{{ financiamento.descricao }}</td>
+                                            <td class="text-center">
+                                                <span class="badge bg-info">{{ financiamento.tipo.nome }}</span>
+                                            </td>
+                                            <td class="text-center">
+                                                <strong>R$ {{ financiamento.valor_principal|floatformat:2 }}</strong>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge bg-warning">R$ {{ financiamento.valor_parcela|floatformat:2 }}</span>
+                                            </td>
+                                            <td class="text-center">
+                                                {% if financiamento.ativo %}
+                                                    <span class="badge bg-success">Ativo</span>
+                                                {% else %}
+                                                    <span class="badge bg-danger">Inativo</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Gráfico de Distribuição -->
+            {% if financiamentos_por_tipo %}
+            <div class="row mb-4">
+                <div class="col-md-6 mb-3">
+                    <div class="card border-danger">
+                        <div class="card-header bg-danger text-white">
+                            <h6 class="mb-0">
+                                <i class="bi bi-pie-chart"></i> Distribuição por Valor
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="chartValor" width="400" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <div class="card border-warning">
+                        <div class="card-header bg-warning text-dark">
+                            <h6 class="mb-0">
+                                <i class="bi bi-bar-chart"></i> Parcelas Mensais
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="chartParcelas" width="400" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Análise de Capacidade de Pagamento -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card border-success">
+                        <div class="card-header bg-success text-white">
+                            <h6 class="mb-0">
+                                <i class="bi bi-lightbulb"></i> Análise de Capacidade de Pagamento
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6>Indicadores:</h6>
+                                    <ul class="list-unstyled">
+                                        <li><i class="bi bi-check-circle text-success"></i> Parcelas mensais: R$ {{ total_parcelas_mes|default:0|floatformat:2 }}</li>
+                                        <li><i class="bi bi-check-circle text-success"></i> Parcelas anuais: R$ {{ total_parcelas_ano|default:0|floatformat:2 }}</li>
+                                        <li><i class="bi bi-check-circle text-success"></i> Total financiado: R$ {{ total_financiado|default:0|floatformat:2 }}</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Recomendações:</h6>
+                                    <ul class="small mb-0">
+                                        <li>Monitore capacidade de pagamento mensal</li>
+                                        <li>Considere renegociação de contratos</li>
+                                        <li>Mantenha reserva para emergências</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Informações do Relatório -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card border-info">
+                        <div class="card-header bg-info text-white">
+                            <h6 class="mb-0">
+                                <i class="bi bi-info-circle"></i> Informações do Relatório
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6>Metodologia:</h6>
+                                    <ul class="small mb-0">
+                                        <li>Análise baseada em contratos ativos</li>
+                                        <li>Valores considerados em moeda corrente</li>
+                                        <li>Parcelas calculadas mensalmente</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Observações:</h6>
+                                    <ul class="small mb-0">
+                                        <li>Considere variações de taxa de juros</li>
+                                        <li>Monitore prazos de vencimento</li>
+                                        <li>Atualize regularmente os dados</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts para Gráficos -->
+{% if financiamentos_por_tipo %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Gráfico de Valor (Pizza)
+    const ctxValor = document.getElementById('chartValor').getContext('2d');
+    new Chart(ctxValor, {
+        type: 'pie',
+        data: {
+            labels: Object.keys({{ financiamentos_por_tipo|safe }}),
+            datasets: [{
+                data: Object.values({{ financiamentos_por_tipo|safe }}).map(item => item.total_principal),
+                backgroundColor: [
+                    '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+    
+    // Gráfico de Parcelas (Barras)
+    const ctxParcelas = document.getElementById('chartParcelas').getContext('2d');
+    new Chart(ctxParcelas, {
+        type: 'bar',
+        data: {
+            labels: Object.keys({{ financiamentos_por_tipo|safe }}),
+            datasets: [{
+                label: 'Parcelas Mensais (R$)',
+                data: Object.values({{ financiamentos_por_tipo|safe }}).map(item => item.total_parcelas_mes),
+                backgroundColor: '#ffc107'
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return 'R$ ' + value.toLocaleString('pt-BR');
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endif %}
+
+<style>
+@media print {
+    .btn, .card-header {
+        display: none !important;
+    }
+    .card {
+        border: 1px solid #000 !important;
+        page-break-inside: avoid;
+    }
+    .table {
+        font-size: 12px;
+    }
+}
+</style>
+{% endblock %}

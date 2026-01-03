@@ -1,0 +1,297 @@
+{% extends 'base_modulos_unificado.html' %}
+{% load static %}
+{% load formatacao_br %}
+
+{% block title %}Relatório de Movimentação de Animais - PNIB - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block breadcrumb_extra %}
+    <li class="breadcrumb-item">
+        <a href="{% url 'rastreabilidade_dashboard' propriedade.id %}">Rastreabilidade</a>
+    </li>
+    <li class="breadcrumb-item active">
+        <i class="bi bi-arrow-left-right"></i> Movimentação de Animais
+    </li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Cabeçalho do Relatório -->
+    <div class="submenu-page-header mb-4">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <h1 class="submenu-page-title">
+                    <i class="bi bi-arrow-left-right"></i> Relatório de Movimentação de Animais
+                </h1>
+                <p class="submenu-page-description mb-2">
+                    <strong>PNIB - Registro de todas as movimentações dos animais</strong>
+                </p>
+                <p class="text-muted mb-0">
+                    Propriedade: {{ propriedade.nome_propriedade }} | 
+                    Data de Emissão: {{ data_emissao|date:"d/m/Y" }}
+                </p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{% url 'rastreabilidade_dashboard' propriedade.id %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Voltar
+                </a>
+                <a href="{% url 'exportar_movimentacao_animais_pdf' propriedade.id %}?tipo_movimentacao={{ tipo_movimentacao }}&data_inicio={{ data_inicio }}&data_fim={{ data_fim }}" 
+                   class="btn btn-danger">
+                    <i class="bi bi-file-pdf"></i> Exportar PDF
+                </a>
+                <button class="btn btn-primary" onclick="window.print()">
+                    <i class="bi bi-printer"></i> Imprimir
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card-moderno mb-4">
+        <div class="card-body-moderno">
+            <form method="GET" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Tipo de Movimentação</label>
+                    <select name="tipo_movimentacao" class="form-select">
+                        <option value="">Todos</option>
+                        <option value="NASCIMENTO" {% if tipo_movimentacao == 'NASCIMENTO' %}selected{% endif %}>Nascimento</option>
+                        <option value="COMPRA" {% if tipo_movimentacao == 'COMPRA' %}selected{% endif %}>Compra</option>
+                        <option value="VENDA" {% if tipo_movimentacao == 'VENDA' %}selected{% endif %}>Venda</option>
+                        <option value="TRANSFERENCIA_ENTRADA" {% if tipo_movimentacao == 'TRANSFERENCIA_ENTRADA' %}selected{% endif %}>Transferência Entrada</option>
+                        <option value="TRANSFERENCIA_SAIDA" {% if tipo_movimentacao == 'TRANSFERENCIA_SAIDA' %}selected{% endif %}>Transferência Saída</option>
+                        <option value="MORTE" {% if tipo_movimentacao == 'MORTE' %}selected{% endif %}>Morte</option>
+                        <option value="MUDANCA_CATEGORIA" {% if tipo_movimentacao == 'MUDANCA_CATEGORIA' %}selected{% endif %}>Mudança de Categoria</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Data Início</label>
+                    <input type="date" name="data_inicio" class="form-control" value="{{ data_inicio }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Data Fim</label>
+                    <input type="date" name="data_fim" class="form-control" value="{{ data_fim }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Número do Brinco</label>
+                    <input type="text" name="numero_brinco" class="form-control" 
+                           value="{{ numero_brinco }}" placeholder="Buscar por brinco">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-search"></i> Filtrar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Resumo Estatístico -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card-moderno text-center">
+                <div class="card-body-moderno">
+                    <div class="bg-info bg-opacity-10 rounded-circle p-3 mx-auto mb-3" style="width: 70px; height: 70px;">
+                        <i class="bi bi-arrow-left-right text-info fs-3"></i>
+                    </div>
+                    <h6 class="text-dark mb-1">Total de Movimentações</h6>
+                    <h4 class="text-info mb-0">{{ total_movimentacoes|numero_br:0 }}</h4>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-9 mb-3">
+            <div class="card-moderno">
+                <div class="card-body-moderno">
+                    <h6 class="card-title mb-3">
+                        <i class="bi bi-pie-chart"></i> Movimentações por Tipo
+                    </h6>
+                    {% if movimentacoes_por_tipo %}
+                        <div class="row">
+                            {% for item in movimentacoes_por_tipo %}
+                            <div class="col-md-3 mb-2">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="text-muted small">{{ item.tipo_movimentacao }}</span>
+                                    <span class="badge bg-primary">{{ item.total|numero_br:0 }}</span>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted mb-0">Nenhum dado disponível</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabela de Movimentações -->
+    <div class="card-moderno">
+        <div class="card-header-moderno">
+            <h5 class="mb-0">
+                <i class="bi bi-list-ul"></i> Histórico de Movimentações
+            </h5>
+        </div>
+        <div class="card-body-moderno">
+            {% if movimentacoes %}
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Data</th>
+                                <th>Brinco / SISBOV</th>
+                                <th>Tipo</th>
+                                <th>Origem</th>
+                                <th>Destino</th>
+                                <th>Qtd</th>
+                                <th>Status Sanitário</th>
+                                <th>Peso (kg)</th>
+                                <th>Valor (R$)</th>
+                                <th>Documento</th>
+                                <th>Lote Atual</th>
+                                <th>Responsável</th>
+                                <th>Motivo / Observações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for mov in movimentacoes %}
+                            <tr>
+                                <td>{{ mov.data_movimentacao|date:"d/m/Y" }}</td>
+                                <td>
+                                    <a href="{% url 'animal_individual_detalhes' propriedade.id mov.animal.id %}" 
+                                       class="text-decoration-none">
+                                        <strong class="text-primary">{{ mov.animal.numero_brinco }}</strong>
+                                    </a>
+                                    <div class="small text-muted">SISBOV: {{ mov.animal.codigo_sisbov|default:"-" }}</div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-info">{{ mov.get_tipo_movimentacao_display }}</span>
+                                </td>
+                                <td>
+                                    {% if mov.propriedade_origem %}
+                                        {{ mov.propriedade_origem.nome_propriedade }}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if mov.propriedade_destino %}
+                                        {{ mov.propriedade_destino.nome_propriedade }}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ mov.quantidade_animais }}</td>
+                                <td>
+                                    <span class="badge bg-{% if mov.animal.status_sanitario == 'APTO' %}success{% elif mov.animal.status_sanitario == 'QUARENTENA' %}warning{% elif mov.animal.status_sanitario == 'POSITIVO' %}danger{% else %}secondary{% endif %}">
+                                        {{ mov.animal.get_status_sanitario_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if mov.peso_kg %}
+                                        {{ mov.peso_kg|numero_br:2 }}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if mov.valor %}
+                                        {{ mov.valor|moeda_br }}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div>
+                                        {% if mov.numero_documento %}
+                                            <strong>Nº Documento:</strong> {{ mov.numero_documento }}
+                                        {% else %}
+                                            <em>Sem número informado</em>
+                                        {% endif %}
+                                    </div>
+                                    <div>
+                                        {% if mov.documento_emissor %}
+                                            <strong>Emissor:</strong> {{ mov.documento_emissor }}
+                                        {% endif %}
+                                    </div>
+                                    <div>
+                                        {% if mov.data_documento %}
+                                            <strong>Data:</strong> {{ mov.data_documento|date:'d/m/Y' }}
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if mov.animal.lote_atual %}
+                                        {{ mov.animal.lote_atual.nome }}
+                                        <div class="small text-muted">{{ mov.animal.lote_atual.sessao.nome }}</div>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if mov.responsavel %}
+                                        {{ mov.responsavel.get_full_name|default:mov.responsavel.username }}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <small class="text-muted d-block">{{ mov.motivo_detalhado|default:"-" }}</small>
+                                    <small class="text-muted">{{ mov.observacoes|truncatewords:12|default:"" }}</small>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="bi bi-inbox fs-1 text-muted"></i>
+                    <p class="text-muted mt-3">Nenhuma movimentação encontrada com os filtros selecionados.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Rodapé do Relatório -->
+    <div class="card-moderno mt-4">
+        <div class="card-body-moderno">
+            <div class="row">
+                <div class="col-md-6">
+                    <p class="text-muted mb-0">
+                        <small>
+                            <strong>Relatório gerado em:</strong> {{ data_emissao|date:"d/m/Y H:i" }}<br>
+                            <strong>Conforme:</strong> PNIB - Instrução Normativa MAPA nº 62/2018
+                        </small>
+                    </p>
+                </div>
+                <div class="col-md-6 text-end">
+                    <p class="text-muted mb-0">
+                        <small>
+                            <strong>Propriedade:</strong> {{ propriedade.nome_propriedade }}<br>
+                            <strong>Município:</strong> {{ propriedade.municipio }}/{{ propriedade.uf }}
+                        </small>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+@media print {
+    .btn, .submenu-page-header .d-flex, .card-moderno.mb-4:first-of-type {
+        display: none !important;
+    }
+    
+    .card-moderno {
+        border: none !important;
+        box-shadow: none !important;
+    }
+    
+    .table {
+        font-size: 0.8rem;
+    }
+}
+</style>
+{% endblock %}
+
+

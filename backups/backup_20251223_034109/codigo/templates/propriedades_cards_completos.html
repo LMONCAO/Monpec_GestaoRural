@@ -1,0 +1,450 @@
+{% extends 'base_navegacao_inteligente.html' %}
+
+{% block title %}Propriedades de {{ produtor.nome }} - Monpec Rural{% endblock %}
+
+{% block breadcrumb_extra %}
+<li class="breadcrumb-item active">Propriedades</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Cabeçalho -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card card-modulo card-agricultura">
+                <div class="card-header-colorido card-header">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h3 class="mb-0">
+                                <i class="bi bi-house-door-fill"></i> Propriedades Rurais
+                            </h3>
+                            <p class="mb-0 mt-2">
+                                <i class="bi bi-person-badge"></i> <strong>{{ produtor.nome }}</strong> • 
+                                {{ propriedades|length }} propriedade{{ propriedades|length|pluralize }}
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <a href="{% url 'admin:gestao_rural_propriedade_add' %}?produtor={{ produtor.id }}" 
+                               class="btn btn-modulo-agricultura">
+                                <i class="bi bi-plus-circle"></i> Nova Propriedade
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de Propriedades com Cards Completos -->
+    <div class="row">
+        {% for propriedade in propriedades %}
+        <div class="col-lg-6 col-xxl-4 mb-4">
+            <div class="card card-modulo card-patrimonio h-100 card-propriedade-completa">
+                <!-- CABEÇALHO COM NOME DA PROPRIEDADE EM DESTAQUE -->
+                <div class="card-header card-header-propriedade text-white" style="background: linear-gradient(135deg, #17a2b8, #007bff);">
+                    <div class="row align-items-center">
+                        <div class="col-8">
+                            <h4 class="mb-0 fw-bold">
+                                <i class="bi bi-geo-alt-fill"></i> {{ propriedade.nome|upper }}
+                            </h4>
+                            <small class="opacity-75">Propriedade Rural #{{ propriedade.id }}</small>
+                        </div>
+                        <div class="col-4 text-end">
+                            <div class="badge bg-success fs-6 p-2">
+                                <i class="bi bi-check-circle"></i> ATIVA
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-body p-0">
+                    <!-- SEÇÃO DE ESTATÍSTICAS PRINCIPAIS -->
+                    <div class="stats-section bg-light p-3">
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <div class="stat-box">
+                                    <div class="h4 mb-1 text-info fw-bold">{{ propriedade.area_total|default:"0" }}</div>
+                                    <small class="text-muted">HECTARES</small>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="stat-box border-start border-end">
+                                    <div class="h4 mb-1 text-success fw-bold">{{ propriedade.total_animais|default:"0" }}</div>
+                                    <small class="text-muted">ANIMAIS</small>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="stat-box">
+                                    <div class="h4 mb-1 text-warning fw-bold">{{ propriedade.valor_unitario|default:"0" }}</div>
+                                    <small class="text-muted">R$/HA</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- INFORMAÇÕES DETALHADAS -->
+                    <div class="details-section p-3">
+                        <!-- Localização e Tipo -->
+                        <div class="info-row mb-3">
+                            <div class="row">
+                                <div class="col-12 mb-2">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-map-fill text-primary me-2 fs-5"></i>
+                                        <div>
+                                            <strong>{{ propriedade.localizacao|default:"Localização não informada" }}</strong>
+                                            <br><small class="text-muted">Localização</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tipo e Posse -->
+                        <div class="info-row mb-3">
+                            <div class="row">
+                                <div class="col-6">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-house-fill text-info me-2"></i>
+                                        <div>
+                                            <strong>{{ propriedade.get_tipo_propriedade_display|default:"Fazenda"|truncatechars:12 }}</strong>
+                                            <br><small class="text-muted">Tipo</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-file-text-fill text-success me-2"></i>
+                                        <div>
+                                            <strong>{{ propriedade.get_situacao_posse_display|default:"Própria"|truncatechars:12 }}</strong>
+                                            <br><small class="text-muted">Situação</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Data de Cadastro e Última Atualização -->
+                        <div class="info-row mb-3">
+                            <div class="row">
+                                <div class="col-6">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-calendar-plus text-warning me-2"></i>
+                                        <div>
+                                            <strong>{{ propriedade.data_cadastro|date:"d/m/Y" }}</strong>
+                                            <br><small class="text-muted">Cadastro</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-clock-fill text-secondary me-2"></i>
+                                        <div>
+                                            <strong>{{ propriedade.data_atualizacao|date:"d/m/Y"|default:"Hoje" }}</strong>
+                                            <br><small class="text-muted">Atualização</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- VALOR TOTAL EM DESTAQUE -->
+                        {% if propriedade.valor_total %}
+                        <div class="valor-total-section bg-success bg-opacity-10 p-3 rounded mb-3 text-center">
+                            <div class="small text-muted mb-1">VALOR TOTAL ESTIMADO</div>
+                            <div class="h3 mb-0 text-success fw-bold">
+                                <i class="bi bi-currency-dollar"></i> {{ propriedade.valor_total|default:"0,00" }}
+                            </div>
+                            <small class="text-success">Patrimônio da propriedade</small>
+                        </div>
+                        {% endif %}
+
+                        <!-- Módulos Disponíveis -->
+                        <div class="modulos-preview mb-3">
+                            <div class="small text-muted mb-2 fw-bold">MÓDULOS DISPONÍVEIS:</div>
+                            <div class="d-flex flex-wrap gap-1">
+                                <span class="badge rounded-pill" style="background-color: #28a745; color: white;">
+                                    <i class="bi bi-cow"></i> Pecuária
+                                </span>
+                                <span class="badge rounded-pill" style="background-color: #17a2b8; color: white;">
+                                    <i class="bi bi-building"></i> Patrimônio
+                                </span>
+                                <span class="badge rounded-pill" style="background-color: #dc3545; color: white;">
+                                    <i class="bi bi-cash"></i> Financeiro
+                                </span>
+                                <span class="badge rounded-pill" style="background-color: #6f42c1; color: white;">
+                                    <i class="bi bi-clipboard"></i> Projetos
+                                </span>
+                                <span class="badge rounded-pill" style="background-color: #20c997; color: white;">
+                                    <i class="bi bi-tags"></i> Categorias
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- RODAPÉ COM AÇÕES -->
+                <div class="card-footer bg-transparent p-3">
+                    <div class="row g-2">
+                        <div class="col-8">
+                            <a href="{% url 'propriedade_modulos' propriedade.id %}" 
+                               class="btn btn-success w-100 btn-lg fw-bold">
+                                <i class="bi bi-unlock-fill"></i> ACESSAR MÓDULOS
+                            </a>
+                        </div>
+                        <div class="col-4">
+                            <div class="btn-group w-100">
+                                <a href="{% url 'admin:gestao_rural_propriedade_change' propriedade.id %}" 
+                                   class="btn btn-outline-info" title="Editar">
+                                    <i class="bi bi-pencil-fill"></i>
+                                </a>
+                                <button class="btn btn-outline-secondary" title="Mais opções">
+                                    <i class="bi bi-three-dots"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <!-- Estado Vazio -->
+        <div class="col-12">
+            <div class="card card-modulo text-center py-5">
+                <div class="card-body">
+                    <i class="bi bi-house-plus-fill display-1 text-muted mb-4"></i>
+                    <h3>Nenhuma Propriedade Cadastrada</h3>
+                    <p class="text-muted fs-5">Cadastre a primeira propriedade rural para <strong>{{ produtor.nome }}</strong></p>
+                    <div class="mt-4">
+                        <a href="{% url 'admin:gestao_rural_propriedade_add' %}?produtor={{ produtor.id }}" 
+                           class="btn btn-primary btn-lg">
+                            <i class="bi bi-plus-circle-fill me-2"></i> Cadastrar Primeira Propriedade
+                        </a>
+                    </div>
+                    
+                    <!-- Benefícios -->
+                    <div class="row mt-5">
+                        <div class="col-md-4 mb-3">
+                            <i class="bi bi-speedometer2 text-primary fs-2 mb-2"></i>
+                            <h6>Gestão Completa</h6>
+                            <small class="text-muted">8 módulos integrados</small>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <i class="bi bi-graph-up-arrow text-success fs-2 mb-2"></i>
+                            <h6>Relatórios Inteligentes</h6>
+                            <small class="text-muted">Análises automáticas</small>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <i class="bi bi-shield-check text-info fs-2 mb-2"></i>
+                            <h6>Controle Total</h6>
+                            <small class="text-muted">Segurança e confiabilidade</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Resumo Geral do Produtor -->
+    {% if propriedades %}
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card card-modulo card-relatorios">
+                <div class="card-header-colorido card-header text-center">
+                    <h4 class="mb-0">
+                        <i class="bi bi-bar-chart-fill"></i> RESUMO GERAL - {{ produtor.nome|upper }}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-lg-3 col-6 mb-3">
+                            <div class="stats-card border-end">
+                                <div class="display-6 text-primary mb-2">{{ propriedades|length }}</div>
+                                <h6 class="fw-bold">PROPRIEDADES</h6>
+                                <small class="text-muted">Total cadastradas</small>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-6 mb-3">
+                            <div class="stats-card border-end">
+                                <div class="display-6 text-success mb-2">{{ area_total|default:"0" }}</div>
+                                <h6 class="fw-bold">HECTARES</h6>
+                                <small class="text-muted">Área total</small>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-6 mb-3">
+                            <div class="stats-card border-end">
+                                <div class="display-6 text-info mb-2">{{ total_animais|default:"0" }}</div>
+                                <h6 class="fw-bold">ANIMAIS</h6>
+                                <small class="text-muted">Rebanho total</small>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-6 mb-3">
+                            <div class="stats-card">
+                                <div class="display-6 text-warning mb-2">R$ {{ valor_total|default:"0" }}</div>
+                                <h6 class="fw-bold">PATRIMÔNIO</h6>
+                                <small class="text-muted">Valor estimado</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Cards de propriedade personalizados */
+    .card-propriedade-completa {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+        overflow: hidden;
+    }
+
+    .card-propriedade-completa:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+    }
+
+    .card-header-propriedade {
+        border: none;
+        border-radius: 0;
+        position: relative;
+    }
+
+    .card-header-propriedade::after {
+        content: '';
+        position: absolute;
+        bottom: -10px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 0;
+        height: 0;
+        border-left: 15px solid transparent;
+        border-right: 15px solid transparent;
+        border-top: 10px solid #007bff;
+    }
+
+    .stats-section {
+        border-bottom: 2px solid #e9ecef;
+    }
+
+    .stat-box {
+        padding: 0.5rem;
+    }
+
+    .info-row {
+        border-bottom: 1px solid #f8f9fa;
+        padding-bottom: 0.5rem;
+    }
+
+    .info-row:last-child {
+        border-bottom: none;
+    }
+
+    .valor-total-section {
+        border-left: 4px solid #28a745;
+    }
+
+    .modulos-preview .badge {
+        font-size: 0.75rem;
+    }
+
+    .stats-card {
+        padding: 1rem;
+    }
+
+    /* Animações */
+    .card-propriedade-completa {
+        animation: fadeInUp 0.6s ease-out;
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Responsivo */
+    @media (max-width: 768px) {
+        .card-header-propriedade h4 {
+            font-size: 1.2rem;
+        }
+        
+        .stats-section .col-4 {
+            border: none !important;
+            border-bottom: 1px solid #dee2e6 !important;
+        }
+        
+        .stats-section .col-4:last-child {
+            border-bottom: none !important;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Animação escalonada dos cards
+    const cards = document.querySelectorAll('.card-propriedade-completa');
+    cards.forEach((card, index) => {
+        card.style.animationDelay = `${index * 0.2}s`;
+    });
+    
+    // Efeito hover nos botões de acessar
+    document.querySelectorAll('[href*="propriedade_modulos"]').forEach(btn => {
+        btn.addEventListener('mouseenter', function() {
+            this.innerHTML = '<i class="bi bi-rocket-takeoff-fill"></i> ATIVAR AGORA!';
+            this.classList.add('btn-lg');
+        });
+        
+        btn.addEventListener('mouseleave', function() {
+            this.innerHTML = '<i class="bi bi-unlock-fill"></i> ACESSAR MÓDULOS';
+        });
+    });
+
+    // Contador animado nos valores
+    function animateValue(element, start, end, duration) {
+        let startTimestamp = null;
+        const step = (timestamp) => {
+            if (!startTimestamp) startTimestamp = timestamp;
+            const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+            const current = Math.floor(progress * (end - start) + start);
+            element.textContent = current;
+            if (progress < 1) {
+                window.requestAnimationFrame(step);
+            }
+        };
+        window.requestAnimationFrame(step);
+    }
+
+    // Animar valores quando o card fica visível
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const values = entry.target.querySelectorAll('.h4, .display-6');
+                values.forEach(value => {
+                    const endValue = parseInt(value.textContent) || 0;
+                    if (endValue > 0) {
+                        animateValue(value, 0, endValue, 1500);
+                    }
+                });
+                observer.unobserve(entry.target);
+            }
+        });
+    });
+
+    cards.forEach(card => observer.observe(card));
+});
+</script>
+{% endblock %}

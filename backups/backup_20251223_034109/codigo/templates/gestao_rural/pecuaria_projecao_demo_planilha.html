@@ -1,0 +1,483 @@
+{% extends 'base_modulos_unificado.html' %}
+{% load static %}
+{% load formatacao_br %}
+
+{% block title %}Projeção Demonstração - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block breadcrumb_extra %}
+    <li class="breadcrumb-item">
+        <a href="{% url 'pecuaria_dashboard' propriedade.id %}">
+            <i class="bi bi-cow"></i> Pecuária
+        </a>
+    </li>
+    <li class="breadcrumb-item">
+        <a href="{% url 'pecuaria_projecao' propriedade.id %}">
+            <i class="bi bi-graph-up-arrow"></i> Projeções
+        </a>
+    </li>
+    <li class="breadcrumb-item active">
+        <i class="bi bi-file-spreadsheet"></i> Demonstração
+    </li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 py-2">
+    <!-- Cabeçalho -->
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <div>
+            <h1 class="h5 mb-0 fw-bold" style="font-size: 1.1rem;">
+                <i class="bi bi-file-spreadsheet text-primary me-1" style="font-size: 1rem;"></i>
+                Projeção de Demonstração - {{ anos }} Anos
+            </h1>
+            <p class="text-muted mb-0" style="font-size: 0.75rem;">
+                Esta é uma versão de demonstração. Na versão assinante, a Inteligência Artificial será ativada.
+            </p>
+        </div>
+        <div>
+            <a href="{% url 'pecuaria_projecao' propriedade.id %}" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-arrow-left me-1"></i>
+                Voltar
+            </a>
+        </div>
+    </div>
+
+    <!-- Alerta de Demonstração -->
+    <div class="alert alert-info border-0 shadow-sm mb-2 py-2" style="font-size: 0.8rem;">
+        <div class="d-flex align-items-center">
+            <i class="bi bi-info-circle-fill me-2" style="font-size: 1rem;"></i>
+            <div>
+                <strong style="font-size: 0.85rem;">Versão de Demonstração</strong>
+                <p class="mb-0" style="font-size: 0.75rem;">Os dados exibidos são exemplos. Na versão assinante, você terá acesso a projeções precisas geradas por Inteligência Artificial.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabelas de Projeção por Ano -->
+    {% for ano, dados_ano in projecao.items %}
+    <div class="card border-0 shadow-sm mb-2">
+        <div class="card-header bg-primary text-white py-1">
+            <h6 class="mb-0" style="font-size: 0.9rem;">
+                <i class="bi bi-calendar-year me-1" style="font-size: 0.85rem;"></i>
+                Projeção do Ano {{ ano }}
+            </h6>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-bordered mb-0 table-sm">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="font-size: 0.7rem; padding: 0.35rem 0.5rem;">Categoria</th>
+                            <th class="text-center" style="font-size: 0.7rem; padding: 0.35rem 0.5rem;">Saldo Inicial</th>
+                            <th class="text-center" style="font-size: 0.7rem; padding: 0.35rem 0.5rem;">Nascimentos</th>
+                            <th class="text-center" style="font-size: 0.7rem; padding: 0.35rem 0.5rem;">Compras</th>
+                            <th class="text-center" style="font-size: 0.7rem; padding: 0.35rem 0.5rem;">Vendas</th>
+                            <th class="text-center" style="font-size: 0.7rem; padding: 0.35rem 0.5rem;">Mortes</th>
+                            <th class="text-center" style="font-size: 0.7rem; padding: 0.35rem 0.5rem;">Transferências</th>
+                            <th class="text-center" style="font-size: 0.7rem; padding: 0.35rem 0.5rem;">Evolução</th>
+                            <th class="text-center" style="font-size: 0.7rem; padding: 0.35rem 0.5rem;">Saldo Final</th>
+                            <th class="text-center" style="font-size: 0.7rem; padding: 0.35rem 0.5rem;">Peso Médio (kg)</th>
+                            <th class="text-end" style="font-size: 0.7rem; padding: 0.35rem 0.5rem;">Valor Unit. (R$)</th>
+                            <th class="text-end" style="font-size: 0.7rem; padding: 0.35rem 0.5rem;">Valor Total (R$)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for categoria in categorias %}
+                        {% if dados_ano|get_item:categoria.nome %}
+                        {% with dados=dados_ano|get_item:categoria.nome %}
+                        <tr>
+                            <td style="padding: 0.35rem 0.5rem;">
+                                <span class="badge bg-light text-dark" style="font-size: 0.7rem; padding: 0.2rem 0.4rem;">
+                                    {{ categoria.nome }}
+                                </span>
+                            </td>
+                            <td class="text-center" style="padding: 0.35rem 0.5rem; font-size: 0.75rem;">{{ dados.saldo_inicial|numero_br:0 }}</td>
+                            <td class="text-center text-success" style="padding: 0.35rem 0.5rem; font-size: 0.75rem;">
+                                {% if dados.nascimentos > 0 %}+{{ dados.nascimentos|numero_br:0 }}{% else %}-{% endif %}
+                            </td>
+                            <td class="text-center text-info" style="padding: 0.35rem 0.5rem; font-size: 0.75rem;">
+                                {% if dados.compras > 0 %}+{{ dados.compras|numero_br:0 }}{% else %}-{% endif %}
+                            </td>
+                            <td class="text-center text-danger" style="padding: 0.35rem 0.5rem; font-size: 0.75rem;">
+                                {% if dados.vendas > 0 %}-{{ dados.vendas|numero_br:0 }}{% else %}-{% endif %}
+                            </td>
+                            <td class="text-center text-muted" style="padding: 0.35rem 0.5rem; font-size: 0.75rem;">
+                                {% if dados.mortes > 0 %}-{{ dados.mortes|numero_br:0 }}{% else %}-{% endif %}
+                            </td>
+                            <td class="text-center text-secondary" style="padding: 0.35rem 0.5rem; font-size: 0.75rem;">
+                                {% if dados.transferencias_entrada > 0 or dados.transferencias_saida > 0 %}
+                                    <span class="d-block">
+                                        {% if dados.transferencias_entrada > 0 %}
+                                            <span class="text-success">+{{ dados.transferencias_entrada|numero_br:0 }}</span>
+                                        {% endif %}
+                                        {% if dados.transferencias_saida > 0 %}
+                                            <span class="text-danger">-{{ dados.transferencias_saida|numero_br:0 }}</span>
+                                        {% endif %}
+                                    </span>
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td class="text-center text-warning" style="padding: 0.35rem 0.5rem; font-size: 0.75rem;">
+                                {% if dados.evolucao != 0 %}
+                                    {{ dados.evolucao|numero_br:0 }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td class="text-center fw-bold" style="padding: 0.35rem 0.5rem; font-size: 0.75rem;">{{ dados.saldo_final|numero_br:0 }}</td>
+                            <td class="text-center" style="padding: 0.35rem 0.5rem; font-size: 0.75rem;">{{ dados.peso_medio|numero_br:1 }}</td>
+                            <td class="text-end" style="padding: 0.35rem 0.5rem; font-size: 0.75rem;">{{ dados.valor_unitario|moeda_br }}</td>
+                            <td class="text-end" style="padding: 0.35rem 0.5rem; font-size: 0.75rem;">
+                                <strong>{{ dados.valor_total|moeda_br }}</strong>
+                            </td>
+                        </tr>
+                        {% endwith %}
+                        {% endif %}
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-light">
+                        {% with totais=totais_por_ano|get_item:ano %}
+                        <tr style="background-color: #f8f9fa !important; border-top: 2px solid #1d3a70;">
+                            <td style="padding: 0.35rem 0.5rem; font-weight: 700; font-size: 0.75rem;">
+                                <strong>TOTAL / MÉDIA</strong>
+                            </td>
+                            <td class="text-center fw-bold" style="padding: 0.35rem 0.5rem; font-size: 0.75rem;">{{ totais.total_saldo_inicial|numero_br:0 }}</td>
+                            <td class="text-center fw-bold text-success" style="padding: 0.35rem 0.5rem; font-size: 0.75rem;">{{ totais.total_nascimentos|numero_br:0 }}</td>
+                            <td class="text-center fw-bold text-info" style="padding: 0.35rem 0.5rem; font-size: 0.75rem;">{{ totais.total_compras|numero_br:0 }}</td>
+                            <td class="text-center fw-bold text-danger" style="padding: 0.35rem 0.5rem; font-size: 0.75rem;">{{ totais.total_vendas|numero_br:0 }}</td>
+                            <td class="text-center fw-bold text-muted" style="padding: 0.35rem 0.5rem; font-size: 0.75rem;">{{ totais.total_mortes|numero_br:0 }}</td>
+                            <td class="text-center fw-bold text-secondary" style="padding: 0.35rem 0.5rem; font-size: 0.75rem;">
+                                {% if totais.total_transf_entrada > 0 or totais.total_transf_saida > 0 %}
+                                    <span class="d-block">
+                                        {% if totais.total_transf_entrada > 0 %}
+                                            <span class="text-success">+{{ totais.total_transf_entrada|numero_br:0 }}</span>
+                                        {% endif %}
+                                        {% if totais.total_transf_saida > 0 %}
+                                            <span class="text-danger">-{{ totais.total_transf_saida|numero_br:0 }}</span>
+                                        {% endif %}
+                                    </span>
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td class="text-center fw-bold text-warning" style="padding: 0.35rem 0.5rem; font-size: 0.75rem;">{{ totais.total_evolucao|numero_br:0 }}</td>
+                            <td class="text-center fw-bold" style="padding: 0.35rem 0.5rem; font-size: 0.75rem;">{{ totais.total_saldo_final|numero_br:0 }}</td>
+                            <td class="text-center fw-bold" style="padding: 0.35rem 0.5rem; font-size: 0.75rem;">{{ totais.media_peso_medio|floatformat:1 }}</td>
+                            <td class="text-end fw-bold" style="padding: 0.35rem 0.5rem; font-size: 0.75rem;">{{ totais.media_valor_unitario|moeda_br }}</td>
+                            <td class="text-end fw-bold" style="padding: 0.35rem 0.5rem; font-size: 0.75rem;">
+                                <strong>{{ totais.total_valor_total|moeda_br }}</strong>
+                            </td>
+                        </tr>
+                        {% endwith %}
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+    <!-- Gráficos de Análise -->
+    <div class="row g-3 mt-3">
+        <!-- Gráfico de Evolução do Rebanho -->
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-primary text-white py-2">
+                    <h6 class="mb-0" style="font-size: 0.9rem;">
+                        <i class="bi bi-graph-up me-1" style="font-size: 0.85rem;"></i>
+                        Evolução do Rebanho (Ano a Ano)
+                    </h6>
+                </div>
+                <div class="card-body p-3">
+                    <canvas id="graficoEvolucaoRebanho" style="max-height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráfico Financeiro Consolidado -->
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-success text-white py-2">
+                    <h6 class="mb-0" style="font-size: 0.9rem;">
+                        <i class="bi bi-cash-stack me-1" style="font-size: 0.85rem;"></i>
+                        Análise Financeira Consolidada (Ano a Ano)
+                    </h6>
+                </div>
+                <div class="card-body p-3">
+                    <canvas id="graficoFinanceiro" style="max-height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.table th {
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+}
+
+.table td {
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.badge {
+    font-weight: 500;
+}
+
+.table-bordered {
+    border: 1px solid #dee2e6;
+}
+
+.table-bordered th,
+.table-bordered td {
+    border: 1px solid #dee2e6;
+}
+
+.table thead th {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.table-sm th,
+.table-sm td {
+    padding: 0.35rem 0.5rem;
+}
+
+/* Reduzir espaçamento geral */
+.container-fluid {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+}
+
+.chart-container {
+    position: relative;
+    height: 300px;
+    width: 100%;
+}
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Preparar dados para os gráficos a partir das tabelas
+    const anos = [];
+    const totalRebanhoPorAno = [];
+    const valorTotalPorAno = [];
+    const receitasPorAno = [];
+    const despesasPorAno = [];
+
+    // Processar dados de cada ano
+    {% for ano, dados_ano in projecao.items %}
+    {
+        let totalRebanho = 0;
+        let valorTotal = 0;
+        let receitas = 0;
+        let despesas = 0;
+
+        {% for categoria in categorias %}
+        {% if dados_ano|get_item:categoria.nome %}
+        {% with dados=dados_ano|get_item:categoria.nome %}
+        totalRebanho += {{ dados.saldo_final }};
+        valorTotal += {{ dados.valor_total }};
+        receitas += {{ dados.vendas }} * {{ dados.valor_unitario }};
+        despesas += {{ dados.compras }} * {{ dados.valor_unitario }};
+        {% endwith %}
+        {% endif %}
+        {% endfor %}
+
+        anos.push({{ ano }});
+        totalRebanhoPorAno.push(totalRebanho);
+        valorTotalPorAno.push(valorTotal);
+        receitasPorAno.push(receitas);
+        despesasPorAno.push(despesas);
+    }
+    {% endfor %}
+
+    // Gráfico de Evolução do Rebanho
+    const ctxEvolucao = document.getElementById('graficoEvolucaoRebanho');
+    if (ctxEvolucao) {
+        new Chart(ctxEvolucao, {
+            type: 'line',
+            data: {
+                labels: anos.map(a => a.toString()),
+                datasets: [{
+                    label: 'Total de Animais',
+                    data: totalRebanhoPorAno,
+                    borderColor: 'rgb(29, 58, 112)',
+                    backgroundColor: 'rgba(29, 58, 112, 0.1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    pointBackgroundColor: 'rgb(29, 58, 112)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                aspectRatio: 2.5,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            font: {
+                                size: 11
+                            },
+                            padding: 10
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        titleFont: {
+                            size: 12
+                        },
+                        bodyFont: {
+                            size: 11
+                        },
+                        callbacks: {
+                            label: function(context) {
+                                return 'Total: ' + context.parsed.y.toLocaleString('pt-BR') + ' cabeças';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            font: {
+                                size: 10
+                            },
+                            callback: function(value) {
+                                return value.toLocaleString('pt-BR') + ' cabeças';
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            font: {
+                                size: 10
+                            }
+                        },
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Gráfico Financeiro Consolidado
+    const ctxFinanceiro = document.getElementById('graficoFinanceiro');
+    if (ctxFinanceiro) {
+        new Chart(ctxFinanceiro, {
+            type: 'bar',
+            data: {
+                labels: anos.map(a => a.toString()),
+                datasets: [
+                    {
+                        label: 'Valor Total do Rebanho',
+                        data: valorTotalPorAno,
+                        backgroundColor: 'rgba(40, 167, 69, 0.7)',
+                        borderColor: 'rgb(40, 167, 69)',
+                        borderWidth: 2
+                    },
+                    {
+                        label: 'Receitas (Vendas)',
+                        data: receitasPorAno,
+                        backgroundColor: 'rgba(0, 123, 255, 0.7)',
+                        borderColor: 'rgb(0, 123, 255)',
+                        borderWidth: 2
+                    },
+                    {
+                        label: 'Despesas (Compras)',
+                        data: despesasPorAno,
+                        backgroundColor: 'rgba(220, 53, 69, 0.7)',
+                        borderColor: 'rgb(220, 53, 69)',
+                        borderWidth: 2
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                aspectRatio: 2.5,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            font: {
+                                size: 11
+                            },
+                            padding: 10
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        titleFont: {
+                            size: 12
+                        },
+                        bodyFont: {
+                            size: 11
+                        },
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                label += 'R$ ' + context.parsed.y.toLocaleString('pt-BR', {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2
+                                });
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            font: {
+                                size: 10
+                            },
+                            callback: function(value) {
+                                return 'R$ ' + (value / 1000).toFixed(0) + 'k';
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            font: {
+                                size: 10
+                            }
+                        },
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

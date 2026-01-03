@@ -1,0 +1,471 @@
+{% extends 'base_navegacao_inteligente.html' %}
+
+{% block title %}Pecuária - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- Cabeçalho Moderno -->
+            <div class="card-moderno mb-4">
+                <div class="card-header-moderno">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 class="mb-0 text-white">
+                                <i class="bi bi-cow me-2"></i> Gestão Pecuária
+                            </h2>
+                            <p class="mb-0 text-white-50">{{ propriedade.nome_propriedade }}</p>
+                        </div>
+                        <a href="{% url 'propriedade_modulos' propriedade.id %}" class="btn-moderno btn-outline-light">
+                            <i class="bi bi-arrow-left me-1"></i> Voltar ao Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Navegação por Abas -->
+            <div class="card-moderno mb-4">
+                <div class="card-header-moderno">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0 text-white">
+                            <i class="bi bi-gear me-2"></i> Módulos de Gestão
+                        </h5>
+                    </div>
+                </div>
+                <div class="card-body-moderno">
+                    <!-- Navegação por Abas -->
+                    <ul class="nav nav-tabs nav-module mb-4" id="pecuariaTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="dashboard-tab" data-bs-toggle="tab" data-bs-target="#dashboard" type="button" role="tab" aria-controls="dashboard" aria-selected="true">
+                                <i class="bi bi-speedometer2 me-2"></i>Dashboard
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="inventario-tab" data-bs-toggle="tab" data-bs-target="#inventario" type="button" role="tab" aria-controls="inventario" aria-selected="false">
+                                <i class="bi bi-clipboard-data me-2"></i>Inventário
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="parametros-tab" data-bs-toggle="tab" data-bs-target="#parametros" type="button" role="tab" aria-controls="parametros" aria-selected="false">
+                                <i class="bi bi-gear me-2"></i>Parâmetros
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="projecao-tab" data-bs-toggle="tab" data-bs-target="#projecao" type="button" role="tab" aria-controls="projecao" aria-selected="false">
+                                <i class="bi bi-graph-up me-2"></i>Projeções
+                            </button>
+                        </li>
+                    </ul>
+
+                    <!-- Conteúdo das Abas -->
+                    <div class="tab-content" id="pecuariaTabContent">
+                        <!-- Aba Dashboard -->
+                        <div class="tab-pane fade show active" id="dashboard" role="tabpanel" aria-labelledby="dashboard-tab">
+                            <!-- Estatísticas -->
+                            <div class="row mb-4">
+                                <div class="col-md-3 mb-3">
+                                    <div class="card-moderno text-center">
+                                        <div class="card-body-moderno">
+                                            <div class="bg-danger bg-opacity-10 rounded-circle p-3 mx-auto mb-3" style="width: 70px; height: 70px;">
+                                                <i class="bi bi-gender-female text-danger fs-3"></i>
+                                            </div>
+                                            <h6 class="text-dark mb-1">Total de Fêmeas</h6>
+                                            <h4 class="text-danger mb-0">{{ total_femeas }}</h4>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <div class="card-moderno text-center">
+                                        <div class="card-body-moderno">
+                                            <div class="bg-primary bg-opacity-10 rounded-circle p-3 mx-auto mb-3" style="width: 70px; height: 70px;">
+                                                <i class="bi bi-gender-male text-primary fs-3"></i>
+                                            </div>
+                                            <h6 class="text-dark mb-1">Total de Machos</h6>
+                                            <h4 class="text-primary mb-0">{{ total_machos }}</h4>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <div class="card-moderno text-center">
+                                        <div class="card-body-moderno">
+                                            <div class="bg-success bg-opacity-10 rounded-circle p-3 mx-auto mb-3" style="width: 70px; height: 70px;">
+                                                <i class="bi bi-people-fill text-success fs-3"></i>
+                                            </div>
+                                            <h6 class="text-dark mb-1">Total do Rebanho</h6>
+                                            <h4 class="text-success mb-0">{{ total_geral }}</h4>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <div class="card-moderno text-center">
+                                        <div class="card-body-moderno">
+                                            <div class="bg-warning bg-opacity-10 rounded-circle p-3 mx-auto mb-3" style="width: 70px; height: 70px;">
+                                                <i class="bi bi-cash-stack text-warning fs-3"></i>
+                                            </div>
+                                            <h6 class="text-dark mb-1">Valor Total</h6>
+                                            <h4 class="text-warning mb-0">R$ {{ valor_total_rebanho|floatformat:2 }}</h4>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Status dos Módulos -->
+                            <div class="row mb-4">
+                                <div class="col-md-4 mb-3">
+                                    <div class="card-moderno text-center">
+                                        <div class="card-body-moderno">
+                                            <div class="bg-primary bg-opacity-10 rounded-circle p-3 mx-auto mb-3" style="width: 70px; height: 70px;">
+                                                <i class="bi bi-{% if inventario %}check-circle-fill text-success{% else %}exclamation-circle text-warning{% endif %} fs-3"></i>
+                                            </div>
+                                            <h6 class="text-dark mb-1">Inventário</h6>
+                                            <span class="badge-moderno bg-{% if inventario %}success{% else %}warning{% endif %}">
+                                                {% if inventario %}OK{% else %}Pendente{% endif %}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <div class="card-moderno text-center">
+                                        <div class="card-body-moderno">
+                                            <div class="bg-warning bg-opacity-10 rounded-circle p-3 mx-auto mb-3" style="width: 70px; height: 70px;">
+                                                <i class="bi bi-{% if parametros %}check-circle-fill text-success{% else %}exclamation-circle text-warning{% endif %} fs-3"></i>
+                                            </div>
+                                            <h6 class="text-dark mb-1">Parâmetros</h6>
+                                            <span class="badge-moderno bg-{% if parametros %}success{% else %}warning{% endif %}">
+                                                {% if parametros %}OK{% else %}Pendente{% endif %}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <div class="card-moderno text-center">
+                                        <div class="card-body-moderno">
+                                            <div class="bg-success bg-opacity-10 rounded-circle p-3 mx-auto mb-3" style="width: 70px; height: 70px;">
+                                                <i class="bi bi-graph-up {% if movimentacoes_count > 0 %}text-success{% else %}text-secondary{% endif %} fs-3"></i>
+                                            </div>
+                                            <h6 class="text-dark mb-1">Projeções</h6>
+                                            <span class="badge-moderno bg-{% if movimentacoes_count > 0 %}success{% else %}secondary{% endif %}">
+                                                {% if movimentacoes_count > 0 %}{{ movimentacoes_count }}{% else %}0{% endif %}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Aba Inventário -->
+                        <div class="tab-pane fade" id="inventario" role="tabpanel" aria-labelledby="inventario-tab">
+                            <div class="alert-moderno alert-info mb-4">
+                                <div class="alert-icon">
+                                    <i class="bi bi-info-circle"></i>
+                                </div>
+                                <div class="alert-content">
+                                    <h6 class="alert-title">Instruções</h6>
+                                    <p class="alert-text mb-0">Preencha a quantidade de animais por categoria na data especificada. Este será o ponto de partida para todas as projeções futuras.</p>
+                                </div>
+                            </div>
+                            
+                            <div class="card-moderno">
+                                <div class="card-header-moderno">
+                                    <h5 class="mb-0 text-white">
+                                        <i class="bi bi-clipboard-data me-2"></i>Cadastrar Inventário
+                                    </h5>
+                                </div>
+                                <div class="card-body-moderno">
+                                    <form method="post" action="{% url 'pecuaria_inventario' propriedade.id %}">
+                                        {% csrf_token %}
+                                        
+                                        <div class="row mb-4">
+                                            <div class="col-md-6">
+                                                <label for="data_inventario" class="form-label-moderno">Data do Inventário</label>
+                                                <input type="date" class="form-control-moderno" id="data_inventario" name="data_inventario" 
+                                                       value="{% now 'Y-m-d' %}" required>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="table-responsive">
+                                            <table class="table-moderno">
+                                                <thead>
+                                                    <tr>
+                                                        <th class="text-center fw-bold">
+                                                            <i class="bi bi-tag"></i><br>
+                                                            <small>Categoria</small>
+                                                        </th>
+                                                        <th class="text-center fw-bold">
+                                                            <i class="bi bi-hash"></i><br>
+                                                            <small>Quantidade</small>
+                                                        </th>
+                                                        <th class="text-center fw-bold">
+                                                            <i class="bi bi-currency-dollar"></i><br>
+                                                            <small>Valor por Cabeça</small>
+                                                        </th>
+                                                        <th class="text-center fw-bold">
+                                                            <i class="bi bi-calculator"></i><br>
+                                                            <small>Valor Total</small>
+                                                        </th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for categoria in categorias %}
+                                                    <tr>
+                                                        <td class="text-center fw-bold">
+                                                            <span class="badge-moderno bg-primary">{{ categoria.nome }}</span>
+                                                        </td>
+                                                        <td class="text-center">
+                                                            <input type="number" class="form-control-moderno text-center" 
+                                                                   name="quantidade_{{ categoria.id }}" 
+                                                                   value="0" min="0" 
+                                                                   onchange="calcularTotal({{ categoria.id }})">
+                                                        </td>
+                                                        <td class="text-center">
+                                                            <input type="number" class="form-control-moderno text-center" 
+                                                                   name="valor_por_cabeca_{{ categoria.id }}" 
+                                                                   value="0.00" min="0" step="0.01" 
+                                                                   onchange="calcularTotal({{ categoria.id }})">
+                                                        </td>
+                                                        <td class="text-center fw-bold text-success">
+                                                            <span id="valor_total_{{ categoria.id }}">R$ 0,00</span>
+                                                        </td>
+                                                    </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                                <tfoot>
+                                                    <tr>
+                                                        <th colspan="3" class="text-end">
+                                                            <strong>TOTAL GERAL:</strong>
+                                                        </th>
+                                                        <th class="text-center">
+                                                            <strong id="total_geral">R$ 0,00</strong>
+                                                        </th>
+                                                    </tr>
+                                                </tfoot>
+                                            </table>
+                                        </div>
+                                        
+                                        <div class="d-flex gap-2">
+                                            <button type="submit" class="btn-moderno">
+                                                <i class="bi bi-check-circle me-1"></i>Salvar Inventário
+                                            </button>
+                                            <button type="button" class="btn-moderno btn-outline" onclick="showDashboard()">
+                                                <i class="bi bi-arrow-left me-1"></i>Voltar ao Dashboard
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Aba Parâmetros -->
+                        <div class="tab-pane fade" id="parametros" role="tabpanel" aria-labelledby="parametros-tab">
+                            <div class="card-moderno">
+                                <div class="card-header-moderno">
+                                    <h5 class="mb-0 text-white">
+                                        <i class="bi bi-gear me-2"></i>Parâmetros de Projeção
+                                    </h5>
+                                </div>
+                                <div class="card-body-moderno">
+                                    <p class="text-muted">Configure os parâmetros para projeções do rebanho.</p>
+                                    <div class="alert-moderno alert-info">
+                                        <div class="alert-icon">
+                                            <i class="bi bi-info-circle"></i>
+                                        </div>
+                                        <div class="alert-content">
+                                            <h6 class="alert-title">Em Desenvolvimento</h6>
+                                            <p class="alert-text mb-0">Esta funcionalidade está sendo desenvolvida e estará disponível em breve.</p>
+                                        </div>
+                                    </div>
+                                    <button type="button" class="btn-moderno btn-outline" onclick="showDashboard()">
+                                        <i class="bi bi-arrow-left me-1"></i>Voltar ao Dashboard
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Aba Projeções -->
+                        <div class="tab-pane fade" id="projecao" role="tabpanel" aria-labelledby="projecao-tab">
+                            <div class="card-moderno">
+                                <div class="card-header-moderno">
+                                    <h5 class="mb-0 text-white">
+                                        <i class="bi bi-graph-up me-2"></i>Projeções do Rebanho
+                                    </h5>
+                                </div>
+                                <div class="card-body-moderno">
+                                    <p class="text-muted">Visualize as projeções de crescimento do rebanho.</p>
+                                    <div class="alert-moderno alert-info">
+                                        <div class="alert-icon">
+                                            <i class="bi bi-info-circle"></i>
+                                        </div>
+                                        <div class="alert-content">
+                                            <h6 class="alert-title">Em Desenvolvimento</h6>
+                                            <p class="alert-text mb-0">Esta funcionalidade está sendo desenvolvida e estará disponível em breve.</p>
+                                        </div>
+                                    </div>
+                                    <button type="button" class="btn-moderno btn-outline" onclick="showDashboard()">
+                                        <i class="bi bi-arrow-left me-1"></i>Voltar ao Dashboard
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Estilos para as abas do módulo */
+.nav-module {
+    border-bottom: 2px solid #e5e7eb;
+    margin-bottom: 0;
+}
+
+.nav-module .nav-link {
+    color: #6b7280;
+    font-weight: 500;
+    padding: 1rem 1.5rem;
+    border: none;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.nav-module .nav-link:hover {
+    color: #1e3a8a;
+    background-color: rgba(30, 58, 138, 0.05);
+    border-bottom-color: rgba(30, 58, 138, 0.3);
+}
+
+.nav-module .nav-link.active {
+    color: #1e3a8a;
+    background-color: rgba(30, 58, 138, 0.1);
+    border-bottom-color: #1e3a8a;
+    font-weight: 600;
+}
+
+.nav-module .nav-link i {
+    font-size: 1.1rem;
+}
+
+/* Conteúdo das abas */
+.tab-content {
+    padding-top: 1rem;
+}
+
+.tab-pane {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .nav-module .nav-link {
+        padding: 0.75rem 1rem;
+        font-size: 0.9rem;
+    }
+    
+    .nav-module .nav-link i {
+        font-size: 1rem;
+    }
+}
+</style>
+
+<script>
+// Funções para trocar entre abas
+function showDashboard() {
+    const dashboardTab = document.getElementById('dashboard-tab');
+    const dashboardPane = document.getElementById('dashboard');
+    
+    // Remove active de todas as abas
+    document.querySelectorAll('.nav-link').forEach(tab => tab.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('show', 'active'));
+    
+    // Ativa a aba dashboard
+    dashboardTab.classList.add('active');
+    dashboardPane.classList.add('show', 'active');
+}
+
+function showInventario() {
+    const inventarioTab = document.getElementById('inventario-tab');
+    const inventarioPane = document.getElementById('inventario');
+    
+    // Remove active de todas as abas
+    document.querySelectorAll('.nav-link').forEach(tab => tab.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('show', 'active'));
+    
+    // Ativa a aba inventário
+    inventarioTab.classList.add('active');
+    inventarioPane.classList.add('show', 'active');
+}
+
+function showParametros() {
+    const parametrosTab = document.getElementById('parametros-tab');
+    const parametrosPane = document.getElementById('parametros');
+    
+    // Remove active de todas as abas
+    document.querySelectorAll('.nav-link').forEach(tab => tab.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('show', 'active'));
+    
+    // Ativa a aba parâmetros
+    parametrosTab.classList.add('active');
+    parametrosPane.classList.add('show', 'active');
+}
+
+function showProjecao() {
+    const projecaoTab = document.getElementById('projecao-tab');
+    const projecaoPane = document.getElementById('projecao');
+    
+    // Remove active de todas as abas
+    document.querySelectorAll('.nav-link').forEach(tab => tab.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('show', 'active'));
+    
+    // Ativa a aba projeções
+    projecaoTab.classList.add('active');
+    projecaoPane.classList.add('show', 'active');
+}
+
+// Funções de cálculo do inventário
+function calcularTotal(categoriaId) {
+    const quantidadeInput = document.querySelector(`input[name="quantidade_${categoriaId}"]`);
+    const valorPorCabecaInput = document.querySelector(`input[name="valor_por_cabeca_${categoriaId}"]`);
+    const valorTotalSpan = document.getElementById(`valor_total_${categoriaId}`);
+
+    const quantidade = parseFloat(quantidadeInput.value) || 0;
+    const valorPorCabeca = parseFloat(valorPorCabecaInput.value) || 0;
+    const total = quantidade * valorPorCabeca;
+
+    valorTotalSpan.textContent = `R$ ${total.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+
+    calcularTotalGeral();
+}
+
+function calcularTotalGeral() {
+    let totalGeral = 0;
+    document.querySelectorAll('[id^="valor_total_"]').forEach(element => {
+        const valor = parseFloat(element.textContent.replace('R$ ', '').replace('.', '').replace(',', '.')) || 0;
+        totalGeral += valor;
+    });
+
+    document.getElementById('total_geral').textContent = `R$ ${totalGeral.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+}
+
+// Inicializar cálculos quando a página carregar
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('input[name^="quantidade_"]').forEach(input => {
+        const categoriaId = input.name.split('_')[1];
+        calcularTotal(categoriaId);
+    });
+});
+</script>
+{% endblock %}
+
+

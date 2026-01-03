@@ -1,0 +1,173 @@
+{% extends 'base_modulos_unificado.html' %}
+{% load formatacao_br %}
+
+{% block title %}Lançamentos Financeiros - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block breadcrumb_extra %}
+    <li class="breadcrumb-item">
+        <a href="{% url 'financeiro_dashboard' propriedade.id %}">
+            <i class="bi bi-cash-coin me-1"></i>Financeiro
+        </a>
+    </li>
+    <li class="breadcrumb-item active">
+        Lançamentos
+    </li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="submenu-page-header">
+        <div class="d-flex align-items-start gap-4">
+            <div class="submenu-page-icon bg-primary bg-opacity-10 text-primary">
+                <i class="bi bi-list-task"></i>
+            </div>
+            <div class="flex-grow-1">
+                <h1 class="submenu-page-title mb-1">Lançamentos Financeiros</h1>
+                <p class="submenu-page-description mb-0">
+                    Consulte, filtre e gerencie todos os lançamentos da propriedade {{ propriedade.nome_propriedade }}.
+                </p>
+            </div>
+            <div>
+                <a href="{{ url_novo }}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-1"></i> Novo Lançamento
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="card-moderno">
+        <div class="card-body-moderno">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label">Tipo</label>
+                    <select name="tipo" class="form-select">
+                        <option value="">Todos</option>
+                        <option value="RECEITA" {% if tipo == "RECEITA" %}selected{% endif %}>Receitas</option>
+                        <option value="DESPESA" {% if tipo == "DESPESA" %}selected{% endif %}>Despesas</option>
+                        <option value="TRANSFERENCIA" {% if tipo == "TRANSFERENCIA" %}selected{% endif %}>Transferências</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Status</label>
+                    <select name="status" class="form-select">
+                        <option value="">Todos</option>
+                        <option value="PENDENTE" {% if status == "PENDENTE" %}selected{% endif %}>Pendente</option>
+                        <option value="QUITADO" {% if status == "QUITADO" %}selected{% endif %}>Quitado</option>
+                        <option value="CANCELADO" {% if status == "CANCELADO" %}selected{% endif %}>Cancelado</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-outline-primary">
+                        <i class="bi bi-funnel me-1"></i> Filtrar
+                    </button>
+                    <a href="{% url 'financeiro_lancamentos' propriedade.id %}" class="btn btn-link">
+                        Limpar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card-moderno mt-3">
+        <div class="card-body-moderno">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Descrição</th>
+                            <th>Categoria</th>
+                            <th>Conta</th>
+                            <th class="text-end">Valor</th>
+                            <th>Status</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if lancamentos %}
+                            {% for lanc in lancamentos %}
+                                <tr>
+                                    <td>
+                                        <div class="fw-semibold">{{ lanc.data_competencia|data_br }}</div>
+                                        <small class="text-muted">Vencimento: {{ lanc.data_vencimento|data_br }}</small>
+                                    </td>
+                                    <td>
+                                        <div class="fw-semibold">{{ lanc.descricao }}</div>
+                                        <small class="text-muted">{{ lanc.documento_referencia|default:"-" }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-light text-dark me-1">
+                                            {{ lanc.get_tipo_display }}
+                                        </span>
+                                        {{ lanc.categoria.nome }}
+                                    </td>
+                                    <td>
+                                        {% if lanc.tipo == "RECEITA" %}
+                                            <small class="text-success">
+                                                Entrada: {{ lanc.conta_destino.nome|default:"" }}
+                                            </small>
+                                        {% elif lanc.tipo == "DESPESA" %}
+                                            <small class="text-danger">
+                                                Saída: {{ lanc.conta_origem.nome|default:"" }}
+                                            </small>
+                                        {% else %}
+                                            <small class="text-muted">
+                                                {{ lanc.conta_origem.nome }} → {{ lanc.conta_destino.nome }}
+                                            </small>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        <span class="fw-bold {% if lanc.tipo == 'DESPESA' %}text-danger{% else %}text-success{% endif %}">
+                                            {{ lanc.valor|moeda_br }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge
+                                            {% if lanc.status == 'PENDENTE' %}bg-warning text-dark
+                                            {% elif lanc.status == 'QUITADO' %}bg-success
+                                            {% else %}bg-secondary{% endif %}">
+                                            {{ lanc.get_status_display }}
+                                        </span>
+                                        {% if lanc.data_quitacao %}
+                                            <div class="small text-muted">
+                                                Quitado em {{ lanc.data_quitacao|data_br }}
+                                            </div>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="btn-group">
+                                            <a href="{% url 'financeiro_lancamento_editar' propriedade.id lanc.id %}" class="btn btn-outline-secondary btn-sm">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            {% if lanc.status == 'PENDENTE' %}
+                                                <a href="{% url 'financeiro_lancamento_quitar' propriedade.id lanc.id %}" class="btn btn-outline-success btn-sm">
+                                                    <i class="bi bi-check2-circle"></i>
+                                                </a>
+                                            {% endif %}
+                                            <a href="{% url 'financeiro_lancamento_cancelar' propriedade.id lanc.id %}" class="btn btn-outline-danger btn-sm">
+                                                <i class="bi bi-x-circle"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="7" class="text-center py-5">
+                                    <i class="bi bi-inboxes display-6 text-muted d-block mb-2"></i>
+                                    <p class="text-muted mb-0">Nenhum lançamento encontrado.</p>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+
+

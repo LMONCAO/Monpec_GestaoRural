@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Sistema Monpec - Gestão Rural Inteligente com IA">
+    <meta name="author" content="Sistema Monpec">
+    <meta name="theme-color" content="#6495ed">
+    
+    <!-- Google Search Console Verification -->
+    <meta name="google-site-verification" content="vy8t3EcEx9vc6NSvlKvFB6D2j5MkvkrXT9xXJIztghk" />
+    
+    <!-- Google Analytics -->
+    {% if google_analytics_id %}
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id={{ google_analytics_id }}"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', '{{ google_analytics_id }}');
+    </script>
+    {% endif %}
+    
+    <title>{% block title %}Sistema Monpec - Gestão Rural com IA{% endblock %}</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🐮%3C/text%3E%3C/svg%3E">
+    
+    <!-- Bootstrap 5.3 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome 6 -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Google Fonts - Padrão Unificado MONPEC -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Tipografia Unificada -->
+    <link rel="stylesheet" href="{% static 'css/tipografia_unificada.css' %}">
+    
+    <!-- Responsividade e Ícones Global -->
+    <link rel="stylesheet" href="{% static 'css/responsividade_icones.css' %}">
+    
+    <!-- Identidade Visual Monpec -->
+    <style>
+        /* ===== IDENTIDADE VISUAL MONPEC ===== */
+        /* Paleta: Azul Marinho + Cinza Claro + Marrom Terra */
+        
+        :root {
+            /* Cores Principais */
+            --azul-marinho: #6495ed;
+            --azul-marinho-claro: #8cb5ff;
+            --azul-marinho-escuro: #152942;
+            
+            --cinza-claro: #f5f7fa;
+            --cinza-medio: #e8ecf1;
+            --cinza-escuro: #8895a7;
+            
+            --marrom-terra: #8b6f47;
+            --marrom-terra-claro: #a88b61;
+            --marrom-terra-escuro: #6d5838;
+            
+            /* Cores de Status */
+            --success: #2d7a4f;
+            --danger: #c53030;
+            --warning: #d69e2e;
+            --info: #2b6cb0;
+            
+            /* Tipografia */
+            --font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+            
+            /* Espaçamentos */
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 1.5rem;
+            --spacing-lg: 2rem;
+            --spacing-xl: 3rem;
+            
+            /* Bordas */
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 20px;
+            --radius-full: 9999px;
+            
+            /* Sombras */
+            --shadow-sm: 0 2px 4px rgba(30, 58, 95, 0.08);
+            --shadow-md: 0 4px 12px rgba(30, 58, 95, 0.12);
+            --shadow-lg: 0 8px 24px rgba(30, 58, 95, 0.16);
+            --shadow-xl: 0 12px 40px rgba(30, 58, 95, 0.20);
+            
+            /* Transições */
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        /* Reset Global */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: var(--font-family);
+            background-color: var(--cinza-claro);
+            color: var(--azul-marinho);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+        
+        /* Skip Link Acessibilidade */
+        .skip-link {
+            position: absolute;
+            top: -40px;
+            left: 0;
+            background: var(--azul-marinho);
+            color: white;
+            padding: 8px 16px;
+            text-decoration: none;
+            z-index: 10000;
+            border-radius: 0 0 var(--radius-md) 0;
+        }
+        
+        .skip-link:focus {
+            top: 0;
+        }
+        
+        /* Navbar Monpec */
+        .navbar-monpec {
+            background: linear-gradient(135deg, var(--azul-marinho) 0%, var(--azul-marinho-claro) 100%);
+            box-shadow: var(--shadow-md);
+            padding: 1rem 0;
+        }
+        
+        .navbar-monpec .navbar-brand {
+            color: white !important;
+            font-size: 1.5rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            transition: var(--transition);
+        }
+        
+        .navbar-monpec .navbar-brand:hover {
+            transform: scale(1.02);
+        }
+        
+        .navbar-monpec .navbar-brand .brand-icon {
+            color: var(--marrom-terra-claro);
+            font-size: 1.75rem;
+        }
+        
+        .navbar-monpec .nav-link {
+            color: rgba(255, 255, 255, 0.9) !important;
+            font-weight: 500;
+            padding: 0.6rem 1rem !important;
+            border-radius: var(--radius-md);
+            transition: var(--transition);
+        }
+        
+        .navbar-monpec .nav-link:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: white !important;
+        }
+        
+        .navbar-monpec .nav-link.active {
+            background: var(--marrom-terra);
+            color: white !important;
+        }
+        
+        .navbar-monpec .dropdown-menu {
+            border: none;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-lg);
+            border-top: 3px solid var(--marrom-terra);
+        }
+        
+        .navbar-monpec .dropdown-item:hover {
+            background: var(--cinza-claro);
+            color: var(--azul-marinho);
+        }
+        
+        /* Cards Monpec */
+        .card-monpec {
+            background: white;
+            border: none;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            transition: var(--transition);
+            overflow: hidden;
+        }
+        
+        .card-monpec:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .card-monpec-header {
+            background: linear-gradient(135deg, var(--azul-marinho) 0%, var(--azul-marinho-claro) 100%);
+            color: white;
+            padding: 1.25rem 1.5rem;
+            border-bottom: 3px solid var(--marrom-terra);
+            font-weight: 600;
+        }
+        
+        .card-monpec-header h1,
+        .card-monpec-header h2,
+        .card-monpec-header h3,
+        .card-monpec-header h4,
+        .card-monpec-header h5,
+        .card-monpec-header h6 {
+            color: white !important;
+            margin: 0;
+        }
+        
+        /* Botões Monpec */
+        .btn-monpec {
+            border-radius: var(--radius-md);
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            transition: var(--transition);
+            border: none;
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .btn-monpec-primary {
+            background: var(--azul-marinho);
+            color: white;
+        }
+        
+        .btn-monpec-primary:hover {
+            background: var(--azul-marinho-claro);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+            color: white;
+        }
+        
+        .btn-monpec-accent {
+            background: var(--marrom-terra);
+            color: white;
+        }
+        
+        .btn-monpec-accent:hover {
+            background: var(--marrom-terra-escuro);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+            color: white;
+        }
+        
+        .btn-monpec-outline {
+            background: white;
+            color: var(--azul-marinho);
+            border: 2px solid var(--azul-marinho);
+        }
+        
+        .btn-monpec-outline:hover {
+            background: var(--azul-marinho);
+            color: white;
+        }
+        
+        .btn-monpec-success {
+            background: var(--success);
+            color: white;
+        }
+        
+        .btn-monpec-success:hover {
+            background: #25623f;
+            transform: translateY(-2px);
+            color: white;
+        }
+        
+        /* Tabelas Monpec */
+        .table-monpec {
+            background: white;
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .table-monpec thead {
+            background: linear-gradient(135deg, var(--azul-marinho) 0%, var(--azul-marinho-claro) 100%);
+            color: white;
+        }
+        
+        .table-monpec thead th {
+            border: none;
+            padding: 1rem 1.25rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.875rem;
+        }
+        
+        .table-monpec tbody tr {
+            border-bottom: 1px solid var(--cinza-medio);
+            transition: var(--transition);
+        }
+        
+        .table-monpec tbody tr:hover {
+            background: var(--cinza-claro);
+        }
+        
+        .table-monpec tbody td {
+            padding: 1rem 1.25rem;
+        }
+        
+        /* Badges Monpec */
+        .badge-monpec {
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius-full);
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+        
+        .badge-monpec-primary {
+            background: var(--azul-marinho);
+            color: white;
+        }
+        
+        .badge-monpec-accent {
+            background: var(--marrom-terra);
+            color: white;
+        }
+        
+        /* Forms Monpec */
+        .form-monpec .form-label {
+            color: var(--azul-marinho);
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        
+        .form-monpec .form-control,
+        .form-monpec .form-select {
+            border: 2px solid var(--cinza-medio);
+            border-radius: var(--radius-md);
+            padding: 0.75rem 1rem;
+            transition: var(--transition);
+            color: var(--azul-marinho);
+        }
+        
+        .form-monpec .form-control:focus,
+        .form-monpec .form-select:focus {
+            border-color: var(--azul-marinho);
+            box-shadow: 0 0 0 4px rgba(30, 58, 95, 0.1);
+            outline: none;
+        }
+        
+        /* Alerts Monpec */
+        .alert-monpec {
+            border: none;
+            border-radius: var(--radius-md);
+            padding: 1rem 1.5rem;
+            border-left: 4px solid;
+        }
+        
+        .alert-monpec-success {
+            background: rgba(45, 122, 79, 0.1);
+            color: var(--success);
+            border-left-color: var(--success);
+        }
+        
+        .alert-monpec-danger {
+            background: rgba(197, 48, 48, 0.1);
+            color: var(--danger);
+            border-left-color: var(--danger);
+        }
+        
+        .alert-monpec-warning {
+            background: rgba(214, 158, 46, 0.1);
+            color: var(--warning);
+            border-left-color: var(--warning);
+        }
+        
+        .alert-monpec-info {
+            background: rgba(43, 108, 176, 0.1);
+            color: var(--info);
+            border-left-color: var(--info);
+        }
+        
+        /* Footer */
+        .footer-monpec {
+            background: var(--azul-marinho);
+            color: white;
+            padding: 2rem 0;
+            margin-top: 4rem;
+        }
+        
+        .footer-monpec a {
+            color: var(--marrom-terra-claro);
+            text-decoration: none;
+            transition: var(--transition);
+        }
+        
+        .footer-monpec a:hover {
+            color: white;
+        }
+        
+        /* Utilities */
+        .text-azul-marinho { color: var(--azul-marinho) !important; }
+        .text-marrom-terra { color: var(--marrom-terra) !important; }
+        .bg-azul-marinho { background-color: var(--azul-marinho) !important; }
+        .bg-marrom-terra { background-color: var(--marrom-terra) !important; }
+        .bg-cinza-claro { background-color: var(--cinza-claro) !important; }
+        
+        /* Gradientes */
+        .gradient-primary {
+            background: linear-gradient(135deg, var(--azul-marinho) 0%, var(--azul-marinho-claro) 100%);
+        }
+        
+        .gradient-accent {
+            background: linear-gradient(135deg, var(--marrom-terra) 0%, var(--marrom-terra-claro) 100%);
+        }
+        
+        .gradient-mixed {
+            background: linear-gradient(135deg, var(--azul-marinho) 0%, var(--marrom-terra) 100%);
+        }
+        
+        /* Focus para acessibilidade */
+        *:focus-visible {
+            outline: 3px solid var(--marrom-terra);
+            outline-offset: 2px;
+        }
+        
+        /* Loading Animation */
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Responsivo */
+        @media (max-width: 1200px) {
+            .navbar-monpec .nav-link {
+                padding: 0.5rem 0.75rem !important;
+                font-size: 0.9rem;
+            }
+        }
+        
+        @media (max-width: 992px) {
+            .navbar-monpec .navbar-brand {
+                font-size: 1.35rem;
+            }
+            
+            .navbar-monpec .nav-link {
+                padding: 0.5rem !important;
+            }
+            
+            .navbar-monpec .dropdown-menu {
+                border-radius: var(--radius-md);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .navbar-monpec {
+                padding: 0.75rem 0;
+            }
+            
+            .navbar-monpec .navbar-brand {
+                font-size: 1.25rem;
+            }
+            
+            .navbar-monpec .navbar-brand .brand-icon {
+                font-size: 1.5rem;
+            }
+            
+            .navbar-monpec .nav-link {
+                padding: 0.75rem 1rem !important;
+                font-size: 0.9rem;
+            }
+            
+            .navbar-monpec .nav-link i {
+                margin-right: 0.5rem;
+            }
+            
+            .card-monpec {
+                margin-bottom: 1rem;
+            }
+            
+            .card-monpec-header {
+                padding: 1rem 1.25rem;
+            }
+            
+            h1 { font-size: 1.75rem !important; }
+            h2 { font-size: 1.5rem !important; }
+            h3 { font-size: 1.35rem !important; }
+            h4 { font-size: 1.2rem !important; }
+            
+            .btn-monpec {
+                padding: 0.65rem 1.25rem;
+                font-size: 0.9rem;
+            }
+            
+            .table-monpec {
+                font-size: 0.85rem;
+            }
+            
+            .table-monpec thead th {
+                padding: 0.75rem 1rem;
+                font-size: 0.8rem;
+            }
+            
+            .table-monpec tbody td {
+                padding: 0.75rem 1rem;
+            }
+            
+            .footer-monpec {
+                padding: 1.5rem 0;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .navbar-monpec .navbar-brand {
+                font-size: 1.1rem;
+            }
+            
+            .navbar-monpec .navbar-brand .brand-icon {
+                font-size: 1.35rem;
+            }
+            
+            .navbar-monpec .nav-link {
+                padding: 0.65rem 0.875rem !important;
+                font-size: 0.85rem;
+            }
+            
+            .card-monpec-header {
+                padding: 0.875rem 1rem;
+            }
+            
+            .card-monpec-header h1,
+            .card-monpec-header h2,
+            .card-monpec-header h3 {
+                font-size: 1.1rem;
+            }
+            
+            h1 { font-size: 1.5rem !important; }
+            h2 { font-size: 1.35rem !important; }
+            h3 { font-size: 1.2rem !important; }
+            
+            .btn-monpec {
+                padding: 0.6rem 1rem;
+                font-size: 0.85rem;
+            }
+            
+            .table-monpec {
+                font-size: 0.8rem;
+            }
+            
+            .table-monpec thead th {
+                padding: 0.65rem 0.875rem;
+                font-size: 0.75rem;
+            }
+            
+            .table-monpec tbody td {
+                padding: 0.65rem 0.875rem;
+            }
+        }
+        
+        /* Melhorias de ícones */
+        .navbar-monpec .nav-link i,
+        .navbar-monpec .dropdown-item i {
+            width: 18px;
+            text-align: center;
+            margin-right: 0.5rem;
+        }
+        
+        @media (max-width: 768px) {
+            .navbar-monpec .nav-link i,
+            .navbar-monpec .dropdown-item i {
+                width: 20px;
+                font-size: 1.1rem;
+            }
+        }
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Skip Link -->
+    <a href="#main-content" class="skip-link">Pular para conteúdo principal</a>
+    
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-monpec">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">
+                <span class="brand-icon"><i class="fas fa-cow"></i></span>
+                <span>Monpec</span>
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" 
+                    style="background: white;">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/' %}active{% endif %}" href="/">
+                            <i class="fas fa-home"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/propriedades/">
+                            <i class="fas fa-map-marked-alt"></i> Propriedades
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/pecuaria/">
+                            <i class="fas fa-horse"></i> Gestão Pecuária
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-chart-line"></i> Financeiro
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/financeiro/"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                            <li><a class="dropdown-item" href="/financeiro/fluxo-caixa/"><i class="fas fa-money-bill-wave"></i> Fluxo de Caixa</a></li>
+                            <li><a class="dropdown-item" href="/financeiro/dre/"><i class="fas fa-file-invoice-dollar"></i> DRE</a></li>
+                            <li><a class="dropdown-item" href="/financeiro/custos/"><i class="fas fa-calculator"></i> Custos</a></li>
+                            <li><a class="dropdown-item" href="/financeiro/indicadores/"><i class="fas fa-chart-pie"></i> Indicadores</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-robot"></i> IA
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/ia/"><i class="fas fa-brain"></i> Dashboard IA</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/ia/nascimentos/"><i class="fas fa-baby"></i> Nascimentos</a></li>
+                            <li><a class="dropdown-item" href="/ia/compras/"><i class="fas fa-shopping-cart"></i> Compras</a></li>
+                            <li><a class="dropdown-item" href="/ia/vendas/"><i class="fas fa-hand-holding-usd"></i> Vendas</a></li>
+                            <li><a class="dropdown-item" href="/ia/transferencias/"><i class="fas fa-exchange-alt"></i> Transferências</a></li>
+                            <li><a class="dropdown-item" href="/ia/projecoes/"><i class="fas fa-chart-area"></i> Projeções</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/projetos/">
+                            <i class="fas fa-project-diagram"></i> Projetos
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/relatorios/">
+                            <i class="fas fa-file-pdf"></i> Relatórios
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/admin/">
+                            <i class="fas fa-cog"></i> Admin
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Main Content -->
+    <main id="main-content" class="py-4">
+        <!-- Mensagens do Django -->
+        {% if messages %}
+            <div class="container">
+                {% for message in messages %}
+                    <div class="alert alert-monpec alert-monpec-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {% if message.tags == 'success' %}
+                            <i class="fas fa-check-circle"></i>
+                        {% elif message.tags == 'error' or message.tags == 'danger' %}
+                            <i class="fas fa-exclamation-triangle"></i>
+                        {% elif message.tags == 'warning' %}
+                            <i class="fas fa-exclamation-circle"></i>
+                        {% else %}
+                            <i class="fas fa-info-circle"></i>
+                        {% endif %}
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+        
+        <!-- Conteúdo da Página -->
+        {% block content %}{% endblock %}
+    </main>
+    
+    <!-- Footer -->
+    <footer class="footer-monpec text-center">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-12 mb-3">
+                    <h5 class="mb-3">
+                        <i class="fas fa-cow brand-icon"></i> Sistema Monpec
+                    </h5>
+                    <p class="mb-2">Gestão Rural Inteligente com IA</p>
+                </div>
+            </div>
+            <hr style="border-color: rgba(255,255,255,0.1);">
+            <div class="row mt-3">
+                <div class="col-md-12">
+                    <p class="mb-0">
+                        © 2025 Sistema Monpec | 
+                        <i class="fas fa-robot"></i> Powered by AI | 
+                        <i class="fas fa-heart text-danger"></i> Feito para produtores rurais
+                    </p>
+                </div>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Scripts Globais -->
+    <script>
+        // Formatação brasileira de números
+        function formatarMoeda(valor) {
+            return 'R$ ' + parseFloat(valor).toLocaleString('pt-BR', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+        
+        function formatarNumero(valor, casasDecimais = 0) {
+            return parseFloat(valor).toLocaleString('pt-BR', {
+                minimumFractionDigits: casasDecimais,
+                maximumFractionDigits: casasDecimais
+            });
+        }
+        
+        function formatarPercentual(valor, casasDecimais = 1) {
+            return parseFloat(valor).toLocaleString('pt-BR', {
+                minimumFractionDigits: casasDecimais,
+                maximumFractionDigits: casasDecimais
+            }) + '%';
+        }
+        
+        // Auto-dismiss de toasts/alerts
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(function() {
+                const alerts = document.querySelectorAll('.alert:not(.alert-permanent)');
+                alerts.forEach(alert => {
+                    const bsAlert = new bootstrap.Alert(alert);
+                    setTimeout(() => bsAlert.close(), 5000);
+                });
+            }, 100);
+        });
+        
+        // Loading state global
+        function setLoadingButton(btn, loading = true) {
+            if (loading) {
+                btn.dataset.originalHtml = btn.innerHTML;
+                btn.innerHTML = '<span class="loading-spinner"></span> Processando...';
+                btn.disabled = true;
+            } else {
+                btn.innerHTML = btn.dataset.originalHtml || 'Enviar';
+                btn.disabled = false;
+            }
+        }
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
+

@@ -1,0 +1,324 @@
+{% extends "base_modulos_unificado.html" %}
+
+{% block title %}Editar Usuário - {{ tenant_usuario.nome_exibicao }}{% endblock %}
+
+{% block content %}
+<style>
+    .edit-page {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 2rem 0;
+    }
+    
+    .page-wrapper {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 0 1.5rem;
+    }
+    
+    .page-header {
+        background: white;
+        border-radius: 16px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    .page-title {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .page-title i {
+        color: #667eea;
+    }
+    
+    .edit-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+    
+    .card-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1.5rem;
+        border: none;
+    }
+    
+    .card-header h5 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    .card-body {
+        padding: 2rem;
+    }
+    
+    .info-alert {
+        background: #dbeafe;
+        border-left: 4px solid #3b82f6;
+        padding: 1rem;
+        border-radius: 6px;
+        margin-bottom: 1.5rem;
+        font-size: 0.875rem;
+        color: #1e40af;
+    }
+    
+    .info-alert strong {
+        display: block;
+        margin-bottom: 0.25rem;
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-label {
+        display: block;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+    }
+    
+    .form-control, .form-select {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        transition: all 0.2s;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    .form-text {
+        font-size: 0.8rem;
+        color: #64748b;
+        margin-top: 0.4rem;
+        display: block;
+    }
+    
+    .modules-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+        margin-top: 0.5rem;
+    }
+    
+    .form-check {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .form-check:hover {
+        background: #f1f5f9;
+        border-color: #667eea;
+    }
+    
+    .form-check-input {
+        margin-right: 0.75rem;
+        cursor: pointer;
+    }
+    
+    .form-check-label {
+        cursor: pointer;
+        font-size: 0.875rem;
+        color: #475569;
+        font-weight: 500;
+        margin: 0;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 0.875rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.95rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+    
+    .btn-secondary {
+        background: #64748b;
+        color: white;
+        border: none;
+        padding: 0.875rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.95rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+    
+    .btn-secondary:hover {
+        background: #475569;
+        color: white;
+    }
+    
+    .alert-info {
+        background: #fef3c7;
+        border-left: 4px solid #f59e0b;
+        padding: 1rem;
+        border-radius: 6px;
+        margin-top: 0.5rem;
+        font-size: 0.875rem;
+        color: #92400e;
+    }
+</style>
+
+<div class="edit-page">
+    <div class="page-wrapper">
+        <!-- Header -->
+        <div class="page-header">
+            <h1 class="page-title">
+                <i class="bi bi-pencil-square"></i>
+                Editar Usuário: {{ tenant_usuario.nome_exibicao }}
+            </h1>
+        </div>
+        
+        <!-- Form Card -->
+        <div class="edit-card">
+            <div class="card-header">
+                <h5>
+                    <i class="bi bi-person-gear"></i>
+                    Informações do Usuário
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="info-alert">
+                    <strong><i class="bi bi-info-circle"></i> Informação</strong>
+                    {% if tenant_usuario.perfil == "ADMIN" %}
+                        Este usuário é um <strong>Administrador</strong> e tem acesso a todos os módulos automaticamente. 
+                        As seleções de módulos abaixo não terão efeito.
+                    {% else %}
+                        Altere os dados do usuário conforme necessário. Para alterar a senha, preencha o campo "Senha". 
+                        Deixe em branco para manter a senha atual.
+                    {% endif %}
+                </div>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="form-group">
+                        <label class="form-label">{{ form.nome.label }}</label>
+                        {{ form.nome }}
+                        {% if form.nome.errors %}
+                            <div style="color: #ef4444; font-size: 0.8rem; margin-top: 0.4rem;">{{ form.nome.errors|striptags }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">{{ form.username.label }}</label>
+                        {{ form.username }}
+                        {% if form.username.help_text %}
+                            <span class="form-text">{{ form.username.help_text }}</span>
+                        {% endif %}
+                        {% if form.username.errors %}
+                            <div style="color: #ef4444; font-size: 0.8rem; margin-top: 0.4rem;">{{ form.username.errors|striptags }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">{{ form.email.label }}</label>
+                        {{ form.email }}
+                        {% if form.email.errors %}
+                            <div style="color: #ef4444; font-size: 0.8rem; margin-top: 0.4rem;">{{ form.email.errors|striptags }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">{{ form.senha.label }}</label>
+                        {{ form.senha }}
+                        {% if form.senha.help_text %}
+                            <span class="form-text">Deixe em branco para manter a senha atual. Preencha apenas se desejar alterar.</span>
+                        {% endif %}
+                        {% if form.senha.errors %}
+                            <div style="color: #ef4444; font-size: 0.8rem; margin-top: 0.4rem;">{{ form.senha.errors|striptags }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">{{ form.perfil.label }}</label>
+                        {{ form.perfil }}
+                        {% if form.perfil.errors %}
+                            <div style="color: #ef4444; font-size: 0.8rem; margin-top: 0.4rem;">{{ form.perfil.errors|striptags }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">{{ form.modulos.label }}</label>
+                        {% if tenant_usuario.perfil == "ADMIN" %}
+                            <div class="alert-info">
+                                <i class="bi bi-shield-check"></i> Administradores têm acesso a todos os módulos automaticamente.
+                            </div>
+                        {% else %}
+                            <div class="modules-grid">
+                                {% for choice in form.modulos %}
+                                <div class="form-check">
+                                    {{ choice.tag }}
+                                    <label class="form-check-label" for="{{ choice.id_for_label }}">
+                                        {{ choice.choice_label }}
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        {% if form.modulos.errors %}
+                            <div style="color: #ef4444; font-size: 0.8rem; margin-top: 0.4rem;">{{ form.modulos.errors|striptags }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                        <button type="submit" class="btn-primary">
+                            <i class="bi bi-check-circle"></i>
+                            Salvar Alterações
+                        </button>
+                        <a href="{% url 'tenant_usuarios_dashboard' %}" class="btn-secondary">
+                            <i class="bi bi-arrow-left"></i>
+                            Cancelar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

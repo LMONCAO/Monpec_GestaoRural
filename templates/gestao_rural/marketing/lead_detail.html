@@ -1,0 +1,116 @@
+{% extends "gestao_rural/base.html" %}
+{% load static %}
+
+{% block title %}Lead: {{ lead.nome }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3 mb-0">👤 Lead: {{ lead.nome }}</h1>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.nome.id_for_label }}" class="form-label">Nome *</label>
+                                {{ form.nome }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.email.id_for_label }}" class="form-label">Email *</label>
+                                {{ form.email }}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.telefone.id_for_label }}" class="form-label">Telefone</label>
+                                {{ form.telefone }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.tipo_atividade.id_for_label }}" class="form-label">Tipo de Atividade</label>
+                                {{ form.tipo_atividade }}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.propriedade_nome.id_for_label }}" class="form-label">Nome da Propriedade</label>
+                            {{ form.propriedade_nome }}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.status.id_for_label }}" class="form-label">Status</label>
+                            {{ form.status }}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.observacoes.id_for_label }}" class="form-label">Observações</label>
+                            {{ form.observacoes }}
+                        </div>
+                        
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> Salvar
+                            </button>
+                            <a href="{% url 'marketing_leads' %}" class="btn btn-secondary">Voltar</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm mb-3">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">📊 Informações</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Origem:</strong><br>{{ lead.origem }}</p>
+                    <p><strong>Criado em:</strong><br>{{ lead.criado_em|date:"d/m/Y H:i" }}</p>
+                    <p><strong>Última atualização:</strong><br>{{ lead.atualizado_em|date:"d/m/Y H:i" }}</p>
+                    {% if lead.credenciais_enviadas %}
+                    <p><strong>Credenciais enviadas:</strong><br>{{ lead.credenciais_enviadas_em|date:"d/m/Y H:i" }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

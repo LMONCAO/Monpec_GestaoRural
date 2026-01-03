@@ -1,0 +1,178 @@
+{% extends 'base_modulos_unificado.html' %}
+{% load formatacao_br %}
+
+{% block title %}DRE - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block breadcrumb_extra %}
+    <li class="breadcrumb-item">
+        <a href="{% url 'financeiro_dashboard' propriedade.id %}">
+            <i class="bi bi-cash-coin me-1"></i>Financeiro
+        </a>
+    </li>
+    <li class="breadcrumb-item active">DRE</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="submenu-page-header">
+            <div class="d-flex align-items-start gap-4">
+            <div class="submenu-page-icon bg-primary bg-opacity-10 text-primary">
+                <i class="bi bi-file-earmark-text"></i>
+            </div>
+            <div class="flex-grow-1">
+                <h1 class="submenu-page-title mb-1">Demonstração do Resultado do Exercício (DRE)</h1>
+                <p class="submenu-page-description mb-0">
+                    Análise de receitas, despesas e resultado líquido da propriedade {{ propriedade.nome_propriedade }}.
+                </p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{% url 'financeiro_dre_exportar_pdf' propriedade.id %}?ano={{ ano }}{% if mes %}&mes={{ mes }}{% endif %}" 
+                   class="btn btn-outline-danger">
+                    <i class="bi bi-file-earmark-pdf me-1"></i> Exportar PDF
+                </a>
+                <a href="{% url 'financeiro_dre_exportar_excel' propriedade.id %}?ano={{ ano }}{% if mes %}&mes={{ mes }}{% endif %}" 
+                   class="btn btn-outline-success">
+                    <i class="bi bi-file-earmark-excel me-1"></i> Exportar Excel
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card-moderno">
+        <div class="card-body-moderno">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Ano</label>
+                    <input type="number" name="ano" class="form-control" value="{{ ano }}" min="2020" max="{% now 'Y'|add:5 %}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Mês (opcional)</label>
+                    <select name="mes" class="form-select">
+                        <option value="">Anual</option>
+                        {% for i in "123456789101112"|make_list %}
+                            <option value="{{ i }}" {% if mes == i|add:"0" %}selected{% endif %}>
+                                {% if i == "1" %}Janeiro
+                                {% elif i == "2" %}Fevereiro
+                                {% elif i == "3" %}Março
+                                {% elif i == "4" %}Abril
+                                {% elif i == "5" %}Maio
+                                {% elif i == "6" %}Junho
+                                {% elif i == "7" %}Julho
+                                {% elif i == "8" %}Agosto
+                                {% elif i == "9" %}Setembro
+                                {% elif i == "10" %}Outubro
+                                {% elif i == "11" %}Novembro
+                                {% else %}Dezembro{% endif %}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-funnel me-1"></i> Filtrar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- DRE -->
+    <div class="card-moderno mt-3">
+        <div class="card-header-moderno">
+            <h5 class="mb-0">
+                <i class="bi bi-file-earmark-text me-2"></i>
+                DRE - Período: {{ data_inicio|data_br }} a {{ data_fim|data_br }}
+            </h5>
+        </div>
+        <div class="card-body-moderno">
+            <div class="row">
+                <!-- Receitas -->
+                <div class="col-md-6">
+                    <h5 class="text-success mb-3">
+                        <i class="bi bi-arrow-down-circle me-2"></i>
+                        Receitas
+                    </h5>
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Categoria</th>
+                                <th class="text-end">Valor</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for receita in receitas %}
+                                <tr>
+                                    <td>{{ receita.categoria__nome }}</td>
+                                    <td class="text-end text-success">{{ receita.total|moeda_br }}</td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="2" class="text-center text-muted py-2">
+                                        Nenhuma receita registrada
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            <tr class="table-success fw-bold">
+                                <td>Total de Receitas</td>
+                                <td class="text-end">{{ total_receitas|moeda_br }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Despesas -->
+                <div class="col-md-6">
+                    <h5 class="text-danger mb-3">
+                        <i class="bi bi-arrow-up-circle me-2"></i>
+                        Despesas
+                    </h5>
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Categoria</th>
+                                <th class="text-end">Valor</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for despesa in despesas %}
+                                <tr>
+                                    <td>{{ despesa.categoria__nome }}</td>
+                                    <td class="text-end text-danger">{{ despesa.total|moeda_br }}</td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="2" class="text-center text-muted py-2">
+                                        Nenhuma despesa registrada
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            <tr class="table-danger fw-bold">
+                                <td>Total de Despesas</td>
+                                <td class="text-end">{{ total_despesas|moeda_br }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Resultado -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card {% if resultado_liquido >= 0 %}border-success{% else %}border-danger{% endif %}">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">Resultado Líquido</h5>
+                                <h3 class="mb-0 {% if resultado_liquido >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                    {{ resultado_liquido|moeda_br }}
+                                </h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

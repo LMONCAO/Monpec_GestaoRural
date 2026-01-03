@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load formatacao_br %}
+
+{% block title %}Distribuir Dívidas - {{ propriedade.nome_propriedade }} - MONPEC{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedades_lista' %}">Propriedades</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'dividas_contratos' propriedade.id %}">Dívidas e Contratos</a></li>
+            <li class="breadcrumb-item active">Distribuir Dívidas</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1"><i class="bi bi-diagram-3 text-primary me-2"></i>Distribuir Dívidas do SCR</h2>
+            <p class="text-muted mb-0">Propriedade: {{ propriedade.nome_propriedade }}</p>
+        </div>
+        <div>
+            <a href="{% url 'dividas_contratos' propriedade.id %}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Voltar
+            </a>
+        </div>
+    </div>
+
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle me-2"></i>
+        <strong>Distribuição de Dívidas:</strong> 
+        Selecione para qual fazenda cada dívida do SCR será distribuída. 
+        O sistema criará contratos individuais para cada distribuição.
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-file-earmark-text me-2"></i>
+                    SCR: {{ scr.data_referencia_scr|date:"d/m/Y" }}
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if dividas %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Banco</th>
+                                <th>Valor Total</th>
+                                <th>Quantidade de Contratos</th>
+                                <th>Distribuir para Fazenda</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for divida in dividas %}
+                            <tr>
+                                <td>
+                                    <strong>{{ divida.banco }}</strong><br>
+                                    <small class="text-muted">ID: #{{ divida.id }}</small>
+                                </td>
+                                <td>
+                                    <strong class="text-primary">{{ divida.valor_total|moeda_br }}</strong>
+                                </td>
+                                <td>
+                                    <span class="badge bg-info">{{ divida.quantidade_contratos }} contrato(s)</span>
+                                </td>
+                                <td>
+                                    <select name="divida_{{ divida.id }}_fazenda" class="form-select" required>
+                                        <option value="0">-- Selecione uma fazenda --</option>
+                                        {% for fazenda in fazendas %}
+                                        <option value="{{ fazenda.id }}">
+                                            {{ fazenda.nome_propriedade }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    Nenhuma dívida encontrada neste SCR para distribuição.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if dividas %}
+        <div class="card mt-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-0">Total de Dívidas: <span class="badge bg-primary">{{ dividas|length }}</span></h6>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'dividas_contratos' propriedade.id %}" class="btn btn-secondary">
+                            <i class="bi bi-x-circle me-1"></i>Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle me-1"></i>Distribuir Dívidas
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </form>
+
+    <div class="card mt-3">
+        <div class="card-header bg-info text-white">
+            <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Informações</h6>
+        </div>
+        <div class="card-body">
+            <p class="small text-muted mb-2">
+                <strong>Como funciona a distribuição:</strong>
+            </p>
+            <ul class="small text-muted mb-0">
+                <li>Selecione a fazenda de destino para cada dívida do SCR</li>
+                <li>O sistema criará contratos individuais automaticamente</li>
+                <li>Cada contrato será vinculado à fazenda selecionada</li>
+                <li>A tabela de amortização será gerada automaticamente</li>
+                <li>Você poderá editar os contratos após a criação</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,92 @@
+{% extends "base_modulos_unificado.html" %}
+{% load formatacao_br %}
+
+{% block title %}Contas a Pagar - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'financeiro_dashboard' propriedade.id %}">Financeiro</a></li>
+            <li class="breadcrumb-item active">Contas a pagar</li>
+        </ol>
+    </nav>
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <form method="get" class="row g-2 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label">Buscar</label>
+                    <input type="text" name="busca" value="{{ busca }}" class="form-control" placeholder="Descrição, fornecedor ou documento">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Status</label>
+                    <select name="status" class="form-select">
+                        <option value="">Todos</option>
+                        <option value="ABERTA" {% if status == 'ABERTA' %}selected{% endif %}>Abertas</option>
+                        <option value="AGENDADA" {% if status == 'AGENDADA' %}selected{% endif %}>Agendadas</option>
+                        <option value="LIQUIDADA" {% if status == 'LIQUIDADA' %}selected{% endif %}>Liquidadas</option>
+                        <option value="CANCELADA" {% if status == 'CANCELADA' %}selected{% endif %}>Canceladas</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-outline-primary w-100"><i class="bi bi-funnel me-1"></i>Filtrar</button>
+                </div>
+                <div class="col-md-3 text-md-end">
+                    <a href="{% url 'conta_pagar_nova' propriedade.id %}" class="btn btn-primary"><i class="bi bi-plus-circle me-1"></i>Nova conta</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Descrição</th>
+                            <th>Plano de contas</th>
+                            <th>Fornecedor</th>
+                            <th>Vencimento</th>
+                            <th class="text-end">Valor</th>
+                            <th>Status</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for parcela in parcelas %}
+                        <tr class="{% if parcela.vencimento < today and parcela.status == 'ABERTA' %}table-warning{% endif %}">
+                            <td>
+                                <strong>{{ parcela.titulo.descricao }}</strong><br>
+                                <small class="text-muted">{{ parcela.titulo.documento_referencia|default:"-" }}</small>
+                            </td>
+                            <td>{{ parcela.titulo.plano_conta|default:"-" }}</td>
+                            <td>{{ parcela.titulo.pessoa|default:"-" }}</td>
+                            <td>{{ parcela.vencimento|date:"d/m/Y" }}</td>
+                            <td class="text-end">{{ parcela.valor_previsto|moeda_br }}</td>
+                            <td>
+                                <span class="badge bg-{% if parcela.status == 'ABERTA' %}warning text-dark{% elif parcela.status == 'LIQUIDADA' %}success{% elif parcela.status == 'CANCELADA' %}secondary{% else %}info{% endif %}">
+                                    {{ parcela.get_status_display }}
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                {% if parcela.status in 'ABERTA AGENDADA' %}
+                                <a href="{% url 'conta_pagar_pagar' propriedade.id parcela.id %}" class="btn btn-sm btn-success"><i class="bi bi-cash-coin"></i></a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">Nenhuma conta encontrada.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

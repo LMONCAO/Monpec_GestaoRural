@@ -1,0 +1,96 @@
+{% extends "base_modulos_unificado.html" %}
+{% load formatacao_br %}
+
+{% block title %}Registrar Diagnóstico - {{ iatf.animal_individual.numero_brinco }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'iatf_dashboard' propriedade.id %}">IATF</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'iatf_individual_detalhes' propriedade.id iatf.id %}">IATF {{ iatf.animal_individual.numero_brinco }}</a></li>
+            <li class="breadcrumb-item active">Diagnóstico</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-clipboard-check text-info me-2"></i>Registrar Diagnóstico de Prenhez</h2>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Dados do Diagnóstico</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <strong>Animal:</strong> {{ iatf.animal_individual.numero_brinco }}<br>
+                        <strong>Data da IATF:</strong> {{ iatf.data_iatf_realizada|date:"d/m/Y"|default:iatf.data_iatf|date:"d/m/Y" }}
+                    </div>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="data_diagnostico" class="form-label">Data do Diagnóstico *</label>
+                                <input type="date" class="form-control" id="data_diagnostico" name="data_diagnostico" 
+                                       value="{{ date.today|date:'Y-m-d' }}" required>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="resultado" class="form-label">Resultado *</label>
+                                <select class="form-select" id="resultado" name="resultado" required>
+                                    <option value="">Selecione...</option>
+                                    <option value="PREMIDA">Prenha</option>
+                                    <option value="VAZIA">Vazia</option>
+                                    <option value="ABORTO">Aborto</option>
+                                    <option value="REPETICAO">Repetição de Cio</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="dias_gestacao_diagnostico" class="form-label">Dias de Gestação</label>
+                                <input type="number" class="form-control" id="dias_gestacao_diagnostico" name="dias_gestacao_diagnostico" 
+                                       placeholder="Ex: 45, 60, 90">
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="metodo_diagnostico" class="form-label">Método de Diagnóstico</label>
+                                <select class="form-select" id="metodo_diagnostico" name="metodo_diagnostico">
+                                    <option value="">Selecione...</option>
+                                    <option value="Palpação Retal">Palpação Retal</option>
+                                    <option value="Ultrassom">Ultrassom</option>
+                                    <option value="Exame de Sangue">Exame de Sangue</option>
+                                    <option value="Outros">Outros</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="observacoes" class="form-label">Observações</label>
+                            <textarea class="form-control" id="observacoes" name="observacoes" rows="3" 
+                                      placeholder="Observações sobre o diagnóstico..."></textarea>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-info">
+                                <i class="bi bi-clipboard-check me-1"></i>Registrar Diagnóstico
+                            </button>
+                            <a href="{% url 'iatf_individual_detalhes' propriedade.id iatf.id %}" class="btn btn-secondary">
+                                <i class="bi bi-x-circle me-1"></i>Cancelar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+

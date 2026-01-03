@@ -1,0 +1,1392 @@
+{% extends 'base_modulos_unificado.html' %}
+{% load static %}
+{% load formatacao_br %}
+
+{% block title %}Planejamento Pecuário - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block breadcrumb_extra %}
+    <li class="breadcrumb-item active">
+        <i class="bi bi-calendar-check"></i>
+        Planejamento
+    </li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 px-md-4 px-lg-5" style="max-width: 100%; width: 100%;">
+    <div class="submenu-page-header">
+        <div class="d-flex align-items-start gap-4">
+            <div class="submenu-page-icon">
+                <i class="bi bi-calendar3-range"></i>
+            </div>
+            <div class="flex-grow-1">
+                <h1 class="submenu-page-title">Planejamento Pecuário</h1>
+                <p class="submenu-page-description">
+                    Acompanhe os indicadores estratégicos do rebanho, projeções de compras e vendas, métricas financeiras e produtividade por hectare.
+                </p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{% url 'planejamento_ia_chat' propriedade.id %}?ano={% now 'Y' %}" class="btn btn-success btn-lg px-4 py-3 fw-bold" style="border-radius: 12px; font-size: 1.1rem; box-shadow: 0 8px 20px rgba(40, 167, 69, 0.3); transition: all 0.3s ease; border: none;">
+                    <i class="bi bi-robot me-2" style="font-size: 1.3rem;"></i>Criar com IA
+                </a>
+                <a href="{% url 'pecuaria_projecao' propriedade.id %}" id="btn-ver-projecoes" class="btn btn-primary btn-lg px-4 py-3 fw-bold {% if not inventario %}btn-pulsante{% endif %}" style="border-radius: 12px; font-size: 1.1rem; box-shadow: 0 8px 20px rgba(13, 110, 253, 0.3); transition: all 0.3s ease; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
+                    <i class="bi bi-graph-up-arrow-fill me-2" style="font-size: 1.3rem;"></i>Ver Projeções
+                </a>
+            </div>
+        </div>
+    </div>
+
+    {% if not inventario %}
+        <div class="alert alert-info d-flex align-items-center" role="alert" style="background: linear-gradient(135deg, rgba(13, 110, 253, 0.1) 0%, rgba(102, 126, 234, 0.1) 100%); border: 2px solid rgba(102, 126, 234, 0.3); border-radius: 12px;">
+            <i class="bi bi-info-circle-fill me-3 fs-4" style="color: #667eea;"></i>
+            <div class="flex-grow-1">
+                <strong style="color: #667eea;">Clique no botão "Ver Projeções" acima para visualizar e gerar as projeções do rebanho.</strong>
+                <p class="mb-0 mt-1 text-muted">Gere as projeções para começar a planejar suas atividades pecuárias.</p>
+            </div>
+        </div>
+    {% endif %}
+
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+            {% if not planejamentos_disponiveis %}
+                <div class="alert alert-info d-flex align-items-center mb-3" role="alert">
+                    <i class="bi bi-info-circle-fill me-2 fs-4"></i>
+                    <div class="flex-grow-1">
+                        <strong>Nenhum planejamento encontrado!</strong>
+                        <p class="mb-0">Crie um planejamento automático baseado no seu inventário e projeções, ou use nossa IA para criar passo a passo.</p>
+                    </div>
+                    <div class="ms-3 d-flex gap-2">
+                        <a href="{% url 'planejamento_ia_chat' propriedade.id %}?ano={% now 'Y' %}" class="btn btn-success">
+                            <i class="bi bi-robot me-1"></i>Criar com IA
+                        </a>
+                        <form method="POST" class="d-inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="criar_planejamento" value="1">
+                            <input type="hidden" name="ano" value="{% now 'Y' %}">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-plus-circle me-1"></i>Criar Automático
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            {% elif status_atualizacao and status_atualizacao.desatualizado %}
+                <div class="alert alert-warning d-flex align-items-center mb-3" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2 fs-4"></i>
+                    <div class="flex-grow-1">
+                        <strong>Planejamento desatualizado!</strong>
+                        <p class="mb-0">
+                            Há novas projeções disponíveis. Última projeção: 
+                            {{ status_atualizacao.ultima_projecao|date:"d/m/Y" }}.
+                            Sincronize para atualizar o planejamento.
+                        </p>
+                    </div>
+                    <form method="POST" class="ms-3">
+                        {% csrf_token %}
+                        <input type="hidden" name="sincronizar_planejamento" value="1">
+                        <input type="hidden" name="planejamento_id" value="{{ planejamento_atual.id }}">
+                        <button type="submit" class="btn btn-warning">
+                            <i class="bi bi-arrow-clockwise me-1"></i>Sincronizar
+                        </button>
+                    </form>
+                </div>
+            {% endif %}
+            
+            <div class="row g-3 align-items-end">
+                <div class="col-lg-5 col-md-6">
+                    <label class="form-label text-muted text-uppercase small mb-1">Planejamento Anual</label>
+                    <select
+                        id="planejamento-seletor"
+                        class="form-select"
+                        data-endpoint-lista="{% url 'pecuaria_planejamentos_api' propriedade.id %}"
+                        data-endpoint-resumo-template="{% url 'pecuaria_planejamento_resumo_api' propriedade.id 999999 %}"
+                        data-endpoint-resumo-placeholder="999999"
+                    >
+                        <option value="">Selecione um planejamento</option>
+                        {% for plano in planejamentos_disponiveis %}
+                            <option value="{{ plano.id }}" {% if planejamento_atual and plano.id == planejamento_atual.id %}selected{% endif %}>
+                                {{ plano.ano }} - {{ plano.get_status_display|default:plano.status }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-lg-4 col-md-6">
+                    <label class="form-label text-muted text-uppercase small mb-1">Cenário</label>
+                    <select id="cenario-seletor" class="form-select">
+                        <option value="">Baseline / Geral</option>
+                        {% for cenario in cenarios_planejamento %}
+                            <option value="{{ cenario.id }}" {% if cenario_atual and cenario.id == cenario_atual.id %}selected{% endif %}>
+                                {% if cenario.is_baseline %}★ {% endif %}{{ cenario.nome }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-lg-3 col-md-12 text-lg-end">
+                    <div class="d-flex flex-wrap gap-2 justify-content-lg-end">
+                        {% if planejamentos_disponiveis %}
+                            <form method="POST" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="criar_planejamento" value="1">
+                                <input type="hidden" name="ano" value="{% now 'Y' %}">
+                                <button type="submit" class="btn btn-success btn-sm" title="Criar novo planejamento">
+                                    <i class="bi bi-plus-circle me-1"></i>Novo
+                                </button>
+                            </form>
+                            {% if planejamento_atual and status_atualizacao and status_atualizacao.desatualizado %}
+                                <form method="POST" class="d-inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="sincronizar_planejamento" value="1">
+                                    <input type="hidden" name="planejamento_id" value="{{ planejamento_atual.id }}">
+                                    <button type="submit" class="btn btn-warning btn-sm" title="Sincronizar com projeções">
+                                        <i class="bi bi-arrow-clockwise me-1"></i>Sincronizar
+                                    </button>
+                                </form>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="row g-3 mt-3 small text-muted" id="planejamento-resumo-rapido">
+                <div class="col-md-auto">
+                    <span class="badge rounded-pill bg-light text-dark border">
+                        <i class="bi bi-calendar3-range me-1"></i>
+                        {% if planejamento_atual %}
+                            Planejamento {{ planejamento_atual.ano }}
+                        {% else %}
+                            Nenhum planejamento selecionado
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="col-md-auto">
+                    <span class="badge rounded-pill bg-light text-dark border">
+                        <i class="bi bi-diagram-2 me-1"></i>
+                        {{ planejamento_mensal|length }} períodos planejados
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cards Principais de Planejamento -->
+    <div class="row g-3 mb-4">
+        <div class="col-12">
+            <h4 class="fw-semibold mb-3">
+                <i class="bi bi-clipboard-data text-primary me-2"></i>Resumo do Planejamento
+            </h4>
+        </div>
+        
+        <!-- Card: Atividades Planejadas -->
+        <div class="col-xl-3 col-lg-4 col-md-6">
+            <div class="card card-dashboard h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="card-dashboard-icon">
+                            <i class="bi bi-kanban"></i>
+                        </div>
+                        <span class="badge bg-light text-dark border" id="planejamento-contagem-atividades">
+                            {{ atividades_planejadas|length }}
+                        </span>
+                    </div>
+                    <h5 class="card-dashboard-title">Atividades Planejadas</h5>
+                    <p class="card-dashboard-description mb-0">
+                        Total de atividades cadastradas no planejamento
+                    </p>
+                    {% if planejamento_atual %}
+                        <div class="mt-3">
+                            <small class="text-muted">
+                                <i class="bi bi-calendar3 me-1"></i>
+                                Planejamento {{ planejamento_atual.ano }}
+                            </small>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Card: Metas Comerciais -->
+        <div class="col-xl-3 col-lg-4 col-md-6">
+            <div class="card card-dashboard h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="card-dashboard-icon">
+                            <i class="bi bi-currency-dollar"></i>
+                        </div>
+                        <span class="badge bg-light text-dark border" id="planejamento-contagem-metas">
+                            {{ metas_comerciais|length }}
+                        </span>
+                    </div>
+                    <h5 class="card-dashboard-title">Metas Comerciais</h5>
+                    <p class="card-dashboard-description mb-0">
+                        Metas de vendas e comercialização planejadas
+                    </p>
+                    {% if metas_comerciais %}
+                        <div class="mt-3">
+                            <small class="text-muted">
+                                <i class="bi bi-box-arrow-in-right me-1"></i>
+                                {{ total_vendas_qtd|numero_br }} animais planejados
+                            </small>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Card: Metas Financeiras -->
+        <div class="col-xl-3 col-lg-4 col-md-6">
+            <div class="card card-dashboard h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="card-dashboard-icon">
+                            <i class="bi bi-cash-coin"></i>
+                        </div>
+                        <span class="badge bg-light text-dark border" id="planejamento-contagem-financeiras">
+                            {{ metas_financeiras|length }}
+                        </span>
+                    </div>
+                    <h5 class="card-dashboard-title">Metas Financeiras</h5>
+                    <p class="card-dashboard-description mb-0">
+                        Custos e investimentos planejados para o período
+                    </p>
+                    {% if metas_financeiras %}
+                        <div class="mt-3">
+                            <small class="text-muted">
+                                <i class="bi bi-piggy-bank me-1"></i>
+                                R$ {{ financeiro_resumo.planejado_custos|moeda_br }}
+                            </small>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Card: Indicadores -->
+        <div class="col-xl-3 col-lg-4 col-md-6">
+            <div class="card card-dashboard h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="card-dashboard-icon">
+                            <i class="bi bi-flag"></i>
+                        </div>
+                        <span class="badge bg-light text-dark border" id="planejamento-contagem-indicadores">
+                            {{ indicadores_planejados_meta|length }}
+                        </span>
+                    </div>
+                    <h5 class="card-dashboard-title">Indicadores</h5>
+                    <p class="card-dashboard-description mb-0">
+                        KPIs e métricas de desempenho planejadas
+                    </p>
+                    {% if indicadores_planejados_enriquecidos %}
+                        <div class="mt-3">
+                            <small class="text-muted">
+                                <i class="bi bi-bullseye me-1"></i>
+                                {{ indicadores_planejados_enriquecidos|length }} indicadores ativos
+                            </small>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cards de Métricas Operacionais -->
+    <div class="row g-3 mb-4">
+        <div class="col-12">
+            <h4 class="fw-semibold mb-3">
+                <i class="bi bi-graph-up-arrow text-primary me-2"></i>Métricas Operacionais
+            </h4>
+        </div>
+        
+        <div class="col-xl-3 col-lg-4 col-md-6">
+            <div class="card card-metric h-100">
+                <div class="card-body">
+                    <div class="card-metric-icon">
+                        <i class="bi bi-people-fill"></i>
+                    </div>
+                    <span class="card-metric-label">Total de Animais</span>
+                    <span class="card-metric-value">{{ total_animais|numero_br }}</span>
+                    {% if inventario_data_recente %}
+                        <span class="card-metric-subtitle">Inventário de {{ inventario_data_recente|date:"d/m/Y" }}</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-lg-4 col-md-6">
+            <div class="card card-metric h-100">
+                <div class="card-body">
+                    <div class="card-metric-icon">
+                        <i class="bi bi-gender-female"></i>
+                    </div>
+                    <span class="card-metric-label">Matrizes Ativas</span>
+                    <span class="card-metric-value">{{ matrizes|numero_br }}</span>
+                    <span class="card-metric-subtitle">{{ vacas_descarte|numero_br }} em descarte planejado</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-lg-4 col-md-6">
+            <div class="card card-metric h-100">
+                <div class="card-body">
+                    <div class="card-metric-icon">
+                        <i class="bi bi-heart-pulse"></i>
+                    </div>
+                    <span class="card-metric-label">Taxa Reprodutiva</span>
+                    <div class="d-flex flex-column gap-1">
+                        <div>
+                            <span class="card-metric-value">{{ taxa_reprodutiva|numero_br:1 }}%</span>
+                            <small class="text-muted ms-1 text-uppercase">planejado</small>
+                        </div>
+                        <div class="small {% if taxa_reprodutiva_realizada >= taxa_reprodutiva %}text-success{% else %}text-warning{% endif %} fw-semibold">
+                            Realizado: {{ taxa_reprodutiva_realizada|numero_br:1 }}% · {{ total_nascimentos_realizados|numero_br }} nascimentos
+                        </div>
+                        <div class="small text-muted">
+                            Planejado: {{ total_nascimentos|numero_br }} nascimentos
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-lg-4 col-md-6">
+            <div class="card card-metric h-100">
+                <div class="card-body">
+                    <div class="card-metric-icon">
+                        <i class="bi bi-diagram-3"></i>
+                    </div>
+                    <span class="card-metric-label">Animais por Hectare</span>
+                    <span class="card-metric-value">{{ animais_por_hectare|numero_br:2 }}</span>
+                    <span class="card-metric-subtitle">{{ ua_por_hectare|numero_br:2 }} UA/ha</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cards Financeiros e de Produção -->
+    <div class="row g-3 mb-4">
+        <div class="col-12">
+            <h4 class="fw-semibold mb-3">
+                <i class="bi bi-currency-dollar text-success me-2"></i>Resultados Financeiros e Produção
+            </h4>
+        </div>
+        
+        <div class="col-xl-3 col-lg-4 col-md-6">
+            <div class="card card-metric h-100">
+                <div class="card-body">
+                    <div class="card-metric-icon">
+                        <i class="bi bi-cash-coin"></i>
+                    </div>
+                    <span class="card-metric-label">Investimento</span>
+                    <div class="d-flex flex-column gap-1">
+                        <div>
+                            <span class="card-metric-value">R$ {{ investimento_previsto|moeda_br }}</span>
+                            <small class="text-muted ms-1 text-uppercase">planejado</small>
+                        </div>
+                        <div class="small {% if investimento_realizado <= investimento_previsto %}text-success{% else %}text-warning{% endif %} fw-semibold">
+                            Realizado: R$ {{ investimento_realizado|moeda_br }} · {{ total_compras_realizadas_qtd|numero_br }} animais
+                        </div>
+                        <div class="small text-muted">
+                            Planejado: {{ total_compras_qtd|numero_br }} animais
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-lg-4 col-md-6">
+            <div class="card card-metric h-100">
+                <div class="card-body">
+                    <div class="card-metric-icon">
+                        <i class="bi bi-box-arrow-in-right"></i>
+                    </div>
+                    <span class="card-metric-label">Vendas</span>
+                    <div class="d-flex flex-column gap-1">
+                        <div>
+                            <span class="card-metric-value">R$ {{ total_vendas_valor|moeda_br }}</span>
+                            <small class="text-muted ms-1 text-uppercase">planejado</small>
+                        </div>
+                        <div class="small {% if total_vendas_realizadas_valor >= total_vendas_valor %}text-success{% else %}text-warning{% endif %} fw-semibold">
+                            Realizado: R$ {{ total_vendas_realizadas_valor|moeda_br }} · {{ total_vendas_realizadas_qtd|numero_br }} animais
+                        </div>
+                        <div class="small text-muted">
+                            Planejado: {{ total_vendas_qtd|numero_br }} animais
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-lg-4 col-md-6">
+            <div class="card card-metric h-100">
+                <div class="card-body">
+                    <div class="card-metric-icon">
+                        <i class="bi bi-piggy-bank"></i>
+                    </div>
+                    <span class="card-metric-label">Resultado Operacional</span>
+                    <div class="d-flex flex-column gap-1">
+                        <div>
+                            <span class="card-metric-value">R$ {{ resultado_operacional|moeda_br }}</span>
+                            <small class="text-muted ms-1 text-uppercase">planejado</small>
+                        </div>
+                        <div class="small {% if resultado_operacional_realizado >= resultado_operacional %}text-success{% else %}text-danger{% endif %} fw-semibold">
+                            Realizado: R$ {{ resultado_operacional_realizado|moeda_br }}
+                        </div>
+                        <div class="small text-muted">
+                            Planejado: {{ lucro_por_hectare|moeda_br }} / ha &nbsp;·&nbsp; Realizado: {{ lucro_por_hectare_realizado|moeda_br }} / ha
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-lg-4 col-md-6">
+            <div class="card card-metric h-100">
+                <div class="card-body">
+                    <div class="card-metric-icon">
+                        <i class="bi bi-bullseye"></i>
+                    </div>
+                    <span class="card-metric-label">Produção de Arrobas</span>
+                    <div class="d-flex flex-column gap-1">
+                        <div>
+                            <span class="card-metric-value">{{ arrobas_totais_planejadas|numero_br:0 }} @</span>
+                            <small class="text-muted ms-1 text-uppercase">planejado</small>
+                        </div>
+                        <div class="small {% if arrobas_totais_realizadas >= arrobas_totais_planejadas %}text-success{% else %}text-warning{% endif %} fw-semibold">
+                            Realizado: {{ arrobas_totais_realizadas|numero_br:0 }} @
+                        </div>
+                        <div class="small text-muted">
+                            Planejado: {{ arrobas_por_hectare|numero_br:2 }} @/ha &nbsp;·&nbsp; Realizado: {{ arrobas_por_hectare_realizado|numero_br:2 }} @/ha
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4 g-4">
+        <div class="col-xl-7">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-light border-0">
+                    <h5 class="mb-0 fw-semibold">
+                        <i class="bi bi-diagram-2-fill text-primary me-2"></i>Planejamento Mensal de Movimentações
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if planejamento_mensal %}
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Período</th>
+                                        <th class="text-end">Compras (Plan)</th>
+                                        <th class="text-end text-muted">Compras (Real)</th>
+                                        <th class="text-end">Vendas (Plan)</th>
+                                        <th class="text-end text-muted">Vendas (Real)</th>
+                                        <th class="text-end">Nascimentos (Plan)</th>
+                                        <th class="text-end text-muted">Nascimentos (Real)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for linha in planejamento_mensal %}
+                                        <tr>
+                                            <td>
+                                                <span class="badge bg-light text-dark border">{{ linha.periodo_label }}</span>
+                                            </td>
+                                            <td class="text-end">{{ linha.planejado.compras|numero_br }}</td>
+                                            <td class="text-end text-muted">{{ linha.realizado.compras|numero_br }}</td>
+                                            <td class="text-end text-success">{{ linha.planejado.vendas|numero_br }}</td>
+                                            <td class="text-end {% if linha.realizado.vendas >= linha.planejado.vendas %}text-success{% else %}text-warning{% endif %}">
+                                                {{ linha.realizado.vendas|numero_br }}
+                                            </td>
+                                            <td class="text-end text-primary">{{ linha.planejado.nascimentos|numero_br }}</td>
+                                            <td class="text-end {% if linha.realizado.nascimentos >= linha.planejado.nascimentos %}text-success{% else %}text-warning{% endif %}">
+                                                {{ linha.realizado.nascimentos|numero_br }}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted mb-0">Nenhuma movimentação projetada cadastrada. Gere a projeção do rebanho para alimentar o planejamento.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-5">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-light border-0 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-semibold">
+                        <i class="bi bi-currency-dollar text-success me-2"></i>Resumo Financeiro
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <h6 class="fw-semibold text-uppercase small text-muted mb-2">Orçamento Anual</h6>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted">Receitas planejadas</span>
+                            <strong>R$ {{ financeiro_resumo.planejado_receitas|moeda_br }}</strong>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted">Receitas realizadas</span>
+                            <strong>R$ {{ financeiro_resumo.realizado_receitas|moeda_br }}</strong>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted">Custos planejados</span>
+                            <strong>R$ {{ financeiro_resumo.planejado_custos|moeda_br }}</strong>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted">Custos realizados</span>
+                            <strong>R$ {{ financeiro_resumo.realizado_custos|moeda_br }}</strong>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted">Investimentos planejados</span>
+                            <strong>R$ {{ financeiro_resumo.planejado_investimentos|moeda_br }}</strong>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted fw-semibold">Resultado realizado</span>
+                            {% with resultado=financeiro_resumo.realizado_resultado %}
+                                <strong class="{% if resultado >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                    R$ {{ resultado|moeda_br }}
+                                </strong>
+                            {% endwith %}
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="text-muted">Valor do rebanho</span>
+                        <strong>R$ {{ valor_total_rebanho|moeda_br }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="text-muted">Valor por hectare</span>
+                        <strong>R$ {{ valor_rebanho_por_hectare|moeda_br }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="text-muted">Saldo de financiamentos</span>
+                        <strong>R$ {{ saldo_financiamentos|moeda_br }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <span class="text-muted">Fluxo de caixa recente</span>
+                        {% if fluxo_caixa_recente %}
+                            <strong class="{% if fluxo_caixa_recente.lucro_bruto >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                R$ {{ fluxo_caixa_recente.lucro_bruto|moeda_br }}
+                            </strong>
+                        {% else %}
+                            <strong class="text-muted">Sem registro</strong>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <h6 class="fw-semibold mb-2">Indicadores Financeiros</h6>
+                        {% if indicadores_financeiros %}
+                            <ul class="list-unstyled mb-0">
+                                {% for indicador in indicadores_financeiros %}
+                                    <li class="mb-2 d-flex justify-content-between">
+                                        <span>
+                                            <i class="bi bi-graph-up-arrow text-success me-1"></i>
+                                            {{ indicador.nome }}
+                                            <small class="text-muted">({{ indicador.data_referencia|date:"m/Y" }})</small>
+                                        </span>
+                                        <strong>
+                                            {{ indicador.valor|numero_br:2 }}
+                                            {{ indicador.unidade }}
+                                        </strong>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p class="text-muted mb-0">Nenhum indicador financeiro cadastrado.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4 g-4">
+        <div class="col-12">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-light border-0 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-semibold">
+                        <i class="bi bi-sliders text-primary me-2"></i>Parâmetros e Metas Planejadas
+                    </h5>
+                    <span class="badge rounded-pill bg-primary-subtle text-primary small" id="planejamento-label-ano">
+                        {% if planejamento_atual %}Planejamento {{ planejamento_atual.ano }}{% else %}Sem planejamento selecionado{% endif %}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <h6 class="fw-semibold text-uppercase small text-muted">Metas Comerciais</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Categoria</th>
+                                        <th class="text-end">Animais</th>
+                                        <th class="text-end">@ Totais</th>
+                                        <th class="text-end">Preço Médio</th>
+                                        <th>Canal</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="planejamento-metas-comerciais">
+                                    {% if metas_comerciais %}
+                                        {% for meta in metas_comerciais %}
+                                            <tr data-meta-id="{{ meta.id }}">
+                                                <td>
+                                                    {% if meta.categoria %}
+                                                        {{ meta.categoria.nome }}
+                                                    {% else %}
+                                                        Geral
+                                                    {% endif %}
+                                                </td>
+                                                <td class="text-end">{{ meta.quantidade_animais|numero_br }}</td>
+                                                <td class="text-end">{{ meta.arrobas_totais|numero_br:2 }}</td>
+                                                <td class="text-end">R$ {{ meta.preco_medio_esperado|moeda_br }}</td>
+                                                <td>{{ meta.canal_venda|default:'-' }}</td>
+                                            </tr>
+                                        {% endfor %}
+                                    {% else %}
+                                        <tr>
+                                            <td colspan="5" class="text-muted text-center">Nenhuma meta comercial cadastrada.</td>
+                                        </tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <h6 class="fw-semibold text-uppercase small text-muted">Metas Financeiras</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Descrição</th>
+                                        <th>Tipo</th>
+                                        <th class="text-end">Valor Anual</th>
+                                        <th class="text-end">Correção</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="planejamento-metas-financeiras">
+                                    {% if metas_financeiras %}
+                                        {% for meta in metas_financeiras %}
+                                            <tr data-meta-id="{{ meta.id }}">
+                                                <td>{{ meta.descricao }}</td>
+                                                <td>{{ meta.get_tipo_custo_display|default:meta.tipo_custo }}</td>
+                                                <td class="text-end">R$ {{ meta.valor_anual_previsto|moeda_br }}</td>
+                                                <td class="text-end">
+                                                    {% if meta.percentual_correcao %}
+                                                        {{ meta.percentual_correcao|numero_br:2 }}% {% if meta.indice_correcao %}({{ meta.indice_correcao }}){% endif %}
+                                                    {% else %}
+                                                        <span class="text-muted">-</span>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    {% else %}
+                                        <tr>
+                                            <td colspan="4" class="text-muted text-center">Nenhum custo planejado cadastrado.</td>
+                                        </tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div>
+                        <h6 class="fw-semibold text-uppercase small text-muted">Indicadores Alvo</h6>
+                        <ul class="list-group list-group-flush small" id="planejamento-indicadores-metas">
+                            {% if indicadores_planejados_enriquecidos %}
+                                {% for item in indicadores_planejados_enriquecidos %}
+                                    {% with indicador=item.indicador desempenho=item.desempenho %}
+                                        <li class="list-group-item px-0 d-flex justify-content-between align-items-center gap-3">
+                                            <div>
+                                                <strong>{{ indicador.nome }}</strong>
+                                                <div class="text-muted">
+                                                    Meta: {{ indicador.valor_meta|numero_br:2 }} {{ indicador.unidade }}
+                                                    {% if indicador.eixo_estrategico %}
+                                                        · {{ indicador.get_eixo_estrategico_display }}
+                                                    {% endif %}
+                                                </div>
+                                                {% if indicador.observacoes %}
+                                                    <div class="text-muted">{{ indicador.observacoes }}</div>
+                                                {% endif %}
+                                            </div>
+                                            <div class="text-end">
+                                                {% if desempenho.valor_realizado %}
+                                                    <div class="{% if desempenho.atingiu_meta %}text-success{% else %}text-danger{% endif %} fw-semibold">
+                                                        {{ desempenho.valor_realizado|numero_br:2 }} {{ indicador.unidade }}
+                                                    </div>
+                                                    {% if desempenho.variacao %}
+                                                        <small class="text-muted">
+                                                            Variação: {{ desempenho.variacao|numero_br:2 }}
+                                                            {{ indicador.unidade }}
+                                                        </small>
+                                                    {% endif %}
+                                                {% else %}
+                                                    <span class="badge bg-light text-muted">Sem dados</span>
+                                                {% endif %}
+                                            </div>
+                                        </li>
+                                    {% endwith %}
+                                {% endfor %}
+                            {% else %}
+                                <li class="list-group-item px-0 text-muted">Sem indicadores definidos.</li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row mt-4 g-4">
+        <div class="col-12">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-light border-0">
+                    <h5 class="mb-0 fw-semibold">
+                        <i class="bi bi-clipboard-pulse text-warning me-2"></i>Indicadores-Chave e Alertas
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-start mb-3">
+                        <div class="me-3 text-warning">
+                            <i class="bi bi-exclamation-circle fs-3"></i>
+                        </div>
+                        <div>
+                            <h6 class="fw-semibold mb-1">Suporte de Pastagens</h6>
+                            <p class="mb-0 text-muted">
+                                {{ ua_por_hectare|numero_br:2 }} UA/ha. Compare com a capacidade de suporte da fazenda para evitar sobrecarga das pastagens.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-start mb-3">
+                        <div class="me-3 text-success">
+                            <i class="bi bi-check-circle fs-3"></i>
+                        </div>
+                        <div>
+                            <h6 class="fw-semibold mb-1">Rentabilidade do Rebanho</h6>
+                            <p class="mb-0 text-muted">
+                                Resultado operacional realizado de R$ {{ resultado_operacional_realizado|moeda_br }} (planejado: R$ {{ resultado_operacional|moeda_br }}). Reforce estratégias de venda para otimizar a margem.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-start mb-3">
+                        <div class="me-3 text-primary">
+                            <i class="bi bi-thermometer-half fs-3"></i>
+                        </div>
+                        <div>
+                            <h6 class="fw-semibold mb-1">Sanidade e Mortalidade</h6>
+                            <p class="mb-0 text-muted">
+                                {{ total_mortes|numero_br }} mortes previstas · {{ total_mortes_realizados|numero_br }} registradas. Avalie protocolos sanitários para reduzir perdas e descarte.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-start">
+                        <div class="me-3 text-danger">
+                            <i class="bi bi-credit-card-2-front fs-3"></i>
+                        </div>
+                        <div>
+                            <h6 class="fw-semibold mb-1">Comprometimento Financeiro</h6>
+                            <p class="mb-0 text-muted">
+                                Financiamentos ativos somam R$ {{ saldo_financiamentos|moeda_br }}. Utilize o fluxo de caixa projetado para planejar amortizações.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row mt-4 g-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light border-0 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-semibold">
+                        <i class="bi bi-clipboard-data text-primary me-2"></i>Inventário Planejado
+                    </h5>
+                    <span class="badge bg-secondary-subtle text-secondary">
+                        <i class="bi bi-bullseye me-1"></i>{{ arrobas_inventario|numero_br:0 }} arrobas de estoque atual
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3 mb-3 small text-muted">
+                        <div class="col-md-auto">
+                            <i class="bi bi-box-arrow-in-right me-1 text-success"></i>
+                            Animais destinados à engorda: <strong id="planejamento-inventario-engorda">{{ animais_engorda|numero_br }}</strong>
+                        </div>
+                        <div class="col-md-auto">
+                            <i class="bi bi-emoji-dizzy me-1 text-danger"></i>
+                            Mortes previstas: <strong id="planejamento-inventario-mortes">{{ total_mortes|numero_br }}</strong>
+                        </div>
+                        <div class="col-md-auto">
+                            <i class="bi bi-people me-1 text-primary"></i>
+                            Matrizes ativas: <strong id="planejamento-inventario-matrizes">{{ matrizes|numero_br }}</strong>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover align-middle" id="planejamento-inventario-tabela">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Categoria</th>
+                                    <th class="text-end">Quantidade</th>
+                                    <th class="text-end">Valor</th>
+                                </tr>
+                            </thead>
+                            <tbody id="planejamento-inventario-planejado">
+                                {% if inventario %}
+                                    {% for item in inventario %}
+                                        <tr data-inventario-id="{{ item.id }}">
+                                            <td>
+                                                <span class="badge bg-light text-dark border">{{ item.categoria.nome }}</span>
+                                            </td>
+                                            <td class="text-end">{{ item.quantidade|numero_br }}</td>
+                                            <td class="text-end">R$ {{ item.valor_total|moeda_br }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="3" class="text-muted text-center">Nenhum inventário planejado cadastrado.</td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const planejamentoSelect = document.getElementById('planejamento-seletor');
+    const cenarioSelect = document.getElementById('cenario-seletor');
+    if (!planejamentoSelect) {
+        return;
+    }
+
+    const metasComerciaisTbody = document.getElementById('planejamento-metas-comerciais');
+    const metasFinanceirasTbody = document.getElementById('planejamento-metas-financeiras');
+    const indicadoresLista = document.getElementById('planejamento-indicadores-metas');
+    const inventarioTbody = document.getElementById('planejamento-inventario-planejado');
+    const badgeAno = document.getElementById('planejamento-label-ano');
+
+    const resumoBadgeAtividades = document.getElementById('planejamento-contagem-atividades');
+    const resumoBadgeMetas = document.getElementById('planejamento-contagem-metas');
+    const resumoBadgeFinanceiras = document.getElementById('planejamento-contagem-financeiras');
+    const resumoBadgeIndicadores = document.getElementById('planejamento-contagem-indicadores');
+
+    const inventarioEngorda = document.getElementById('planejamento-inventario-engorda');
+    const inventarioMortes = document.getElementById('planejamento-inventario-mortes');
+    const inventarioMatrizes = document.getElementById('planejamento-inventario-matrizes');
+
+    const endpointLista = planejamentoSelect.dataset.endpointLista;
+    const resumoTemplate = planejamentoSelect.dataset.endpointResumoTemplate;
+    const resumoPlaceholder = planejamentoSelect.dataset.endpointResumoPlaceholder;
+
+    const formatCurrency = (valor) => {
+        if (valor === null || valor === undefined) {
+            return 'R$ 0,00';
+        }
+        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(valor));
+    };
+
+    const formatNumber = (valor, casas = 0) => {
+        if (valor === null || valor === undefined) {
+            return Number(0).toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas });
+        }
+        return Number(valor).toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas });
+    };
+
+    const limparConteudo = () => {
+        if (metasComerciaisTbody) {
+            metasComerciaisTbody.innerHTML = '<tr><td colspan="5" class="text-muted text-center">Selecione um planejamento para visualizar as metas.</td></tr>';
+        }
+        if (metasFinanceirasTbody) {
+            metasFinanceirasTbody.innerHTML = '<tr><td colspan="4" class="text-muted text-center">Selecione um planejamento para visualizar os custos planejados.</td></tr>';
+        }
+        if (indicadoresLista) {
+            indicadoresLista.innerHTML = '<li class="list-group-item px-0 text-muted">Sem dados.</li>';
+        }
+        if (inventarioTbody) {
+            inventarioTbody.innerHTML = '<tr><td colspan="3" class="text-muted text-center">Selecione um planejamento para visualizar o inventário planejado.</td></tr>';
+        }
+        if (badgeAno) {
+            badgeAno.textContent = 'Sem planejamento selecionado';
+        }
+        if (resumoBadgeAtividades) resumoBadgeAtividades.textContent = '0';
+        if (resumoBadgeMetas) resumoBadgeMetas.textContent = '0';
+        if (resumoBadgeFinanceiras) resumoBadgeFinanceiras.textContent = '0';
+        if (resumoBadgeIndicadores) resumoBadgeIndicadores.textContent = '0';
+        if (inventarioEngorda) inventarioEngorda.textContent = '0';
+        if (inventarioMortes) inventarioMortes.textContent = '0';
+        if (inventarioMatrizes) inventarioMatrizes.textContent = '0';
+        if (cenarioSelect) {
+            cenarioSelect.innerHTML = '<option value="">Baseline / Geral</option>';
+        }
+    };
+
+    const construirResumoUrl = (planejamentoId) => {
+        return resumoTemplate.replace(resumoPlaceholder, planejamentoId);
+    };
+
+    const atualizarCenarios = (cenarios, cenarioAtualId) => {
+        if (!cenarioSelect) {
+            return;
+        }
+        const opcoes = ['<option value="">Baseline / Geral</option>'];
+        cenarios.forEach((cenario) => {
+            const prefixo = cenario.is_baseline ? '★ ' : '';
+            const selecionado = cenarioAtualId && Number(cenarioAtualId) === cenario.id ? 'selected' : '';
+            opcoes.push(`<option value="${cenario.id}" ${selecionado}>${prefixo}${cenario.nome}</option>`);
+        });
+        cenarioSelect.innerHTML = opcoes.join('');
+    };
+
+    const atualizarMetasComerciais = (metas) => {
+        if (!metas.length) {
+            metasComerciaisTbody.innerHTML = '<tr><td colspan="5" class="text-muted text-center">Nenhuma meta comercial cadastrada.</td></tr>';
+            return;
+        }
+        metasComerciaisTbody.innerHTML = metas.map((meta) => `
+            <tr data-meta-id="${meta.id}">
+                <td>${meta.categoria || 'Geral'}</td>
+                <td class="text-end">${formatNumber(meta.quantidade_animais)}</td>
+                <td class="text-end">${formatNumber(meta.arrobas_totais, 2)}</td>
+                <td class="text-end">${formatCurrency(meta.preco_medio_esperado)}</td>
+                <td>${meta.canal_venda || '-'}</td>
+            </tr>
+        `).join('');
+    };
+
+    const atualizarMetasFinanceiras = (metas) => {
+        if (!metas.length) {
+            metasFinanceirasTbody.innerHTML = '<tr><td colspan="4" class="text-muted text-center">Nenhum custo planejado cadastrado.</td></tr>';
+            return;
+        }
+        metasFinanceirasTbody.innerHTML = metas.map((meta) => `
+            <tr data-meta-id="${meta.id}">
+                <td>${meta.descricao}</td>
+                <td>${meta.tipo_custo_label || meta.tipo_custo}</td>
+                <td class="text-end">${formatCurrency(meta.valor_anual_previsto)}</td>
+                <td class="text-end">
+                    ${meta.percentual_correcao ? `${formatNumber(meta.percentual_correcao, 2)}% ${meta.indice_correcao ? `(${meta.indice_correcao})` : ''}` : '<span class="text-muted">-</span>'}
+                </td>
+            </tr>
+        `).join('');
+    };
+
+    const atualizarIndicadores = (indicadores) => {
+        if (!indicadores.length) {
+            indicadoresLista.innerHTML = '<li class="list-group-item px-0 text-muted">Sem indicadores definidos.</li>';
+            return;
+        }
+        indicadoresLista.innerHTML = indicadores.map((indicador) => `
+            <li class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>${indicador.nome}</strong>
+                    ${indicador.observacoes ? `<div class="text-muted">${indicador.observacoes}</div>` : ''}
+                </div>
+                <span class="badge bg-primary-subtle text-primary">
+                    ${formatNumber(indicador.valor_meta, 2)} ${indicador.unidade || ''}
+                </span>
+            </li>
+        `).join('');
+    };
+
+    const atualizarInventario = (itens) => {
+        if (!itens.length) {
+            inventarioTbody.innerHTML = '<tr><td colspan="3" class="text-muted text-center">Nenhum inventário planejado cadastrado.</td></tr>';
+            return;
+        }
+        inventarioTbody.innerHTML = itens.map((item) => `
+            <tr data-inventario-id="${item.id}">
+                <td><span class="badge bg-light text-dark border">${item.categoria}</span></td>
+                <td class="text-end">${formatNumber(item.quantidade)}</td>
+                <td class="text-end">${formatCurrency(item.valor_total)}</td>
+            </tr>
+        `).join('');
+    };
+
+    const atualizarResumoRapido = (dados) => {
+        if (resumoBadgeAtividades) resumoBadgeAtividades.textContent = dados.atividades ? dados.atividades.length : '0';
+        if (resumoBadgeMetas) resumoBadgeMetas.textContent = dados.metas_comerciais ? dados.metas_comerciais.length : '0';
+        if (resumoBadgeFinanceiras) resumoBadgeFinanceiras.textContent = dados.metas_financeiras ? dados.metas_financeiras.length : '0';
+        if (resumoBadgeIndicadores) resumoBadgeIndicadores.textContent = dados.indicadores ? dados.indicadores.length : '0';
+        if (inventarioEngorda) inventarioEngorda.textContent = formatNumber(dados.resumo?.animais_engorda || 0);
+        if (inventarioMortes) inventarioMortes.textContent = formatNumber(dados.resumo?.total_mortes || 0);
+        if (inventarioMatrizes) inventarioMatrizes.textContent = formatNumber(dados.resumo?.matrizes || 0);
+    };
+
+    const carregarPlanejamentos = async () => {
+        if (!endpointLista) {
+            return;
+        }
+        try {
+            const resposta = await fetch(endpointLista, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            if (!resposta.ok) {
+                throw new Error('Erro ao carregar planejamentos');
+            }
+            const dados = await resposta.json();
+            if (!dados.planejamentos) {
+                return;
+            }
+            const valorAtual = planejamentoSelect.value;
+            const opcoes = ['<option value="">Selecione um planejamento</option>'];
+            dados.planejamentos.forEach((plano) => {
+                const selecionado = valorAtual && Number(valorAtual) === plano.id ? 'selected' : '';
+                const statusLabel = plano.status_label || plano.status;
+                opcoes.push(`<option value="${plano.id}" ${selecionado}>${plano.ano} - ${statusLabel}</option>`);
+            });
+            planejamentoSelect.innerHTML = opcoes.join('');
+        } catch (erro) {
+            console.warn('Não foi possível atualizar a lista de planejamentos.', erro);
+        }
+    };
+
+    const carregarResumo = async () => {
+        const planejamentoId = planejamentoSelect.value;
+        if (!planejamentoId) {
+            limparConteudo();
+            return;
+        }
+        const url = construirResumoUrl(planejamentoId);
+        const params = new URLSearchParams();
+        if (cenarioSelect && cenarioSelect.value) {
+            params.append('cenario', cenarioSelect.value);
+        }
+
+        const query = params.toString();
+        const urlCompleta = query ? `${url}?${query}` : url;
+
+        try {
+            const resposta = await fetch(urlCompleta, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            if (!resposta.ok) {
+                throw new Error('Erro ao carregar o resumo do planejamento');
+            }
+            const dados = await resposta.json();
+            if (badgeAno) {
+                badgeAno.textContent = `Planejamento ${dados.planejamento.ano}`;
+            }
+
+            atualizarCenarios(dados.cenarios, dados.planejamento.cenario_atual_id);
+            atualizarMetasComerciais(dados.metas_comerciais);
+            atualizarMetasFinanceiras(dados.metas_financeiras);
+            atualizarIndicadores(dados.indicadores);
+            atualizarInventario(dados.inventario);
+            atualizarResumoRapido(dados);
+        } catch (erro) {
+            console.warn('Não foi possível carregar o resumo do planejamento.', erro);
+        }
+    };
+
+    planejamentoSelect.addEventListener('change', () => {
+        if (cenarioSelect) {
+            cenarioSelect.value = '';
+        }
+        carregarResumo();
+    });
+
+    if (cenarioSelect) {
+        cenarioSelect.addEventListener('change', carregarResumo);
+    }
+
+    carregarPlanejamentos().then(() => {
+        if (planejamentoSelect.value) {
+            carregarResumo();
+        }
+    });
+});
+</script>
+
+<style>
+/* Cards de Métricas - Estilo Profissional e Neutro */
+.card-metric {
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    border: 1px solid #e5e7eb;
+    background: #ffffff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+.card-metric:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    border-color: #d1d5db;
+}
+.card-metric-label {
+    display: block;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #6b7280;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+.card-metric-value {
+    display: block;
+    font-weight: 700;
+    font-size: 1.875rem;
+    color: #111827;
+    margin-bottom: 0.25rem;
+    line-height: 1.2;
+}
+.card-metric-subtitle {
+    display: block;
+    font-size: 0.8125rem;
+    color: #6b7280;
+    margin-top: 0.25rem;
+}
+.card-metric-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+    background: #f9fafb;
+    color: #4b5563;
+    border: 1px solid #e5e7eb;
+}
+
+/* Cards de Dashboard - Estilo Profissional */
+.card-dashboard {
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    border: 1px solid #e5e7eb;
+    background: #ffffff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+.card-dashboard:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    border-color: #d1d5db;
+}
+.card-dashboard-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    background: #f9fafb;
+    color: #4b5563;
+    border: 1px solid #e5e7eb;
+}
+.card-dashboard-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #111827;
+    margin-bottom: 0.5rem;
+    line-height: 1.4;
+}
+.card-dashboard-description {
+    font-size: 0.875rem;
+    color: #6b7280;
+    line-height: 1.5;
+    margin-bottom: 0;
+}
+
+/* Badges - Estilo Neutro */
+.badge {
+    font-weight: 500;
+    padding: 0.375rem 0.75rem;
+    border-radius: 6px;
+}
+
+/* Cards Principais - Estilo Limpo */
+.card {
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+}
+.card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+.card-header {
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+    border-radius: 12px 12px 0 0;
+    padding: 1rem 1.25rem;
+}
+.card-header h5 {
+    color: #111827;
+    font-weight: 600;
+    font-size: 1rem;
+    margin: 0;
+}
+
+/* Tabelas - Estilo Profissional */
+.table {
+    font-size: 0.875rem;
+}
+.table thead th {
+    background: #f9fafb;
+    color: #374151;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    border-bottom: 2px solid #e5e7eb;
+    padding: 0.75rem;
+}
+.table tbody td {
+    color: #111827;
+    padding: 0.75rem;
+    border-bottom: 1px solid #f3f4f6;
+}
+.table tbody tr:hover {
+    background: #f9fafb;
+}
+
+/* Remover cores excessivas dos ícones */
+.bg-primary-subtle,
+.bg-success-subtle,
+.bg-warning-subtle,
+.bg-info-subtle,
+.bg-danger-subtle,
+.bg-secondary-subtle {
+    background: #f9fafb !important;
+    color: #4b5563 !important;
+    border: 1px solid #e5e7eb !important;
+}
+
+/* Botões - Estilo Profissional */
+.btn {
+    border-radius: 8px;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    transition: all 0.2s ease;
+}
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Alertas - Estilo Neutro */
+.alert {
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+}
+.alert-info {
+    background: #f0f9ff;
+    border-color: #bfdbfe;
+    color: #1e40af;
+}
+
+/* Lista de Indicadores */
+.list-group-item {
+    border: 1px solid #f3f4f6;
+    padding: 1rem;
+    margin-bottom: 0.5rem;
+    border-radius: 8px;
+    background: #ffffff;
+}
+.list-group-item:hover {
+    background: #f9fafb;
+    border-color: #e5e7eb;
+}
+
+/* Remover animação de pulsação */
+.btn-pulsante {
+    animation: none;
+}
+.btn-pulsante:hover {
+    transform: translateY(-1px);
+}
+
+/* Usar toda largura da página */
+.container-fluid {
+    max-width: 100% !important;
+    width: 100% !important;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+/* Garantir que o conteúdo principal use toda largura */
+body > .container-fluid,
+main .container-fluid,
+.content-wrapper .container-fluid,
+.main-content .container-fluid {
+    max-width: 100% !important;
+    width: 100% !important;
+}
+
+@media (min-width: 768px) {
+    .container-fluid {
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+    }
+}
+
+@media (min-width: 1200px) {
+    .container-fluid {
+        padding-left: 2rem;
+        padding-right: 2rem;
+    }
+}
+
+/* Ajustar margem quando há sidebar */
+body.sidebar-open .container-fluid,
+body:not(.sidebar-closed) .container-fluid {
+    margin-left: 0 !important;
+}
+
+/* Garantir que as tabelas usem toda largura */
+.table-responsive {
+    width: 100%;
+}
+
+/* Ajustar cards para usar melhor o espaço */
+.row {
+    margin-left: -0.5rem;
+    margin-right: -0.5rem;
+}
+
+.row > * {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+}
+
+/* Melhorar uso do espaço nas colunas */
+.col-xl-7,
+.col-xl-5 {
+    flex: 0 0 auto;
+    width: 100%;
+}
+
+/* Seções de largura total */
+.col-12 {
+    width: 100%;
+    flex: 0 0 100%;
+}
+
+@media (min-width: 1200px) {
+    .col-xl-7 {
+        width: 60%;
+    }
+    .col-xl-5 {
+        width: 40%;
+    }
+}
+
+/* Expandir tabelas para usar toda largura */
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.table {
+    width: 100%;
+    min-width: 100%;
+}
+
+/* Garantir que cards usem toda largura disponível */
+.card {
+    width: 100%;
+}
+
+/* Ajustar padding interno dos cards para melhor uso do espaço */
+.card-body {
+    padding: 1.25rem;
+}
+
+@media (min-width: 1200px) {
+    .card-body {
+        padding: 1.5rem;
+    }
+}
+</style>
+{% endblock %}
+

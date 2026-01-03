@@ -1,0 +1,148 @@
+{% extends "base_navegacao.html" %}
+
+{% block title %}Gestão Pecuária - Sistema Monpec{% endblock %}
+
+{% block breadcrumbs %}
+<li><a href="{% url 'dashboard' %}">Início</a></li>
+<li class="breadcrumb-separator">›</li>
+<li><a href="{% url 'propriedades_lista' produtor.id %}">Propriedades</a></li>
+<li class="breadcrumb-separator">›</li>
+<li><a href="{% url 'pecuaria_dashboard' propriedade.id %}">{{ propriedade.nome }}</a></li>
+<li class="breadcrumb-separator">›</li>
+<li class="active">Pecuária</li>
+{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div class="d-flex justify-content-between align-items-start">
+        <div>
+            <h1 class="page-title">Gestão Pecuária</h1>
+            <p class="page-subtitle">{{ propriedade.nome }} - {{ propriedade.municipio }}/{{ propriedade.estado }}</p>
+        </div>
+        <a href="{% url 'propriedades_lista' produtor.id %}" class="btn-outline">
+            Voltar
+        </a>
+    </div>
+</div>
+
+<!-- Estatísticas -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card-clean text-center">
+            <div style="font-family: 'Playfair Display', serif; font-size: 2rem; font-weight: 700; color: var(--navy); margin-bottom: 0.5rem;">
+                {{ total_animais|default:"0" }}
+            </div>
+            <div style="font-size: 12px; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.05em;">
+                Total de Animais
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card-clean text-center">
+            <div style="font-family: 'Playfair Display', serif; font-size: 2rem; font-weight: 700; color: var(--navy); margin-bottom: 0.5rem;">
+                {{ propriedade.area_total|default:"0" }}
+            </div>
+            <div style="font-size: 12px; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.05em;">
+                Hectares
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card-clean text-center">
+            <div style="font-family: 'Playfair Display', serif; font-size: 1.5rem; font-weight: 700; color: var(--navy); margin-bottom: 0.5rem;">
+                R$ {{ receita_mes|default:"0,00" }}
+            </div>
+            <div style="font-size: 12px; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.05em;">
+                Receita Mensal
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card-clean text-center">
+            <div style="font-family: 'Playfair Display', serif; font-size: 2rem; font-weight: 700; color: var(--navy); margin-bottom: 0.5rem;">
+                {{ margem|default:"0" }}%
+            </div>
+            <div style="font-size: 12px; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.05em;">
+                Margem de Lucro
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Módulos -->
+<div class="cards-grid">
+    <a href="{% url 'pecuaria_inventario' propriedade.id %}" style="text-decoration: none;">
+        <div class="card-clean">
+            <h3 class="card-title">Inventário de Rebanho</h3>
+            <p style="color: var(--text-light); font-size: 14px; margin-bottom: 1rem;">
+                Cadastre e gerencie o inventário completo de animais por categoria
+            </p>
+            <span class="btn-outline" style="padding: 0.5rem 1rem; font-size: 13px; display: inline-block;">
+                Acessar
+            </span>
+        </div>
+    </a>
+    
+    <a href="{% url 'pecuaria_projecao' propriedade.id %}" style="text-decoration: none;">
+        <div class="card-clean">
+            <h3 class="card-title">Projeções</h3>
+            <p style="color: var(--text-light); font-size: 14px; margin-bottom: 1rem;">
+                Visualize projeções de crescimento e evolução do rebanho
+            </p>
+            <span class="btn-outline" style="padding: 0.5rem 1rem; font-size: 13px; display: inline-block;">
+                Acessar
+            </span>
+        </div>
+    </a>
+    
+    <a href="{% url 'pecuaria_parametros' propriedade.id %}" style="text-decoration: none;">
+        <div class="card-clean">
+            <h3 class="card-title">Parâmetros</h3>
+            <p style="color: var(--text-light); font-size: 14px; margin-bottom: 1rem;">
+                Configure parâmetros e registre movimentações
+            </p>
+            <span class="btn-outline" style="padding: 0.5rem 1rem; font-size: 13px; display: inline-block;">
+                Acessar
+            </span>
+        </div>
+    </a>
+    
+    <a href="{% url 'pecuaria_parametros_avancados' propriedade.id %}" style="text-decoration: none;">
+        <div class="card-clean">
+            <h3 class="card-title">Configurações Avançadas</h3>
+            <p style="color: var(--text-light); font-size: 14px; margin-bottom: 1rem;">
+                Configuração detalhada de taxas e custos
+            </p>
+            <span class="btn-outline" style="padding: 0.5rem 1rem; font-size: 13px; display: inline-block;">
+                Acessar
+            </span>
+        </div>
+    </a>
+    
+    <a href="{% url 'categorias_lista' %}" style="text-decoration: none;">
+        <div class="card-clean">
+            <h3 class="card-title">Categorias</h3>
+            <p style="color: var(--text-light); font-size: 14px; margin-bottom: 1rem;">
+                Gerencie as categorias de animais do sistema
+            </p>
+            <span class="btn-outline" style="padding: 0.5rem 1rem; font-size: 13px; display: inline-block;">
+                Acessar
+            </span>
+        </div>
+    </a>
+    
+    <a href="{% url 'relatorio_final' propriedade.id %}" style="text-decoration: none;">
+        <div class="card-clean">
+            <h3 class="card-title">Relatório Final</h3>
+            <p style="color: var(--text-light); font-size: 14px; margin-bottom: 1rem;">
+                Gere relatórios completos em PDF
+            </p>
+            <span class="btn-navy" style="padding: 0.5rem 1rem; font-size: 13px; display: inline-block;">
+                Gerar
+            </span>
+        </div>
+    </a>
+</div>
+{% endblock %}
+

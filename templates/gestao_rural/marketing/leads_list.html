@@ -1,0 +1,129 @@
+{% extends "gestao_rural/base.html" %}
+{% load static %}
+
+{% block title %}Leads{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3 mb-0">👥 Leads Interessados</h1>
+            <p class="text-muted">Total: {{ total_leads }} leads</p>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Status</label>
+                    <select name="status" class="form-select">
+                        <option value="">Todos</option>
+                        {% for value, label in status_choices %}
+                        <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Origem</label>
+                    <input type="text" name="origem" class="form-control" value="{{ request.GET.origem }}" placeholder="Origem">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Buscar</label>
+                    <input type="text" name="busca" class="form-control" value="{{ request.GET.busca }}" placeholder="Nome, email, propriedade...">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">Filtrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Lista de Leads -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            {% if leads %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Email</th>
+                            <th>Telefone</th>
+                            <th>Propriedade</th>
+                            <th>Status</th>
+                            <th>Credenciais</th>
+                            <th>Data</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for lead in leads %}
+                        <tr>
+                            <td><strong>{{ lead.nome }}</strong></td>
+                            <td>{{ lead.email }}</td>
+                            <td>{{ lead.telefone|default:"-" }}</td>
+                            <td>{{ lead.propriedade_nome|default:"-" }}</td>
+                            <td>
+                                <span class="badge bg-{% if lead.status == 'novo' %}warning{% elif lead.status == 'convertido' %}success{% elif lead.status == 'qualificado' %}info{% else %}secondary{% endif %}">
+                                    {{ lead.get_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if lead.credenciais_enviadas %}
+                                <span class="badge bg-success">Enviadas</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Pendente</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ lead.criado_em|date:"d/m/Y" }}</td>
+                            <td>
+                                <a href="{% url 'marketing_lead_detail' lead.id %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye"></i> Ver
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-center text-muted py-5">
+                Nenhum lead encontrado. <a href="/acesso-gratuito/" target="_blank">Ver landing page</a>
+            </p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,224 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Dashboard Consolidado - {{ produtor.nome }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="text-dark mb-1">
+                        <i class="bi bi-building text-primary"></i> Dashboard Consolidado
+                    </h2>
+                    <p class="text-muted mb-0">{{ produtor.nome }} - {{ dados_consolidados.total_propriedades }} propriedades</p>
+                </div>
+                <a href="{% url 'propriedades_lista' produtor.id %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Voltar às Propriedades
+                </a>
+            </div>
+
+            <!-- Resumo Geral -->
+            <div class="row mb-4">
+                <div class="col-md-3 mb-3">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body text-center p-3">
+                            <div class="bg-primary bg-opacity-10 rounded-circle p-3 mx-auto mb-2" style="width: 60px; height: 60px;">
+                                <i class="bi bi-house text-primary fs-4"></i>
+                            </div>
+                            <h6 class="text-dark mb-1">Propriedades</h6>
+                            <h4 class="text-primary mb-0">{{ dados_consolidados.total_propriedades }}</h4>
+                            <p class="text-muted small mb-0">{{ dados_consolidados.total_hectares|floatformat:2 }} ha</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3 mb-3">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body text-center p-3">
+                            <div class="bg-success bg-opacity-10 rounded-circle p-3 mx-auto mb-2" style="width: 60px; height: 60px;">
+                                <i class="bi bi-clipboard-data text-success fs-4"></i>
+                            </div>
+                            <h6 class="text-dark mb-1">Rebanho Total</h6>
+                            <h4 class="text-success mb-0">{{ dados_consolidados.total_animais }}</h4>
+                            <p class="text-muted small mb-0">R$ {{ dados_consolidados.valor_total_rebanho|floatformat:2 }}</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3 mb-3">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body text-center p-3">
+                            <div class="bg-warning bg-opacity-10 rounded-circle p-3 mx-auto mb-2" style="width: 60px; height: 60px;">
+                                <i class="bi bi-calculator text-warning fs-4"></i>
+                            </div>
+                            <h6 class="text-dark mb-1">Custos Anuais</h6>
+                            <h4 class="text-warning mb-0">R$ {{ dados_consolidados.custo_total|floatformat:2 }}</h4>
+                            <p class="text-muted small mb-0">Fixos + Variáveis</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3 mb-3">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body text-center p-3">
+                            <div class="bg-info bg-opacity-10 rounded-circle p-3 mx-auto mb-2" style="width: 60px; height: 60px;">
+                                <i class="bi bi-graph-up text-info fs-4"></i>
+                            </div>
+                            <h6 class="text-dark mb-1">Rentabilidade</h6>
+                            <h4 class="text-{{ dados_consolidados.cor_classificacao }} mb-0">{{ dados_consolidados.indice_rentabilidade|floatformat:1 }}%</h4>
+                            <p class="text-muted small mb-0">{{ dados_consolidados.classificacao }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Indicadores Financeiros -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body p-4">
+                            <h5 class="text-dark mb-3">
+                                <i class="bi bi-currency-dollar me-2 text-success"></i>
+                                Indicadores Financeiros
+                            </h5>
+                            <div class="row">
+                                <div class="col-6">
+                                    <p class="text-muted small mb-1">Receita Anual Estimada</p>
+                                    <h6 class="text-success">R$ {{ dados_consolidados.receita_anual_estimada|floatformat:2 }}</h6>
+                                </div>
+                                <div class="col-6">
+                                    <p class="text-muted small mb-1">Margem Bruta</p>
+                                    <h6 class="{% if dados_consolidados.margem_bruta >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                        R$ {{ dados_consolidados.margem_bruta|floatformat:2 }}
+                                    </h6>
+                                </div>
+                                <div class="col-6">
+                                    <p class="text-muted small mb-1">Custo Fixo Total</p>
+                                    <h6 class="text-warning">R$ {{ dados_consolidados.custo_fixo_total|floatformat:2 }}</h6>
+                                </div>
+                                <div class="col-6">
+                                    <p class="text-muted small mb-1">Custo Variável Total</p>
+                                    <h6 class="text-warning">R$ {{ dados_consolidados.custo_variavel_total|floatformat:2 }}</h6>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body p-4">
+                            <h5 class="text-dark mb-3">
+                                <i class="bi bi-credit-card me-2 text-warning"></i>
+                                Dívidas e Imobilizado
+                            </h5>
+                            <div class="row">
+                                <div class="col-6">
+                                    <p class="text-muted small mb-1">Financiamentos</p>
+                                    <h6 class="text-warning">{{ dados_consolidados.total_financiamentos }}</h6>
+                                </div>
+                                <div class="col-6">
+                                    <p class="text-muted small mb-1">Valor Principal</p>
+                                    <h6 class="text-warning">R$ {{ dados_consolidados.valor_total_principal|floatformat:2 }}</h6>
+                                </div>
+                                <div class="col-6">
+                                    <p class="text-muted small mb-1">Parcelas Mensais</p>
+                                    <h6 class="text-warning">R$ {{ dados_consolidados.parcelas_mensais_total|floatformat:2 }}</h6>
+                                </div>
+                                <div class="col-6">
+                                    <p class="text-muted small mb-1">Imobilizado</p>
+                                    <h6 class="text-info">R$ {{ dados_consolidados.valor_total_imobilizado|floatformat:2 }}</h6>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Propriedades Detalhadas -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <h5 class="text-dark mb-3">
+                        <i class="bi bi-list-ul me-2 text-primary"></i>
+                        Propriedades Detalhadas
+                    </h5>
+                    
+                    <div class="row">
+                        {% for prop_data in dados_consolidados.propriedades_detalhadas %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-body p-3">
+                                    <h6 class="text-dark mb-2">
+                                        <i class="bi bi-house me-2 text-primary"></i>
+                                        {{ prop_data.propriedade.nome_propriedade }}
+                                    </h6>
+                                    <p class="text-muted small mb-2">{{ prop_data.propriedade.municipio }}/{{ prop_data.propriedade.uf }}</p>
+                                    
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <p class="text-muted small mb-1">Animais</p>
+                                            <h6 class="text-success">{{ prop_data.inventario|length }}</h6>
+                                        </div>
+                                        <div class="col-6">
+                                            <p class="text-muted small mb-1">Custos Fixos</p>
+                                            <h6 class="text-warning">{{ prop_data.custos_fixos|length }}</h6>
+                                        </div>
+                                        <div class="col-6">
+                                            <p class="text-muted small mb-1">Financiamentos</p>
+                                            <h6 class="text-warning">{{ prop_data.financiamentos|length }}</h6>
+                                        </div>
+                                        <div class="col-6">
+                                            <p class="text-muted small mb-1">Bens</p>
+                                            <h6 class="text-info">{{ prop_data.bens|length }}</h6>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mt-2">
+                                        <a href="{% url 'propriedades_lista' produtor.id %}" class="btn btn-outline-primary btn-sm w-100">
+                                            <i class="bi bi-eye"></i> Ver Detalhes
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1) !important;
+}
+
+.bg-opacity-10 {
+    background-color: rgba(var(--bs-primary-rgb), 0.1) !important;
+}
+
+.bg-primary.bg-opacity-10 {
+    background-color: rgba(13, 110, 253, 0.1) !important;
+}
+
+.bg-success.bg-opacity-10 {
+    background-color: rgba(25, 135, 84, 0.1) !important;
+}
+
+.bg-warning.bg-opacity-10 {
+    background-color: rgba(255, 193, 7, 0.1) !important;
+}
+
+.bg-info.bg-opacity-10 {
+    background-color: rgba(13, 202, 240, 0.1) !important;
+}
+</style>
+{% endblock %}

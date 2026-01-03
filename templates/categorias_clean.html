@@ -1,0 +1,89 @@
+{% extends "base_navegacao.html" %}
+
+{% block title %}Categorias de Animais - Sistema Monpec{% endblock %}
+
+{% block breadcrumbs %}
+<li><a href="{% url 'dashboard' %}">Início</a></li>
+<li class="breadcrumb-separator">›</li>
+<li class="active">Categorias</li>
+{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div class="d-flex justify-content-between align-items-start">
+        <div>
+            <h1 class="page-title">Categorias de Animais</h1>
+            <p class="page-subtitle">Gerencie as categorias utilizadas no sistema de pecuária</p>
+        </div>
+        <a href="{% url 'categoria_nova' %}" class="btn-navy">
+            Adicionar Categoria
+        </a>
+    </div>
+</div>
+
+<!-- Tabela de Categorias -->
+<div class="table-clean">
+    <table class="table mb-0">
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>Sexo</th>
+                <th>Idade</th>
+                <th>Descrição</th>
+                <th class="text-end">Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for categoria in categorias %}
+            <tr>
+                <td>
+                    <strong style="color: var(--navy);">{{ categoria.nome }}</strong>
+                </td>
+                <td>
+                    <span class="badge-destaque">
+                        {% if categoria.sexo == 'M' %}Macho{% elif categoria.sexo == 'F' %}Fêmea{% else %}Ambos{% endif %}
+                    </span>
+                </td>
+                <td style="color: var(--text-light); font-size: 14px;">
+                    {{ categoria.idade_minima_meses }}-{{ categoria.idade_maxima_meses }} meses
+                </td>
+                <td style="color: var(--text-light); font-size: 14px;">
+                    {{ categoria.descricao|default:"—" }}
+                </td>
+                <td class="text-end">
+                    <a href="{% url 'categoria_editar' categoria.id %}" class="btn-outline" style="padding: 0.4rem 0.8rem; font-size: 13px; margin-right: 0.5rem;">
+                        Editar
+                    </a>
+                    <a href="{% url 'categoria_excluir' categoria.id %}" class="btn-outline" style="padding: 0.4rem 0.8rem; font-size: 13px; color: #c33; border-color: #c33;">
+                        Excluir
+                    </a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" class="text-center" style="padding: 3rem;">
+                    <h4 style="color: var(--text-light); font-weight: 400;">Nenhuma categoria cadastrada</h4>
+                    <p style="color: var(--text-light); margin: 1rem 0;">Carregue as categorias padrão ou adicione novas</p>
+                    <a href="{% url 'categoria_nova' %}" class="btn-navy">Adicionar Primeira Categoria</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Informações -->
+<div class="card-clean mt-4">
+    <h3 class="card-title">Sobre as Categorias</h3>
+    <p style="color: var(--text-light); font-size: 14px; line-height: 1.7; margin-bottom: 1rem;">
+        As categorias são utilizadas para classificar os animais do rebanho de acordo com sexo e idade. 
+        Elas são essenciais para o cálculo de projeções, movimentações e relatórios.
+    </p>
+    <p style="color: var(--text-light); font-size: 14px; line-height: 1.7;">
+        <strong>Categorias Padrão:</strong> O sistema já possui 9 categorias pré-configuradas (Bezerros, Bezerras, Garrotes, Novilhas, Bois Magros, Bois Gordos, Vacas Matrizes e Touros). 
+        Você pode editá-las, excluí-las ou adicionar novas conforme sua necessidade.
+    </p>
+</div>
+{% endblock %}
+

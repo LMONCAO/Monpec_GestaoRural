@@ -1,0 +1,61 @@
+========================================
+  COMO CRIAR USUARIO ADMINISTRADOR
+  Email: l.moncaosilva@gmail.com
+========================================
+
+PROBLEMA
+--------
+O usuario "admin" nao existe no sistema.
+Voce precisa criar um usuario administrador com seu email.
+
+SOLUCAO RECOMENDADA
+-------------------
+Use o Cloud Shell do Google Cloud:
+
+1. Acesse: https://console.cloud.google.com/cloudshell
+
+2. Execute este comando para criar o job:
+
+gcloud run jobs create criar-admin-final \
+    --image gcr.io/monpec-sistema-rural/sistema-rural:latest \
+    --region=us-central1 \
+    --set-cloudsql-instances=monpec-sistema-rural:us-central1:monpec-db \
+    --set-env-vars "DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,DEBUG=False,SECRET_KEY=django-insecure-monpec-sistema-rural-2025-producao-segura-L6171r12@@-YrJOs823th_HB2BP6Uz9A0NVvzL0Fif-t-Rfub5BXgVtE0LxXIWEPQIFqYvI8UNiZKE,CLOUD_SQL_CONNECTION_NAME=monpec-sistema-rural:us-central1:monpec-db,DB_NAME=monpec_db,DB_USER=monpec_user,DB_PASSWORD=L6171r12@@jjms,DJANGO_SUPERUSER_PASSWORD=L6171r12@@,GOOGLE_CLOUD_PROJECT=monpec-sistema-rural" \
+    --command sh \
+    --args "-c,python manage.py garantir_admin --username l.moncaosilva --email l.moncaosilva@gmail.com --senha L6171r12@@ --forcar" \
+    --max-retries=1 \
+    --task-timeout=300 \
+    --memory=2Gi \
+    --cpu=2
+
+3. Execute o job:
+
+gcloud run jobs execute criar-admin-final --region=us-central1 --wait
+
+4. Remova o job depois:
+
+gcloud run jobs delete criar-admin-final --region=us-central1 --quiet
+
+ALTERNATIVA: USAR O SISTEMA DIRETO
+-----------------------------------
+Se o job nao funcionar, o sistema pode criar automaticamente
+no proximo deploy. O Dockerfile ja tem o comando:
+
+python manage.py garantir_admin --senha ${DJANGO_SUPERUSER_PASSWORD}
+
+Mas ele cria com username "admin". Para criar com seu email,
+voce precisa executar manualmente.
+
+INFORMACOES DE LOGIN
+--------------------
+Apos criar o usuario, use:
+
+Username: l.moncaosilva
+OU Email: l.moncaosilva@gmail.com
+Senha: L6171r12@@
+
+URL: https://monpec-fzzfjppzva-uc.a.run.app
+
+========================================
+
+

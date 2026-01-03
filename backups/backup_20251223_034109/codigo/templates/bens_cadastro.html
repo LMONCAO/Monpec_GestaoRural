@@ -1,0 +1,122 @@
+{% extends "base_navegacao.html" %}
+
+{% block title %}Cadastrar Bem - Sistema Monpec{% endblock %}
+
+{% block breadcrumbs %}
+<li><a href="{% url 'dashboard' %}">Início</a></li>
+<li class="breadcrumb-separator">›</li>
+<li><a href="{% url 'propriedades_lista' propriedade.produtor_id %}">Propriedades</a></li>
+<li class="breadcrumb-separator">›</li>
+<li><a href="{% url 'patrimonio_dashboard' propriedade.id %}">Bens e Patrimônio</a></li>
+<li class="breadcrumb-separator">›</li>
+<li class="active">Cadastrar Bem</li>
+{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div class="d-flex justify-content-between align-items-start">
+        <div>
+            <h1 class="page-title">Cadastrar Bem Patrimonial</h1>
+            <p class="page-subtitle">{{ propriedade.nome }} - Registre máquinas, veículos, instalações e outros bens</p>
+        </div>
+        <a href="{% url 'patrimonio_dashboard' propriedade.id %}" class="btn-outline">
+            Voltar
+        </a>
+    </div>
+</div>
+
+<!-- Formulário -->
+<div class="page-header">
+    <form method="post" action="">
+        {% csrf_token %}
+        
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <label class="form-label">Categoria do Bem</label>
+                <select name="categoria" class="form-control" required>
+                    <option value="">Selecione...</option>
+                    <option value="TERRA">Terras e Benfeitorias</option>
+                    <option value="MAQUINA">Máquinas e Equipamentos</option>
+                    <option value="VEICULO">Veículos</option>
+                    <option value="INSTALACAO">Instalações e Construções</option>
+                    <option value="ANIMAL">Animais de Trabalho</option>
+                    <option value="OUTRO">Outros Bens</option>
+                </select>
+            </div>
+            
+            <div class="col-md-6">
+                <label class="form-label">Descrição do Bem</label>
+                <input type="text" name="descricao" class="form-control" placeholder="Ex: Trator New Holland TL85" required>
+            </div>
+        </div>
+        
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <label class="form-label">Data de Aquisição</label>
+                <input type="date" name="data_aquisicao" class="form-control" required>
+            </div>
+            
+            <div class="col-md-3">
+                <label class="form-label">Valor de Aquisição (R$)</label>
+                <input type="number" name="valor_aquisicao" class="form-control" step="0.01" min="0" placeholder="0,00" required>
+            </div>
+            
+            <div class="col-md-3">
+                <label class="form-label">Quantidade</label>
+                <input type="number" name="quantidade" class="form-control" min="1" value="1" required>
+            </div>
+            
+            <div class="col-md-3">
+                <label class="form-label">Estado de Conservação</label>
+                <select name="estado_conservacao" class="form-control" required>
+                    <option value="NOVO">Novo</option>
+                    <option value="OTIMO">Ótimo</option>
+                    <option value="BOM" selected>Bom</option>
+                    <option value="REGULAR">Regular</option>
+                    <option value="RUIM">Ruim</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <label class="form-label">Vida Útil (anos)</label>
+                <input type="number" name="vida_util" class="form-control" min="1" value="10" required>
+            </div>
+            
+            <div class="col-md-6">
+                <label class="form-label">Taxa de Depreciação Anual (%)</label>
+                <input type="number" name="taxa_depreciacao" class="form-control" step="0.01" min="0" max="100" value="10.00" required>
+            </div>
+        </div>
+        
+        <div class="mb-4">
+            <label class="form-label">Observações</label>
+            <textarea name="observacoes" class="form-control" rows="3" placeholder="Informações adicionais sobre o bem..."></textarea>
+        </div>
+        
+        <div class="d-flex justify-content-end gap-3">
+            <a href="{% url 'patrimonio_dashboard' propriedade.id %}" class="btn-outline">
+                Cancelar
+            </a>
+            <button type="submit" class="btn-navy">
+                Cadastrar Bem
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Informações -->
+<div class="card-clean">
+    <h3 class="card-title">Como Preencher</h3>
+    <ol style="color: var(--text-light); font-size: 14px; line-height: 2;">
+        <li>Escolha a <strong>categoria</strong> que melhor representa o bem</li>
+        <li>Informe uma <strong>descrição detalhada</strong> (marca, modelo, características)</li>
+        <li>Registre a <strong>data e valor de aquisição</strong></li>
+        <li>Configure a <strong>vida útil e taxa de depreciação</strong> (padrão: 10 anos / 10% ao ano)</li>
+        <li>O sistema calculará automaticamente a <strong>depreciação acumulada</strong> e <strong>valor atual</strong></li>
+    </ol>
+</div>
+{% endblock %}
+

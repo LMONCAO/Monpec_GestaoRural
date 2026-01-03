@@ -1,0 +1,759 @@
+{% extends 'base_navegacao_inteligente.html' %}
+
+{% block title %}Contas a Pagar - {{ propriedade.nome }} - MONPEC{% endblock %}
+
+{% block breadcrumb_extra %}
+<li class="breadcrumb-item">
+    <a href="{% url 'financeiro_dashboard' propriedade.id %}">Financeiro</a>
+</li>
+<li class="breadcrumb-item active">Contas a Pagar</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Cabeçalho -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card card-modulo card-financeiro">
+                <div class="card-header-colorido card-header">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h3 class="mb-0">
+                                <i class="bi bi-credit-card-2-back"></i> Contas a Pagar
+                            </h3>
+                            <p class="mb-0 mt-2">
+                                <i class="bi bi-calendar"></i> {{ propriedade.nome }} • 
+                                Gestão de Fornecedores e Despesas
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <button class="btn btn-modulo-financeiro" data-bs-toggle="modal" data-bs-target="#modalNovaConta">
+                                <i class="bi bi-plus-circle"></i> Nova Conta
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cards de Resumo -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-danger bg-opacity-10 border-danger h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-exclamation-triangle-fill text-danger display-4 mb-2"></i>
+                    <h3 class="text-danger mb-0">R$ 8.450,00</h3>
+                    <h6 class="text-muted">VENCIDAS</h6>
+                    <small class="text-danger">
+                        <i class="bi bi-clock"></i> 5 contas em atraso
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-warning bg-opacity-10 border-warning h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-hourglass-split text-warning display-4 mb-2"></i>
+                    <h3 class="text-warning mb-0">R$ 15.280,00</h3>
+                    <h6 class="text-muted">PRÓX. 7 DIAS</h6>
+                    <small class="text-warning">
+                        <i class="bi bi-calendar-check"></i> 8 contas a vencer
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-info bg-opacity-10 border-info h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-calendar-range-fill text-info display-4 mb-2"></i>
+                    <h3 class="text-info mb-0">R$ 24.750,00</h3>
+                    <h6 class="text-muted">PRÓX. 30 DIAS</h6>
+                    <small class="text-info">
+                        <i class="bi bi-calendar"></i> 15 contas futuras
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-success bg-opacity-10 border-success h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-check-circle-fill text-success display-4 mb-2"></i>
+                    <h3 class="text-success mb-0">R$ 32.180,00</h3>
+                    <h6 class="text-muted">PAGAS NO MÊS</h6>
+                    <small class="text-success">
+                        <i class="bi bi-check"></i> 22 contas quitadas
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alertas de Vencimento -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-danger d-flex align-items-center">
+                <i class="bi bi-exclamation-octagon-fill me-3 fs-4"></i>
+                <div class="flex-grow-1">
+                    <strong>Atenção!</strong> Você tem <strong>5 contas vencidas</strong> totalizando R$ 8.450,00. 
+                    <a href="#" class="alert-link">Clique para ver detalhes</a>.
+                </div>
+                <button class="btn btn-sm btn-outline-danger">
+                    <i class="bi bi-eye"></i> Ver Todas
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros e Tabela -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card card-modulo">
+                <div class="card-header-colorido card-header">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <h5 class="mb-0">
+                                <i class="bi bi-list-ul"></i> Lista de Contas a Pagar
+                            </h5>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <select class="form-select form-select-sm" id="filtroStatus">
+                                        <option value="">Todos os Status</option>
+                                        <option value="vencida">🔴 Vencidas</option>
+                                        <option value="vence_hoje">🟡 Vence Hoje</option>
+                                        <option value="proxima">🟠 Próximas</option>
+                                        <option value="paga">🟢 Pagas</option>
+                                        <option value="cancelada">⚫ Canceladas</option>
+                                    </select>
+                                </div>
+                                <div class="col-6">
+                                    <input type="text" class="form-control form-control-sm" id="buscaFornecedor" placeholder="Buscar fornecedor...">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0" id="tabelaContasPagar">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Status</th>
+                                    <th>Vencimento</th>
+                                    <th>Fornecedor</th>
+                                    <th>Descrição</th>
+                                    <th>Categoria</th>
+                                    <th class="text-end">Valor</th>
+                                    <th class="text-center">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Contas Vencidas -->
+                                <tr class="table-danger" data-status="vencida">
+                                    <td>
+                                        <span class="badge bg-danger">
+                                            <i class="bi bi-exclamation-triangle"></i> VENCIDA
+                                        </span>
+                                        <br><small class="text-danger">5 dias de atraso</small>
+                                    </td>
+                                    <td>
+                                        <strong>20/10/2024</strong>
+                                        <br><small class="text-muted">Seg</small>
+                                    </td>
+                                    <td>
+                                        <strong>Agropecuária Silva</strong>
+                                        <br><small class="text-muted">CNPJ: 12.345.678/0001-90</small>
+                                    </td>
+                                    <td>Ração Concentrada - 2 toneladas</td>
+                                    <td><span class="badge bg-warning">Insumos</span></td>
+                                    <td class="text-end">
+                                        <strong class="text-danger">R$ 3.200,00</strong>
+                                        <br><small class="text-muted">+ R$ 48,00 multa</small>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group">
+                                            <button class="btn btn-sm btn-success" title="Pagar Agora" onclick="pagarConta(1)">
+                                                <i class="bi bi-credit-card"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-secondary" title="Editar">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-info" title="Detalhes">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+
+                                <!-- Vence Hoje -->
+                                <tr class="table-warning" data-status="vence_hoje">
+                                    <td>
+                                        <span class="badge bg-warning">
+                                            <i class="bi bi-clock"></i> VENCE HOJE
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <strong>25/10/2024</strong>
+                                        <br><small class="text-muted">Hoje</small>
+                                    </td>
+                                    <td>
+                                        <strong>Veterinária Central</strong>
+                                        <br><small class="text-muted">CNPJ: 98.765.432/0001-10</small>
+                                    </td>
+                                    <td>Medicamentos + Consulta Veterinária</td>
+                                    <td><span class="badge bg-info">Saúde Animal</span></td>
+                                    <td class="text-end">
+                                        <strong class="text-warning">R$ 1.850,00</strong>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group">
+                                            <button class="btn btn-sm btn-success" title="Pagar Agora" onclick="pagarConta(2)">
+                                                <i class="bi bi-credit-card"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-secondary" title="Editar">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-info" title="Detalhes">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+
+                                <!-- Próximas -->
+                                <tr data-status="proxima">
+                                    <td>
+                                        <span class="badge bg-primary">
+                                            <i class="bi bi-calendar-check"></i> PRÓXIMA
+                                        </span>
+                                        <br><small class="text-primary">3 dias</small>
+                                    </td>
+                                    <td>
+                                        <strong>28/10/2024</strong>
+                                        <br><small class="text-muted">Seg</small>
+                                    </td>
+                                    <td>
+                                        <strong>Transportadora ABC</strong>
+                                        <br><small class="text-muted">CNPJ: 11.222.333/0001-44</small>
+                                    </td>
+                                    <td>Frete - Transporte de Gado</td>
+                                    <td><span class="badge bg-secondary">Logística</span></td>
+                                    <td class="text-end">
+                                        <strong>R$ 2.400,00</strong>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group">
+                                            <button class="btn btn-sm btn-success" title="Pagar Agora" onclick="pagarConta(3)">
+                                                <i class="bi bi-credit-card"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-secondary" title="Editar">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-info" title="Detalhes">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+
+                                <!-- Conta Paga -->
+                                <tr class="table-success" data-status="paga">
+                                    <td>
+                                        <span class="badge bg-success">
+                                            <i class="bi bi-check-circle"></i> PAGA
+                                        </span>
+                                        <br><small class="text-success">Paga em 22/10</small>
+                                    </td>
+                                    <td>
+                                        <strong>22/10/2024</strong>
+                                        <br><small class="text-muted">Sex</small>
+                                    </td>
+                                    <td>
+                                        <strong>Funcionários</strong>
+                                        <br><small class="text-muted">Folha de Pagamento</small>
+                                    </td>
+                                    <td>Salários + Encargos - Outubro</td>
+                                    <td><span class="badge bg-primary">Pessoal</span></td>
+                                    <td class="text-end">
+                                        <strong class="text-success">R$ 12.500,00</strong>
+                                        <br><small class="text-success">✓ PIX</small>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group">
+                                            <button class="btn btn-sm btn-outline-success" title="Comprovante" disabled>
+                                                <i class="bi bi-file-pdf"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-info" title="Detalhes">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+
+                                <!-- Mais contas -->
+                                <tr data-status="proxima">
+                                    <td>
+                                        <span class="badge bg-info">
+                                            <i class="bi bi-calendar"></i> AGENDADA
+                                        </span>
+                                        <br><small class="text-info">15 dias</small>
+                                    </td>
+                                    <td>
+                                        <strong>09/11/2024</strong>
+                                        <br><small class="text-muted">Sáb</small>
+                                    </td>
+                                    <td>
+                                        <strong>Cooperativa Rural</strong>
+                                        <br><small class="text-muted">CNPJ: 55.666.777/0001-88</small>
+                                    </td>
+                                    <td>Sementes de Milho - 500kg</td>
+                                    <td><span class="badge bg-warning">Insumos</span></td>
+                                    <td class="text-end">
+                                        <strong>R$ 4.200,00</strong>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group">
+                                            <button class="btn btn-sm btn-success" title="Pagar Agora" onclick="pagarConta(5)">
+                                                <i class="bi bi-credit-card"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-secondary" title="Editar">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-info" title="Detalhes">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer d-flex justify-content-between align-items-center">
+                    <small class="text-muted">Mostrando 5 de 28 contas</small>
+                    <div>
+                        <button class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-arrow-left"></i> Anterior
+                        </button>
+                        <button class="btn btn-outline-primary btn-sm ms-2">
+                            Próxima <i class="bi bi-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráfico de Vencimentos -->
+    <div class="row">
+        <div class="col-md-8 mb-4">
+            <div class="card card-modulo h-100">
+                <div class="card-header-colorido card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-bar-chart"></i> Cronograma de Vencimentos
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="graficoVencimentos" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <div class="card card-modulo h-100">
+                <div class="card-header-colorido card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-pie-chart"></i> Por Fornecedor
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="fornecedor-item mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>Agropecuária Silva</strong>
+                                <br><small class="text-muted">3 contas</small>
+                            </div>
+                            <span class="badge bg-danger">R$ 8.600,00</span>
+                        </div>
+                        <div class="progress mt-2" style="height: 6px;">
+                            <div class="progress-bar bg-danger" style="width: 35%"></div>
+                        </div>
+                    </div>
+
+                    <div class="fornecedor-item mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>Funcionários</strong>
+                                <br><small class="text-muted">1 conta</small>
+                            </div>
+                            <span class="badge bg-primary">R$ 12.500,00</span>
+                        </div>
+                        <div class="progress mt-2" style="height: 6px;">
+                            <div class="progress-bar bg-primary" style="width: 50%"></div>
+                        </div>
+                    </div>
+
+                    <div class="fornecedor-item mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>Cooperativa Rural</strong>
+                                <br><small class="text-muted">2 contas</small>
+                            </div>
+                            <span class="badge bg-warning">R$ 6.400,00</span>
+                        </div>
+                        <div class="progress mt-2" style="height: 6px;">
+                            <div class="progress-bar bg-warning" style="width: 25%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nova Conta -->
+<div class="modal fade" id="modalNovaConta" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-plus-circle"></i> Nova Conta a Pagar
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formNovaConta">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label class="form-label">Fornecedor *</label>
+                            <select class="form-select" required>
+                                <option value="">Selecione o fornecedor...</option>
+                                <option value="agropecuaria_silva">Agropecuária Silva</option>
+                                <option value="veterinaria_central">Veterinária Central</option>
+                                <option value="transportadora_abc">Transportadora ABC</option>
+                                <option value="cooperativa_rural">Cooperativa Rural</option>
+                                <option value="novo">➕ Cadastrar Novo Fornecedor</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Valor *</label>
+                            <div class="input-group">
+                                <span class="input-group-text">R$</span>
+                                <input type="number" class="form-control" step="0.01" placeholder="0,00" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Data de Vencimento *</label>
+                            <input type="date" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Categoria *</label>
+                            <select class="form-select" required>
+                                <option value="">Selecione...</option>
+                                <option value="insumos">🌾 Insumos</option>
+                                <option value="saude_animal">🏥 Saúde Animal</option>
+                                <option value="pessoal">👥 Pessoal</option>
+                                <option value="logistica">🚛 Logística</option>
+                                <option value="manutencao">🔧 Manutenção</option>
+                                <option value="administrativo">📋 Administrativo</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Descrição *</label>
+                        <input type="text" class="form-control" placeholder="Ex: Ração concentrada, medicamentos..." required>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Documento/NFe</label>
+                            <input type="text" class="form-control" placeholder="Número da nota fiscal">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Centro de Custo</label>
+                            <select class="form-select">
+                                <option value="">Selecione (opcional)</option>
+                                <option value="pecuaria">🐄 Pecuária</option>
+                                <option value="agricultura">🌱 Agricultura</option>
+                                <option value="administrativo">🏢 Administrativo</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Forma de Pagamento</label>
+                            <select class="form-select">
+                                <option value="">Selecione...</option>
+                                <option value="pix">📱 PIX</option>
+                                <option value="transferencia">🏦 Transferência</option>
+                                <option value="boleto">📄 Boleto</option>
+                                <option value="cheque">📋 Cheque</option>
+                                <option value="dinheiro">💵 Dinheiro</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Recorrência</label>
+                            <select class="form-select">
+                                <option value="unica">Única</option>
+                                <option value="mensal">📅 Mensal</option>
+                                <option value="trimestral">📅 Trimestral</option>
+                                <option value="anual">📅 Anual</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Observações</label>
+                        <textarea class="form-control" rows="2" placeholder="Informações adicionais (opcional)"></textarea>
+                    </div>
+
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="alertaVencimento">
+                        <label class="form-check-label" for="alertaVencimento">
+                            📧 Enviar alerta de vencimento (3 dias antes)
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-check-circle"></i> Cadastrar Conta
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Pagamento -->
+<div class="modal fade" id="modalPagamento" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-credit-card"></i> Efetuar Pagamento
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formPagamento">
+                <div class="modal-body">
+                    <div id="detalheConta" class="alert alert-info">
+                        <strong>Fornecedor:</strong> <span id="fornecedorPagamento"></span><br>
+                        <strong>Valor:</strong> R$ <span id="valorPagamento"></span><br>
+                        <strong>Vencimento:</strong> <span id="vencimentoPagamento"></span>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Data do Pagamento *</label>
+                            <input type="date" class="form-control" id="dataPagamento" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Valor Pago *</label>
+                            <div class="input-group">
+                                <span class="input-group-text">R$</span>
+                                <input type="number" class="form-control" id="valorPago" step="0.01" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Forma de Pagamento *</label>
+                        <select class="form-select" required>
+                            <option value="">Selecione...</option>
+                            <option value="pix">📱 PIX</option>
+                            <option value="transferencia">🏦 Transferência Bancária</option>
+                            <option value="dinheiro">💵 Dinheiro</option>
+                            <option value="cheque">📋 Cheque</option>
+                            <option value="cartao">💳 Cartão</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Observações do Pagamento</label>
+                        <textarea class="form-control" rows="2" placeholder="Informações sobre o pagamento (opcional)"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-circle"></i> Confirmar Pagamento
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .fornecedor-item {
+        border-bottom: 1px solid #f0f0f0;
+        padding-bottom: 0.5rem;
+    }
+
+    .fornecedor-item:last-child {
+        border-bottom: none;
+    }
+
+    .table tbody tr.table-danger {
+        background-color: rgba(220, 53, 69, 0.1);
+    }
+
+    .table tbody tr.table-warning {
+        background-color: rgba(255, 193, 7, 0.1);
+    }
+
+    .table tbody tr.table-success {
+        background-color: rgba(40, 167, 69, 0.1);
+    }
+
+    .table tbody tr:hover {
+        background-color: #f8f9fa !important;
+    }
+
+    .btn-group .btn {
+        margin-right: 2px;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Gráfico de Vencimentos
+    const ctx = document.getElementById('graficoVencimentos').getContext('2d');
+    const chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['Vencidas', 'Hoje', 'Próx. 7 dias', 'Próx. 15 dias', 'Próx. 30 dias'],
+            datasets: [{
+                label: 'Valor (R$)',
+                data: [8450, 1850, 15280, 18200, 24750],
+                backgroundColor: [
+                    'rgba(220, 53, 69, 0.8)',
+                    'rgba(255, 193, 7, 0.8)',
+                    'rgba(255, 152, 0, 0.8)',
+                    'rgba(0, 123, 255, 0.8)',
+                    'rgba(23, 162, 184, 0.8)'
+                ],
+                borderColor: [
+                    '#dc3545',
+                    '#ffc107',
+                    '#ff9800',
+                    '#007bff',
+                    '#17a2b8'
+                ],
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return 'R$ ' + value.toLocaleString('pt-BR');
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Filtros
+    document.getElementById('filtroStatus').addEventListener('change', function() {
+        filtrarTabela();
+    });
+
+    document.getElementById('buscaFornecedor').addEventListener('input', function() {
+        filtrarTabela();
+    });
+
+    function filtrarTabela() {
+        const status = document.getElementById('filtroStatus').value;
+        const busca = document.getElementById('buscaFornecedor').value.toLowerCase();
+        const rows = document.querySelectorAll('#tabelaContasPagar tbody tr');
+
+        rows.forEach(row => {
+            const rowStatus = row.getAttribute('data-status');
+            const fornecedor = row.cells[2].textContent.toLowerCase();
+            
+            const statusMatch = !status || rowStatus === status;
+            const buscaMatch = !busca || fornecedor.includes(busca);
+            
+            row.style.display = (statusMatch && buscaMatch) ? '' : 'none';
+        });
+    }
+
+    // Form nova conta
+    document.getElementById('formNovaConta').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const modal = bootstrap.Modal.getInstance(document.getElementById('modalNovaConta'));
+        modal.hide();
+        
+        alert('✅ Conta cadastrada com sucesso!');
+        this.reset();
+    });
+
+    // Form pagamento
+    document.getElementById('formPagamento').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const modal = bootstrap.Modal.getInstance(document.getElementById('modalPagamento'));
+        modal.hide();
+        
+        alert('✅ Pagamento registrado com sucesso!');
+    });
+
+    // Setar data de hoje no pagamento
+    document.getElementById('dataPagamento').valueAsDate = new Date();
+});
+
+// Função para abrir modal de pagamento
+function pagarConta(id) {
+    // Dados simulados - normalmente viriam do backend
+    const contas = {
+        1: { fornecedor: 'Agropecuária Silva', valor: '3.200,00', vencimento: '20/10/2024' },
+        2: { fornecedor: 'Veterinária Central', valor: '1.850,00', vencimento: '25/10/2024' },
+        3: { fornecedor: 'Transportadora ABC', valor: '2.400,00', vencimento: '28/10/2024' },
+        5: { fornecedor: 'Cooperativa Rural', valor: '4.200,00', vencimento: '09/11/2024' }
+    };
+
+    const conta = contas[id];
+    if (conta) {
+        document.getElementById('fornecedorPagamento').textContent = conta.fornecedor;
+        document.getElementById('valorPagamento').textContent = conta.valor;
+        document.getElementById('vencimentoPagamento').textContent = conta.vencimento;
+        document.getElementById('valorPago').value = conta.valor.replace('.', '').replace(',', '.');
+
+        const modal = new bootstrap.Modal(document.getElementById('modalPagamento'));
+        modal.show();
+    }
+}
+</script>
+{% endblock %}

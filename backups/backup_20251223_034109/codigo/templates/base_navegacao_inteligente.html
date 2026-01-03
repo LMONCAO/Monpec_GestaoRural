@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}MONPEC - Sistema Rural{% endblock %}</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Tipografia Unificada -->
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/tipografia_unificada.css' %}">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --azul-marinho: #1a365d;
+            --cinza-claro: #f8f9fa;
+            --marrom-terra: #8b4513;
+            --verde-sage: #8a9a88;
+            --verde-escuro: #4a5d4a;
+        }
+
+        body {
+            font-family: 'Poppins', 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-weight: 500;
+            background: var(--cinza-claro);
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Poppins', 'Inter', sans-serif;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        /* Header fixo */
+        .header-fixo {
+            background: linear-gradient(135deg, var(--azul-marinho) 0%, #2c5282 100%);
+            color: white;
+            padding: 0.75rem 1rem;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 100%;
+        }
+
+        .logo-sistema {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: white;
+            text-decoration: none;
+        }
+
+        .usuario-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        /* Menu lateral - CORES POR MÓDULO */
+        .sidebar {
+            position: fixed;
+            top: 65px;
+            left: 0;
+            width: 280px;
+            height: calc(100vh - 65px);
+            background: white;
+            border-right: 3px solid var(--azul-marinho);
+            overflow-y: auto;
+            transition: all 0.3s ease;
+            z-index: 900;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+
+        /* SIDEBAR DESABILITADA quando fora da propriedade */
+        .sidebar.disabled {
+            background: #f0f0f0;
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .sidebar-header {
+            background: var(--azul-marinho);
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .nav-item {
+            border-bottom: 1px solid #eee;
+            transition: all 0.3s ease;
+        }
+
+        /* CORES DIFERENTES POR MÓDULO */
+        .nav-item.modulo-pecuaria { border-left: 4px solid #28a745; }
+        .nav-item.modulo-patrimonio { border-left: 4px solid #17a2b8; }
+        .nav-item.modulo-financeiro { border-left: 4px solid #dc3545; }
+        .nav-item.modulo-projetos { border-left: 4px solid #6f42c1; }
+        .nav-item.modulo-relatorios { border-left: 4px solid #fd7e14; }
+        .nav-item.modulo-categorias { border-left: 4px solid #20c997; }
+        .nav-item.modulo-configuracoes { border-left: 4px solid #6c757d; }
+
+        /* ESTILOS PARA SUBMENU */
+        .nav-link {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.5rem;
+            color: #333;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .nav-link:hover {
+            background: #f8f9fa;
+        }
+
+        .nav-link:not(.nav-link-submenu):hover {
+            transform: translateX(5px);
+        }
+
+        .nav-link-submenu {
+            padding: 0.75rem 1.5rem 0.75rem 3rem;
+            font-size: 0.9rem;
+            color: #666;
+            justify-content: flex-start;
+        }
+
+        .nav-link-submenu:hover {
+            background: #f0f0f0;
+            color: var(--azul-marinho);
+            transform: translateX(5px);
+        }
+
+        .nav-link-submenu.active {
+            background: #e8f4f8;
+            color: var(--azul-marinho);
+            font-weight: 600;
+            border-left: 3px solid var(--azul-marinho);
+        }
+
+        .nav-link i:first-child {
+            margin-right: 0.5rem;
+        }
+
+        .nav-link .chevron-icon {
+            transition: transform 0.3s ease;
+            font-size: 0.8rem;
+        }
+
+        .nav-link[aria-expanded="true"] .chevron-icon {
+            transform: rotate(90deg);
+        }
+
+        .nav-item.active > .nav-link {
+            background: linear-gradient(90deg, var(--verde-sage), rgba(138, 154, 136, 0.1));
+            color: var(--azul-marinho);
+            font-weight: 600;
+        }
+
+        /* SUBMENU COLLAPSE */
+        .nav-submenu {
+            background: #f8f9fa;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .nav-submenu .collapse {
+            transition: all 0.3s ease;
+        }
+
+        .accordion-item {
+            border: none;
+            border-bottom: 1px solid #eee;
+        }
+
+        .accordion-button {
+            background: transparent;
+            border: none;
+            padding: 1rem 1.5rem;
+            box-shadow: none;
+            font-weight: 500;
+        }
+
+        .accordion-button:not(.collapsed) {
+            background: linear-gradient(90deg, rgba(138, 154, 136, 0.1), transparent);
+            color: var(--azul-marinho);
+        }
+
+        .accordion-button:focus {
+            box-shadow: none;
+            border-color: transparent;
+        }
+
+        .accordion-body {
+            padding: 0;
+        }
+
+        /* Conteúdo principal */
+        .main-content {
+            margin-left: 280px;
+            margin-top: 65px;
+            padding: 2rem;
+            min-height: calc(100vh - 65px);
+            transition: margin-left 0.3s ease;
+        }
+
+        /* Breadcrumbs inteligentes */
+        .breadcrumb-inteligente {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-left: 4px solid var(--verde-sage);
+        }
+
+        .breadcrumb-item {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .breadcrumb-item.active {
+            color: var(--azul-marinho);
+            font-weight: bold;
+        }
+
+        /* CARDS COM CORES DIFERENTES */
+        .card-modulo {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            overflow: hidden;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-modulo:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        /* CORES ESPECÍFICAS PARA CARDS DOS MÓDULOS */
+        .card-pecuaria { border-top: 5px solid #28a745; }
+        .card-patrimonio { border-top: 5px solid #17a2b8; }
+        .card-financeiro { border-top: 5px solid #dc3545; }
+        .card-projetos { border-top: 5px solid #6f42c1; }
+        .card-relatorios { border-top: 5px solid #fd7e14; }
+        .card-categorias { border-top: 5px solid #20c997; }
+        .card-configuracoes { border-top: 5px solid #6c757d; }
+
+        .card-header-colorido {
+            background: linear-gradient(135deg, var(--cinza-claro) 0%, #e9ecef 100%);
+            border-bottom: 2px solid var(--verde-sage);
+            font-weight: bold;
+            color: var(--azul-marinho);
+        }
+
+        /* Botões com cores do módulo */
+        .btn-modulo-pecuaria { background: #28a745; border-color: #28a745; }
+        .btn-modulo-patrimonio { background: #17a2b8; border-color: #17a2b8; }
+        .btn-modulo-financeiro { background: #dc3545; border-color: #dc3545; }
+        .btn-modulo-projetos { background: #6f42c1; border-color: #6f42c1; }
+        .btn-modulo-relatorios { background: #fd7e14; border-color: #fd7e14; }
+        .btn-modulo-categorias { background: #20c997; border-color: #20c997; }
+        .btn-modulo-configuracoes { background: #6c757d; border-color: #6c757d; }
+
+        /* Status da propriedade */
+        .status-propriedade {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: var(--verde-sage);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            z-index: 1001;
+        }
+
+        .status-propriedade.ativo::before {
+            content: "🏠 ";
+        }
+
+        .status-propriedade.inativo {
+            background: #6c757d;
+        }
+
+        .status-propriedade.inativo::before {
+            content: "📋 ";
+        }
+
+        /* Responsivo */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+            
+            .sidebar.show {
+                transform: translateX(0);
+            }
+        }
+
+        /* Animações suaves */
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Header Fixo -->
+    <header class="header-fixo">
+        <div class="header-content">
+            <a href="{% url 'dashboard' %}" class="logo-sistema">
+                MONPEC
+            </a>
+            <div class="usuario-info">
+                <span>Olá, {{ user.get_full_name|default:user.username }}</span>
+                <a href="{% url 'logout' %}" class="btn btn-outline-light btn-sm">Sair</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Status da Propriedade -->
+    {% if propriedade %}
+        <div class="status-propriedade ativo">
+            Propriedade: {{ propriedade.nome_propriedade }}
+        </div>
+    {% else %}
+        <div class="status-propriedade inativo">
+            Selecione uma propriedade
+        </div>
+    {% endif %}
+
+    <!-- Menu Lateral -->
+    <nav class="sidebar {% if not propriedade %}disabled{% endif %}">
+        <div class="sidebar-header">
+            {% if propriedade %}
+                Módulos - {{ propriedade.nome_propriedade }}
+            {% else %}
+                Módulos (Indisponíveis)
+            {% endif %}
+        </div>
+
+        {% if propriedade %}
+            <!-- Link para Voltar aos Módulos -->
+            <div class="nav-item">
+                <a href="{% url 'propriedade_modulos' propriedade.id %}" class="nav-link {% if 'modulos' in request.path and 'pecuaria' not in request.path and 'agricultura' not in request.path %}active{% endif %}">
+                    <i class="bi bi-grid-3x3"></i> Voltar aos Módulos
+                </a>
+            </div>
+            
+            <!-- Dashboard Pecuária e Tela Curral (fora do card de Pecuária) -->
+            <div class="nav-item modulo-pecuaria {% if request.resolver_match.url_name == 'pecuaria_dashboard' %}active{% endif %}">
+                <a href="{% url 'pecuaria_dashboard' propriedade.id %}" 
+                   class="nav-link {% if request.resolver_match.url_name == 'pecuaria_dashboard' %}active{% endif %}">
+                    <i class="bi bi-speedometer2"></i> Dashboard Pecuária
+                </a>
+            </div>
+            <div class="nav-item modulo-pecuaria {% if request.resolver_match.url_name == 'curral_painel' or request.resolver_match.url_name == 'curral_dashboard' or request.resolver_match.url_name == 'curral_dashboard_v3' or request.resolver_match.url_name == 'curral_dashboard_v4' %}active{% endif %}">
+                <a href="{% url 'curral_dashboard_v4' propriedade.id %}" 
+                   target="_blank"
+                   class="nav-link {% if request.resolver_match.url_name == 'curral_painel' or request.resolver_match.url_name == 'curral_dashboard' or request.resolver_match.url_name == 'curral_dashboard_v3' or request.resolver_match.url_name == 'curral_dashboard_v4' %}active{% endif %}">
+                    <i class="bi bi-cpu"></i> Tela Curral
+                </a>
+            </div>
+            
+            <!-- Módulos habilitados quando dentro da propriedade -->
+            <div class="accordion accordion-flush" id="sidebarAccordion">
+                <!-- Pecuária com Submenu -->
+                <div class="accordion-item">
+                    <div class="nav-item modulo-pecuaria {% if 'pecuaria' in request.path or 'nutricao' in request.path or 'curral' in request.path %}active{% endif %}">
+                        <button class="accordion-button {% if 'pecuaria' not in request.path and 'nutricao' not in request.path and 'curral' not in request.path %}collapsed{% endif %}" type="button" 
+                                data-bs-toggle="collapse" data-bs-target="#submenu-pecuaria" 
+                                aria-expanded="{% if 'pecuaria' in request.path or 'nutricao' in request.path or 'curral' in request.path %}true{% else %}false{% endif %}" 
+                                aria-controls="submenu-pecuaria">
+                            <i class="bi bi-cow"></i>
+                            <span style="flex: 1; margin-left: 0.5rem;">Pecuária</span>
+                            <i class="bi bi-chevron-right chevron-icon"></i>
+                        </button>
+                        <div id="submenu-pecuaria" class="accordion-collapse collapse {% if 'pecuaria' in request.path or 'nutricao' in request.path or 'curral' in request.path %}show{% endif %}" 
+                             data-bs-parent="#sidebarAccordion">
+                            <div class="nav-submenu">
+                                <div class="text-muted text-uppercase small px-3 mt-2 mb-1">Gestão Pecuária</div>
+                                <!-- Inventário removido -->
+                                <a href="{% url 'pecuaria_parametros' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'pecuaria_parametros' %}active{% endif %}">
+                                    <i class="bi bi-sliders"></i> Parâmetros
+                                </a>
+                                <a href="{% url 'pecuaria_projecao' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'pecuaria_projecao' %}active{% endif %}">
+                                    <i class="bi bi-graph-up"></i> Projeção
+                                </a>
+                                <a href="{% url 'analise_cenarios' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'analise_cenarios' %}active{% endif %}">
+                                    <i class="bi bi-diagram-3"></i> Cenários
+                                </a>
+                                
+                                <div class="text-muted text-uppercase small px-3 mt-3 mb-1">Curral</div>
+                                <a href="{% url 'curral_tela_unica' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'curral/tela-unica' in request.path %}active{% endif %}"
+                                   target="_blank">
+                                    <i class="bi bi-phone"></i> Tela Única Curral (Mobile)
+                                </a>
+
+                                <div class="text-muted text-uppercase small px-3 mt-3 mb-1">Reprodução</div>
+                                <a href="{% url 'whatsapp_mensagens_lista' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'whatsapp' in request.path %}active{% endif %}">
+                                    <i class="fab fa-whatsapp text-success"></i> Mensagens WhatsApp
+                                </a>
+                                
+                                <div class="text-muted text-uppercase small px-3 mt-3 mb-1">Nutrição</div>
+                                <a href="{% url 'nutricao_dashboard' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'nutricao_dashboard' %}active{% endif %}">
+                                    <i class="bi bi-speedometer2"></i> Dashboard Nutrição
+                                </a>
+                                <a href="{% url 'estoque_suplementacao_lista' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'estoque' in request.path %}active{% endif %}">
+                                    <i class="bi bi-box-seam"></i> Estoques
+                                </a>
+                                <a href="{% url 'compra_suplementacao_nova' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'compra' in request.path and 'suplementacao' in request.path %}active{% endif %}">
+                                    <i class="bi bi-cart-plus"></i> Nova Compra
+                                </a>
+                                <a href="{% url 'distribuicao_suplementacao_nova' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'distribuicao' in request.path and 'suplementacao' in request.path %}active{% endif %}">
+                                    <i class="bi bi-arrow-down-circle"></i> Distribuição
+                                </a>
+                                <a href="{% url 'cochos_lista' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'cochos' in request.path %}active{% endif %}">
+                                    <i class="bi bi-bucket"></i> Cochos
+                                </a>
+                                
+                                <div class="text-muted text-uppercase small px-3 mt-3 mb-1">Relatórios</div>
+                                <a href="{% url 'relatorio_pecuaria_pdf' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu">
+                                    <i class="bi bi-file-earmark-pdf"></i> Relatório Pecuária (PDF)
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- Bens e Patrimônio com Submenu -->
+                <div class="accordion-item">
+                    <div class="nav-item modulo-patrimonio {% if 'patrimonio' in request.path or 'imobilizado' in request.path %}active{% endif %}">
+                        <button class="accordion-button {% if 'patrimonio' not in request.path and 'imobilizado' not in request.path %}collapsed{% endif %}" type="button" 
+                                data-bs-toggle="collapse" data-bs-target="#submenu-patrimonio" 
+                                aria-expanded="{% if 'patrimonio' in request.path or 'imobilizado' in request.path %}true{% else %}false{% endif %}" 
+                                aria-controls="submenu-patrimonio">
+                            <i class="bi bi-building"></i>
+                            <span style="flex: 1; margin-left: 0.5rem;">Bens e Patrimônio</span>
+                            <i class="bi bi-chevron-right chevron-icon"></i>
+                        </button>
+                        <div id="submenu-patrimonio" class="accordion-collapse collapse {% if 'patrimonio' in request.path or 'imobilizado' in request.path %}show{% endif %}" 
+                             data-bs-parent="#sidebarAccordion">
+                            <div class="nav-submenu">
+                                <a href="{% url 'imobilizado_dashboard' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'imobilizado_dashboard' %}active{% endif %}">
+                                    <i class="bi bi-speedometer2"></i> Dashboard
+                                </a>
+                                <a href="{% url 'bens_lista' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'bens' in request.path and 'lista' in request.path %}active{% endif %}">
+                                    <i class="bi bi-list-ul"></i> Lista de Bens
+                                </a>
+                                <a href="{% url 'bem_novo' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'bem' in request.path and 'novo' in request.path %}active{% endif %}">
+                                    <i class="bi bi-plus-circle"></i> Novo Bem
+                                </a>
+                                <a href="{% url 'calcular_depreciacao_automatica' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'depreciacao' in request.path %}active{% endif %}">
+                                    <i class="bi bi-calculator"></i> Depreciação
+                                </a>
+                                <a href="{% url 'relatorio_imobilizado' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'relatorio' in request.path and 'imobilizado' in request.path %}active{% endif %}">
+                                    <i class="bi bi-file-earmark-pdf"></i> Relatório
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Módulo Nutrição com Submenu -->
+                <div class="accordion-item">
+                    <div class="nav-item modulo-pecuaria {% if 'nutricao' in request.path %}active{% endif %}">
+                        <button class="accordion-button {% if 'nutricao' not in request.path %}collapsed{% endif %}" type="button" 
+                                data-bs-toggle="collapse" data-bs-target="#submenu-nutricao" 
+                                aria-expanded="{% if 'nutricao' in request.path %}true{% else %}false{% endif %}" 
+                                aria-controls="submenu-nutricao">
+                            <i class="bi bi-bucket"></i>
+                            <span style="flex: 1; margin-left: 0.5rem;">Nutrição</span>
+                            <i class="bi bi-chevron-right chevron-icon"></i>
+                        </button>
+                        <div id="submenu-nutricao" class="accordion-collapse collapse {% if 'nutricao' in request.path %}show{% endif %}" 
+                             data-bs-parent="#sidebarAccordion">
+                            <div class="nav-submenu">
+                                <a href="{% url 'nutricao_dashboard' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'nutricao_dashboard' %}active{% endif %}">
+                                    <i class="bi bi-speedometer2"></i> Dashboard
+                                </a>
+                                <a href="{% url 'estoque_suplementacao_lista' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'estoque' in request.path %}active{% endif %}">
+                                    <i class="bi bi-box-seam"></i> Estoques
+                                </a>
+                                <a href="{% url 'cochos_lista' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'cochos' in request.path %}active{% endif %}">
+                                    <i class="bi bi-bucket"></i> Cochos
+                                </a>
+                                
+                                <div class="text-muted text-uppercase small px-3 mt-3 mb-1">Relatórios</div>
+                                <a href="{% url 'relatorio_nutricao_pdf' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu">
+                                    <i class="bi bi-file-earmark-pdf"></i> Relatório Nutrição (PDF)
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Módulo Operações com Submenu -->
+                <div class="accordion-item">
+                    <div class="nav-item modulo-patrimonio {% if 'operacoes' in request.path or 'curral' in request.path %}active{% endif %}">
+                        <button class="accordion-button {% if 'operacoes' not in request.path and 'curral' not in request.path %}collapsed{% endif %}" type="button" 
+                                data-bs-toggle="collapse" data-bs-target="#submenu-operacoes" 
+                                aria-expanded="{% if 'operacoes' in request.path or 'curral' in request.path %}true{% else %}false{% endif %}" 
+                                aria-controls="submenu-operacoes">
+                            <i class="bi bi-gear"></i>
+                            <span style="flex: 1; margin-left: 0.5rem;">Operações</span>
+                            <i class="bi bi-chevron-right chevron-icon"></i>
+                        </button>
+                        <div id="submenu-operacoes" class="accordion-collapse collapse {% if 'operacoes' in request.path or 'curral' in request.path %}show{% endif %}" 
+                             data-bs-parent="#sidebarAccordion">
+                            <div class="nav-submenu">
+                                <a href="{% url 'operacoes_dashboard' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'operacoes_dashboard' %}active{% endif %}">
+                                    <i class="bi bi-speedometer2"></i> Dashboard
+                                </a>
+                                <a href="{% url 'combustivel_lista' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'combustivel' in request.path %}active{% endif %}">
+                                    <i class="bi bi-fuel-pump"></i> Combustível
+                                </a>
+                                <a href="{% url 'equipamentos_lista' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'equipamentos' in request.path %}active{% endif %}">
+                                    <i class="bi bi-tools"></i> Equipamentos
+                                </a>
+                                <a href="{% url 'funcionarios_lista' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'funcionarios' in request.path and 'lista' in request.path %}active{% endif %}">
+                                    <i class="bi bi-people"></i> Funcionários
+                                </a>
+                                
+                                <div class="text-muted text-uppercase small px-3 mt-3 mb-1">Curral</div>
+                                <a href="{% url 'curral_tela_unica' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'curral/tela-unica' in request.path %}active{% endif %}"
+                                   target="_blank">
+                                    <i class="bi bi-phone"></i> Tela Única Curral (Mobile)
+                                </a>
+                                <a href="{% url 'curral_dashboard_v3' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'curral/v3' in request.path or 'curral/painel' in request.path %}active{% endif %}">
+                                    <i class="bi bi-grid"></i> Painel Curral
+                                </a>
+                                
+                                <div class="text-muted text-uppercase small px-3 mt-3 mb-1">Relatórios</div>
+                                <a href="{% url 'relatorio_operacoes_pdf' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu">
+                                    <i class="bi bi-file-earmark-pdf"></i> Relatório Operações (PDF)
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Módulo Compras com Submenu -->
+                <div class="accordion-item">
+                    <div class="nav-item modulo-financeiro {% if 'compras' in request.path %}active{% endif %}">
+                        <button class="accordion-button {% if 'compras' not in request.path %}collapsed{% endif %}" type="button" 
+                                data-bs-toggle="collapse" data-bs-target="#submenu-compras" 
+                                aria-expanded="{% if 'compras' in request.path %}true{% else %}false{% endif %}" 
+                                aria-controls="submenu-compras">
+                            <i class="bi bi-cart"></i>
+                            <span style="flex: 1; margin-left: 0.5rem;">Compras</span>
+                            <i class="bi bi-chevron-right chevron-icon"></i>
+                        </button>
+                        <div id="submenu-compras" class="accordion-collapse collapse {% if 'compras' in request.path %}show{% endif %}" 
+                             data-bs-parent="#sidebarAccordion">
+                            <div class="nav-submenu">
+                                <a href="{% url 'compras_dashboard' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'compras_dashboard' %}active{% endif %}">
+                                    <i class="bi bi-speedometer2"></i> Dashboard
+                                </a>
+                                <a href="{% url 'requisicoes_compra_lista' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'requisicoes' in request.path %}active{% endif %}">
+                                    <i class="bi bi-clipboard-check"></i> Requisições
+                                </a>
+                                <a href="{% url 'ordens_compra_lista' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'ordens' in request.path %}active{% endif %}">
+                                    <i class="bi bi-file-earmark-text"></i> Ordens de Compra
+                                </a>
+                                <a href="{% url 'fornecedores_lista' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'fornecedores' in request.path %}active{% endif %}">
+                                    <i class="bi bi-building"></i> Fornecedores
+                                </a>
+                                
+                                <div class="text-muted text-uppercase small px-3 mt-3 mb-1">Relatórios</div>
+                                <a href="{% url 'relatorio_compras_pdf' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu">
+                                    <i class="bi bi-file-earmark-pdf"></i> Relatório Compras (PDF)
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Financeiro com Submenu -->
+                <div class="accordion-item">
+                    <div class="nav-item modulo-financeiro {% if 'financeiro' in request.path or 'custos' in request.path or 'analise' in request.path or 'capacidade-pagamento' in request.path or 'dividas' in request.path or 'endividamento' in request.path %}active{% endif %}">
+                        <button class="accordion-button {% if 'financeiro' not in request.path and 'custos' not in request.path and 'analise' not in request.path and 'capacidade-pagamento' not in request.path and 'dividas' not in request.path and 'endividamento' not in request.path %}collapsed{% endif %}" type="button" 
+                                data-bs-toggle="collapse" data-bs-target="#submenu-financeiro" 
+                                aria-expanded="{% if 'financeiro' in request.path or 'custos' in request.path or 'analise' in request.path or 'capacidade-pagamento' in request.path or 'dividas' in request.path or 'endividamento' in request.path %}true{% else %}false{% endif %}" 
+                                aria-controls="submenu-financeiro">
+                            <i class="bi bi-cash-coin"></i>
+                            <span style="flex: 1; margin-left: 0.5rem;">Financeiro</span>
+                            <i class="bi bi-chevron-right chevron-icon"></i>
+                        </button>
+                        <div id="submenu-financeiro" class="accordion-collapse collapse {% if 'financeiro' in request.path or 'custos' in request.path or 'analise' in request.path or 'capacidade-pagamento' in request.path or 'dividas' in request.path or 'endividamento' in request.path %}show{% endif %}" 
+                             data-bs-parent="#sidebarAccordion">
+                            <div class="nav-submenu">
+                                <div class="text-muted text-uppercase small px-3 mt-2 mb-1">Centro Financeiro</div>
+                                <a href="{% url 'financeiro_dashboard' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'financeiro_dashboard' %}active{% endif %}">
+                                    <i class="bi bi-cash-coin"></i> Financeiro Completo
+                                </a>
+                                <a href="{% url 'calcular_fluxo_caixa' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'fluxo' in request.path %}active{% endif %}">
+                                    <i class="bi bi-cash-stack"></i> Fluxo de Caixa
+                                </a>
+                                <a href="{% url 'financeiro_lancamentos' propriedade.id %}?tipo=SAIDA" 
+                                   class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'financeiro_lancamentos' and request.GET.tipo == 'SAIDA' %}active{% endif %}">
+                                    <i class="bi bi-arrow-down-circle"></i> Contas a Pagar
+                                </a>
+                                <a href="{% url 'financeiro_lancamentos' propriedade.id %}?tipo=ENTRADA" 
+                                   class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'financeiro_lancamentos' and request.GET.tipo == 'ENTRADA' %}active{% endif %}">
+                                    <i class="bi bi-arrow-up-circle"></i> Contas a Receber
+                                </a>
+
+                                <div class="text-muted text-uppercase small px-3 mt-3 mb-1">Análises Financeiras</div>
+                                <a href="{% url 'analise_dashboard' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'analise_dashboard' %}active{% endif %}">
+                                    <i class="bi bi-graph-up-arrow"></i> Análise Financeira
+                                </a>
+                                <a href="{% url 'indicadores_lista' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'indicadores' in request.path and 'novo' not in request.path %}active{% endif %}">
+                                    <i class="bi bi-list-ul"></i> Indicadores
+                                </a>
+                                <a href="{% url 'indicador_novo' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'indicador' in request.path and 'novo' in request.path %}active{% endif %}">
+                                    <i class="bi bi-plus-circle"></i> Novo Indicador
+                                </a>
+                                <a href="{% url 'calcular_indicadores_automaticos' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'calcular' in request.path and 'analise' in request.path %}active{% endif %}">
+                                    <i class="bi bi-cpu"></i> Calcular Automáticos
+                                </a>
+                                <a href="{% url 'relatorio_analise' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'relatorio' in request.path and 'analise' in request.path %}active{% endif %}">
+                                    <i class="bi bi-file-earmark-text"></i> Relatório de Análise
+                                </a>
+                                
+                                <div class="text-muted text-uppercase small px-3 mt-3 mb-1">Relatórios PDF</div>
+                                <a href="{% url 'exportar_relatorio_financeiro_pdf' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu">
+                                    <i class="bi bi-file-earmark-pdf"></i> Relatório Financeiro (PDF)
+                                </a>
+                                <a href="{% url 'capacidade_pagamento_dashboard' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'capacidade-pagamento' in request.path %}active{% endif %}">
+                                    <i class="bi bi-shield-check"></i> Capacidade de Pagamento
+                                </a>
+
+                                <div class="text-muted text-uppercase small px-3 mt-3 mb-1">Crédito e Dívidas</div>
+                                <a href="{% url 'dividas_dashboard' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'dividas_dashboard' %}active{% endif %}">
+                                    <i class="bi bi-speedometer2"></i> Dashboard Dívidas
+                                </a>
+                                <a href="{% url 'importar_scr' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'importar-scr' in request.path %}active{% endif %}">
+                                    <i class="bi bi-download"></i> Importar SCR
+                                </a>
+                                <a href="{% url 'dividas_contratos' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'contratos' in request.path %}active{% endif %}">
+                                    <i class="bi bi-file-earmark-text"></i> Contratos
+                                </a>
+                                <a href="{% url 'dividas_amortizacao' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'amortizacao' in request.path %}active{% endif %}">
+                                    <i class="bi bi-calculator"></i> Amortização
+                                </a>
+                                <a href="{% url 'endividamento_dashboard' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'endividamento_dashboard' %}active{% endif %}">
+                                    <i class="bi bi-exclamation-triangle"></i> Endividamento
+                                </a>
+
+                                <div class="text-muted text-uppercase small px-3 mt-3 mb-1">Custos</div>
+                                <a href="{% url 'custos_dashboard' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'custos_dashboard' %}active{% endif %}">
+                                    <i class="bi bi-speedometer2"></i> Dashboard de Custos
+                                </a>
+                                <a href="{% url 'custos_fixos_lista' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'fixos' in request.path %}active{% endif %}">
+                                    <i class="bi bi-currency-dollar"></i> Custos Fixos
+                                </a>
+                                <a href="{% url 'custos_variaveis_lista' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'variaveis' in request.path %}active{% endif %}">
+                                    <i class="bi bi-diagram-3"></i> Custos Variáveis
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Projetos Bancários com Submenu -->
+                <div class="accordion-item">
+                    <div class="nav-item modulo-projetos {% if 'projetos_bancarios' in request.path or 'projeto_bancario' in request.path or 'projetos-bancarios' in request.path %}active{% endif %}">
+                        <button class="accordion-button {% if 'projetos_bancarios' not in request.path and 'projeto_bancario' not in request.path and 'projetos-bancarios' not in request.path %}collapsed{% endif %}" type="button" 
+                                data-bs-toggle="collapse" data-bs-target="#submenu-projetos" 
+                                aria-expanded="{% if 'projetos_bancarios' in request.path or 'projeto_bancario' in request.path or 'projetos-bancarios' in request.path %}true{% else %}false{% endif %}" 
+                                aria-controls="submenu-projetos">
+                            <i class="bi bi-clipboard-data"></i>
+                            <span style="flex: 1; margin-left: 0.5rem;">Projetos Bancários</span>
+                            <i class="bi bi-chevron-right chevron-icon"></i>
+                        </button>
+                        <div id="submenu-projetos" class="accordion-collapse collapse {% if 'projetos_bancarios' in request.path or 'projeto_bancario' in request.path or 'projetos-bancarios' in request.path %}show{% endif %}" 
+                             data-bs-parent="#sidebarAccordion">
+                            <div class="nav-submenu">
+                                <a href="{% url 'projetos_bancarios_dashboard' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'projetos_bancarios_dashboard' %}active{% endif %}">
+                                    <i class="bi bi-speedometer2"></i> Dashboard
+                                </a>
+                                <a href="{% url 'projeto_bancario_dashboard' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'projeto_bancario_dashboard' %}active{% endif %}">
+                                    <i class="bi bi-file-earmark-text"></i> Projetos
+                                </a>
+                                
+                                <div class="text-muted text-uppercase small px-3 mt-3 mb-1">Relatórios</div>
+                                <a href="{% url 'relatorio_projetos_bancarios_pdf' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu">
+                                    <i class="bi bi-file-earmark-pdf"></i> Relatório Projetos (PDF)
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Relatórios com Submenu -->
+                <div class="accordion-item">
+                    <div class="nav-item modulo-relatorios {% if 'relatorios' in request.path or 'relatorio' in request.path %}active{% endif %}">
+                        <button class="accordion-button {% if 'relatorios' not in request.path and 'relatorio' not in request.path %}collapsed{% endif %}" type="button" 
+                                data-bs-toggle="collapse" data-bs-target="#submenu-relatorios" 
+                                aria-expanded="{% if 'relatorios' in request.path or 'relatorio' in request.path %}true{% else %}false{% endif %}" 
+                                aria-controls="submenu-relatorios">
+                            <i class="bi bi-file-earmark-text"></i>
+                            <span style="flex: 1; margin-left: 0.5rem;">Relatórios</span>
+                            <i class="bi bi-chevron-right chevron-icon"></i>
+                        </button>
+                        <div id="submenu-relatorios" class="accordion-collapse collapse {% if 'relatorios' in request.path or 'relatorio' in request.path %}show{% endif %}" 
+                             data-bs-parent="#sidebarAccordion">
+                            <div class="nav-submenu">
+                                <a href="{% url 'relatorios_dashboard' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'relatorios_dashboard' %}active{% endif %}">
+                                    <i class="bi bi-speedometer2"></i> Dashboard
+                                </a>
+                                <a href="{% url 'relatorio_final' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'relatorio_final' %}active{% endif %}">
+                                    <i class="bi bi-file-earmark-text"></i> Relatório Final
+                                </a>
+                                <a href="{% url 'relatorio_inventario' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'inventario' in request.path and 'relatorio' in request.path %}active{% endif %}">
+                                    <i class="bi bi-clipboard-data"></i> Inventário
+                                </a>
+                                <a href="{% url 'relatorio_financeiro' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'financeiro' in request.path and 'relatorio' in request.path %}active{% endif %}">
+                                    <i class="bi bi-cash-stack"></i> Financeiro
+                                </a>
+                                <a href="{% url 'relatorio_custos' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'custos' in request.path and 'relatorio' in request.path %}active{% endif %}">
+                                    <i class="bi bi-calculator"></i> Custos
+                                </a>
+                                <a href="{% url 'relatorio_endividamento' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'endividamento' in request.path and 'relatorio' in request.path %}active{% endif %}">
+                                    <i class="bi bi-credit-card"></i> Endividamento
+                                </a>
+                                <a href="{% url 'relatorio_consolidado' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if 'consolidado' in request.path %}active{% endif %}">
+                                    <i class="bi bi-file-earmark-pdf"></i> Consolidado
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Categorias -->
+                <div class="nav-item modulo-categorias {% if 'categorias' in request.path %}active{% endif %}">
+                    <a href="{% url 'categorias_lista' %}" class="nav-link">
+                        <i class="bi bi-tags"></i> Categorias
+                    </a>
+                </div>
+
+                <!-- Configurações -->
+                <div class="nav-item modulo-configuracoes {% if 'editar' in request.path and 'propriedade' in request.path %}active{% endif %}">
+                    <a href="{% url 'propriedade_editar' propriedade.id %}" class="nav-link">
+                        <i class="bi bi-gear"></i> Configurações
+                    </a>
+                </div>
+            </div>
+        {% else %}
+            <!-- Módulos desabilitados quando fora da propriedade -->
+            <div class="nav-item">
+                <div class="nav-link text-muted">
+                    <i class="bi bi-lock"></i> Selecione uma propriedade para acessar os módulos
+                </div>
+            </div>
+        {% endif %}
+    </nav>
+
+    <!-- Conteúdo Principal -->
+    <main class="main-content fade-in">
+        <!-- Breadcrumbs Inteligentes -->
+        <nav aria-label="breadcrumb" class="breadcrumb-inteligente">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item">
+                    <a href="{% url 'dashboard' %}">Dashboard</a>
+                </li>
+                {% if produtor %}
+                    <li class="breadcrumb-item">
+                        <a href="{% url 'propriedades_lista' produtor.id %}">{{ produtor.nome }}</a>
+                    </li>
+                {% endif %}
+                {% if propriedade %}
+                    <li class="breadcrumb-item">
+                        <a href="{% url 'propriedade_modulos' propriedade.id %}">{{ propriedade.nome_propriedade }}</a>
+                    </li>
+                {% endif %}
+                {% block breadcrumb_extra %}{% endblock %}
+            </ol>
+        </nav>
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // JavaScript para navegação inteligente com submenu
+        document.addEventListener('DOMContentLoaded', function() {
+            // Destacar módulo ativo
+            const currentPath = window.location.pathname;
+            const navItems = document.querySelectorAll('.nav-item');
+            
+            navItems.forEach(item => {
+                const link = item.querySelector('a');
+                if (link && currentPath.includes(link.getAttribute('href'))) {
+                    item.classList.add('active');
+                }
+            });
+
+            // Animação suave nos cards
+            const cards = document.querySelectorAll('.card-modulo');
+            cards.forEach((card, index) => {
+                setTimeout(() => {
+                    card.classList.add('fade-in');
+                }, index * 100);
+            });
+
+            // Feedback visual ao clicar nos links de submenu
+            document.querySelectorAll('.nav-link-submenu').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    if (this.closest('.sidebar').classList.contains('disabled')) {
+                        e.preventDefault();
+                        alert('Selecione uma propriedade primeiro!');
+                        return;
+                    }
+                    
+                    // Animação de clique
+                    this.style.transform = 'scale(0.95)';
+                    setTimeout(() => {
+                        this.style.transform = 'scale(1)';
+                    }, 150);
+                });
+            });
+
+            // Controlar animação do chevron nos botões do accordion
+            const accordionButtons = document.querySelectorAll('.accordion-button');
+            accordionButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const chevron = this.querySelector('.chevron-icon');
+                    if (chevron) {
+                        const isExpanded = this.getAttribute('aria-expanded') === 'true';
+                        setTimeout(() => {
+                            if (isExpanded) {
+                                chevron.style.transform = 'rotate(0deg)';
+                            } else {
+                                chevron.style.transform = 'rotate(90deg)';
+                            }
+                        }, 50);
+                    }
+                });
+            });
+
+            // Auto-expandir submenu quando estiver na página correspondente
+            const accordionCollapses = document.querySelectorAll('.accordion-collapse');
+            
+            accordionCollapses.forEach(collapse => {
+                const submenuLinks = collapse.querySelectorAll('.nav-link-submenu');
+                let shouldExpand = false;
+                
+                submenuLinks.forEach(link => {
+                    if (link.href && currentPath.includes(new URL(link.href).pathname)) {
+                        shouldExpand = true;
+                        link.classList.add('active');
+                    }
+                });
+                
+                if (shouldExpand && !collapse.classList.contains('show')) {
+                    const bsCollapse = new bootstrap.Collapse(collapse, {
+                        toggle: false
+                    });
+                    bsCollapse.show();
+                }
+            });
+        });
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

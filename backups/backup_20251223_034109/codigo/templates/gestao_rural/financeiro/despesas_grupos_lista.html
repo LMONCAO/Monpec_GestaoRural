@@ -1,0 +1,116 @@
+{% extends 'base_modulos_unificado.html' %}
+{% load formatacao_br %}
+{% load static %}
+
+{% block title %}Grupos de Despesas - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block breadcrumb_extra %}
+    <li class="breadcrumb-item"><a href="{% url 'financeiro_dashboard' propriedade.id %}">Financeiro</a></li>
+    <li class="breadcrumb-item active">Grupos de Despesas</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2 class="mb-0">
+                    <i class="bi bi-folder me-2"></i>
+                    Grupos de Despesas
+                </h2>
+                <a href="{% url 'financeiro_despesas_grupo_novo' propriedade.id %}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-1"></i>
+                    Novo Grupo
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    {% if grupos %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Nome</th>
+                                        <th>Tipo</th>
+                                        <th>Descrição</th>
+                                        <th>Ordem</th>
+                                        <th>Status</th>
+                                        <th class="text-end">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for grupo in grupos %}
+                                    <tr>
+                                        <td><strong>{{ grupo.nome }}</strong></td>
+                                        <td>
+                                            {% if grupo.tipo == 'FIXA' %}
+                                                <span class="badge bg-info">Despesa Fixa</span>
+                                            {% else %}
+                                                <span class="badge bg-warning">Despesa Variável</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ grupo.descricao|truncatewords:10|default:"-" }}</td>
+                                        <td>{{ grupo.ordem }}</td>
+                                        <td>
+                                            {% if grupo.ativo %}
+                                                <span class="badge bg-success">Ativo</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Inativo</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end">
+                                            <a href="{% url 'financeiro_despesas_grupo_editar' propriedade.id grupo.id %}" 
+                                               class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle me-2"></i>
+                            Nenhum grupo de despesas cadastrado. 
+                            <a href="{% url 'financeiro_despesas_grupo_novo' propriedade.id %}">Criar primeiro grupo</a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

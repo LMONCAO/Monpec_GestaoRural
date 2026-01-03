@@ -1,0 +1,102 @@
+{% extends "base_modulos_unificado.html" %}
+
+{% block title %}Nova Cotação - {{ requisicao.titulo }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'compras_dashboard' propriedade.id %}">Compras</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'requisicao_compra_detalhes' propriedade.id requisicao.id %}">Requisição {{ requisicao.numero }}</a></li>
+            <li class="breadcrumb-item active">Nova Cotação</li>
+        </ol>
+    </nav>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h3 class="h5 mb-4">Registrar cotação para {{ requisicao.titulo }}</h3>
+
+            <form method="post" enctype="multipart/form-data" novalidate>
+                {% csrf_token %}
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger">
+                    {{ form.non_field_errors }}
+                </div>
+                {% endif %}
+
+                <div class="row g-3 mb-4">
+                    {% for field in form.visible_fields %}
+                    <div class="col-md-4">
+                        <label class="form-label">{{ field.label }}{% if field.field.required %} *{% endif %}</label>
+                        {{ field }}
+                        {% for error in field.errors %}
+                        <div class="invalid-feedback d-block">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <hr class="my-4">
+                <h4 class="h6 mb-3">Itens cotados</h4>
+                {{ formset.management_form }}
+                <div class="row g-3">
+                    {% for item_form in formset %}
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                {% for hidden in item_form.hidden_fields %}
+                                    {{ hidden }}
+                                {% endfor %}
+                                <div class="mb-2">
+                                    <label class="form-label">Item da requisição</label>
+                                    {{ item_form.item_requisicao }}
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">Descrição</label>
+                                    {{ item_form.descricao }}
+                                </div>
+                                <div class="row g-2">
+                                    <div class="col-md-4">
+                                        <label class="form-label">Unidade</label>
+                                        {{ item_form.unidade_medida }}
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Quantidade</label>
+                                        {{ item_form.quantidade }}
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Valor unitário</label>
+                                        {{ item_form.valor_unitario }}
+                                    </div>
+                                </div>
+                                {% for field in item_form.visible_fields %}
+                                    {% for error in field.errors %}
+                                    <div class="invalid-feedback d-block">{{ error }}</div>
+                                    {% endfor %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="alert alert-light border mt-4">
+                    <strong>Observação:</strong> Ajuste os valores unitários e quantidades conforme a proposta do fornecedor. O total é calculado automaticamente.
+                </div>
+
+                <div class="d-flex justify-content-between mt-4 flex-wrap gap-2">
+                    <a href="{% url 'requisicao_compra_detalhes' propriedade.id requisicao.id %}" class="btn btn-light">
+                        Voltar
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        Salvar cotação
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

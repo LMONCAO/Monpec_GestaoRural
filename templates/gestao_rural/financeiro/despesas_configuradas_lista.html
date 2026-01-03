@@ -1,0 +1,153 @@
+{% extends 'base_modulos_unificado.html' %}
+{% load formatacao_br %}
+{% load static %}
+
+{% block title %}Despesas Configuradas - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block breadcrumb_extra %}
+    <li class="breadcrumb-item"><a href="{% url 'financeiro_dashboard' propriedade.id %}">Financeiro</a></li>
+    <li class="breadcrumb-item active">Despesas Configuradas</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2 class="mb-0">
+                    <i class="bi bi-calculator me-2"></i>
+                    Despesas Configuradas
+                </h2>
+                <div class="d-flex gap-2">
+                    <select id="ano-select" class="form-select" style="width: auto;">
+                        {% for a in anos %}
+                            <option value="{{ a }}" {% if a == ano %}selected{% endif %}>{{ a }}</option>
+                        {% endfor %}
+                    </select>
+                    <a href="{% url 'financeiro_despesa_configurada_nova' propriedade.id %}" class="btn btn-primary">
+                        <i class="bi bi-plus-circle me-1"></i>
+                        Nova Despesa
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if receita_anual_obj %}
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card bg-primary text-white">
+                    <div class="card-body">
+                        <h5 class="card-title">Receita Anual {{ ano }}</h5>
+                        <h3 class="mb-0">{{ receita_anual|moeda_br }}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-danger text-white">
+                    <div class="card-body">
+                        <h5 class="card-title">Total Despesas</h5>
+                        <h3 class="mb-0">{{ total_despesas|moeda_br }}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card {% if resultado_caixa >= 0 %}bg-success{% else %}bg-warning{% endif %} text-white">
+                    <div class="card-body">
+                        <h5 class="card-title">Resultado de Caixa</h5>
+                        <h3 class="mb-0">{{ resultado_caixa|moeda_br }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            Não há receita cadastrada para o ano {{ ano }}. 
+            <a href="{% url 'financeiro_receita_anual_nova' propriedade.id %}">Cadastrar receita anual</a>
+        </div>
+    {% endif %}
+
+    <div class="row">
+        <div class="col-12">
+            {% if despesas_por_grupo %}
+                {% for grupo, dados in despesas_por_grupo.items %}
+                    <div class="card mb-3">
+                        <div class="card-header bg-{% if grupo.tipo == 'FIXA' %}info{% else %}warning{% endif %} text-white">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-folder me-2"></i>
+                                    {{ grupo.nome }}
+                                    <span class="badge bg-light text-dark ms-2">
+                                        Total: {{ dados.total|moeda_br }}
+                                    </span>
+                                </h5>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Despesa</th>
+                                            <th>Categoria</th>
+                                            <th>Tipo Cálculo</th>
+                                            <th class="text-end">Valor Anual</th>
+                                            <th class="text-end">Valor Mensal</th>
+                                            <th class="text-end">Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for item in dados.despesas %}
+                                            {% with despesa=item.despesa %}
+                                            <tr>
+                                                <td><strong>{{ despesa.nome }}</strong></td>
+                                                <td>{{ despesa.categoria_financeira.nome }}</td>
+                                                <td>
+                                                    {% if despesa.tipo_calculo == 'PORCENTAGEM' %}
+                                                        <span class="badge bg-primary">{{ despesa.porcentagem_receita }}% da Receita</span>
+                                                    {% elif despesa.tipo_calculo == 'VALOR_FIXO_MENSAL' %}
+                                                        <span class="badge bg-info">R$ {{ despesa.valor_fixo|numero_br:2 }}/mês</span>
+                                                    {% else %}
+                                                        <span class="badge bg-success">R$ {{ despesa.valor_fixo|numero_br:2 }}/ano</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td class="text-end">
+                                                    <strong>{{ item.valor_anual|moeda_br }}</strong>
+                                                </td>
+                                                <td class="text-end">
+                                                    {{ item.valor_mensal|moeda_br }}
+                                                </td>
+                                                <td class="text-end">
+                                                    <a href="{% url 'financeiro_despesa_configurada_editar' propriedade.id despesa.id %}" 
+                                                       class="btn btn-sm btn-outline-primary">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                            {% endwith %}
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Nenhuma despesa configurada. 
+                    <a href="{% url 'financeiro_despesa_configurada_nova' propriedade.id %}">Criar primeira despesa</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('ano-select').addEventListener('change', function() {
+    window.location.href = '?ano=' + this.value;
+});
+</script>
+{% endblock %}
+

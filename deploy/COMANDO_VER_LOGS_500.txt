@@ -1,0 +1,25 @@
+# Comandos rápidos para ver logs do erro 500
+
+# 1. Ver últimos erros
+gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=monpec AND severity>=ERROR" --limit=10 --format="table(timestamp,severity,textPayload)" --project=monpec-sistema-rural
+
+# 2. Ver traceback completo
+gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=monpec AND (severity>=ERROR OR textPayload=~'Traceback')" --limit=3 --format="value(textPayload)" --project=monpec-sistema-rural
+
+# 3. Ver erros de importação
+gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=monpec AND textPayload=~'ModuleNotFoundError'" --limit=5 --format="value(textPayload)" --project=monpec-sistema-rural
+
+# 4. Ver erros de banco
+gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=monpec AND textPayload=~'OperationalError'" --limit=5 --format="value(textPayload)" --project=monpec-sistema-rural
+
+# 5. Ver logs da revisão mais recente
+LATEST_REVISION=$(gcloud run revisions list --service=monpec --region=us-central1 --format="value(metadata.name)" --limit=1 --project=monpec-sistema-rural)
+gcloud logging read "resource.type=cloud_run_revision AND resource.labels.revision_name=$LATEST_REVISION AND severity>=ERROR" --limit=5 --format="value(textPayload)" --project=monpec-sistema-rural
+
+# 6. Ver todos os logs recentes (última hora)
+gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=monpec AND timestamp>=\"$(date -u -d '1 hour ago' +%Y-%m-%dT%H:%M:%SZ)\"" --limit=20 --format="table(timestamp,severity,textPayload)" --project=monpec-sistema-rural
+
+
+
+
+

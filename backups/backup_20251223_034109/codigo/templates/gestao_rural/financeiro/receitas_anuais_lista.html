@@ -1,0 +1,102 @@
+{% extends 'base_modulos_unificado.html' %}
+{% load formatacao_br %}
+{% load static %}
+
+{% block title %}Receitas Anuais - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block breadcrumb_extra %}
+    <li class="breadcrumb-item"><a href="{% url 'financeiro_dashboard' propriedade.id %}">Financeiro</a></li>
+    <li class="breadcrumb-item active">Receitas Anuais</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2 class="mb-0">
+                    <i class="bi bi-cash-stack me-2"></i>
+                    Receitas Anuais
+                </h2>
+                <a href="{% url 'financeiro_receita_anual_nova' propriedade.id %}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-1"></i>
+                    Nova Receita Anual
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    {% if receitas %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Ano</th>
+                                        <th class="text-end">Valor da Receita</th>
+                                        <th>Descrição</th>
+                                        <th class="text-end">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for receita in receitas %}
+                                    <tr>
+                                        <td><strong>{{ receita.ano }}</strong></td>
+                                        <td class="text-end">
+                                            <h5 class="mb-0 text-success">{{ receita.valor_receita|moeda_br }}</h5>
+                                        </td>
+                                        <td>{{ receita.descricao|truncatewords:15|default:"-" }}</td>
+                                        <td class="text-end">
+                                            <a href="{% url 'financeiro_receita_anual_editar' propriedade.id receita.id %}" 
+                                               class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle me-2"></i>
+                            Nenhuma receita anual cadastrada. 
+                            <a href="{% url 'financeiro_receita_anual_nova' propriedade.id %}">Cadastrar primeira receita anual</a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

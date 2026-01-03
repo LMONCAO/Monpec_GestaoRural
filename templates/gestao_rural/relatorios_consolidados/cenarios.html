@@ -1,0 +1,425 @@
+{% extends "gestao_rural/base.html" %}
+{% load static %}
+{% load formatacao_br %}
+{% load humanize %}
+
+{% block title %}Cenários Consolidados - {{ produtor.nome }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .cenario-card {
+        border: 2px solid #e0e0e0;
+        border-radius: 12px;
+        transition: all 0.3s;
+        margin-bottom: 1.5rem;
+    }
+    .cenario-card:hover {
+        border-color: #007bff;
+        box-shadow: 0 4px 12px rgba(0,123,255,0.15);
+    }
+    .cenario-card.baseline {
+        border-color: #007bff;
+        background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%);
+    }
+    .badge-cenario {
+        font-size: 0.75rem;
+        padding: 0.35rem 0.65rem;
+    }
+    .metric-card {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1rem;
+        text-align: center;
+    }
+    .metric-value {
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin: 0.5rem 0;
+    }
+    .comparacao-table {
+        font-size: 0.95rem;
+    }
+    .comparacao-table th {
+        background: #f8f9fa;
+        font-weight: 600;
+        border-bottom: 2px solid #dee2e6;
+    }
+    .comparacao-table td {
+        vertical-align: middle;
+    }
+    .grafico-comparacao {
+        height: 300px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-0">
+                        <i class="bi bi-diagram-3"></i>
+                        Análise de Cenários Consolidados
+                    </h1>
+                    <p class="text-muted">{{ produtor.nome }} - Ano {{ ano }}</p>
+                </div>
+                <a href="{% url 'relatorios_consolidados_dashboard' %}?ano={{ ano }}{% for p in propriedades_selecionadas %}&propriedades={{ p.id }}{% endfor %}" 
+                   class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Voltar ao Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Propriedades:</label>
+                    {% for propriedade in propriedades %}
+                    <div class="form-check">
+                        <input class="form-check-input" 
+                               type="checkbox" 
+                               name="propriedades" 
+                               value="{{ propriedade.id }}"
+                               id="prop_{{ propriedade.id }}"
+                               {% if propriedade in propriedades_selecionadas %}checked{% endif %}>
+                        <label class="form-check-label" for="prop_{{ propriedade.id }}">
+                            {{ propriedade.nome_propriedade }}
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Ano:</label>
+                    <input type="number" name="ano" class="form-control" value="{{ ano }}" min="2020" max="2030">
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-funnel"></i> Filtrar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Comparação de Cenários -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-bar-chart"></i> Comparação de Cenários
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover comparacao-table">
+                            <thead>
+                                <tr>
+                                    <th>Cenário</th>
+                                    <th class="text-end">Receitas (R$)</th>
+                                    <th class="text-end">Despesas (R$)</th>
+                                    <th class="text-end">Saldo (R$)</th>
+                                    <th class="text-end">Lucro Líquido (R$)</th>
+                                    <th class="text-end">Margem (%)</th>
+                                    <th class="text-center">Ajustes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for cenario in cenarios %}
+                                <tr class="{% if cenario.is_baseline %}table-primary{% endif %}">
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            {% if cenario.is_baseline %}
+                                            <span class="badge bg-primary badge-cenario">Baseline</span>
+                                            {% endif %}
+                                            <strong>{{ cenario.nome }}</strong>
+                                        </div>
+                                        {% if cenario.descricao %}
+                                        <small class="text-muted d-block mt-1">{{ cenario.descricao }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        <span class="text-success fw-semibold">
+                                            {{ cenario.receitas|floatformat:2|moeda_br }}
+                                        </span>
+                                    </td>
+                                    <td class="text-end">
+                                        <span class="text-danger fw-semibold">
+                                            {{ cenario.despesas|floatformat:2|moeda_br }}
+                                        </span>
+                                    </td>
+                                    <td class="text-end">
+                                        <span class="fw-bold {% if cenario.saldo >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                            {{ cenario.saldo|floatformat:2|moeda_br }}
+                                        </span>
+                                    </td>
+                                    <td class="text-end">
+                                        <span class="fw-bold {% if cenario.lucro_liquido >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                            {{ cenario.lucro_liquido|floatformat:2|moeda_br }}
+                                        </span>
+                                    </td>
+                                    <td class="text-end">
+                                        <span class="badge {% if cenario.margem >= 20 %}bg-success{% elif cenario.margem >= 10 %}bg-warning{% else %}bg-danger{% endif %}">
+                                            {{ cenario.margem|floatformat:1 }}%
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        <small class="text-muted">
+                                            {% if cenario.ajuste_receita != 0 %}
+                                            Receita: {{ cenario.ajuste_receita|floatformat:0 }}%<br>
+                                            {% endif %}
+                                            {% if cenario.ajuste_despesa != 0 %}
+                                            Despesa: {{ cenario.ajuste_despesa|floatformat:0 }}%
+                                            {% endif %}
+                                            {% if cenario.ajuste_receita == 0 and cenario.ajuste_despesa == 0 %}
+                                            -
+                                            {% endif %}
+                                        </small>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos de Comparação -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-bar-chart-fill"></i> Receitas vs Despesas por Cenário
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="grafico-receitas-despesas" class="grafico-comparacao"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-graph-up"></i> Lucro Líquido por Cenário
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="grafico-lucro" class="grafico-comparacao"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cards de Métricas por Cenário -->
+    <div class="row">
+        {% for cenario in cenarios %}
+        <div class="col-md-4">
+            <div class="card cenario-card {% if cenario.is_baseline %}baseline{% endif %}">
+                <div class="card-header {% if cenario.is_baseline %}bg-primary text-white{% else %}bg-light{% endif %}">
+                    <h5 class="mb-0">
+                        {% if cenario.is_baseline %}
+                        <span class="badge bg-light text-primary me-2">Baseline</span>
+                        {% endif %}
+                        {{ cenario.nome }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if cenario.descricao %}
+                    <p class="text-muted small mb-3">{{ cenario.descricao }}</p>
+                    {% endif %}
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <div class="metric-card">
+                                <small class="text-muted">Receitas</small>
+                                <div class="metric-value text-success">
+                                    {{ cenario.receitas|floatformat:0|moeda_br }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="metric-card">
+                                <small class="text-muted">Despesas</small>
+                                <div class="metric-value text-danger">
+                                    {{ cenario.despesas|floatformat:0|moeda_br }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="metric-card">
+                                <small class="text-muted">Saldo</small>
+                                <div class="metric-value {% if cenario.saldo >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                    {{ cenario.saldo|floatformat:0|moeda_br }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="metric-card">
+                                <small class="text-muted">Margem</small>
+                                <div class="metric-value {% if cenario.margem >= 20 %}text-success{% elif cenario.margem >= 10 %}text-warning{% else %}text-danger{% endif %}">
+                                    {{ cenario.margem|floatformat:1 }}%
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+{{ cenarios|json_script:"cenarios-data" }}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const cenariosData = JSON.parse(document.getElementById('cenarios-data').textContent);
+    
+    // Gráfico Receitas vs Despesas
+    const ctxReceitasDespesas = document.getElementById('grafico-receitas-despesas');
+    if (ctxReceitasDespesas) {
+        new Chart(ctxReceitasDespesas, {
+            type: 'bar',
+            data: {
+                labels: cenariosData.map(c => c.nome),
+                datasets: [
+                    {
+                        label: 'Receitas',
+                        data: cenariosData.map(c => parseFloat(c.receitas)),
+                        backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                        borderColor: '#10b981',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Despesas',
+                        data: cenariosData.map(c => parseFloat(c.despesas)),
+                        backgroundColor: 'rgba(239, 68, 68, 0.8)',
+                        borderColor: '#ef4444',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: true },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': R$ ' + 
+                                    parseFloat(context.parsed.y).toLocaleString('pt-BR', {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2
+                                    });
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return 'R$ ' + parseFloat(value).toLocaleString('pt-BR', {
+                                    minimumFractionDigits: 0,
+                                    maximumFractionDigits: 0
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Gráfico Lucro Líquido
+    const ctxLucro = document.getElementById('grafico-lucro');
+    if (ctxLucro) {
+        new Chart(ctxLucro, {
+            type: 'bar',
+            data: {
+                labels: cenariosData.map(c => c.nome),
+                datasets: [{
+                    label: 'Lucro Líquido',
+                    data: cenariosData.map(c => parseFloat(c.lucro_liquido)),
+                    backgroundColor: cenariosData.map(c => 
+                        parseFloat(c.lucro_liquido) >= 0 ? 'rgba(16, 185, 129, 0.8)' : 'rgba(239, 68, 68, 0.8)'
+                    ),
+                    borderColor: cenariosData.map(c => 
+                        parseFloat(c.lucro_liquido) >= 0 ? '#10b981' : '#ef4444'
+                    ),
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return 'Lucro Líquido: R$ ' + 
+                                    parseFloat(context.parsed.y).toLocaleString('pt-BR', {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2
+                                    });
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        ticks: {
+                            callback: function(value) {
+                                return 'R$ ' + parseFloat(value).toLocaleString('pt-BR', {
+                                    minimumFractionDigits: 0,
+                                    maximumFractionDigits: 0
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

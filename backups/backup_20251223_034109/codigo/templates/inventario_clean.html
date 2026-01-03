@@ -1,0 +1,201 @@
+{% extends "base_navegacao.html" %}
+
+{% block title %}Inventário de Rebanho - Sistema Monpec{% endblock %}
+
+{% block breadcrumbs %}
+<li><a href="{% url 'dashboard' %}">Início</a></li>
+<li class="breadcrumb-separator">›</li>
+<li><a href="{% url 'propriedades_lista' propriedade.produtor_id %}">Propriedades</a></li>
+<li class="breadcrumb-separator">›</li>
+<li><a href="{% url 'pecuaria_dashboard' propriedade.id %}">{{ propriedade.nome }}</a></li>
+<li class="breadcrumb-separator">›</li>
+<li class="active">Inventário</li>
+{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div class="d-flex justify-content-between align-items-start">
+        <div>
+            <h1 class="page-title">Inventário de Rebanho</h1>
+            <p class="page-subtitle">{{ propriedade.nome }} - Cadastre a quantidade e valor dos animais por categoria</p>
+        </div>
+        <a href="{% url 'pecuaria_dashboard' propriedade.id %}" class="btn-outline">
+            Voltar
+        </a>
+    </div>
+</div>
+
+<!-- Resumo Geral -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card-clean text-center">
+            <div class="card-valor-destaque" style="font-size: 2rem; margin-bottom: 0.5rem;">
+                {{ total_animais|default:"0" }}
+            </div>
+            <div style="font-size: 12px; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.05em;">
+                Total de Animais
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card-clean text-center">
+            <div class="card-valor-destaque" style="font-size: 2rem; margin-bottom: 0.5rem;">
+                {{ total_categorias|default:"0" }}
+            </div>
+            <div style="font-size: 12px; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.05em;">
+                Categorias
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card-clean text-center">
+            <div class="card-valor-destaque" style="margin-bottom: 0.5rem;">
+                R$ {{ valor_total|default:"0,00" }}
+            </div>
+            <div style="font-size: 12px; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.05em;">
+                Valor Total
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card-clean text-center">
+            <div class="card-valor-destaque" style="margin-bottom: 0.5rem;">
+                R$ {{ valor_medio|default:"0,00" }}
+            </div>
+            <div style="font-size: 12px; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.05em;">
+                Valor Médio
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Formulário de Inventário -->
+<div class="page-header">
+    <h2 style="font-size: 1.5rem; margin-bottom: 1.5rem;">Cadastrar/Atualizar Inventário</h2>
+    
+    <form method="post" action="">
+        {% csrf_token %}
+        
+        <div class="table-clean">
+            <table class="table mb-0">
+                <thead>
+                    <tr>
+                        <th>Categoria</th>
+                        <th>Sexo</th>
+                        <th>Quantidade</th>
+                        <th>Valor por Cabeça (R$)</th>
+                        <th>Valor Total (R$)</th>
+                        <th class="text-end">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for categoria in categorias %}
+                    <tr>
+                        <td>
+                            <strong style="color: var(--navy);">{{ categoria.nome }}</strong>
+                            <br>
+                            <small style="color: var(--text-light);">{{ categoria.descricao }}</small>
+                        </td>
+                        <td>
+                            <span class="badge-destaque">
+                                {% if categoria.sexo == 'M' %}Macho{% elif categoria.sexo == 'F' %}Fêmea{% else %}Ambos{% endif %}
+                            </span>
+                        </td>
+                        <td>
+                            <input type="number" 
+                                   name="quantidade_{{ categoria.id }}" 
+                                   value="{{ categoria.quantidade_atual|default:"0" }}"
+                                   min="0"
+                                   class="form-control" 
+                                   style="width: 120px;"
+                                   placeholder="0">
+                        </td>
+                        <td>
+                            <input type="number" 
+                                   name="valor_unitario_{{ categoria.id }}" 
+                                   value="{{ categoria.valor_unitario|default:"0.00" }}"
+                                   min="0"
+                                   step="0.01"
+                                   class="form-control" 
+                                   style="width: 150px;"
+                                   placeholder="0,00">
+                        </td>
+                        <td>
+                            <span class="destaque-valor" style="font-size: 1.1rem;">
+                                R$ <span id="total_{{ categoria.id }}">0,00</span>
+                            </span>
+                        </td>
+                        <td class="text-end">
+                            <button type="button" class="btn-outline" style="padding: 0.35rem 0.75rem; font-size: 12px; margin-right: 0.25rem;" onclick="limparLinha({{ categoria.id }})">
+                                Limpar
+                            </button>
+                            <a href="{% url 'categoria_editar' categoria.id %}" class="btn-outline" style="padding: 0.35rem 0.75rem; font-size: 12px;">
+                                Editar Cat.
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center" style="padding: 2rem;">
+                            <p style="color: var(--text-light);">Nenhuma categoria cadastrada</p>
+                            <a href="{% url 'categorias_lista' %}" class="btn-navy">Ir para Categorias</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        {% if categorias %}
+        <div class="d-flex justify-content-end gap-3 mt-4">
+            <a href="{% url 'pecuaria_dashboard' propriedade.id %}" class="btn-outline">
+                Cancelar
+            </a>
+            <button type="submit" class="btn-navy">
+                Salvar Inventário
+            </button>
+        </div>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Instruções -->
+<div class="card-clean mt-4">
+    <h3 class="card-title">Como Preencher</h3>
+    <ol style="color: var(--text-light); font-size: 14px; line-height: 2;">
+        <li>Informe a <strong>quantidade</strong> de animais de cada categoria</li>
+        <li>Informe o <strong>valor por cabeça</strong> (valor unitário médio)</li>
+        <li>O <strong>valor total</strong> será calculado automaticamente</li>
+        <li>Clique em <strong>"Salvar Inventário"</strong> para registrar</li>
+    </ol>
+</div>
+
+<script>
+// Cálculo automático do valor total
+document.querySelectorAll('input[name^="quantidade_"], input[name^="valor_unitario_"]').forEach(input => {
+    input.addEventListener('input', function() {
+        const id = this.name.split('_')[1];
+        const qtd = parseFloat(document.querySelector(`input[name="quantidade_${id}"]`).value) || 0;
+        const valor = parseFloat(document.querySelector(`input[name="valor_unitario_${id}"]`).value) || 0;
+        const total = qtd * valor;
+        document.getElementById(`total_${id}`).textContent = total.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    });
+});
+
+// Calcular inicialmente
+document.querySelectorAll('input[name^="quantidade_"]').forEach(input => {
+    input.dispatchEvent(new Event('input'));
+});
+
+// Função para limpar linha específica
+function limparLinha(id) {
+    if (confirm('Deseja limpar os valores desta categoria?')) {
+        document.querySelector(`input[name="quantidade_${id}"]`).value = '0';
+        document.querySelector(`input[name="valor_unitario_${id}"]`).value = '0.00';
+        document.getElementById(`total_${id}`).textContent = '0,00';
+    }
+}
+</script>
+{% endblock %}
+

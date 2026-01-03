@@ -1,0 +1,125 @@
+{% load formato_numeros %}
+<!-- Resumo da Projeção por Ano -->
+{% if resumo_projecao_por_ano %}
+<div class="card mb-3 shadow-sm">
+    <div class="card-header bg-secondary text-white">
+        <h6 class="mb-0"><i class="bi bi-calendar3"></i> Projeção por Ano</h6>
+    </div>
+    <div class="card-body p-0">
+        {% if resumo_projecao_por_ano|length <= 1 %}
+        <div class="alert alert-warning m-3" role="alert">
+            <h6 class="alert-heading"><i class="bi bi-info-circle"></i> Informação</h6>
+            <p>A projeção está mostrando apenas dados do ano atual. Para visualizar projeções futuras:</p>
+            <ol class="mb-0">
+                <li>Clique no botão <strong>"Gerar Projeção"</strong> acima</li>
+                <li>Selecione a quantidade de anos desejada (2, 3, 4, 5 ou 10 anos)</li>
+                <li>Clique em <strong>"Gerar Projeção"</strong></li>
+                <li>As tabelas dos próximos anos aparecerão automaticamente abaixo</li>
+            </ol>
+        </div>
+        {% endif %}
+        {% for ano, dados_ano in resumo_projecao_por_ano.items %}
+        <div class="card mb-3 border">
+            <div class="card-header bg-primary text-white">
+                <h6 class="mb-0"><i class="bi bi-calendar-check"></i> Ano {{ ano }}</h6>
+            </div>
+            <div class="card-body p-2">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0">
+                            <thead class="table-dark">
+                            <tr>
+                                <th class="text-center"><small>Categoria</small></th>
+                                <th class="text-center"><small>Inicial</small></th>
+                                <th class="text-center"><small>Nasc</small></th>
+                                <th class="text-center"><small>Comp</small></th>
+                                <th class="text-center"><small>Vend</small></th>
+                                <th class="text-center"><small>Trans</small></th>
+                                <th class="text-center"><small>Mort</small></th>
+                                <th class="text-center"><small>Evol</small></th>
+                                <th class="text-center"><small>Final</small></th>
+                                <th class="text-center"><small>Peso (kg)</small></th>
+                                <th class="text-center"><small>R$/Cabeça</small></th>
+                                <th class="text-center"><small>Total (R$)</small></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for categoria, dados in dados_ano.items %}
+                            <tr class="{% if categoria == 'TOTAIS' %}table-active fw-bold{% endif %}">
+                                <td class="text-center {% if categoria == 'TOTAIS' %}text-primary{% endif %}">
+                                    <small>{{ categoria }}</small>
+                                </td>
+                                <td class="text-center"><small class="fw-bold">{{ dados.saldo_inicial|default:0|formato_numero_inteiro }}</small></td>
+                                <td class="text-center"><small class="text-success">+{{ dados.nascimentos|default:0|formato_numero_inteiro }}</small></td>
+                                <td class="text-center"><small class="text-info">+{{ dados.compras|default:0|formato_numero_inteiro }}</small></td>
+                                <td class="text-center"><small class="text-danger">-{{ dados.vendas|default:0|formato_numero_inteiro }}</small></td>
+                                <td class="text-center">
+                                    <small>{% if dados.transferencias_entrada > 0 or dados.transferencias_saida > 0 %}<span class="text-success">+{{ dados.transferencias_entrada|default:0|formato_numero_inteiro }}</span>/<span class="text-warning">-{{ dados.transferencias_saida|default:0|formato_numero_inteiro }}</span>{% else %}0{% endif %}</small>
+                                </td>
+                                <td class="text-center"><small class="text-danger">-{{ dados.mortes|default:0|formato_numero_inteiro }}</small></td>
+                                <td class="text-center"><small>{{ dados.evolucao_categoria|default:"-" }}</small></td>
+                                <td class="text-center {% if categoria == 'TOTAIS' %}text-primary{% endif %}"><small class="fw-bold">{{ dados.saldo_final|default:0|formato_numero_inteiro }}</small></td>
+                                <td class="text-center"><small class="fw-bold">{{ dados.peso_medio_kg|default:0|formato_decimal }}</small></td>
+                                <td class="text-center">
+                                    {% if categoria != 'TOTAIS' %}
+                                        <input type="number" 
+                                               class="form-control form-control-sm text-center" 
+                                               value="{{ dados.valor_unitario|default:0|floatformat:2 }}" 
+                                               step="0.01" 
+                                               min="0"
+                                               data-categoria="{{ categoria }}"
+                                               data-ano="{{ ano }}"
+                                               onchange="atualizarValorUnitario(this)"
+                                               style="width: 100px; display: inline-block; font-size: 0.75rem; padding: 2px 4px;">
+                                    {% else %}
+                                        <small class="fw-bold">{{ dados.valor_unitario|default:0|formato_monetario }}</small>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center {% if categoria == 'TOTAIS' %}text-primary{% endif %}">
+                                    <small class="fw-bold" id="valor-total-{{ categoria|slugify }}-{{ ano }}">{{ dados.valor_total|default:0|formato_monetario }}</small>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="mb-5"></div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<script>
+// Função para atualizar valor unitário na tabela por ano
+function atualizarValorUnitario(input) {
+    const categoria = input.getAttribute('data-categoria');
+    const ano = input.getAttribute('data-ano');
+    const novoValor = parseFloat(input.value) || 0;
+    
+    // Encontrar a linha da tabela
+    const row = input.closest('tr');
+    
+    // Buscar o saldo final na mesma linha
+    const saldoFinalCell = row.querySelector('td:nth-child(9)'); // 9ª coluna (Saldo Final)
+    const saldoFinal = parseFloat(saldoFinalCell ? saldoFinalCell.textContent : 0) || 0;
+    
+    // Calcular novo valor total
+    const valorTotal = novoValor * saldoFinal;
+    
+    // Atualizar o valor total usando o ID específico
+    const categoriaSlug = categoria.toLowerCase().replace(/\s+/g, '-');
+    const valorTotalId = `valor-total-${categoriaSlug}-${ano}`;
+    const valorTotalElement = document.getElementById(valorTotalId);
+    
+    if (valorTotalElement) {
+        valorTotalElement.textContent = `R$ ${valorTotal.toFixed(2).replace('.', ',')}`;
+    } else {
+        // Fallback: atualizar pela célula
+        const valorTotalCell = row.querySelector('td:nth-child(12)');
+        if (valorTotalCell) {
+            valorTotalCell.innerHTML = `<small class="fw-bold">R$ ${valorTotal.toFixed(2).replace('.', ',')}</small>`;
+        }
+    }
+}
+</script>

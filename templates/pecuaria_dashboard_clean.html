@@ -1,0 +1,185 @@
+{% extends "base_clean.html" %}
+{% load formatacao_br %}
+
+{% block title %}Gestão Pecuária - Sistema Monpec{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div class="d-flex justify-content-between align-items-start">
+        <div>
+            <h1 class="page-title">Gestão Pecuária</h1>
+            <p class="page-subtitle">{{ propriedade.nome }} - {{ propriedade.municipio }}/{{ propriedade.estado }}</p>
+        </div>
+        <a href="{% url 'propriedades_lista' produtor.id %}" class="btn-secondary-custom">
+            Voltar
+        </a>
+    </div>
+</div>
+
+<!-- Estatísticas Principais -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-value">{{ total_animais|formatar_numero|default:"0" }}</div>
+            <div class="stat-label">Total de Animais</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-value">{{ total_propriedades|formatar_numero|default:"1" }}</div>
+            <div class="stat-label">Propriedades</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-value" style="font-size: 1.75rem;">{{ receita_mes|formatar_moeda|default:"R$ 0,00" }}</div>
+            <div class="stat-label">Receita Mensal</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-value">{{ margem|default:"0" }}%</div>
+            <div class="stat-label">Margem de Lucro</div>
+        </div>
+    </div>
+</div>
+
+<!-- Menu de Módulos -->
+<div class="cards-grid">
+    <!-- Inventário -->
+    <a href="{% url 'pecuaria_inventario' propriedade.id %}" class="text-decoration-none">
+        <div class="card-clean">
+            <h3 class="card-title">Inventário de Rebanho</h3>
+            <p class="card-description">
+                Cadastre e gerencie o inventário completo de animais por propriedade e categoria
+            </p>
+            <div class="mt-3">
+                <span class="btn-secondary-custom" style="padding: 0.5rem 1rem; font-size: 13px;">
+                    Acessar Módulo
+                </span>
+            </div>
+        </div>
+    </a>
+    
+    <!-- Projeções -->
+    <a href="{% url 'pecuaria_projecao' propriedade.id %}" class="text-decoration-none">
+        <div class="card-clean">
+            <h3 class="card-title">Projeções e Cenários</h3>
+            <p class="card-description">
+                Visualize projeções de crescimento, receitas e evolução do rebanho para 5 anos
+            </p>
+            <div class="mt-3">
+                <span class="btn-secondary-custom" style="padding: 0.5rem 1rem; font-size: 13px;">
+                    Acessar Módulo
+                </span>
+            </div>
+        </div>
+    </a>
+    
+    <!-- Parâmetros -->
+    <a href="{% url 'pecuaria_parametros' propriedade.id %}" class="text-decoration-none">
+        <div class="card-clean">
+            <h3 class="card-title">Parâmetros e Movimentações</h3>
+            <p class="card-description">
+                Configure parâmetros e registre nascimentos, compras, vendas e transferências
+            </p>
+            <div class="mt-3">
+                <span class="btn-secondary-custom" style="padding: 0.5rem 1rem; font-size: 13px;">
+                    Acessar Módulo
+                </span>
+            </div>
+        </div>
+    </a>
+    
+    <!-- Parâmetros Avançados -->
+    <a href="{% url 'pecuaria_parametros_avancados' propriedade.id %}" class="text-decoration-none">
+        <div class="card-clean">
+            <h3 class="card-title">Parâmetros Avançados</h3>
+            <p class="card-description">
+                Configuração detalhada de taxas, custos e parâmetros do sistema
+            </p>
+            <div class="mt-3">
+                <span class="btn-secondary-custom" style="padding: 0.5rem 1rem; font-size: 13px;">
+                    Acessar Módulo
+                </span>
+            </div>
+        </div>
+    </a>
+    
+    <!-- Categorias -->
+    <a href="{% url 'categorias_lista' %}" class="text-decoration-none">
+        <div class="card-clean">
+            <h3 class="card-title">Categorias de Animais</h3>
+            <p class="card-description">
+                Gerencie as categorias de animais utilizadas no sistema
+            </p>
+            <div class="mt-3">
+                <span class="btn-secondary-custom" style="padding: 0.5rem 1rem; font-size: 13px;">
+                    Acessar Módulo
+                </span>
+            </div>
+        </div>
+    </a>
+    
+    <!-- Relatórios -->
+    <a href="{% url 'relatorio_final' propriedade.id %}" class="text-decoration-none">
+        <div class="card-clean">
+            <h3 class="card-title">Relatório Final</h3>
+            <p class="card-description">
+                Gere relatórios completos em PDF com todas as informações da propriedade
+            </p>
+            <div class="mt-3">
+                <span class="btn-accent" style="padding: 0.5rem 1rem; font-size: 13px;">
+                    Gerar Relatório
+                </span>
+            </div>
+        </div>
+    </a>
+</div>
+
+<!-- Atividade Recente -->
+<div class="page-header mt-5">
+    <h2 style="font-size: 1.75rem; margin-bottom: var(--spacing-lg);">Atividade Recente</h2>
+    
+    <div class="table-clean">
+        <table class="table mb-0">
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Atividade</th>
+                    <th>Descrição</th>
+                    <th class="text-end">Valor</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td style="font-weight: 500;">24/10/2025</td>
+                    <td><span class="badge-custom badge-navy">Nascimento</span></td>
+                    <td>45 nascimentos registrados - Fazenda Santa Rita</td>
+                    <td class="text-end" style="font-weight: 600;">-</td>
+                </tr>
+                <tr>
+                    <td style="font-weight: 500;">23/10/2025</td>
+                    <td><span class="badge-custom badge-brown">Venda</span></td>
+                    <td>Venda de 30 Bois Magros - Margem: 22,5%</td>
+                    <td class="text-end" style="font-weight: 600; color: var(--earth-brown);">R$ 135.000,00</td>
+                </tr>
+                <tr>
+                    <td style="font-weight: 500;">22/10/2025</td>
+                    <td><span class="badge-custom badge-gray">Transferência</span></td>
+                    <td>20 novilhas de Santa Rita para São José</td>
+                    <td class="text-end" style="font-weight: 600;">-</td>
+                </tr>
+                <tr>
+                    <td style="font-weight: 500;">21/10/2025</td>
+                    <td><span class="badge-custom badge-navy">Compra</span></td>
+                    <td>50 garrotes - Oportunidade detectada pela IA</td>
+                    <td class="text-end" style="font-weight: 600;">R$ 225.000,00</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+

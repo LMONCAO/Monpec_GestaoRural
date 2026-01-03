@@ -1,0 +1,87 @@
+{% extends "base_modulos_unificado.html" %}
+
+{% block title %}Consumo de Combustível - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'operacoes_dashboard' propriedade.id %}">Operações</a></li>
+            <li class="breadcrumb-item active">Registrar Consumo</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="bi bi-fuel-pump me-2"></i>Novo Consumo de Combustível</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" class="row g-3">
+                        {% csrf_token %}
+                        <div class="col-md-6">
+                            <label class="form-label">Tanque *</label>
+                            <select name="tanque" class="form-select" required>
+                                <option value="">Selecione...</option>
+                                {% for tanque in tanques %}
+                                <option value="{{ tanque.id }}">{{ tanque.nome }} - Estoque: {{ tanque.estoque_atual }} L</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Data *</label>
+                            <input type="date" name="data" class="form-control" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Quantidade (L) *</label>
+                            <input type="number" step="0.01" name="quantidade_litros" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Valor Unitário (R$)</label>
+                            <input type="number" step="0.01" name="valor_unitario" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Tipo de equipamento</label>
+                            <input type="text" name="tipo_equipamento" class="form-control" placeholder="Trator, caminhonete, gerador...">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Identificação</label>
+                            <input type="text" name="identificacao" class="form-control" placeholder="Placa, patrimônio, operador">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Finalidade</label>
+                            <input type="text" name="finalidade" class="form-control" placeholder="Plantio, manejo, transporte...">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Observações</label>
+                            <textarea name="observacoes" rows="3" class="form-control" placeholder="Informações adicionais"></textarea>
+                        </div>
+                        <div class="col-12 d-flex gap-2">
+                            <button type="submit" class="btn btn-warning text-dark"><i class="bi bi-check-circle me-1"></i>Salvar</button>
+                            <a href="{% url 'operacoes_dashboard' propriedade.id %}" class="btn btn-outline-secondary">Cancelar</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Controle e auditoria</h6>
+                </div>
+                <div class="card-body small text-muted">
+                    <ul class="mb-0">
+                        <li>Registre consumo por equipamento para medir eficiência operacional.</li>
+                        <li>Informe finalidade e responsável para auditorias ambientais.</li>
+                        <li>Estoques são atualizados automaticamente após o lançamento.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

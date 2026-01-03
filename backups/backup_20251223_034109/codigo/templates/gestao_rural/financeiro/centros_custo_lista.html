@@ -1,0 +1,87 @@
+{% extends 'base_modulos_unificado.html' %}
+
+{% block title %}Centros de Custo - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block breadcrumb_extra %}
+    <li class="breadcrumb-item">
+        <a href="{% url 'financeiro_dashboard' propriedade.id %}">
+            <i class="bi bi-cash-coin me-1"></i>Financeiro
+        </a>
+    </li>
+    <li class="breadcrumb-item active">Centros de Custo</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="submenu-page-header">
+        <div class="d-flex align-items-start gap-4">
+            <div class="submenu-page-icon bg-primary bg-opacity-10 text-primary">
+                <i class="bi bi-diagram-3"></i>
+            </div>
+            <div class="flex-grow-1">
+                <h1 class="submenu-page-title mb-1">Centros de Custo</h1>
+                <p class="submenu-page-description mb-0">
+                    Estruture os custos e resultados por setores operacionais, administrativos ou investimentos.
+                </p>
+            </div>
+            <div>
+                <a href="{{ url_novo }}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-1"></i> Novo Centro de Custo
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="card-moderno">
+        <div class="card-body-moderno">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Tipo</th>
+                            <th>Descrição</th>
+                            <th>Status</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if centros %}
+                            {% for centro in centros %}
+                                <tr>
+                                    <td><strong>{{ centro.nome }}</strong></td>
+                                    <td>{{ centro.get_tipo_display }}</td>
+                                    <td class="text-muted">{{ centro.descricao|default:"-" }}</td>
+                                    <td>
+                                        {% if centro.ativo %}
+                                            <span class="badge bg-success">Ativo</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Inativo</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        <a href="{% url 'financeiro_centro_custo_editar' propriedade.id centro.id %}" class="btn btn-outline-secondary btn-sm">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4">
+                                    <p class="text-muted mb-0">Nenhum centro de custo cadastrado.</p>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+
+

@@ -1,0 +1,335 @@
+{% extends 'base_modulos_unificado.html' %}
+{% load static %}
+{% load formato_numeros %}
+{% load formatacao_br %}
+
+{% block title %}Relatório de Inventário - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- Cabeçalho do Relatório -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2><i class="bi bi-clipboard-data"></i> Relatório de Inventário do Rebanho</h2>
+                    <p class="text-muted mb-0">Propriedade: {{ propriedade.nome_propriedade }}</p>
+                    <p class="text-muted mb-0">Data do Relatório: {{ data_relatorio|date:"d/m/Y" }}</p>
+                </div>
+                <div>
+                    <a href="{% url 'relatorios_dashboard' propriedade.id %}" class="btn btn-secondary me-2">
+                        <i class="bi bi-arrow-left"></i> Voltar
+                    </a>
+                    <a href="{% url 'exportar_relatorio_inventario_pdf' propriedade.id %}" class="btn btn-danger me-2">
+                        <i class="bi bi-file-pdf"></i> PDF
+                    </a>
+                    <a href="{% url 'exportar_relatorio_inventario_excel' propriedade.id %}" class="btn btn-success me-2">
+                        <i class="bi bi-file-excel"></i> Excel
+                    </a>
+                    <button class="btn btn-primary" onclick="window.print()">
+                        <i class="bi bi-printer"></i> Imprimir
+                    </button>
+                </div>
+            </div>
+
+            <!-- Resumo Executivo -->
+            <div class="row mb-4">
+                <div class="col-md-6 mb-3">
+                    <div class="card border-primary">
+                        <div class="card-body text-center py-3">
+                            <i class="bi bi-clipboard-data fs-3 text-primary"></i>
+                            <h6 class="mt-2 mb-1 small">Total de Animais</h6>
+                            <h4 class="text-primary mb-0">{{ total_animais|default:0 }}</h4>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <div class="card border-success">
+                        <div class="card-body text-center py-3">
+                            <i class="bi bi-cash-stack fs-3 text-success"></i>
+                            <h6 class="mt-2 mb-1 small">Valor Total do Rebanho</h6>
+                            <h4 class="text-success mb-0">R$ {{ valor_total_rebanho|default:0|floatformat:2 }}</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Inventário por Categoria -->
+            {% if inventario_por_categoria %}
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card border-info">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0">
+                                <i class="bi bi-list-ul"></i> Inventário por Categoria
+                            </h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover mb-0">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>Categoria</th>
+                                            <th class="text-center">Quantidade</th>
+                                            <th class="text-center">Valor Unitário</th>
+                                            <th class="text-center">Valor Total</th>
+                                            <th class="text-center">% do Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for categoria, dados in inventario_por_categoria.items %}
+                                        <tr>
+                                            <td>
+                                                <strong>{{ categoria }}</strong>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge bg-primary">{{ dados.quantidade }}</span>
+                                            </td>
+                                            <td class="text-center">
+                                                {% if dados.quantidade > 0 %}
+                                                    R$ {{ dados.valor_total|div:dados.quantidade|floatformat:2 }}
+                                                {% else %}
+                                                    R$ 0,00
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-center">
+                                                <strong>R$ {{ dados.valor_total|floatformat:2 }}</strong>
+                                            </td>
+                                            <td class="text-center">
+                                                {% if valor_total_rebanho > 0 %}
+                                                    {{ dados.valor_total|div:valor_total_rebanho|mul:100|floatformat:1 }}%
+                                                {% else %}
+                                                    0,0%
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                    <tfoot class="table-dark">
+                                        <tr>
+                                            <th>TOTAL GERAL</th>
+                                            <th class="text-center">{{ total_animais|default:0 }}</th>
+                                            <th class="text-center">
+                                                {% if total_animais > 0 %}
+                                                    R$ {{ valor_total_rebanho|div:total_animais|floatformat:2 }}
+                                                {% else %}
+                                                    R$ 0,00
+                                                {% endif %}
+                                            </th>
+                                            <th class="text-center">R$ {{ valor_total_rebanho|default:0|floatformat:2 }}</th>
+                                            <th class="text-center">100,0%</th>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Detalhamento por Item -->
+            {% if inventario %}
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card border-secondary">
+                        <div class="card-header bg-secondary text-white">
+                            <h5 class="mb-0">
+                                <i class="bi bi-list-check"></i> Detalhamento Completo
+                            </h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover mb-0">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>Categoria</th>
+                                            <th class="text-center">Quantidade</th>
+                                            <th class="text-center">Valor por Cabeça</th>
+                                            <th class="text-center">Valor Total</th>
+                                            <th class="text-center">Observações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for item in inventario %}
+                                        <tr>
+                                            <td>{{ item.categoria.nome }}</td>
+                                            <td class="text-center">{{ item.quantidade }}</td>
+                                            <td class="text-center">
+                                                {% if item.valor_por_cabeca %}
+                                                    R$ {{ item.valor_por_cabeca|floatformat:2 }}
+                                                {% else %}
+                                                    R$ 0,00
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-center">
+                                                {% if item.valor_total %}
+                                                    R$ {{ item.valor_total|floatformat:2 }}
+                                                {% else %}
+                                                    R$ 0,00
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-center">
+                                                {% if item.observacoes %}
+                                                    <small class="text-muted">{{ item.observacoes }}</small>
+                                                {% else %}
+                                                    <small class="text-muted">-</small>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Gráfico de Distribuição -->
+            {% if inventario_por_categoria %}
+            <div class="row mb-4">
+                <div class="col-md-6 mb-3">
+                    <div class="card border-warning">
+                        <div class="card-header bg-warning text-dark">
+                            <h6 class="mb-0">
+                                <i class="bi bi-pie-chart"></i> Distribuição por Quantidade
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="chartQuantidade" width="400" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <div class="card border-success">
+                        <div class="card-header bg-success text-white">
+                            <h6 class="mb-0">
+                                <i class="bi bi-bar-chart"></i> Distribuição por Valor
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="chartValor" width="400" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Observações e Notas -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card border-info">
+                        <div class="card-header bg-info text-white">
+                            <h6 class="mb-0">
+                                <i class="bi bi-info-circle"></i> Informações do Relatório
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6>Metodologia:</h6>
+                                    <ul class="small mb-0">
+                                        <li>Inventário baseado nos dados cadastrados no sistema</li>
+                                        <li>Valores calculados por categoria de animal</li>
+                                        <li>Data de referência: {{ data_relatorio|date:"d/m/Y" }}</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Observações:</h6>
+                                    <ul class="small mb-0">
+                                        <li>Valores podem variar conforme mercado</li>
+                                        <li>Atualize regularmente os preços por categoria</li>
+                                        <li>Considere sazonalidade nos valores</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts para Gráficos -->
+{% if inventario_por_categoria %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Dados para os gráficos
+    const categorias = {{ inventario_por_categoria.keys|safe }};
+    const quantidades = {{ inventario_por_categoria.values|safe }};
+    const valores = {{ inventario_por_categoria.values|safe }};
+    
+    // Gráfico de Quantidade (Pizza)
+    const ctxQuantidade = document.getElementById('chartQuantidade').getContext('2d');
+    new Chart(ctxQuantidade, {
+        type: 'pie',
+        data: {
+            labels: Object.keys({{ inventario_por_categoria|safe }}),
+            datasets: [{
+                data: Object.values({{ inventario_por_categoria|safe }}).map(item => item.quantidade),
+                backgroundColor: [
+                    '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+    
+    // Gráfico de Valor (Barras)
+    const ctxValor = document.getElementById('chartValor').getContext('2d');
+    new Chart(ctxValor, {
+        type: 'bar',
+        data: {
+            labels: Object.keys({{ inventario_por_categoria|safe }}),
+            datasets: [{
+                label: 'Valor (R$)',
+                data: Object.values({{ inventario_por_categoria|safe }}).map(item => item.valor_total),
+                backgroundColor: '#28a745'
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return 'R$ ' + value.toLocaleString('pt-BR');
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endif %}
+
+<style>
+@media print {
+    .btn, .card-header {
+        display: none !important;
+    }
+    .card {
+        border: 1px solid #000 !important;
+        page-break-inside: avoid;
+    }
+    .table {
+        font-size: 12px;
+    }
+}
+</style>
+{% endblock %}

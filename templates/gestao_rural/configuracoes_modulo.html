@@ -1,0 +1,604 @@
+{% extends 'base_modulos_unificado.html' %}
+
+{% load static %}
+
+{% block title %}{{ titulo }} - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block breadcrumb_extra %}
+    <li class="breadcrumb-item">
+        <a href="{% url 'dashboard' %}">
+            <i class="bi bi-house me-1"></i>Dashboard
+        </a>
+    </li>
+    <li class="breadcrumb-item">
+        <a href="{% url 'propriedade_modulos' propriedade.id %}">
+            <i class="bi bi-grid me-1"></i>Módulos
+        </a>
+    </li>
+    <li class="breadcrumb-item active">
+        <i class="bi {{ config_modulo.icone }} me-1"></i>{{ config_modulo.nome }} - Configurações
+    </li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Cabeçalho -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">
+                <i class="bi {{ config_modulo.icone }} me-2"></i>
+                Configurações - {{ config_modulo.nome }}
+            </h2>
+            <p class="text-muted mb-0">
+                Gerencie todos os cadastros necessários para o módulo {{ config_modulo.nome }}
+            </p>
+        </div>
+        <div>
+            <a href="{% url 'propriedade_modulos' propriedade.id %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Voltar aos Módulos
+            </a>
+        </div>
+    </div>
+
+    <!-- Sistema de Abas -->
+    <div class="card-moderno">
+        <div class="card-body-moderno">
+            <!-- Navegação por Abas -->
+            <ul class="nav nav-tabs mb-4" id="configTabs" role="tablist">
+                {% for cadastro in cadastros %}
+                <li class="nav-item" role="presentation">
+                    <button 
+                        class="nav-link {% if forloop.first %}active{% endif %}" 
+                        id="tab-{{ cadastro.id }}" 
+                        data-bs-toggle="tab" 
+                        data-bs-target="#pane-{{ cadastro.id }}" 
+                        type="button" 
+                        role="tab"
+                        aria-controls="pane-{{ cadastro.id }}"
+                        aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
+                        <i class="bi {{ cadastro.icone }} me-2"></i>
+                        {{ cadastro.nome }}
+                        {% if cadastro.total_registros is not None %}
+                            <span class="badge bg-secondary ms-2">{{ cadastro.total_registros }}</span>
+                        {% endif %}
+                    </button>
+                </li>
+                {% endfor %}
+            </ul>
+
+            <!-- Conteúdo das Abas -->
+            <div class="tab-content" id="configTabContent">
+                {% for cadastro in cadastros %}
+                <div 
+                    class="tab-pane fade {% if forloop.first %}show active{% endif %}" 
+                    id="pane-{{ cadastro.id }}" 
+                    role="tabpanel" 
+                    aria-labelledby="tab-{{ cadastro.id }}">
+                    
+                    <div class="row">
+                        <!-- Informações do Cadastro -->
+                        <div class="col-12 mb-3">
+                            <div class="alert alert-info d-flex align-items-center">
+                                <i class="bi bi-info-circle me-2 fs-5"></i>
+                                <div>
+                                    <strong>{{ cadastro.nome }}</strong>
+                                    <p class="mb-0 small">{{ cadastro.descricao }}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Ações Rápidas -->
+                        <div class="col-12 mb-3">
+                            <div class="d-flex gap-2 flex-wrap">
+                                {% if cadastro.url_lista %}
+                                <a href="{% url cadastro.url_lista propriedade.id %}" 
+                                   class="btn btn-primary">
+                                    <i class="bi bi-list-ul me-1"></i>
+                                    Ver Lista Completa
+                                </a>
+                                {% endif %}
+                                
+                                {% if cadastro.url_novo %}
+                                <a href="{% url cadastro.url_novo propriedade.id %}" 
+                                   class="btn btn-success">
+                                    <i class="bi bi-plus-circle me-1"></i>
+                                    Novo Registro
+                                </a>
+                                {% endif %}
+                                
+                                <button 
+                                    type="button" 
+                                    class="btn btn-outline-primary"
+                                    onclick="carregarCadastro('{{ cadastro.id }}')">
+                                    <i class="bi bi-arrow-clockwise me-1"></i>
+                                    Atualizar
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Lista de Registros (Carregada via AJAX) -->
+                        <div class="col-12">
+                            <div id="lista-{{ cadastro.id }}" class="table-responsive">
+                                <div class="text-center py-5">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Carregando...</span>
+                                    </div>
+                                    <p class="mt-2 text-muted">Carregando registros...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Ações Rápidas (se necessário no futuro) -->
+<div class="modal fade" id="modalAcaoRapida" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Ação Rápida</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="modalAcaoRapidaBody">
+                <!-- Conteúdo dinâmico -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .nav-tabs .nav-link {
+        color: #6c757d;
+        border: none;
+        border-bottom: 2px solid transparent;
+        padding: 0.75rem 1.25rem;
+        transition: all 0.3s;
+    }
+    
+    .nav-tabs .nav-link:hover {
+        border-bottom-color: #dee2e6;
+        color: #495057;
+    }
+    
+    .nav-tabs .nav-link.active {
+        color: #0d6efd;
+        border-bottom-color: #0d6efd;
+        background-color: transparent;
+    }
+    
+    .card-moderno {
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        background: white;
+    }
+    
+    .card-body-moderno {
+        padding: 2rem;
+    }
+    
+    .badge {
+        font-size: 0.75rem;
+    }
+</style>
+
+<script>
+    // ============================================================================
+    // UTILITÁRIOS
+    // ============================================================================
+    
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+    
+    function mostrarMensagem(mensagem, tipo = 'info') {
+        const toast = document.createElement('div');
+        toast.className = `alert alert-${tipo} alert-dismissible fade show position-fixed`;
+        toast.style.top = '20px';
+        toast.style.right = '20px';
+        toast.style.zIndex = '9999';
+        toast.style.minWidth = '300px';
+        toast.innerHTML = `
+            ${mensagem}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.remove();
+        }, 5000);
+    }
+    
+    function tratarErroHTTP(response) {
+        if (!response.ok) {
+            if (response.status === 403) {
+                throw new Error('Sem permissão para esta ação');
+            } else if (response.status === 404) {
+                throw new Error('Recurso não encontrado');
+            } else if (response.status === 400) {
+                throw new Error('Dados inválidos');
+            } else if (response.status >= 500) {
+                throw new Error('Erro no servidor. Tente novamente mais tarde.');
+            }
+            throw new Error(`Erro ${response.status}: ${response.statusText}`);
+        }
+        return response;
+    }
+    
+    // ============================================================================
+    // CARREGAMENTO DE DADOS
+    // ============================================================================
+    
+    function carregarCadastro(cadastroId, page = 1) {
+        const listaDiv = document.getElementById(`lista-${cadastroId}`);
+        const modulo = '{{ modulo }}';
+        const propriedadeId = {{ propriedade.id }};
+        
+        // Mostrar loading
+        listaDiv.innerHTML = `
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Carregando...</span>
+                </div>
+                <p class="mt-2 text-muted">Carregando registros...</p>
+            </div>
+        `;
+        
+        // Fazer requisição AJAX com paginação
+        const url = `/propriedade/${propriedadeId}/configuracoes/${modulo}/${cadastroId}/ajax/?page=${page}`;
+        
+        fetch(url)
+            .then(tratarErroHTTP)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    renderizarLista(listaDiv, data, cadastroId);
+                } else {
+                    listaDiv.innerHTML = `
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            ${data.error || 'Erro ao carregar dados'}
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Erro ao carregar cadastro:', error);
+                listaDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="bi bi-x-circle me-2"></i>
+                        ${error.message || 'Erro ao carregar dados. Tente novamente.'}
+                    </div>
+                `;
+            });
+    }
+    
+    // Renderizar lista de registros com paginação
+    function renderizarLista(container, data, cadastroId) {
+        const registros = data.registros || [];
+        
+        if (registros.length === 0) {
+            container.innerHTML = `
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Nenhum registro encontrado. Use o botão "Novo Registro" para criar o primeiro.
+                </div>
+            `;
+            return;
+        }
+        
+        let html = `
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <span class="text-muted">Total: <strong>${data.total || 0}</strong> registros</span>
+                </div>
+                ${data.pages > 1 ? `
+                <nav>
+                    <ul class="pagination pagination-sm mb-0">
+                        <li class="page-item ${!data.has_prev ? 'disabled' : ''}">
+                            <a class="page-link" href="#" onclick="carregarCadastro('${cadastroId}', ${data.page - 1}); return false;">
+                                <i class="bi bi-chevron-left"></i>
+                            </a>
+                        </li>
+                        <li class="page-item active">
+                            <span class="page-link">Página ${data.page} de ${data.pages}</span>
+                        </li>
+                        <li class="page-item ${!data.has_next ? 'disabled' : ''}">
+                            <a class="page-link" href="#" onclick="carregarCadastro('${cadastroId}', ${data.page + 1}); return false;">
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+                ` : ''}
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nome</th>
+                            <th>Status</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+        
+        registros.forEach(reg => {
+            html += `
+                <tr id="row-${reg.id}">
+                    <td>#${reg.id}</td>
+                    <td class="editable-nome" data-id="${reg.id}" data-cadastro="${cadastroId}">
+                        ${reg.nome}
+                    </td>
+                    <td>
+                        ${reg.ativo 
+                            ? '<span class="badge bg-success">Ativo</span>' 
+                            : '<span class="badge bg-secondary">Inativo</span>'}
+                    </td>
+                    <td>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-primary" onclick="editarRegistro(${reg.id}, '${cadastroId}')" title="Editar">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn btn-outline-danger" onclick="excluirRegistro(${reg.id}, '${cadastroId}')" title="Excluir">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+        
+        html += `
+                    </tbody>
+                </table>
+            </div>
+        `;
+        
+        container.innerHTML = html;
+        
+        // Adicionar eventos de edição inline
+        container.querySelectorAll('.editable-nome').forEach(cell => {
+            cell.style.cursor = 'pointer';
+            cell.title = 'Clique para editar';
+            cell.addEventListener('click', function(e) {
+                if (e.target.tagName !== 'INPUT') {
+                    editarInline(this);
+                }
+            });
+        });
+    }
+    
+    // Carregar dados quando a aba for ativada
+    document.addEventListener('DOMContentLoaded', function() {
+        // Carregar primeira aba
+        const primeiraAba = document.querySelector('#configTabs .nav-link.active');
+        if (primeiraAba) {
+            const cadastroId = primeiraAba.getAttribute('data-bs-target').replace('#pane-', '');
+            carregarCadastro(cadastroId);
+        }
+        
+        // Carregar quando trocar de aba
+        const tabButtons = document.querySelectorAll('#configTabs .nav-link');
+        tabButtons.forEach(button => {
+            button.addEventListener('shown.bs.tab', function(e) {
+                const cadastroId = e.target.getAttribute('data-bs-target').replace('#pane-', '');
+                const listaDiv = document.getElementById(`lista-${cadastroId}`);
+                if (listaDiv && listaDiv.innerHTML.includes('Carregando registros')) {
+                    carregarCadastro(cadastroId);
+                }
+            });
+        });
+    });
+    
+    function editarRegistro(id, cadastroId) {
+        const modulo = '{{ modulo }}';
+        const propriedadeId = {{ propriedade.id }};
+        
+        // Mapear cadastros para suas URLs de edição
+        const cadastrosConfig = {
+            'categorias': {
+                url: `/propriedade/${propriedadeId}/financeiro/categorias/${id}/editar/`
+            },
+            'centros_custo': {
+                url: `/propriedade/${propriedadeId}/financeiro/centros-custo/${id}/editar/`
+            },
+            'contas_financeiras': {
+                url: `/propriedade/${propriedadeId}/financeiro/contas/${id}/editar/`
+            },
+            'setores': {
+                url: `/propriedade/${propriedadeId}/compras/setores/${id}/editar/`
+            },
+            'parametros_categoria': {
+                url: `/propriedade/${propriedadeId}/vendas/parametros-categoria/${id}/editar/`
+            },
+            'categorias_animais': {
+                url: `/categorias/${id}/editar/`
+            }
+        };
+        
+        const config = cadastrosConfig[cadastroId];
+        if (config && config.url) {
+            window.location.href = config.url;
+        } else {
+            // Se não tiver URL específica, usar edição inline
+            const cell = document.querySelector(`.editable-nome[data-id="${id}"]`);
+            if (cell) {
+                editarInline(cell);
+            } else {
+                mostrarMensagem('Edição não disponível para este cadastro', 'info');
+            }
+        }
+    }
+    
+    function editarInline(cell) {
+        const id = cell.dataset.id;
+        const cadastroId = cell.dataset.cadastro;
+        const nomeAtual = cell.textContent.trim();
+        
+        // Criar input inline
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'form-control form-control-sm';
+        input.value = nomeAtual;
+        input.style.width = '100%';
+        input.style.minWidth = '200px';
+        
+        const nomeOriginal = nomeAtual;
+        const cellOriginal = cell.cloneNode(true);
+        
+        cell.innerHTML = '';
+        cell.appendChild(input);
+        input.focus();
+        input.select();
+        
+        // Salvar com debounce
+        const salvarDebounced = debounce(() => {
+            if (input.value.trim() !== nomeOriginal) {
+                salvarEdicaoInline(id, cadastroId, input.value.trim(), cell);
+            } else {
+                cell.innerHTML = nomeOriginal;
+            }
+        }, 500);
+        
+        // Salvar ao pressionar Enter
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                salvarDebounced();
+            } else if (e.key === 'Escape') {
+                cell.innerHTML = nomeOriginal;
+            }
+        });
+        
+        // Salvar ao perder foco (com debounce)
+        input.addEventListener('blur', function() {
+            salvarDebounced();
+        });
+    }
+    
+    function salvarEdicaoInline(id, cadastroId, novoNome, cell) {
+        if (!novoNome) {
+            mostrarMensagem('Nome não pode estar vazio', 'warning');
+            return;
+        }
+        
+        const modulo = '{{ modulo }}';
+        const propriedadeId = {{ propriedade.id }};
+        
+        // Mostrar loading
+        cell.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Salvando...';
+        
+        // Fazer requisição para salvar
+        fetch(`/propriedade/${propriedadeId}/configuracoes/${modulo}/${cadastroId}/${id}/editar-inline/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                nome: novoNome
+            })
+        })
+        .then(tratarErroHTTP)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                cell.textContent = novoNome;
+                mostrarMensagem('Registro atualizado com sucesso!', 'success');
+            } else {
+                cell.textContent = data.nome || novoNome;
+                mostrarMensagem(data.error || 'Erro ao salvar', 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao salvar:', error);
+            cell.textContent = novoNome;
+            mostrarMensagem(error.message || 'Erro ao salvar. Tente novamente.', 'danger');
+        });
+    }
+    
+    
+    function excluirRegistro(id, cadastroId) {
+        if (!confirm('Tem certeza que deseja excluir este registro?\n\nEsta ação não pode ser desfeita.')) {
+            return;
+        }
+        
+        const modulo = '{{ modulo }}';
+        const propriedadeId = {{ propriedade.id }};
+        const linha = document.getElementById(`row-${id}`);
+        
+        if (!linha) {
+            mostrarMensagem('Registro não encontrado', 'warning');
+            return;
+        }
+        
+        // Mostrar loading
+        linha.style.opacity = '0.5';
+        linha.style.pointerEvents = 'none';
+        
+        fetch(`/propriedade/${propriedadeId}/configuracoes/${modulo}/${cadastroId}/${id}/excluir/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(tratarErroHTTP)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                linha.style.transition = 'opacity 0.3s';
+                linha.style.opacity = '0';
+                setTimeout(() => {
+                    linha.remove();
+                    mostrarMensagem(data.mensagem || 'Registro excluído com sucesso!', 'success');
+                    // Recarregar lista para atualizar contador
+                    const currentPage = 1; // Poderia manter página atual
+                    carregarCadastro(cadastroId, currentPage);
+                }, 300);
+            } else {
+                linha.style.opacity = '1';
+                linha.style.pointerEvents = 'auto';
+                mostrarMensagem(data.error || 'Erro ao excluir', 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao excluir:', error);
+            linha.style.opacity = '1';
+            linha.style.pointerEvents = 'auto';
+            mostrarMensagem(error.message || 'Erro ao excluir. Tente novamente.', 'danger');
+        });
+    }
+</script>
+{% endblock %}
+

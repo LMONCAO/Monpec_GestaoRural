@@ -1,0 +1,312 @@
+{% extends 'base_modulos_unificado.html' %}
+{% load static %}
+{% load formatacao_br %}
+
+{% block title %}Imobilizado - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block breadcrumb_extra %}
+    <li class="breadcrumb-item active">
+        <i class="bi bi-building"></i>
+        Bens e Patrimônio
+    </li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header da Página -->
+    <div class="submenu-page-header">
+        <div class="d-flex align-items-start gap-4">
+            <div class="submenu-page-icon">
+                <i class="bi bi-building"></i>
+            </div>
+            <div class="flex-grow-1">
+                <h1 class="submenu-page-title">Bens e Patrimônio</h1>
+                <p class="submenu-page-description">
+                    Gerencie o patrimônio imobilizado da propriedade {{ propriedade.nome_propriedade }} com cálculo automático de depreciação.
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-12">
+
+            <!-- Resumo Executivo -->
+            <div class="row mb-4">
+                <div class="col-md-3 mb-3">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body text-center p-3">
+                            <div class="bg-primary bg-opacity-10 rounded-circle p-3 mx-auto mb-2" style="width: 60px; height: 60px;">
+                                <i class="bi bi-cash-stack text-primary fs-4"></i>
+                            </div>
+                            <h6 class="text-dark mb-1">Valor Total dos Bens</h6>
+                            <h4 class="text-primary mb-0">{{ valor_total_bens|moeda_br }}</h4>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3 mb-3">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body text-center p-3">
+                            <div class="bg-warning bg-opacity-10 rounded-circle p-3 mx-auto mb-2" style="width: 60px; height: 60px;">
+                                <i class="bi bi-graph-down text-warning fs-4"></i>
+                            </div>
+                            <h6 class="text-dark mb-1">Valor Depreciado</h6>
+                            <h4 class="text-warning mb-0">{{ valor_depreciado|moeda_br }}</h4>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3 mb-3">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body text-center p-3">
+                            <div class="bg-success bg-opacity-10 rounded-circle p-3 mx-auto mb-2" style="width: 60px; height: 60px;">
+                                <i class="bi bi-graph-up text-success fs-4"></i>
+                            </div>
+                            <h6 class="text-dark mb-1">Valor Residual</h6>
+                            <h4 class="text-success mb-0">{{ valor_residual|moeda_br }}</h4>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-3 mb-3">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body text-center p-3">
+                            <div class="bg-info bg-opacity-10 rounded-circle p-3 mx-auto mb-2" style="width: 60px; height: 60px;">
+                                <i class="bi bi-exclamation-triangle text-info fs-4"></i>
+                            </div>
+                            <h6 class="text-dark mb-1">Bens Vencendo</h6>
+                            <h4 class="text-info mb-0">{{ bens_vencendo|numero_br:0 }}</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ações Principais -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body p-4">
+                            <h5 class="text-dark mb-3">
+                                <i class="bi bi-tools me-2 text-primary"></i>
+                                Ações Principais
+                            </h5>
+                            <div class="row">
+                                <div class="col-md-3 mb-2">
+                                    <a href="{% url 'bem_novo' propriedade.id %}" class="btn btn-primary btn-sm w-100">
+                                        <i class="bi bi-plus"></i> Novo Bem
+                                    </a>
+                                </div>
+                                <div class="col-md-3 mb-2">
+                                    <a href="{% url 'bens_lista' propriedade.id %}" class="btn btn-info btn-sm w-100">
+                                        <i class="bi bi-list"></i> Ver Todos
+                                    </a>
+                                </div>
+                                <div class="col-md-3 mb-2">
+                                    <a href="{% url 'calcular_depreciacao_automatica' propriedade.id %}" class="btn btn-warning btn-sm w-100">
+                                        <i class="bi bi-calculator"></i> Calcular Depreciação
+                                    </a>
+                                </div>
+                                <div class="col-md-3 mb-2">
+                                    <a href="{% url 'relatorio_imobilizado' propriedade.id %}" class="btn btn-success btn-sm w-100">
+                                        <i class="bi bi-file-earmark-text"></i> Relatório
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bens por Categoria -->
+            {% if bens_por_categoria %}
+            <div class="row mb-4">
+                {% for categoria_key, dados in bens_por_categoria.items %}
+                <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body p-4">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="bg-secondary bg-opacity-10 rounded-circle p-2 me-3">
+                                    <i class="bi bi-building text-secondary"></i>
+                                </div>
+                                <h5 class="text-dark mb-0">{{ dados.nome }}</h5>
+                            </div>
+                            <div class="row">
+                                <div class="col-6">
+                                    <p class="text-muted small mb-1">Quantidade</p>
+                                    <h6 class="text-dark">{{ dados.quantidade|numero_br:0 }}</h6>
+                                </div>
+                                <div class="col-6">
+                                    <p class="text-muted small mb-1">Valor Total</p>
+                                    <h6 class="text-dark">{{ dados.valor_total|moeda_br }}</h6>
+                                </div>
+                                <div class="col-6">
+                                    <p class="text-muted small mb-1">Depreciado</p>
+                                    <h6 class="text-warning">{{ dados.valor_depreciado|moeda_br }}</h6>
+                                </div>
+                                <div class="col-6">
+                                    <p class="text-muted small mb-1">Residual</p>
+                                    <h6 class="text-success">{{ dados.valor_total|add:dados.valor_depreciado|moeda_br }}</h6>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Bens Recentes -->
+            {% if bens %}
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-clock-history"></i> Bens Recentes
+                    </h5>
+                </div>
+                <div class="card-body py-3">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Categoria</th>
+                                    <th>Valor Aquisição</th>
+                                    <th>Valor Depreciado</th>
+                                    <th>Valor Residual</th>
+                                    <th>Data Aquisição</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for bem in bens|slice:":10" %}
+                                <tr>
+                                    <td>
+                                        <i class="bi bi-building"></i> {{ bem.descricao }}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ bem.tipo_bem.categoria }}</span>
+                                    </td>
+                                    <td>
+                                        <strong>R$ {{ bem.valor_aquisicao|floatformat:2 }}</strong>
+                                    </td>
+                                    <td>
+                                        <span class="text-warning">R$ {{ bem.depreciacao_acumulada|floatformat:2 }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="text-success">R$ {{ bem.valor_atual|floatformat:2 }}</span>
+                                    </td>
+                                    <td>
+                                        {{ bem.data_aquisicao|date:"d/m/Y" }}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{% url 'bem_editar' propriedade.id bem.id %}" class="btn btn-outline-primary">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <a href="{% url 'bem_excluir' propriedade.id bem.id %}" class="btn btn-outline-danger">
+                                                <i class="bi bi-trash"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle"></i>
+                <strong>Nenhum bem cadastrado!</strong>
+                Comece adicionando um novo bem para gerenciar o imobilizado da propriedade.
+            </div>
+            {% endif %}
+
+            <!-- Informações sobre Depreciação -->
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <div class="card border-info">
+                        <div class="card-header bg-info text-white">
+                            <h6 class="mb-0">
+                                <i class="bi bi-info-circle"></i> Sobre Depreciação
+                            </h6>
+                        </div>
+                        <div class="card-body py-3">
+                            <ul class="small mb-0">
+                                <li><strong>Depreciação Linear:</strong> Valor distribuído uniformemente ao longo da vida útil</li>
+                                <li><strong>Vida Útil:</strong> Período estimado de uso econômico do bem</li>
+                                <li><strong>Valor Residual:</strong> Valor restante após depreciação</li>
+                                <li><strong>Cálculo Automático:</strong> Baseado no tempo decorrido</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <div class="card border-warning">
+                        <div class="card-header bg-warning text-dark">
+                            <h6 class="mb-0">
+                                <i class="bi bi-lightbulb"></i> Dicas
+                            </h6>
+                        </div>
+                        <div class="card-body py-3">
+                            <ul class="small mb-0">
+                                <li>Calcule a depreciação periodicamente</li>
+                                <li>Mantenha dados atualizados</li>
+                                <li>Considere a vida útil real dos bens</li>
+                                <li>Monitore bens próximos ao vencimento</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1) !important;
+}
+
+.btn {
+    transition: all 0.2s ease-in-out;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+}
+
+.bg-opacity-10 {
+    background-color: rgba(var(--bs-primary-rgb), 0.1) !important;
+}
+
+.bg-primary.bg-opacity-10 {
+    background-color: rgba(13, 110, 253, 0.1) !important;
+}
+
+.bg-success.bg-opacity-10 {
+    background-color: rgba(25, 135, 84, 0.1) !important;
+}
+
+.bg-warning.bg-opacity-10 {
+    background-color: rgba(255, 193, 7, 0.1) !important;
+}
+
+.bg-info.bg-opacity-10 {
+    background-color: rgba(13, 202, 240, 0.1) !important;
+}
+
+.bg-secondary.bg-opacity-10 {
+    background-color: rgba(108, 117, 125, 0.1) !important;
+}
+</style>
+{% endblock %}
+

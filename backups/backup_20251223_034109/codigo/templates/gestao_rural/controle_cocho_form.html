@@ -1,0 +1,103 @@
+{% extends "base_modulos_unificado.html" %}
+
+{% block title %}Controle de Cocho - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="breadcrumb-inteligente mb-3">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'propriedade_modulos' propriedade.id %}">Módulos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'nutricao_dashboard' propriedade.id %}">Nutrição</a></li>
+            <li class="breadcrumb-item active">Controle de Cocho</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="bi bi-bucket me-2"></i>Novo Registro de Cocho</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" class="row g-3">
+                        {% csrf_token %}
+                        <div class="col-md-6">
+                            <label class="form-label">Cocho *</label>
+                            <select name="cocho" class="form-select" required>
+                                <option value="">Selecione...</option>
+                                {% for cocho in cochos %}
+                                <option value="{{ cocho.id }}">{{ cocho.nome }} - {{ cocho.pastagem.nome|default:"Sem pastagem" }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Data *</label>
+                            <input type="date" name="data" class="form-control" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Hora</label>
+                            <input type="time" name="hora" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Quantidade abastecida *</label>
+                            <div class="input-group">
+                                <input type="number" step="0.01" name="quantidade_abastecida" class="form-control" required>
+                                <span class="input-group-text">kg</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Quantidade restante</label>
+                            <div class="input-group">
+                                <input type="number" step="0.01" name="quantidade_restante" class="form-control">
+                                <span class="input-group-text">kg</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Número de animais</label>
+                            <input type="number" name="numero_animais" class="form-control" placeholder="Informe se aplicável">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Valor unitário (R$)</label>
+                            <input type="number" step="0.01" name="valor_unitario" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Condição do cocho</label>
+                            <select name="condicao_cocho" class="form-select">
+                                <option value="">Selecione...</option>
+                                <option value="LIMPO">Limpo</option>
+                                <option value="SUJO">Sujo</option>
+                                <option value="SECO">Seco</option>
+                                <option value="COM_AGUA">Com água</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Observações</label>
+                            <textarea name="observacoes" rows="3" class="form-control" placeholder="Notas sobre consumo, comportamento, clima etc."></textarea>
+                        </div>
+                        <div class="col-12 d-flex gap-2">
+                            <button type="submit" class="btn btn-secondary"><i class="bi bi-check-circle me-1"></i>Salvar</button>
+                            <a href="{% url 'nutricao_dashboard' propriedade.id %}" class="btn btn-outline-secondary">Cancelar</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Orientações</h6>
+                </div>
+                <div class="card-body small text-muted">
+                    <ul class="mb-0">
+                        <li>Mantenha registros diários para acompanhar consumo e sobras.</li>
+                        <li>Classifique a condição do cocho para facilitar inspeções sanitárias.</li>
+                        <li>Atualize os estoques após grandes distribuições.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
