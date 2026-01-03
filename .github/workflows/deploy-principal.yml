@@ -157,7 +157,18 @@ jobs:
           echo "🚀 Iniciando deploy no Cloud Run..."
           CLOUD_SQL_CONN="${{ env.PROJECT_ID }}:${{ env.REGION }}:${{ env.DB_INSTANCE }}"
           echo "Cloud SQL Connection: $CLOUD_SQL_CONN"
+          echo "Imagem: ${{ env.IMAGE_TAG }}"
           
+          # Verificar se a imagem existe antes de fazer deploy
+          echo "Verificando se a imagem existe..."
+          if ! gcloud container images describe ${{ env.IMAGE_TAG }} &>/dev/null; then
+            echo "❌ ERRO: Imagem ${{ env.IMAGE_TAG }} não encontrada!"
+            echo "O build pode ter falhado. Verifique os builds anteriores."
+            exit 1
+          fi
+          echo "✅ Imagem encontrada"
+          
+          echo "Fazendo deploy..."
           gcloud run deploy ${{ env.SERVICE_NAME }} \
             --image ${{ env.IMAGE_TAG }} \
             --region=${{ env.REGION }} \
