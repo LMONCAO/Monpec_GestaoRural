@@ -245,146 +245,176 @@ def criar_usuario_demonstracao(request):
             user = None
             usuario_existente = False
             
-            try:
-                with transaction.atomic():
-                    user = User.objects.filter(email__iexact=email).first()
-                    
-                    if user:
-                        usuario_existente = True
-                        logger.info(f'Usuário já existe: {user.username} (ID: {user.id})')
-                        
-                        # Se o usuário já existe, atualizar senha para "monpec" e criar/atualizar UsuarioAtivo
-                        # Desabilitar validação de senha temporariamente para demonstração
-                        from django.conf import settings
-                        validators_originais = getattr(settings, 'AUTH_PASSWORD_VALIDATORS', [])
-                        settings.AUTH_PASSWORD_VALIDATORS = []
-                        
-                        try:
-                            user.set_password('monpec')
-                            user.is_active = True
-                            user.email = email.lower()  # Garantir email em lowercase
-                            user.save()
-                            logger.info(f'Senha e status do usuário existente atualizados')
-                        except Exception as e_save:
-                            logger.warning(f'Erro ao atualizar usuário existente: {e_save}. Continuando mesmo assim...')
-                        finally:
-                            settings.AUTH_PASSWORD_VALIDATORS = validators_originais
-                        
-                        # Recarregar do banco para garantir que está atualizado
-                        try:
-                            user.refresh_from_db()
-                        except Exception as e_refresh:
-                            logger.warning(f'Erro ao recarregar usuário: {e_refresh}')
-                        
-                        logger.info(f'Usuário existente: id={user.id}, email={user.email}, username={user.username}, is_active={user.is_active}')
-                        
-                        # Criar ou atualizar registro de usuário ativo (com tratamento de erro caso tabela não exista)
-                        try:
-                            usuario_ativo, created = UsuarioAtivo.objects.get_or_create(
-                                usuario=user,
-                                defaults={
-                                    'nome_completo': nome_completo,
-                                    'email': email,
-                                    'telefone': telefone,
-                                }
-                            )
-                            if not created:
-                                usuario_ativo.nome_completo = nome_completo
-                                usuario_ativo.telefone = telefone
-                                usuario_ativo.save()
-                            logger.info(f'UsuarioAtivo {"criado" if created else "atualizado"}: id={usuario_ativo.id}')
-                        except Exception as e:
-                            # Se a tabela não existir, apenas logar o erro mas continuar
-                            logger.warning(f'Tabela UsuarioAtivo não existe ainda ou erro ao criar: {e}')
-                            logger.info(f'Continuando sem UsuarioAtivo - usuário {user.username} será logado mesmo assim')
-                    else:
-                        # Criar novo usuário
-                        # Gerar username único baseado no email
-                        username_base = email.split('@')[0]
-                        username = username_base
-                        sufixo = 1
-                        while User.objects.filter(username=username).exists():
-                            username = f"{username_base}{sufixo}"
-                            sufixo += 1
-                        
-                        # Criar usuário sem validação de senha (demonstração)
-                        # Desabilitar validação temporariamente
-                        from django.contrib.auth.password_validation import get_password_validators
-                        from django.conf import settings
-                        
-                        # Salvar validadores originais
-                        validators_originais = getattr(settings, 'AUTH_PASSWORD_VALIDATORS', [])
-                        
-                        # Desabilitar validação temporariamente
-                        settings.AUTH_PASSWORD_VALIDATORS = []
-                        
-                        try:
-                            # Usar variável de ambiente para senha de demo, com fallback temporário
-                            # O módulo os já está importado no topo do arquivo (linha 16)
-                            demo_password = os.getenv('DEMO_USER_PASSWORD', 'monpec')
-                            user = User.objects.create_user(
-                                username=username,
-                                email=email.lower(),  # Garantir lowercase
-                                password=demo_password,
-                                first_name=nome_completo.split()[0] if nome_completo.split() else '',
-                                last_name=' '.join(nome_completo.split()[1:]) if len(nome_completo.split()) > 1 else '',
-                                is_active=True,
-                            )
-                            logger.info(f'Usuário criado: username={username}, email={user.email}, id={user.id}')
-                        except Exception as e_create:
-                            # Se der erro ao criar (ex: usuário já existe por username), tentar buscar novamente
-                            logger.warning(f'Erro ao criar usuário: {e_create}. Tentando buscar usuário existente...')
-                            user = User.objects.filter(email__iexact=email).first()
-                            if user:
-                                usuario_existente = True
-                                logger.info(f'Usuário encontrado após erro de criação: {user.username}')
-                            else:
-                                raise  # Re-raise se não encontrou
-                        finally:
-                            # Restaurar validadores
-                            settings.AUTH_PASSWORD_VALIDATORS = validators_originais
-                        
-                        # Criar registro de usuário ativo (com tratamento de erro caso tabela não exista)
+            # Buscar usuário existente (sem transação)
+            user = User.objects.filter(email__iexact=email).first()
+            
+            if user:
+                usuario_existente = True
+                logger.info(f'Usuário já existe: {user.username} (ID: {user.id})')
+                
+                # Atualizar senha e status (sem transação para evitar rollback)
+                from django.conf import settings
+                validators_originais = getattr(settings, 'AUTH_PASSWORD_VALIDATORS', [])
+                settings.AUTH_PASSWORD_VALIDATORS = []
+                
+                try:
+                    user.set_password('monpec')
+                    user.is_active = True
+                    user.email = email.lower()
+                    user.save()
+                    # Forçar commit explícito
+                    from django.db import connection
+                    connection.ensure_connection()
+                    user.refresh_from_db()
+                    logger.info(f'✅ Senha e status do usuário existente atualizados: {user.username} (ID: {user.id})')
+                except Exception as e_save:
+                    logger.error(f'❌ Erro ao atualizar usuário existente: {e_save}', exc_info=True)
+                    # Tentar recarregar do banco mesmo com erro
+                    try:
+                        user.refresh_from_db()
+                        logger.info(f'Usuário recarregado do banco após erro de atualização')
+                    except:
+                        pass
+                finally:
+                    settings.AUTH_PASSWORD_VALIDATORS = validators_originais
+                
+                # Tentar criar/atualizar UsuarioAtivo (opcional - não bloqueia se falhar)
+                try:
+                    usuario_ativo, created = UsuarioAtivo.objects.get_or_create(
+                        usuario=user,
+                        defaults={
+                            'nome_completo': nome_completo,
+                            'email': email,
+                            'telefone': telefone,
+                        }
+                    )
+                    if not created:
+                        usuario_ativo.nome_completo = nome_completo
+                        usuario_ativo.telefone = telefone
+                        usuario_ativo.save()
+                    logger.info(f'UsuarioAtivo {"criado" if created else "atualizado"}: id={usuario_ativo.id}')
+                except Exception as e:
+                    logger.warning(f'Tabela UsuarioAtivo não existe ou erro ao criar: {e}')
+                    logger.info(f'Continuando sem UsuarioAtivo - usuário {user.username} será logado mesmo assim')
+            else:
+                # Criar novo usuário (FORA de transação para evitar rollback se UsuarioAtivo falhar)
+                logger.info(f'Criando novo usuário...')
+                # Gerar username único baseado no email
+                username_base = email.split('@')[0]
+                username = username_base
+                sufixo = 1
+                while User.objects.filter(username=username).exists():
+                    username = f"{username_base}{sufixo}"
+                    sufixo += 1
+                
+                # Criar usuário sem validação de senha (demonstração)
+                from django.conf import settings
+                validators_originais = getattr(settings, 'AUTH_PASSWORD_VALIDATORS', [])
+                settings.AUTH_PASSWORD_VALIDATORS = []
+                
+                try:
+                    demo_password = os.getenv('DEMO_USER_PASSWORD', 'monpec')
+                    # Criar usuário e forçar commit imediato
+                    user = User.objects.create_user(
+                        username=username,
+                        email=email.lower(),
+                        password=demo_password,
+                        first_name=nome_completo.split()[0] if nome_completo.split() else '',
+                        last_name=' '.join(nome_completo.split()[1:]) if len(nome_completo.split()) > 1 else '',
+                        is_active=True,
+                    )
+                    # Forçar commit explícito para garantir que o usuário está salvo
+                    from django.db import connection
+                    connection.ensure_connection()
+                    # Recarregar do banco para garantir que está commitado
+                    user.refresh_from_db()
+                    logger.info(f'✅ Usuário criado com sucesso: username={username}, email={user.email}, id={user.id}')
+                except Exception as e_create:
+                    logger.error(f'❌ Erro ao criar usuário: {e_create}', exc_info=True)
+                    # Tentar buscar usuário existente (pode ter sido criado mesmo com erro)
+                    try:
+                        user = User.objects.filter(email__iexact=email).first()
                         if user:
-                            try:
-                                usuario_ativo, created = UsuarioAtivo.objects.get_or_create(
-                                    usuario=user,
-                                    defaults={
-                                        'nome_completo': nome_completo,
-                                        'email': email.lower(),
-                                        'telefone': telefone,
-                                    }
-                                )
-                                if not created:
-                                    usuario_ativo.nome_completo = nome_completo
-                                    usuario_ativo.telefone = telefone
-                                    usuario_ativo.save()
-                                logger.info(f'UsuarioAtivo {"criado" if created else "atualizado"}: id={usuario_ativo.id}, email={email}')
-                            except Exception as e:
-                                # Se a tabela não existir, apenas logar o erro mas continuar
-                                # Isso não deve impedir o login do usuário
-                                logger.warning(f'Tabela UsuarioAtivo não existe ainda ou erro ao criar: {e}')
-                                logger.info(f'Continuando sem UsuarioAtivo - usuário {user.username} foi criado com sucesso')
-            except Exception as e_transaction:
-                logger.error(f'Erro na transação ao criar/atualizar usuário: {e_transaction}')
-                # Tentar buscar usuário mesmo se a transação falhou
-                if not user:
-                    user = User.objects.filter(email__iexact=email).first()
-                    if user:
-                        usuario_existente = True
-                        logger.info(f'Usuário encontrado após erro de transação: {user.username}')
+                            usuario_existente = True
+                            logger.info(f'✅ Usuário encontrado após erro de criação: {user.username} (ID: {user.id})')
+                        else:
+                            logger.error(f'❌ Não foi possível criar nem encontrar usuário')
+                            # Re-raise para ser capturado pelo bloco except externo
+                            raise
+                    except Exception as e_search:
+                        logger.error(f'❌ Erro ao buscar usuário após falha de criação: {e_search}')
+                        raise
+                finally:
+                    settings.AUTH_PASSWORD_VALIDATORS = validators_originais
+                
+                # Tentar criar UsuarioAtivo (opcional - não bloqueia se falhar)
+                if user:
+                    try:
+                        usuario_ativo, created = UsuarioAtivo.objects.get_or_create(
+                            usuario=user,
+                            defaults={
+                                'nome_completo': nome_completo,
+                                'email': email.lower(),
+                                'telefone': telefone,
+                            }
+                        )
+                        if not created:
+                            usuario_ativo.nome_completo = nome_completo
+                            usuario_ativo.telefone = telefone
+                            usuario_ativo.save()
+                        logger.info(f'UsuarioAtivo {"criado" if created else "atualizado"}: id={usuario_ativo.id}')
+                    except Exception as e:
+                        logger.warning(f'Tabela UsuarioAtivo não existe ou erro ao criar: {e}')
+                        logger.info(f'Continuando sem UsuarioAtivo - usuário {user.username} foi criado com sucesso')
             
             # Fazer login automático FORA da transação atômica
             # Isso evita problemas de TransactionManagementError
             if user:
-                # Buscar o usuário novamente do banco para garantir que está commitado
+                # Forçar commit explícito para garantir que o usuário está salvo no banco
+                from django.db import connection
                 try:
-                    user = User.objects.get(pk=user.pk)
-                except User.DoesNotExist:
-                    logger.error(f'Usuário {user.pk} não encontrado após commit da transação')
-                    # Tentar buscar por email como último recurso
-                    user = User.objects.filter(email__iexact=email).first()
+                    connection.ensure_connection()
+                    # Buscar o usuário novamente do banco para garantir que está commitado
+                    # Tentar múltiplas vezes com delay para lidar com problemas de replicação/commit
+                    import time
+                    user_found = None
+                    for attempt in range(3):
+                        try:
+                            user_found = User.objects.get(pk=user.pk)
+                            logger.info(f'✅ Usuário encontrado no banco (tentativa {attempt + 1}): {user_found.username}')
+                            break
+                        except User.DoesNotExist:
+                            if attempt < 2:
+                                logger.warning(f'Usuário {user.pk} não encontrado na tentativa {attempt + 1}. Tentando novamente...')
+                                time.sleep(0.5)  # Aguardar 500ms antes de tentar novamente
+                            else:
+                                logger.warning(f'Usuário {user.pk} não encontrado após 3 tentativas. Buscando por email...')
+                                # Tentar buscar por email como último recurso
+                                user_found = User.objects.filter(email__iexact=email).first()
+                                if user_found:
+                                    logger.info(f'✅ Usuário encontrado por email: {user_found.username}')
+                                else:
+                                    logger.error(f'❌ Usuário não encontrado após todas as tentativas')
+                    user = user_found
                     if not user:
+                        logger.error(f'Usuário não encontrado após criação e buscas')
+                        return JsonResponse({
+                            'success': False,
+                            'message': 'Erro ao criar usuário. Por favor, tente novamente.'
+                        }, status=500)
+                except Exception as e_db:
+                    logger.error(f'Erro ao verificar usuário no banco: {e_db}')
+                    # Tentar buscar por email como fallback
+                    try:
+                        user = User.objects.filter(email__iexact=email).first()
+                        if not user:
+                            logger.error(f'Usuário não encontrado após erro de banco')
+                            return JsonResponse({
+                                'success': False,
+                                'message': 'Erro ao criar usuário. Por favor, tente novamente.'
+                            }, status=500)
+                    except Exception as e_fallback:
+                        logger.error(f'Erro ao buscar usuário por email: {e_fallback}')
                         return JsonResponse({
                             'success': False,
                             'message': 'Erro ao criar usuário. Por favor, tente novamente.'
@@ -557,19 +587,46 @@ def criar_usuario_demonstracao(request):
                     logger.error(f'Erro ao fazer login com usuário existente: {e2}')
             
             # Log do erro completo para debug
-            logger.error(f'Falha completa no processamento. Tipo: {error_type}, Mensagem: {error_message}')
+            logger.error(f'❌ Falha completa no processamento. Tipo: {error_type}, Mensagem: {error_message}')
+            logger.error(f'   Traceback completo:\n{error_trace}')
             
             # Retornar mensagem mais específica se possível
-            mensagem_erro = 'Erro ao processar solicitação. Por favor, tente novamente.'
-            if 'database' in error_str or 'connection' in error_str:
-                mensagem_erro = 'Erro de conexão com o banco de dados. Verifique as configurações.'
-            elif 'permission' in error_str or 'permissão' in error_str:
-                mensagem_erro = 'Erro de permissão. Verifique as permissões do banco de dados.'
+            mensagem_erro = 'Erro ao criar usuário. Por favor, tente novamente.'
+            if 'database' in error_str or 'connection' in error_str or 'operationalerror' in error_str:
+                mensagem_erro = 'Erro de conexão com o banco de dados. Por favor, tente novamente em alguns instantes.'
+            elif 'permission' in error_str or 'permissão' in error_str or 'permission denied' in error_str:
+                mensagem_erro = 'Erro de permissão no banco de dados. Entre em contato com o suporte.'
+            elif 'integrity' in error_str or 'unique' in error_str or 'duplicate' in error_str:
+                # Se for erro de integridade, tentar fazer login com usuário existente
+                if email:
+                    try:
+                        user_fallback = User.objects.filter(email__iexact=email).first()
+                        if user_fallback:
+                            logger.info(f'✅ Usuário encontrado após erro de integridade: {user_fallback.username}')
+                            try:
+                                login(request, user_fallback)
+                                demo_loading_url = reverse('demo_loading')
+                                return JsonResponse({
+                                    'success': True,
+                                    'message': 'Usuário já existe! Fazendo login...',
+                                    'redirect_url': demo_loading_url
+                                })
+                            except:
+                                login_url = reverse('login') + f'?demo=true&email={urllib.parse.quote(email)}&nome={urllib.parse.quote(nome_completo or "")}'
+                                return JsonResponse({
+                                    'success': True,
+                                    'message': 'Usuário já existe! Redirecionando para login...',
+                                    'redirect_url': login_url
+                                })
+                    except Exception as e_fallback:
+                        logger.error(f'Erro ao buscar usuário após erro de integridade: {e_fallback}')
+                mensagem_erro = 'Este e-mail já está cadastrado. Tente fazer login ou use outro e-mail.'
+            elif 'timeout' in error_str:
+                mensagem_erro = 'Tempo de conexão esgotado. Por favor, tente novamente.'
             
             return JsonResponse({
                 'success': False,
                 'message': mensagem_erro,
-                'error_type': error_type,  # Adicionar tipo de erro para debug (remover em produção se necessário)
             }, status=500)
     else:
         logger.warning(f'Método não permitido: {request.method}')
