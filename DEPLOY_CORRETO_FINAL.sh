@@ -7,15 +7,18 @@ set -e  # Parar em caso de erro
 # ==========================================
 # CONFIGURAÇÕES
 # ==========================================
-PROJECT_ID="monpec-sistema-rural"
-SERVICE_NAME="monpec"
-REGION="us-central1"
-DB_INSTANCE="monpec-db"
-DB_NAME="monpec_db"
-DB_USER="monpec_user"
-DB_PASSWORD="L6171r12@@jjms"
-SECRET_KEY="django-insecure-monpec-sistema-rural-2025-producao-segura-L6171r12@@-YrJOs823th_HB2BP6Uz9A0NVvzL0Fif-t-Rfub5BXgVtE0LxXIWEPQIFqYvI8UNiZKE"
-DJANGO_SUPERUSER_PASSWORD="L6171r12@@"
+PROJECT_ID="${PROJECT_ID:-monpec-sistema-rural}"
+SERVICE_NAME="${SERVICE_NAME:-monpec}"
+REGION="${REGION:-us-central1}"
+DB_INSTANCE="${DB_INSTANCE:-monpec-db}"
+DB_NAME="${DB_NAME:-monpec_db}"
+DB_USER="${DB_USER:-monpec_user}"
+
+# ⚠️ NUNCA deixe segredos hardcoded neste arquivo.
+# Defina via variáveis de ambiente (ou use GitHub Secrets/Secret Manager).
+DB_PASSWORD="${DB_PASSWORD:-}"
+SECRET_KEY="${SECRET_KEY:-}"
+DJANGO_SUPERUSER_PASSWORD="${DJANGO_SUPERUSER_PASSWORD:-}"
 
 # Cores
 GREEN='\033[0;32m'
@@ -29,6 +32,18 @@ echo -e "${CYAN}========================================${NC}"
 echo -e "${CYAN}  DEPLOY CORRETO - MONPEC${NC}"
 echo -e "${CYAN}========================================${NC}"
 echo ""
+
+# Validar segredos (evita deploy "quebrado" por falta de env)
+if [ -z "$DB_PASSWORD" ] || [ -z "$SECRET_KEY" ] || [ -z "$DJANGO_SUPERUSER_PASSWORD" ]; then
+    echo -e "${RED}❌ ERRO: Segredos não definidos no ambiente!${NC}"
+    echo "Defina antes de rodar:"
+    echo "  export DB_PASSWORD='...'"
+    echo "  export SECRET_KEY='...'"
+    echo "  export DJANGO_SUPERUSER_PASSWORD='...'"
+    echo ""
+    echo "Dica: use o bootstrap em deploy/gcp/bootstrap_gcp.sh para gerar e configurar automaticamente."
+    exit 1
+fi
 
 # ==========================================
 # VALIDAÇÕES INICIAIS

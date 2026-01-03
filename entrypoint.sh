@@ -13,7 +13,11 @@ python manage.py collectstatic --noinput || echo "⚠️ Aviso: Erro ao coletar 
 
 # Criar superusuário se não existir
 echo "👤 Verificando superusuário..."
-python create_superuser.py
+if [ -n "${DJANGO_SUPERUSER_PASSWORD:-}" ]; then
+  python manage.py garantir_admin --senha "${DJANGO_SUPERUSER_PASSWORD}" || echo "⚠️ Aviso: Não foi possível garantir admin"
+else
+  echo "⚠️ Aviso: DJANGO_SUPERUSER_PASSWORD não definido; pulando criação/garantia de admin"
+fi
 
 # Iniciar servidor
 echo "🌐 Iniciando servidor Gunicorn..."
