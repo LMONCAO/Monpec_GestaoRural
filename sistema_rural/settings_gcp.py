@@ -25,7 +25,7 @@ ALLOWED_HOSTS = [
     '127.0.0.1',
 ]
 
-# Adicionar hosts do Cloud Run
+# Adicionar hosts do Cloud Run dinamicamente
 # Cloud Run URLs têm formato: SERVICE-PROJECT_HASH-REGION.a.run.app
 if IS_CLOUD_RUN:
     # Obter host do Cloud Run via variável de ambiente
@@ -50,6 +50,14 @@ if IS_CLOUD_RUN:
             ALLOWED_HOSTS.append(default_cloud_run_host1)
         if default_cloud_run_host2 not in ALLOWED_HOSTS:
             ALLOWED_HOSTS.append(default_cloud_run_host2)
+    
+    # Em produção no Cloud Run, permitir qualquer host do Cloud Run
+    # O middleware CloudRunHostMiddleware vai adicionar dinamicamente se necessário
+    # Mas adicionar alguns formatos comuns para garantir
+    if not DEBUG:
+        # Adicionar formato genérico (será validado pelo middleware)
+        # O middleware vai permitir qualquer host que termine com .run.app ou .a.run.app
+        pass
 
 # Configuração CSRF
 CSRF_TRUSTED_ORIGINS = [
@@ -79,46 +87,126 @@ if IS_CLOUD_RUN:
             CSRF_TRUSTED_ORIGINS.append(default_cloud_run_url1)
         if default_cloud_run_url2 not in CSRF_TRUSTED_ORIGINS:
             CSRF_TRUSTED_ORIGINS.append(default_cloud_run_url2)
+    
+    # O middleware CloudRunHostMiddleware vai adicionar dinamicamente
+    # as origens do Cloud Run conforme necessário
 
 # Banco de dados - Cloud SQL via Unix Socket (App Engine/Cloud Run/Cloud Run Jobs)
+import logging
+logger = logging.getLogger(__name__)
+
 CLOUD_SQL_CONNECTION_NAME = os.getenv('CLOUD_SQL_CONNECTION_NAME', '')
+DB_NAME = os.getenv('DB_NAME', 'monpec_db')
+DB_USER = os.getenv('DB_USER', 'monpec_user')
+DB_PASSWORD = os.getenv('DB_PASSWORD', '')
+DB_HOST = os.getenv('DB_HOST', '')
+DB_PORT = os.getenv('DB_PORT', '5432')
+
+# Log de diagnóstico (sem expor senha)
+logger.info(f"🔍 Diagnóstico de Banco de Dados:")
+logger.info(f"   IS_GAE: {IS_GAE}")
+logger.info(f"   IS_CLOUD_RUN: {IS_CLOUD_RUN}")
+logger.info(f"   CLOUD_SQL_CONNECTION_NAME: {CLOUD_SQL_CONNECTION_NAME[:50] if CLOUD_SQL_CONNECTION_NAME else 'NÃO DEFINIDO'}")
+logger.info(f"   DB_NAME: {DB_NAME}")
+logger.info(f"   DB_USER: {DB_USER}")
+logger.info(f"   DB_PASSWORD: {'DEFINIDO' if DB_PASSWORD else 'NÃO DEFINIDO'}")
+logger.info(f"   DB_HOST: {DB_HOST if DB_HOST else 'NÃO DEFINIDO (usando Unix Socket)'}")
+
+# Configurar banco de dados
 if IS_GAE or IS_CLOUD_RUN or CLOUD_SQL_CONNECTION_NAME:
-    # Cloud SQL via Unix Socket (se CLOUD_SQL_CONNECTION_NAME estiver definido)
+    # Cloud SQL via Unix Socket (recomendado para Cloud Run/App Engine)
     if CLOUD_SQL_CONNECTION_NAME:
-        DATABASES = {
-            'default': {
-                'ENGINE': 'django.db.backends.postgresql',
-                'NAME': os.getenv('DB_NAME', 'monpec_db'),
-                'USER': os.getenv('DB_USER', 'monpec_user'),
-                'PASSWORD': os.getenv('DB_PASSWORD', ''),
-                'HOST': f'/cloudsql/{CLOUD_SQL_CONNECTION_NAME}',
-                'PORT': '',
+        # Validar formato do connection name (deve ser: PROJECT:REGION:INSTANCE)
+        if ':' in CLOUD_SQL_CONNECTION_NAME and CLOUD_SQL_CONNECTION_NAME.count(':') == 2:
+            DATABASES = {
+                'default': {
+                    'ENGINE': 'django.db.backends.postgresql',
+                    'NAME': DB_NAME,
+                    'USER': DB_USER,
+                    'PASSWORD': DB_PASSWORD,
+                    'HOST': f'/cloudsql/{CLOUD_SQL_CONNECTION_NAME}',
+                    'PORT': '',
+                    'OPTIONS': {
+                        'connect_timeout': 10,
+                        'options': '-c statement_timeout=300000',  # 5 minutos (300 segundos) - aumentado para migrações complexas
+                    },
+                    'CONN_MAX_AGE': 600,  # Reutilizar conexões por até 10 minutos
+                }
             }
-        }
+            logger.info(f"✅ Configurado: Cloud SQL via Unix Socket: /cloudsql/{CLOUD_SQL_CONNECTION_NAME}")
+        else:
+            logger.error(f"❌ ERRO: CLOUD_SQL_CONNECTION_NAME formato inválido! Esperado: PROJECT:REGION:INSTANCE")
+            logger.error(f"   Recebido: {CLOUD_SQL_CONNECTION_NAME}")
+            # Fallback para conexão TCP/IP se formato estiver errado
+            if DB_HOST:
+                DATABASES = {
+                    'default': {
+                        'ENGINE': 'django.db.backends.postgresql',
+                        'NAME': DB_NAME,
+                        'USER': DB_USER,
+                        'PASSWORD': DB_PASSWORD,
+                        'HOST': DB_HOST,
+                        'PORT': DB_PORT,
+                        'OPTIONS': {
+                            'connect_timeout': 10,
+                        },
+                        'CONN_MAX_AGE': 600,
+                    }
+                }
+                logger.warning(f"⚠️ Usando fallback: Conexão TCP/IP para {DB_HOST}:{DB_PORT}")
+            else:
+                raise ValueError(
+                    f"CLOUD_SQL_CONNECTION_NAME inválido e DB_HOST não definido. "
+                    f"Formato esperado: PROJECT:REGION:INSTANCE"
+                )
     else:
-        # Fallback para configuração padrão
-        DATABASES = {
-            'default': {
-                'ENGINE': 'django.db.backends.postgresql',
-                'NAME': os.getenv('DB_NAME', 'monpec_db'),
-                'USER': os.getenv('DB_USER', 'monpec_user'),
-                'PASSWORD': os.getenv('DB_PASSWORD', ''),
-                'HOST': os.getenv('DB_HOST', '127.0.0.1'),
-                'PORT': os.getenv('DB_PORT', '5432'),
+        # Fallback: tentar conexão TCP/IP se CLOUD_SQL_CONNECTION_NAME não estiver definido
+        if DB_HOST:
+            DATABASES = {
+                'default': {
+                    'ENGINE': 'django.db.backends.postgresql',
+                    'NAME': DB_NAME,
+                    'USER': DB_USER,
+                    'PASSWORD': DB_PASSWORD,
+                    'HOST': DB_HOST,
+                    'PORT': DB_PORT,
+                    'OPTIONS': {
+                        'connect_timeout': 10,
+                    },
+                    'CONN_MAX_AGE': 600,
+                }
             }
-        }
+            logger.warning(f"⚠️ CLOUD_SQL_CONNECTION_NAME não definido, usando TCP/IP: {DB_HOST}:{DB_PORT}")
+        else:
+            logger.error("❌ ERRO: CLOUD_SQL_CONNECTION_NAME não definido e DB_HOST também não está definido!")
+            raise ValueError(
+                "Para Cloud Run/App Engine, defina CLOUD_SQL_CONNECTION_NAME no formato: PROJECT:REGION:INSTANCE"
+            )
 else:
-    # Cloud SQL via IP (Compute Engine ou local)
+    # Cloud SQL via IP (Compute Engine ou desenvolvimento local)
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.getenv('DB_NAME', 'monpec_db'),
-            'USER': os.getenv('DB_USER', 'monpec_user'),
-            'PASSWORD': os.getenv('DB_PASSWORD', ''),
-            'HOST': os.getenv('DB_HOST', '127.0.0.1'),
-            'PORT': os.getenv('DB_PORT', '5432'),
+            'NAME': DB_NAME,
+            'USER': DB_USER,
+            'PASSWORD': DB_PASSWORD,
+            'HOST': DB_HOST if DB_HOST else '127.0.0.1',
+            'PORT': DB_PORT,
+            'OPTIONS': {
+                'connect_timeout': 10,
+            },
+            'CONN_MAX_AGE': 600,
         }
     }
+    logger.info(f"✅ Configurado: Conexão TCP/IP para {DB_HOST if DB_HOST else '127.0.0.1'}:{DB_PORT}")
+
+# Validação final: verificar se todas as variáveis necessárias estão definidas
+if not DB_NAME:
+    raise ValueError("DB_NAME não está definido!")
+if not DB_USER:
+    raise ValueError("DB_USER não está definido!")
+if not DB_PASSWORD:
+    logger.warning("⚠️ DB_PASSWORD não está definido! A conexão pode falhar.")
 
 # Configurações de segurança
 SECURE_SSL_REDIRECT = True
@@ -172,10 +260,31 @@ else:
     # WhiteNoise por padrão serve arquivos até 2GB, o que é suficiente para vídeos
     
     # Configurações do WhiteNoise para garantir que imagens sejam servidas corretamente
-    WHITENOISE_USE_FINDERS = True  # Permite servir arquivos de STATICFILES_DIRS diretamente
-    WHITENOISE_AUTOREFRESH = True  # Atualiza arquivos automaticamente em desenvolvimento
+    # IMPORTANTE: WhiteNoise serve arquivos de STATIC_ROOT, não de STATICFILES_DIRS
+    # Por isso, os arquivos DEVEM ser coletados com collectstatic antes
+    WHITENOISE_USE_FINDERS = False  # Desabilitado: usar apenas STATIC_ROOT (mais rápido e confiável)
+    WHITENOISE_AUTOREFRESH = False  # Desabilitado em produção (arquivos já foram coletados)
     WHITENOISE_MANIFEST_STRICT = False  # Não falha se arquivo não estiver no manifest
-    WHITENOISE_ROOT = STATIC_ROOT  # Diretório raiz dos arquivos estáticos
+    WHITENOISE_ROOT = STATIC_ROOT  # Diretório raiz dos arquivos estáticos (/app/staticfiles)
+    
+    # Garantir que imagens JPEG sejam servidas corretamente
+    # Adicionar mais tipos MIME para garantir que todas as imagens sejam servidas
+    WHITENOISE_MIMETYPES = {
+        '.jpeg': 'image/jpeg',
+        '.jpg': 'image/jpeg',
+        '.png': 'image/png',
+        '.gif': 'image/gif',
+        '.webp': 'image/webp',
+        '.svg': 'image/svg+xml',
+        '.ico': 'image/x-icon',
+    }
+    
+    # Configurar WhiteNoise para servir arquivos com cache apropriado
+    # Imagens devem ter cache longo, mas permitir revalidação
+    WHITENOISE_MAX_AGE = 31536000  # 1 ano (padrão)
+    
+    # Adicionar headers CORS se necessário (para imagens)
+    WHITENOISE_ADD_HEADERS_FUNCTION = None  # Usar padrão do WhiteNoise
     
     # IMPORTANTE: Media files serão servidos via view customizada no urls.py
     # O WhiteNoise serve apenas static files, então media files precisam de tratamento especial
@@ -266,6 +375,9 @@ SESSION_COOKIE_SECURE = True
 SESSION_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SECURE = True
 CSRF_COOKIE_HTTPONLY = True
+
+# Handler customizado para erro 500 - redireciona para dashboard
+handler500 = 'gestao_rural.views_errors.handler500'
 
 # Configurações específicas do Cloud Run
 if IS_CLOUD_RUN:

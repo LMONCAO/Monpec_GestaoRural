@@ -30,13 +30,33 @@ COPY . .
 
 # Definir SECRET_KEY temporário para collectstatic (será sobrescrito em runtime)
 ENV SECRET_KEY=temp-key-for-collectstatic
+ENV DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp
+
+# Verificar se as fotos existem antes de collectstatic
+RUN echo "🔍 Verificando fotos em static/site/..." && \
+    ls -la static/site/ || echo "⚠️ Diretório static/site/ não encontrado" && \
+    find static -name "*.jpeg" -o -name "*.jpg" -o -name "*.png" | head -10 || echo "⚠️ Nenhuma imagem encontrada"
 
 # Coletar arquivos estáticos usando settings_gcp
 # Isso garante que STATICFILES_DIRS seja usado e todos os arquivos sejam coletados
-RUN python manage.py collectstatic --noinput --settings=sistema_rural.settings_gcp || true
+# Removido || true para que falhe se houver erro real
+RUN echo "📦 Coletando arquivos estáticos..." && \
+    python manage.py collectstatic --noinput --settings=sistema_rural.settings_gcp && \
+    echo "✅ collectstatic concluído com sucesso"
+
+# Verificar se as fotos foram coletadas corretamente
+RUN echo "🔍 Verificando fotos coletadas em staticfiles/site/..." && \
+    ls -la staticfiles/site/ 2>/dev/null || echo "⚠️ Diretório staticfiles/site/ não encontrado após collectstatic" && \
+    find staticfiles -name "*.jpeg" -o -name "*.jpg" -o -name "*.png" | head -10 || echo "⚠️ Nenhuma imagem coletada"
+
+# Criar diretório staticfiles se não existir e garantir permissões
+RUN mkdir -p /app/staticfiles && \
+    chmod -R 755 /app/staticfiles
 
 # Criar usuário não-root
-RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
+RUN useradd -m -u 1000 appuser && \
+    chown -R appuser:appuser /app && \
+    chmod -R 755 /app/staticfiles
 USER appuser
 
 # Expor porta
