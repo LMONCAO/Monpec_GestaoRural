@@ -210,31 +210,31 @@ def criar_usuario_demonstracao(request):
     
     if request.method != 'POST':
         return JsonResponse({'success': False, 'message': 'Método não permitido'}, status=405)
+    
+    try:
+        nome_completo = request.POST.get('nome_completo', '').strip()
+        email = request.POST.get('email', '').strip().lower()
+        telefone = request.POST.get('telefone', '').strip()
         
-        try:
-            nome_completo = request.POST.get('nome_completo', '').strip()
-            email = request.POST.get('email', '').strip().lower()
-            telefone = request.POST.get('telefone', '').strip()
-            
         logger.info(f'[DEMO_CADASTRO] Dados recebidos: nome={nome_completo[:50]}, email={email}')
-            
-            # Validação
-            if not nome_completo or not email:
-                return JsonResponse({
-                    'success': False,
-                    'message': 'Por favor, preencha todos os campos obrigatórios.'
-                }, status=400)
-            
-            # Validar formato de email
-            from django.core.validators import validate_email
-            from django.core.exceptions import ValidationError
-            try:
-                validate_email(email)
+        
+        # Validação
+        if not nome_completo or not email:
+            return JsonResponse({
+                'success': False,
+                'message': 'Por favor, preencha todos os campos obrigatórios.'
+            }, status=400)
+        
+        # Validar formato de email
+        from django.core.validators import validate_email
+        from django.core.exceptions import ValidationError
+        try:
+            validate_email(email)
         except ValidationError:
-                return JsonResponse({
-                    'success': False,
-                    'message': 'Por favor, informe um e-mail válido.'
-                }, status=400)
+            return JsonResponse({
+                'success': False,
+                'message': 'Por favor, informe um e-mail válido.'
+            }, status=400)
             
         # 1. Verificar se usuário existe (case-insensitive)
         # Adicionar tratamento de erro para problemas de conexão com banco
@@ -253,12 +253,13 @@ def criar_usuario_demonstracao(request):
             # Usuário existe - apenas atualizar senha e ativar
             logger.info(f'[DEMO_CADASTRO] Usuário existente encontrado: {user.username}')
             user.set_password('monpec')  # Senha padrão para demo
-                    user.is_active = True
-                    user.save()
+            user.is_active = True
+            user.save()
             usuario_existente = True
-            else:
+        else:
             # Criar novo usuário
             logger.info(f'[DEMO_CADASTRO] Criando novo usuário...')
+            import os
             try:
                 username = email.split('@')[0]
                 # Garantir username único
@@ -268,15 +269,15 @@ def criar_usuario_demonstracao(request):
                     username = f"{original_username}{counter}"
                     counter += 1
                 
-                    demo_password = os.getenv('DEMO_USER_PASSWORD', 'monpec')
-                    user = User.objects.create_user(
-                        username=username,
-                        email=email.lower(),
-                        password=demo_password,
+                demo_password = os.getenv('DEMO_USER_PASSWORD', 'monpec')
+                user = User.objects.create_user(
+                    username=username,
+                    email=email.lower(),
+                    password=demo_password,
                     first_name=nome_completo.split()[0] if nome_completo else '',
-                        last_name=' '.join(nome_completo.split()[1:]) if len(nome_completo.split()) > 1 else '',
-                        is_active=True,
-                    )
+                    last_name=' '.join(nome_completo.split()[1:]) if len(nome_completo.split()) > 1 else '',
+                    is_active=True,
+                )
                 logger.info(f'[DEMO_CADASTRO] Usuário criado: {user.username} (ID: {user.id})')
             except Exception as db_error:
                 logger.error(f'[DEMO_CADASTRO] Erro ao criar usuário no banco: {type(db_error).__name__}: {db_error}', exc_info=True)
@@ -288,15 +289,15 @@ def criar_usuario_demonstracao(request):
         # 2. Criar UsuarioAtivo (opcional - não bloqueia se falhar)
         try:
             UsuarioAtivo.objects.get_or_create(
-                            usuario=user,
-                            defaults={
-                                'nome_completo': nome_completo,
-                                'email': email.lower(),
+                usuario=user,
+                defaults={
+                    'nome_completo': nome_completo,
+                    'email': email.lower(),
                     'telefone': telefone or '',
                 }
             )
             logger.info(f'[DEMO_CADASTRO] UsuarioAtivo criado/atualizado')
-                    except Exception as e:
+        except Exception as e:
             logger.warning(f'[DEMO_CADASTRO] UsuarioAtivo não pôde ser criado (não crítico): {e}')
         
         # 3. ✅ NOVO: Criar propriedade com dados automaticamente
@@ -310,32 +311,32 @@ def criar_usuario_demonstracao(request):
             # Continuar mesmo se falhar - usuário pode criar depois
         
         # 4. Fazer login
-                try:
-                    login(request, user)
+        try:
+            login(request, user)
             logger.info(f'[DEMO_CADASTRO] Login automático realizado')
         except Exception as e:
             logger.error(f'[DEMO_CADASTRO] Erro no login automático: {e}')
             # Mesmo com erro, retornar sucesso e redirecionar para login manual
-                    return JsonResponse({
-                        'success': True,
+            return JsonResponse({
+                'success': True,
                 'message': 'Usuário criado! Redirecionando para login...',
                 'redirect_url': reverse('login') + f'?demo=true&email={urllib.parse.quote(email)}'
             })
         
         # 5. Retornar sucesso - redirecionar para demo_loading
         mensagem = 'Usuário criado com sucesso! Configurando demonstração...' if not usuario_existente else 'Bem-vindo de volta! Redirecionando...'
-                return JsonResponse({
-                    'success': True,
-                    'message': mensagem,
+        return JsonResponse({
+            'success': True,
+            'message': mensagem,
             'redirect_url': reverse('demo_loading')
         })
                 
-        except Exception as e:
+    except Exception as e:
         logger.error(f'[DEMO_CADASTRO] Erro inesperado: {type(e).__name__}: {e}', exc_info=True)
-                return JsonResponse({
-                    'success': False,
+        return JsonResponse({
+            'success': False,
             'message': 'Erro ao criar usuário. Por favor, tente novamente ou entre em contato com o suporte.'
-            }, status=500)
+        }, status=500)
 
 
 def contato_submit(request):

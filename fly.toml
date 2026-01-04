@@ -1,0 +1,36 @@
+# Configuração do Fly.io para MonPEC
+# https://fly.io/docs/reference/configuration/
+
+app = "monpec-gestaorural"
+primary_region = "gru"  # São Paulo (mais próximo do Brasil)
+
+[build]
+
+[env]
+  PORT = "8080"
+  DJANGO_SETTINGS_MODULE = "sistema_rural.settings_flyio"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval = "30s"
+    method = "GET"
+    timeout = "5s"
+    path = "/"
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 512
+
+# Configuração de volumes (se necessário para media/static)
+# [[mounts]]
+#   source = "monpec_data"
+#   destination = "/app/media"

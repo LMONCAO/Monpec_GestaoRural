@@ -1,0 +1,29 @@
+name: 🚀 Deploy Principal - Railway
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    steps:
+      - name: 📥 Checkout do código
+        uses: actions/checkout@v4
+
+      - name: 🚀 Deploy no Railway
+        uses: bervProject/railway-deploy@v3.0.0
+        with:
+          railway_token: ${{ secrets.RAILWAY_TOKEN }}
+          service: ${{ secrets.RAILWAY_SERVICE_ID }}
+          detach: false
+
+      - name: ✅ Deploy concluído
+        run: |
+          echo "✅ Deploy no Railway concluído com sucesso!"
+          echo "Acesse seu dashboard Railway para verificar o status"
