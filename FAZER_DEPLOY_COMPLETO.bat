@@ -397,15 +397,26 @@ if !GIT_COMMIT_ERR! EQU 0 (
     echo ⚠️  Nenhuma mudanca para commitar (pode ser normal)
 )
 
+echo Sincronizando com GitHub (pull antes de push)...
+echo ⏳ Fazendo pull para sincronizar mudancas remotas...
+call git pull origin master --no-rebase >nul 2>&1
+set GIT_PULL_ERR=!ERRORLEVEL!
+if !GIT_PULL_ERR! EQU 0 (
+    echo ✅ Pull realizado - codigo sincronizado
+) else (
+    echo ⚠️  Pull pode ter tido conflitos (continuando mesmo assim)
+)
+
 echo Enviando para GitHub (isso pode levar alguns minutos)...
-git push origin master
+call git push origin master
 set GIT_PUSH_ERR=!ERRORLEVEL!
 if !GIT_PUSH_ERR! EQU 0 (
     echo ✅ Push realizado com sucesso!
     set PUSH_OK=1
 ) else (
-    echo ⚠️  Erro ou aviso no push
-    echo    Verifique se ha mudancas para enviar
+    echo ⚠️  Erro no push
+    echo    Tentando resolver conflitos...
+    echo    Se o problema persistir, execute manualmente: git pull origin master
     set PUSH_OK=0
 )
 echo.
@@ -484,10 +495,14 @@ echo.
 echo 2. Adicione/atualize os seguintes secrets:
 echo    - GCP_SA_KEY: Copie o conteúdo de %KEY_FILE%
 echo    - SECRET_KEY: Sua Django SECRET_KEY
-echo    - DB_NAME: Nome do banco de dados
-echo    - DB_USER: Usuario do banco
-echo    - DB_PASSWORD: Senha do banco
+echo    - DB_NAME: Nome do banco de dados (padrao: monpec_db)
+echo    - DB_USER: Usuario do banco (padrao: monpec_user)
+echo    - DB_PASSWORD: Senha do banco ⚠️  CRITICO - Verifique se esta correto!
 echo    - DJANGO_SUPERUSER_PASSWORD: Senha do superusuario Django
+echo.
+echo ⚠️  ATENCAO: Os logs mostram erro de autenticacao no banco!
+echo    Erro detectado: password authentication failed for user "monpec_user"
+echo    Solucao: Verifique se DB_PASSWORD esta correto nos secrets do GitHub
 echo.
 echo Deseja abrir o arquivo JSON agora? (S/N)
 set /p ABRIR_JSON=
