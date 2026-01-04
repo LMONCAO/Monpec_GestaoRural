@@ -55,3 +55,4 @@ echo "3. Se ainda houver erro, execute:"
 echo "   gcloud logging read \"resource.type=cloud_run_revision AND resource.labels.service_name=monpec AND severity>=ERROR\" --limit=10 --format=\"value(textPayload)\" --freshness=5m"
 echo ""
 
+

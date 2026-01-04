@@ -1,0 +1,134 @@
+========================================
+COMANDOS PARA CORRIGIR SERVICE UNAVAILABLE (503)
+Google Cloud Run - Sistema MONPEC
+========================================
+
+🚀 SOLUÇÃO RÁPIDA - Execute no Google Cloud Shell
+
+OPÇÃO 1: Script Automático
+---------------------------
+cd /path/to/Monpec_GestaoRural
+bash deploy/gcp/diagnostico_e_correcao_service_unavailable.sh
+
+
+OPÇÃO 2: Comando Único (Faz Tudo Automaticamente)
+--------------------------------------------------
+PROJECT_ID="monpec-sistema-rural" && \
+SERVICE_NAME="monpec" && \
+REGION="us-central1" && \
+gcloud config set project $PROJECT_ID && \
+CONNECTION_NAME=$(gcloud sql instances describe monpec-db --format="value(connectionName)") && \
+gcloud run services update $SERVICE_NAME --region=$REGION \
+  --update-env-vars="DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp" \
+  --add-cloudsql-instances=$CONNECTION_NAME \
+  --memory=2Gi --cpu=2 --timeout=300 --min-instances=1 && \
+gcloud sql instances patch monpec-db --activation-policy=ALWAYS && \
+sleep 15 && \
+SERVICE_URL=$(gcloud run services describe $SERVICE_NAME --region=$REGION --format="value(status.url)") && \
+echo "✅ Serviço atualizado! Testando: $SERVICE_URL" && \
+curl -I $SERVICE_URL
+
+
+OPÇÃO 3: Passo a Passo Manual
+-------------------------------
+
+1. Configurar variáveis:
+PROJECT_ID="monpec-sistema-rural"
+SERVICE_NAME="monpec"
+REGION="us-central1"
+gcloud config set project $PROJECT_ID
+
+2. Verificar status:
+gcloud run services describe $SERVICE_NAME --region=$REGION
+
+3. Ver logs:
+gcloud run services logs read $SERVICE_NAME --region=$REGION --limit=50
+
+4. Adicionar DJANGO_SETTINGS_MODULE:
+gcloud run services update $SERVICE_NAME --region=$REGION \
+  --update-env-vars="DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp"
+
+5. Configurar Cloud SQL:
+CONNECTION_NAME=$(gcloud sql instances describe monpec-db --format="value(connectionName)")
+gcloud run services update $SERVICE_NAME --region=$REGION \
+  --add-cloudsql-instances=$CONNECTION_NAME
+
+6. Aumentar recursos:
+gcloud run services update $SERVICE_NAME --region=$REGION \
+  --memory=2Gi --cpu=2 --timeout=300 --min-instances=1
+
+7. Verificar Cloud SQL:
+gcloud sql instances describe monpec-db
+gcloud sql instances patch monpec-db --activation-policy=ALWAYS
+
+8. Testar:
+SERVICE_URL=$(gcloud run services describe $SERVICE_NAME --region=$REGION --format="value(status.url)")
+curl -I $SERVICE_URL
+
+
+DIAGNÓSTICO COMPLETO
+--------------------
+PROJECT_ID="monpec-sistema-rural"
+SERVICE_NAME="monpec"
+REGION="us-central1"
+
+echo "=== STATUS DO SERVIÇO ==="
+gcloud run services describe $SERVICE_NAME --region=$REGION \
+  --format="table(status.conditions[0].status,status.url)"
+
+echo ""
+echo "=== ÚLTIMOS LOGS ==="
+gcloud run services logs read $SERVICE_NAME --region=$REGION --limit=20
+
+echo ""
+echo "=== CONFIGURAÇÃO ==="
+echo "Imagem:"
+gcloud run services describe $SERVICE_NAME --region=$REGION \
+  --format="value(spec.template.spec.containers[0].image)"
+
+echo ""
+echo "Memória:"
+gcloud run services describe $SERVICE_NAME --region=$REGION \
+  --format="value(spec.template.spec.containers[0].resources.limits.memory)"
+
+echo ""
+echo "Cloud SQL:"
+gcloud run services describe $SERVICE_NAME --region=$REGION \
+  --format="value(spec.template.spec.containers[0].cloudSqlInstances)"
+
+echo ""
+echo "=== STATUS CLOUD SQL ==="
+gcloud sql instances describe monpec-db --format="value(state)"
+
+
+COMANDOS ÚTEIS
+--------------
+# Ver todos os serviços
+gcloud run services list --region=$REGION
+
+# Logs em tempo real
+gcloud run services logs tail $SERVICE_NAME --region=$REGION
+
+# Ver variáveis de ambiente
+gcloud run services describe $SERVICE_NAME --region=$REGION \
+  --format="value(spec.template.spec.containers[0].env)"
+
+# Ver revisões
+gcloud run revisions list --service=$SERVICE_NAME --region=$REGION
+
+
+PROBLEMAS COMUNS
+----------------
+
+1. Se ainda retornar 503 após correções:
+   - Ver logs detalhados: gcloud run services logs read $SERVICE_NAME --region=$REGION --limit=100
+   - Verificar erros: gcloud run services logs read $SERVICE_NAME --region=$REGION | grep -i "error"
+   - Fazer novo deploy: bash scripts/deploy/deploy-gcp.sh
+
+2. Cloud SQL não conecta:
+   - Verificar connection name: gcloud sql instances describe monpec-db --format="value(connectionName)"
+   - Reconfigurar: gcloud run services update $SERVICE_NAME --region=$REGION --clear-cloudsql-instances --add-cloudsql-instances=$CONNECTION_NAME
+
+3. Timeout ou Cold Start:
+   - Aumentar min-instances: gcloud run services update $SERVICE_NAME --region=$REGION --min-instances=1
+   - Aumentar timeout: gcloud run services update $SERVICE_NAME --region=$REGION --timeout=300

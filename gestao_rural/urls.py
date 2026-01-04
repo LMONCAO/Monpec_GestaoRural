@@ -64,6 +64,8 @@ urlpatterns = [
     # Gestão de usuários do tenant
     path('usuarios/', views_usuarios_tenant.tenant_usuarios_dashboard, name='tenant_usuarios_dashboard'),
     path('usuarios/<int:usuario_id>/<str:acao>/', views_usuarios_tenant.tenant_usuario_toggle, name='tenant_usuario_toggle'),
+    path('usuarios/<int:usuario_id>/editar/', views_usuarios_tenant.tenant_usuario_editar, name='tenant_usuario_editar'),
+    path('usuarios/<int:usuario_id>/configurar-modulos/', views_usuarios_tenant.tenant_usuario_configurar_modulos, name='tenant_usuario_configurar_modulos'),
     
     # Segurança
     path('verificar-email/<str:token>/', views_seguranca.verificar_email, name='verificar_email'),
@@ -255,11 +257,15 @@ urlpatterns = [
     path('propriedade/<int:propriedade_id>/vendas/venda/nova/', views_vendas.vendas_venda_nova, name='vendas_venda_nova'),
     path('propriedade/<int:propriedade_id>/vendas/relatorio-contabilidade/', views_vendas.vendas_relatorio_contabilidade, name='vendas_relatorio_contabilidade'),
     path('propriedade/<int:propriedade_id>/vendas/relatorio-contabilidade/exportar-excel/', views_vendas.vendas_relatorio_contabilidade_exportar_excel, name='vendas_relatorio_contabilidade_exportar_excel'),
+    # Redirecionamento para compatibilidade: /vendas/nota-fiscal/ -> /vendas/notas-fiscais/
+    path('propriedade/<int:propriedade_id>/vendas/nota-fiscal/', views_vendas.vendas_notas_fiscais_lista, name='vendas_nota_fiscal_lista_redirect'),
     path('propriedade/<int:propriedade_id>/vendas/notas-fiscais/', views_vendas.vendas_notas_fiscais_lista, name='vendas_notas_fiscais_lista'),
     path('propriedade/<int:propriedade_id>/vendas/nota-fiscal/emitir/', views_vendas.vendas_nota_fiscal_emitir, name='vendas_nota_fiscal_emitir'),
+    path('propriedade/<int:propriedade_id>/vendas/nota-fiscal/numero/<str:numero>/serie/<str:serie>/autorizar-teste/', views_vendas.vendas_nota_fiscal_autorizar_teste_numero, name='vendas_nota_fiscal_autorizar_teste_numero'),
     path('propriedade/<int:propriedade_id>/vendas/nota-fiscal/<int:nota_id>/', views_vendas.vendas_nota_fiscal_detalhes, name='vendas_nota_fiscal_detalhes'),
     path('propriedade/<int:propriedade_id>/vendas/nota-fiscal/<int:nota_id>/cancelar/', views_vendas.vendas_nota_fiscal_cancelar, name='vendas_nota_fiscal_cancelar'),
     path('propriedade/<int:propriedade_id>/vendas/nota-fiscal/<int:nota_id>/consultar-status/', views_vendas.vendas_nota_fiscal_consultar_status, name='vendas_nota_fiscal_consultar_status'),
+    path('propriedade/<int:propriedade_id>/vendas/nota-fiscal/<int:nota_id>/autorizar-teste/', views_vendas.vendas_nota_fiscal_autorizar_teste, name='vendas_nota_fiscal_autorizar_teste'),
     path('propriedade/<int:propriedade_id>/vendas/nota-fiscal/<int:nota_id>/enviar-email/', views_vendas.vendas_nota_fiscal_enviar_email, name='vendas_nota_fiscal_enviar_email'),
     path('propriedade/<int:propriedade_id>/vendas/nota-fiscal/<int:nota_id>/enviar-whatsapp/', views_vendas.vendas_nota_fiscal_enviar_whatsapp, name='vendas_nota_fiscal_enviar_whatsapp'),
     path('propriedade/<int:propriedade_id>/vendas/nota-fiscal/<int:nota_id>/baixar-arquivos/', views_vendas.vendas_nota_fiscal_baixar_arquivos, name='vendas_nota_fiscal_baixar_arquivos'),

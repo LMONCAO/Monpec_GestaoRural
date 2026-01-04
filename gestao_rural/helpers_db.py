@@ -160,3 +160,4 @@ def obter_usuario_ativo_seguro(user):
         logger.warning(f'Erro inesperado ao obter UsuarioAtivo: {e}')
         return None
 
+

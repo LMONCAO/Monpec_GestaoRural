@@ -36,3 +36,4 @@ $allLogs = gcloud logging read "resource.type=cloud_run_revision AND resource.la
 
 $allLogs | Select-String -Pattern "Traceback|ProgrammingError|DoesNotExist|Exception|Error|dashboard" -Context 0,20 | Select-Object -First 80
 
+

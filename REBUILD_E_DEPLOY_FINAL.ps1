@@ -46,3 +46,4 @@ Write-Host ""
 Write-Host "📋 Para verificar logs em caso de erro:" -ForegroundColor Yellow
 Write-Host "   gcloud logging read \"resource.type=cloud_run_revision AND resource.labels.service_name=monpec AND severity>=ERROR\" --limit=5 --format=\"value(timestamp,textPayload)\" --freshness=10m" -ForegroundColor Gray
 
+

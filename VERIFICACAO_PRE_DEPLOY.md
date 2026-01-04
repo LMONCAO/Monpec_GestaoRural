@@ -206,3 +206,4 @@ Todas as funcionalidades essenciais estão implementadas e testadas:
 5. Configurar domínio personalizado (opcional)
 6. Configurar webhooks do Mercado Pago
 
+

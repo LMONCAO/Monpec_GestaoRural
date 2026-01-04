@@ -146,3 +146,4 @@ Write-Host "  2. Execute: python manage.py migrate" -ForegroundColor White
 Write-Host "  3. Execute: python manage.py createsuperuser (se necessário)" -ForegroundColor White
 Write-Host ""
 
+

@@ -62,3 +62,4 @@ gcloud run jobs delete verificar-mercadopago --region=$REGION --quiet 2>$null
 Write-Host ""
 Write-Host "✅ Verificação concluída!" -ForegroundColor Green
 
+

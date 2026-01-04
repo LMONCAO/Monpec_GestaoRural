@@ -61,3 +61,4 @@ Os arquivos foto1.jpeg até foto6.jpeg não estão sendo encontrados, mas isso n
 - ⚠️ Template Dashboard: Precisa correção (filtro)
 - ⚠️ Arquivos estáticos: Alguns não encontrados (não crítico)
 
+

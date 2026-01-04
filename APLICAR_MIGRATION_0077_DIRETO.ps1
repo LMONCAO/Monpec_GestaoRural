@@ -136,3 +136,4 @@ Write-Host ""
 Write-Host "Teste acessando: https://monpec-29862706245.us-central1.run.app/dashboard/" -ForegroundColor Green
 Write-Host ""
 
+

@@ -144,3 +144,4 @@ if ($SERVICE_URL) {
     Write-Host "Verifique manualmente no console do GCP" -ForegroundColor Yellow
 }
 
+

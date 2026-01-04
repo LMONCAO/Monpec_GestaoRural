@@ -18,7 +18,7 @@ MODELO_MAP = {
     'CategoriaProduto': 'gestao_rural.models_compras.CategoriaProduto',
     'Cliente': 'gestao_rural.models_cadastros.Cliente',
     'Frigorifico': 'gestao_rural.models_cadastros.Frigorifico',
-    'ParametroVendaCategoria': 'gestao_rural.models.VendaPorCategoria',
+    'ParametroVendaCategoria': 'gestao_rural.models.ParametrosVendaPorCategoria',
     'NumeroSequencialNFE': 'gestao_rural.models_compras_financeiro.NumeroSequencialNFE',
     'CategoriaAnimal': 'gestao_rural.models.CategoriaAnimal',
     'Equipamento': 'gestao_rural.models_operacional.Equipamento',
@@ -43,6 +43,7 @@ DEFAULT_PAGE = 1
 # Configurações de cache
 CACHE_TIMEOUT_TOTAL = 300  # 5 minutos para contagens
 CACHE_PREFIX = 'config_modulo'
+
 
 
 

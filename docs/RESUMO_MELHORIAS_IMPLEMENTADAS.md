@@ -129,3 +129,4 @@ Criada estrutura para separar lógica de negócio das views:
 - ⏳ Views básicas de pecuária (próximo passo)
 **Próxima Revisão**: Após implementação de views_pecuaria_basica.py
 
+

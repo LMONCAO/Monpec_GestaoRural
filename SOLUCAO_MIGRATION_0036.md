@@ -92,3 +92,4 @@ Se outras migrations também falharem com "table already exists", repita o proce
 
 Execute o comando acima e me avise o resultado!
 
+

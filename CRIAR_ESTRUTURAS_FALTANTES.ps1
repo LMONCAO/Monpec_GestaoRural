@@ -78,3 +78,4 @@ gcloud run jobs delete criar-estruturas --region=$REGION --quiet 2>$null
 Write-Host ""
 Write-Host "✅ Pronto! Teste: https://monpec-29862706245.us-central1.run.app/login/" -ForegroundColor Green
 
+

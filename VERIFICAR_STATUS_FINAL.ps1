@@ -41,3 +41,4 @@ Write-Host "2. Teste fazer login" -ForegroundColor Yellow
 Write-Host "3. Se funcionar, o sistema está operacional! ✅" -ForegroundColor Green
 Write-Host ""
 
+

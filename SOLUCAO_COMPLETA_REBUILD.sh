@@ -70,3 +70,4 @@ gcloud run deploy monpec \
 echo ""
 echo "✅ Pronto! Teste: https://monpec-29862706245.us-central1.run.app/login/"
 
+

@@ -141,3 +141,4 @@ python manage.py check
 **Última atualização**: Janeiro 2026
 **Versão**: 1.0
 
+

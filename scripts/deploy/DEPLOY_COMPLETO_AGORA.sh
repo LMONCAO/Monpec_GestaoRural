@@ -133,3 +133,4 @@ echo -e "${CYAN}🔄 Atualizar Deploy:${NC}"
 echo "   Execute este script novamente"
 echo ""
 
+

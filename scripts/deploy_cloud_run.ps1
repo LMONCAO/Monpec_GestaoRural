@@ -119,3 +119,4 @@ Write-Host "  1. Verificar logs: gcloud run services logs read $SERVICE_NAME --r
 Write-Host "  2. Testar site: curl $SERVICE_URL"
 Write-Host "  3. Configurar domínio customizado se necessário"
 
+

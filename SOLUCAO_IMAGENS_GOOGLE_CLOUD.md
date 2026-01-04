@@ -101,3 +101,4 @@ Se as imagens ainda não aparecerem após um novo deploy, o problema pode ser:
 2. O WhiteNoise não está configurado corretamente
 3. Há um problema de permissões no container
 
+

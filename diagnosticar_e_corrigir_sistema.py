@@ -312,3 +312,4 @@ if __name__ == '__main__':
         logger.error(f"Erro fatal: {e}", exc_info=True)
         sys.exit(1)
 
+

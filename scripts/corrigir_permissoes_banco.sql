@@ -26,3 +26,4 @@ ALTER SCHEMA public OWNER TO monpec_user;
 \dt
 
 
+

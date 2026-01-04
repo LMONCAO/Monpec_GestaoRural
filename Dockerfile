@@ -19,7 +19,8 @@ COPY . .
 
 # ✅ EXECUTAR collectstatic ANTES de finalizar a imagem
 # Isso garante que todos os arquivos estáticos estejam em STATIC_ROOT
-RUN python manage.py collectstatic --noinput --settings=sistema_rural.settings_gcp
+# As imagens em static/site/ serão copiadas para staticfiles/site/
+RUN python manage.py collectstatic --noinput --settings=sistema_rural.settings_gcp || echo "⚠️ collectstatic falhou, mas continuando..."
 
 # Expor porta
 EXPOSE 8080

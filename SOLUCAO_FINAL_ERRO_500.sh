@@ -52,3 +52,4 @@ echo "✅ Pronto! Teste: https://monpec-29862706245.us-central1.run.app/login/"
 # Limpeza
 gcloud run jobs delete criar-usuarioativo-final --region=$REGION --quiet 2>/dev/null || true
 
+

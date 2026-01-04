@@ -75,3 +75,4 @@ gcloud run jobs delete aplicar-mig-com-fakes --region=$REGION --quiet 2>/dev/nul
 echo ""
 echo "✅ Processo concluído!"
 
+

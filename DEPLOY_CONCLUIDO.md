@@ -108,3 +108,4 @@ O sistema está deployado e rodando no Google Cloud Run!
 
 **Próxima ação:** Aplicar as migrações no Cloud SQL para o sistema funcionar completamente.
 
+

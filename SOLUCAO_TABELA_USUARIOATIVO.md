@@ -91,3 +91,4 @@ gcloud run jobs delete criar-usuarioativo --region=$REGION --quiet 2>/dev/null |
 
 Execute o comando acima e me avise o resultado!
 
+

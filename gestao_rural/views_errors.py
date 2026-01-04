@@ -21,3 +21,4 @@ def handler500(request):
     # O dashboard por sua vez redireciona para propriedade_modulos se houver propriedades
     return redirect('dashboard')
 
+

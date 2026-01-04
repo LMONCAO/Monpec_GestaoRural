@@ -85,3 +85,4 @@ fi
 
 gcloud run jobs delete aplicar-migrations-com-fake --region=$REGION --quiet 2>/dev/null || true
 
+

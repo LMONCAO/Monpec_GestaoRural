@@ -82,3 +82,4 @@ Write-Host ""
 Write-Host "✅ Deploy concluído!" -ForegroundColor Green
 Write-Host "🌐 Teste: https://monpec-29862706245.us-central1.run.app/login/" -ForegroundColor Cyan
 
+

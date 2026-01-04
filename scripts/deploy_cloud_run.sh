@@ -121,3 +121,4 @@ echo "  1. Verificar logs: gcloud run services logs read $SERVICE_NAME --region=
 echo "  2. Testar site: curl $SERVICE_URL"
 echo "  3. Configurar domínio customizado se necessário"
 
+

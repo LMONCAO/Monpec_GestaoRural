@@ -103,3 +103,4 @@ class TestAutorizacao:
         # Deve dar erro 404 ou redirect (sem permissão)
         assert response.status_code in [302, 403, 404]
 
+

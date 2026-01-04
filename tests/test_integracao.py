@@ -132,3 +132,4 @@ class TestFluxoCompleto:
         propriedade.refresh_from_db()
         assert propriedade.nome_propriedade == 'Fazenda Editada'
 
+

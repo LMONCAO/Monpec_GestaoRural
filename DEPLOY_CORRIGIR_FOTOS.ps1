@@ -193,3 +193,4 @@ Write-Output "   2. Execute o script de diagnóstico"
 Write-Output "   3. Verifique se as fotos estão em static/site/ no repositório"
 Write-Output ""
 
+

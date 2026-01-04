@@ -61,3 +61,4 @@ DEPLOY_GARANTIR_VERSAO_CORRETA.bat
 
 **Status:** ✅ Todas as correções aplicadas e prontas para deploy!
 
+

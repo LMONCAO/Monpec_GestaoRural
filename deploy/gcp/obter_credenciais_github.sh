@@ -63,3 +63,4 @@ echo "⚠️  Chave JSON salva em: $KEY_FILE"
 echo "   Você pode removê-la depois com: rm $KEY_FILE"
 echo ""
 
+

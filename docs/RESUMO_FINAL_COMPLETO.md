@@ -263,3 +263,4 @@ O projeto Monpec Gestão Rural agora está:
 **Última atualização**: Janeiro 2026
 **Versão**: 1.0 Final Completo
 
+

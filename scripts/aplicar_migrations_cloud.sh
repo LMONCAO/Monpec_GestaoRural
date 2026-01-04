@@ -44,3 +44,4 @@ gcloud run jobs execute migrate-db --region=$REGION --wait
 
 echo "✅ Migrations aplicadas com sucesso!"
 
+

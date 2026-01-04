@@ -1,0 +1,98 @@
+========================================
+COMANDOS PARA BUILD E DEPLOY COMPLETO
+Google Cloud Run - Sistema MONPEC
+========================================
+
+OPÇÃO 1: Via Google Cloud Shell (Recomendado)
+-----------------------------------------------
+
+1. Abra o Google Cloud Shell: https://console.cloud.google.com/cloudshell
+
+2. Clone ou faça upload do código:
+   git clone [seu-repositorio] OU faça upload dos arquivos
+
+3. Execute os comandos:
+
+# Configurar projeto
+gcloud config set project monpec-sistema-rural
+
+# Build da imagem
+gcloud builds submit . --tag gcr.io/monpec-sistema-rural/monpec:latest --timeout=20m
+
+# Deploy
+gcloud run deploy monpec \
+  --image gcr.io/monpec-sistema-rural/monpec:latest \
+  --platform managed \
+  --region us-central1 \
+  --allow-unauthenticated \
+  --set-env-vars="DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,CLOUD_SQL_CONNECTION_NAME=monpec-sistema-rural:us-central1:monpec-db,DB_NAME=monpec_db,DB_USER=monpec_user,DB_PASSWORD=R72dONWK0vl4yZfpEXwHVr8it,DEBUG=False" \
+  --add-cloudsql-instances=monpec-sistema-rural:us-central1:monpec-db \
+  --memory=2Gi \
+  --cpu=2 \
+  --timeout=300 \
+  --max-instances=10 \
+  --min-instances=1 \
+  --port=8080
+
+# Executar migrações
+gcloud run jobs create migrate-monpec-complete \
+  --image gcr.io/monpec-sistema-rural/monpec:latest \
+  --region us-central1 \
+  --set-env-vars="DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,CLOUD_SQL_CONNECTION_NAME=monpec-sistema-rural:us-central1:monpec-db,DB_NAME=monpec_db,DB_USER=monpec_user,DB_PASSWORD=R72dONWK0vl4yZfpEXwHVr8it" \
+  --set-cloudsql-instances=monpec-sistema-rural:us-central1:monpec-db \
+  --command="python" \
+  --args="manage.py,migrate,--noinput" \
+  --memory=2Gi \
+  --cpu=1 \
+  --max-retries=3 \
+  --task-timeout=600
+
+gcloud run jobs execute migrate-monpec-complete --region=us-central1 --wait
+
+
+OPÇÃO 2: Via PowerShell (Windows)
+-----------------------------------
+
+# Criar arquivo .gcloudignore primeiro (já criado)
+
+# Build (pode dar erro no Windows, use Cloud Shell se necessário)
+gcloud builds submit . --tag gcr.io/monpec-sistema-rural/monpec:latest --timeout=20m
+
+# Deploy
+gcloud run deploy monpec `
+  --image gcr.io/monpec-sistema-rural/monpec:latest `
+  --platform managed `
+  --region us-central1 `
+  --allow-unauthenticated `
+  --set-env-vars="DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,CLOUD_SQL_CONNECTION_NAME=monpec-sistema-rural:us-central1:monpec-db,DB_NAME=monpec_db,DB_USER=monpec_user,DB_PASSWORD=R72dONWK0vl4yZfpEXwHVr8it,DEBUG=False" `
+  --add-cloudsql-instances=monpec-sistema-rural:us-central1:monpec-db `
+  --memory=2Gi `
+  --cpu=2 `
+  --timeout=300 `
+  --min-instances=1
+
+
+OPÇÃO 3: Apenas Atualizar Variáveis (Sem Build)
+------------------------------------------------
+
+# Se você já tem uma imagem funcionando, apenas atualize as variáveis:
+gcloud run services update monpec \
+  --region=us-central1 \
+  --update-env-vars="DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,CLOUD_SQL_CONNECTION_NAME=monpec-sistema-rural:us-central1:monpec-db,DB_NAME=monpec_db,DB_USER=monpec_user,DB_PASSWORD=R72dONWK0vl4yZfpEXwHVr8it,DEBUG=False" \
+  --memory=2Gi \
+  --cpu=2 \
+  --timeout=300 \
+  --min-instances=1
+
+
+VERIFICAR STATUS
+----------------
+
+# Ver URL do serviço
+gcloud run services describe monpec --region=us-central1 --format="value(status.url)"
+
+# Ver logs
+gcloud run services logs read monpec --region=us-central1 --limit=50
+
+# Testar serviço
+curl https://monpec-fzzfjppzva-uc.a.run.app

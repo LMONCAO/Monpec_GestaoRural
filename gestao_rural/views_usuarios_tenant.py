@@ -26,129 +26,164 @@ def _validar_habilitacao(request):
 
 @login_required
 def tenant_usuarios_dashboard(request):
-    if not _validar_habilitacao(request):
-        # Redirecionar para a página atual (propriedade_modulos) se estiver em uma propriedade
-        # ou para dashboard se não estiver
-        if hasattr(request, 'resolver_match') and 'propriedade' in request.path:
-            # Extrair propriedade_id da URL atual se possível
-            try:
-                propriedade_id = request.resolver_match.kwargs.get('propriedade_id')
-                if propriedade_id:
-                    return redirect('propriedade_modulos', propriedade_id=propriedade_id)
-            except:
-                pass
-        return redirect("dashboard")
+    try:
+        if not _validar_habilitacao(request):
+            # Redirecionar para a página atual (propriedade_modulos) se estiver em uma propriedade
+            # ou para dashboard se não estiver
+            if hasattr(request, 'resolver_match') and 'propriedade' in request.path:
+                # Extrair propriedade_id da URL atual se possível
+                try:
+                    propriedade_id = request.resolver_match.kwargs.get('propriedade_id')
+                    if propriedade_id:
+                        return redirect('propriedade_modulos', propriedade_id=propriedade_id)
+                except:
+                    pass
+            return redirect("dashboard")
 
-    # Verificar se é admin ou assinante antes de exigir assinatura
-    from .helpers_acesso import is_usuario_assinante
-    assinatura = tenant_access.obter_assinatura_do_usuario(request.user)
-    
-    if not assinatura:
-        if is_usuario_assinante(request.user):
-            # Admin sem assinatura - esta funcionalidade requer assinatura
-            messages.info(request, "Esta funcionalidade requer uma assinatura ativa. Como administrador, você pode criar uma assinatura.")
-            return redirect("assinaturas_dashboard")
-        else:
-            messages.error(request, "Nenhuma assinatura ativa vinculada ao usuário.")
-            return redirect("assinaturas_dashboard")
-
-    usuarios = assinatura.usuarios_tenant.select_related("usuario").order_by("nome_exibicao")
-    
-    # Criar choices dos módulos com labels amigáveis
-    modulos_labels = {
-        'pecuaria': 'Pecuária',
-        'financeiro': 'Financeiro',
-        'projetos': 'Projetos',
-        'compras': 'Compras',
-        'funcionarios': 'Funcionários',
-        'rastreabilidade': 'Rastreabilidade',
-        'reproducao': 'Reprodução',
-        'relatorios': 'Relatórios',
-    }
-    modulos_choices = [(mod, modulos_labels.get(mod, mod.replace('_', ' ').title())) 
-                      for mod in PlanoAssinatura.MODULOS_PADRAO 
-                      if mod in assinatura.modulos_disponiveis]
-    
-    form = TenantUsuarioForm(initial={"modulos": assinatura.modulos_disponiveis}, 
-                           modulos_choices=modulos_choices)
-
-    if request.method == "POST":
-        form = TenantUsuarioForm(request.POST, modulos_choices=modulos_choices)
-        if form.is_valid():
-            # Validações de segurança
-            ip_address = obter_ip_address(request)
-            email = form.cleaned_data["email"]
-            
-            pode_criar, mensagem = validar_criacao_usuario_segura(
-                criado_por=request.user,
-                email=email,
-                assinatura_id=assinatura.id,
-                ip_address=ip_address,
-            )
-            
-            if not pode_criar:
-                messages.error(request, mensagem)
-                return redirect("tenant_usuarios_dashboard")
-            
-            try:
-                resultado = tenant_access.criar_ou_atualizar_usuario(
-                    assinatura=assinatura,
-                    nome=form.cleaned_data["nome"],
-                    email=email,
-                    perfil=form.cleaned_data["perfil"],
-                    modulos=form.cleaned_data["modulos"],
-                    senha_definida=form.cleaned_data.get("senha") or None,
-                    username=form.cleaned_data.get("username") or None,
-                    criado_por=request.user,
-                )
-                
-                # Garantir que o usuário esteja ativo (admin cria usuários já ativos)
-                if not resultado.usuario.is_active:
-                    resultado.usuario.is_active = True
-                    resultado.usuario.save()
-                
-                # Registrar log
-                registrar_log_auditoria(
-                    tipo_acao='CRIAR_USUARIO',
-                    descricao=f"Usuário criado: {resultado.usuario.email}",
-                    usuario=request.user,
-                    ip_address=ip_address,
-                    nivel_severidade='MEDIO',
-                    metadata={
-                        'usuario_criado_id': resultado.usuario.id,
-                        'email': email,
-                        'perfil': form.cleaned_data["perfil"],
-                    },
-                )
-                
-            except tenant_access.TenantAccessError as exc:
-                registrar_log_auditoria(
-                    tipo_acao='CRIAR_USUARIO',
-                    descricao=f"Erro ao criar usuário: {exc}",
-                    usuario=request.user,
-                    ip_address=ip_address,
-                    nivel_severidade='ALTO',
-                    sucesso=False,
-                    erro=str(exc),
-                )
-                messages.error(request, str(exc))
+        # Verificar se é admin ou assinante antes de exigir assinatura
+        from .helpers_acesso import is_usuario_assinante
+        assinatura = tenant_access.obter_assinatura_do_usuario(request.user)
+        
+        # Superusuários podem acessar mesmo sem assinatura (para criar assinaturas)
+        if not assinatura:
+            if request.user.is_superuser:
+                # Superusuário sem assinatura - permitir acesso mas mostrar mensagem
+                messages.info(request, "Você está acessando como superusuário. Para gerenciar usuários de uma assinatura, é necessário ter uma assinatura ativa.")
+                # Retornar contexto vazio para superusuários sem assinatura
+                contexto = {
+                    "assinatura": None,
+                    "usuarios": [],
+                    "form": None,
+                    "limite_total": None,
+                    "total_utilizado": 0,
+                }
+                return render(request, "gestao_rural/tenant_usuarios.html", contexto)
+            elif is_usuario_assinante(request.user):
+                # Admin sem assinatura - esta funcionalidade requer assinatura
+                messages.info(request, "Esta funcionalidade requer uma assinatura ativa. Como administrador, você pode criar uma assinatura.")
+                return redirect("assinaturas_dashboard")
             else:
-                msg = f"✅ Usuário <strong>{resultado.usuario.email}</strong> criado com sucesso!"
-                msg += f"<br><strong>👤 Username:</strong> <code style='background: #f0f0f0; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 1.1em;'>{resultado.usuario.username}</code>"
-                if resultado.senha_temporaria:
-                    msg += f"<br><strong>🔑 Senha: <code style='background: #f0f0f0; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 1.1em;'>{resultado.senha_temporaria}</code></strong>"
-                    msg += "<br><small class='text-muted'>⚠️ Anote esta senha! Ela será necessária para o primeiro login.</small>"
-                messages.success(request, msg)
-                return redirect("tenant_usuarios_dashboard")
+                messages.error(request, "Nenhuma assinatura ativa vinculada ao usuário.")
+                return redirect("assinaturas_dashboard")
 
-    contexto = {
-        "assinatura": assinatura,
-        "usuarios": usuarios,
-        "form": form,
-        "limite_total": assinatura.plano.max_usuarios if assinatura.plano else None,
-        "total_utilizado": assinatura.usuarios_ativos,
-    }
-    return render(request, "gestao_rural/tenant_usuarios.html", contexto)
+        usuarios = assinatura.usuarios_tenant.select_related("usuario").order_by("nome_exibicao")
+        
+        # Criar choices dos módulos com labels amigáveis
+        modulos_labels = {
+            'dashboard_pecuaria': 'Dashboard Pecuária',
+            'curral': 'Tela Curral',
+            'cadastro': 'Cadastro',
+            'planejamento': 'Planejamento',
+            'pecuaria': 'Pecuária',
+            'rastreabilidade': 'Rastreabilidade',
+            'reproducao': 'Reprodução',
+            'pesagem': 'Pesagem',
+            'movimentacoes': 'Movimentações',
+            'patrimonio': 'Bens e Patrimônio',
+            'nutricao': 'Nutrição',
+            'compras': 'Compras',
+            'vendas': 'Vendas',
+            'operacoes': 'Operações',
+            'financeiro': 'Financeiro',
+            'projetos': 'Projetos Bancários',
+            'relatorios': 'Relatórios',
+            'categorias': 'Categorias',
+            'configuracoes': 'Configurações',
+        }
+        
+        # Obter módulos disponíveis
+        modulos_disponiveis = assinatura.modulos_disponiveis
+        
+        modulos_choices = [(mod, modulos_labels.get(mod, mod.replace('_', ' ').title())) 
+                          for mod in PlanoAssinatura.MODULOS_PADRAO 
+                          if mod in modulos_disponiveis]
+        
+        form = TenantUsuarioForm(initial={"modulos": modulos_disponiveis}, 
+                               modulos_choices=modulos_choices)
+
+        if request.method == "POST":
+            form = TenantUsuarioForm(request.POST, modulos_choices=modulos_choices)
+            if form.is_valid():
+                # Validações de segurança
+                ip_address = obter_ip_address(request)
+                email = form.cleaned_data["email"]
+                
+                pode_criar, mensagem = validar_criacao_usuario_segura(
+                    criado_por=request.user,
+                    email=email,
+                    assinatura_id=assinatura.id,
+                    ip_address=ip_address,
+                )
+                
+                if not pode_criar:
+                    messages.error(request, mensagem)
+                    return redirect("tenant_usuarios_dashboard")
+                
+                try:
+                    resultado = tenant_access.criar_ou_atualizar_usuario(
+                        assinatura=assinatura,
+                        nome=form.cleaned_data["nome"],
+                        email=email,
+                        perfil=form.cleaned_data["perfil"],
+                        modulos=form.cleaned_data["modulos"],
+                        senha_definida=form.cleaned_data.get("senha") or None,
+                        username=form.cleaned_data.get("username") or None,
+                        criado_por=request.user,
+                    )
+                    
+                    # Garantir que o usuário esteja ativo (admin cria usuários já ativos)
+                    if not resultado.usuario.is_active:
+                        resultado.usuario.is_active = True
+                        resultado.usuario.save()
+                    
+                    # Registrar log
+                    registrar_log_auditoria(
+                        tipo_acao='CRIAR_USUARIO',
+                        descricao=f"Usuário criado: {resultado.usuario.email}",
+                        usuario=request.user,
+                        ip_address=ip_address,
+                        nivel_severidade='MEDIO',
+                        metadata={
+                            'usuario_criado_id': resultado.usuario.id,
+                            'email': email,
+                            'perfil': form.cleaned_data["perfil"],
+                        },
+                    )
+                    
+                    msg = f"✅ Usuário <strong>{resultado.usuario.email}</strong> criado com sucesso!"
+                    msg += f"<br><strong>👤 Username:</strong> <code style='background: #f0f0f0; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 1.1em;'>{resultado.usuario.username}</code>"
+                    if resultado.senha_temporaria:
+                        msg += f"<br><strong>🔑 Senha: <code style='background: #f0f0f0; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 1.1em;'>{resultado.senha_temporaria}</code></strong>"
+                        msg += "<br><small class='text-muted'>⚠️ Anote esta senha! Ela será necessária para o primeiro login.</small>"
+                    messages.success(request, msg)
+                    return redirect("tenant_usuarios_dashboard")
+                    
+                except tenant_access.TenantAccessError as exc:
+                    registrar_log_auditoria(
+                        tipo_acao='CRIAR_USUARIO',
+                        descricao=f"Erro ao criar usuário: {exc}",
+                        usuario=request.user,
+                        ip_address=ip_address,
+                        nivel_severidade='ALTO',
+                        sucesso=False,
+                        erro=str(exc),
+                    )
+                    messages.error(request, str(exc))
+
+        contexto = {
+            "assinatura": assinatura,
+            "usuarios": usuarios,
+            "form": form,
+            "limite_total": assinatura.plano.max_usuarios if (assinatura.plano and hasattr(assinatura.plano, 'max_usuarios')) else None,
+            "total_utilizado": assinatura.usuarios_ativos if hasattr(assinatura, 'usuarios_ativos') else 0,
+        }
+        return render(request, "gestao_rural/tenant_usuarios.html", contexto)
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Erro em tenant_usuarios_dashboard: {type(e).__name__}: {str(e)}", exc_info=True)
+        messages.error(request, f"Erro ao carregar página de usuários: {str(e)}")
+        return redirect("dashboard")
 
 
 @login_required
@@ -189,14 +224,25 @@ def tenant_usuario_configurar_modulos(request, usuario_id: int):
     modulos_disponiveis = assinatura.modulos_disponiveis
     # Criar lista de módulos com labels mais amigáveis
     modulos_labels = {
+        'dashboard_pecuaria': 'Dashboard Pecuária',
+        'curral': 'Tela Curral',
+        'cadastro': 'Cadastro',
+        'planejamento': 'Planejamento',
         'pecuaria': 'Pecuária',
-        'financeiro': 'Financeiro',
-        'projetos': 'Projetos',
-        'compras': 'Compras',
-        'funcionarios': 'Funcionários',
         'rastreabilidade': 'Rastreabilidade',
         'reproducao': 'Reprodução',
+        'pesagem': 'Pesagem',
+        'movimentacoes': 'Movimentações',
+        'patrimonio': 'Bens e Patrimônio',
+        'nutricao': 'Nutrição',
+        'compras': 'Compras',
+        'vendas': 'Vendas',
+        'operacoes': 'Operações',
+        'financeiro': 'Financeiro',
+        'projetos': 'Projetos Bancários',
         'relatorios': 'Relatórios',
+        'categorias': 'Categorias',
+        'configuracoes': 'Configurações',
     }
     modulos_choices = [(mod, modulos_labels.get(mod, mod.replace('_', ' ').title())) for mod in PlanoAssinatura.MODULOS_PADRAO if mod in modulos_disponiveis]
     
@@ -244,14 +290,25 @@ def tenant_usuario_editar(request, usuario_id: int):
     
     # Criar choices dos módulos
     modulos_labels = {
+        'dashboard_pecuaria': 'Dashboard Pecuária',
+        'curral': 'Tela Curral',
+        'cadastro': 'Cadastro',
+        'planejamento': 'Planejamento',
         'pecuaria': 'Pecuária',
-        'financeiro': 'Financeiro',
-        'projetos': 'Projetos',
-        'compras': 'Compras',
-        'funcionarios': 'Funcionários',
         'rastreabilidade': 'Rastreabilidade',
         'reproducao': 'Reprodução',
+        'pesagem': 'Pesagem',
+        'movimentacoes': 'Movimentações',
+        'patrimonio': 'Bens e Patrimônio',
+        'nutricao': 'Nutrição',
+        'compras': 'Compras',
+        'vendas': 'Vendas',
+        'operacoes': 'Operações',
+        'financeiro': 'Financeiro',
+        'projetos': 'Projetos Bancários',
         'relatorios': 'Relatórios',
+        'categorias': 'Categorias',
+        'configuracoes': 'Configurações',
     }
     modulos_choices = [(mod, modulos_labels.get(mod, mod.replace('_', ' ').title())) 
                       for mod in PlanoAssinatura.MODULOS_PADRAO 

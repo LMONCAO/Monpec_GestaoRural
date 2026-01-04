@@ -139,3 +139,4 @@ def propriedade_excluir(request, propriedade_id):
     
     return render(request, 'gestao_rural/propriedade_excluir.html', {'propriedade': propriedade})
 
+

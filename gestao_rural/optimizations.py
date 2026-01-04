@@ -102,3 +102,4 @@ def otimizar_query_iatf(queryset):
         'propriedade'
     )
 
+

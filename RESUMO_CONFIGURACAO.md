@@ -130,3 +130,4 @@ Após seguir os passos acima:
 
 **Status Atual**: Tudo configurado, aguardando instalação do PostgreSQL
 
+

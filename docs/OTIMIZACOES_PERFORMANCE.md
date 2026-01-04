@@ -47,3 +47,4 @@
 - **Tempo de resposta**: 40-60% mais rápido
 - **Uso de memória**: 30-50% menor
 
+

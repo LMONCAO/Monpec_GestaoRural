@@ -28,3 +28,4 @@ gcloud logging read "resource.type=cloud_run_revision AND resource.labels.servic
   --format="value(textPayload)" \
   --freshness=10m | grep -A 30 "Traceback\|ProgrammingError\|DoesNotExist\|Exception" | head -50
 
+

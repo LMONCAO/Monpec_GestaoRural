@@ -36,3 +36,4 @@ Write-Host "Login: https://monpec-29862706245.us-central1.run.app/login/" -Foreg
 Write-Host "Dashboard: https://monpec-29862706245.us-central1.run.app/dashboard/" -ForegroundColor Cyan
 Write-Host ""
 
+

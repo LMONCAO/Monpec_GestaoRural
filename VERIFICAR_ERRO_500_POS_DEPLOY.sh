@@ -29,3 +29,4 @@ echo "   - Verifique se Cloud SQL está rodando"
 echo "   - Verifique CLOUD_SQL_CONNECTION_NAME"
 echo ""
 
+
