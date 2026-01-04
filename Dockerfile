@@ -1,67 +1,28 @@
-# Dockerfile para Google Cloud Run
-# Otimizado para Django
-
+﻿# Use a imagem oficial do Python
 FROM python:3.11-slim
 
-# Variáveis de ambiente
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-ENV PORT=8080
-
-# Diretório de trabalho
+# Definir diretÃ³rio de trabalho
 WORKDIR /app
 
-# Instalar dependências do sistema
+# Instalar dependÃªncias do sistema
 RUN apt-get update && apt-get install -y \
+    gcc \
     postgresql-client \
-    build-essential \
-    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copiar requirements
+# Copiar requirements e instalar dependÃªncias Python
 COPY requirements_producao.txt .
+RUN pip install --no-cache-dir -r requirements_producao.txt
 
-# Instalar dependências Python
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements_producao.txt
-
-# Copiar código da aplicação
+# Copiar cÃ³digo do projeto
 COPY . .
 
-# Definir SECRET_KEY temporário para collectstatic (será sobrescrito em runtime)
-ENV SECRET_KEY=temp-key-for-collectstatic
-ENV DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp
-
-# Verificar se as fotos existem antes de collectstatic
-RUN echo "🔍 Verificando fotos em static/site/..." && \
-    ls -la static/site/ || echo "⚠️ Diretório static/site/ não encontrado" && \
-    find static -name "*.jpeg" -o -name "*.jpg" -o -name "*.png" | head -10 || echo "⚠️ Nenhuma imagem encontrada"
-
-# Coletar arquivos estáticos usando settings_gcp
-# Isso garante que STATICFILES_DIRS seja usado e todos os arquivos sejam coletados
-# Removido || true para que falhe se houver erro real
-RUN echo "📦 Coletando arquivos estáticos..." && \
-    python manage.py collectstatic --noinput --settings=sistema_rural.settings_gcp && \
-    echo "✅ collectstatic concluído com sucesso"
-
-# Verificar se as fotos foram coletadas corretamente
-RUN echo "🔍 Verificando fotos coletadas em staticfiles/site/..." && \
-    ls -la staticfiles/site/ 2>/dev/null || echo "⚠️ Diretório staticfiles/site/ não encontrado após collectstatic" && \
-    find staticfiles -name "*.jpeg" -o -name "*.jpg" -o -name "*.png" | head -10 || echo "⚠️ Nenhuma imagem coletada"
-
-# Criar diretório staticfiles se não existir e garantir permissões
-RUN mkdir -p /app/staticfiles && \
-    chmod -R 755 /app/staticfiles
-
-# Criar usuário não-root
-RUN useradd -m -u 1000 appuser && \
-    chown -R appuser:appuser /app && \
-    chmod -R 755 /app/staticfiles
-USER appuser
+# âœ… EXECUTAR collectstatic ANTES de finalizar a imagem
+# Isso garante que todos os arquivos estÃ¡ticos estejam em STATIC_ROOT
+RUN python manage.py collectstatic --noinput --settings=sistema_rural.settings_gcp
 
 # Expor porta
 EXPOSE 8080
 
-# Comando para iniciar
-CMD exec gunicorn --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 60 sistema_rural.wsgi:application
-
+# Comando para iniciar o servidor
+CMD exec gunicorn sistema_rural.wsgi:application --bind 0.0.0.0:8080 --workers 4 --threads 2 --timeout 600
