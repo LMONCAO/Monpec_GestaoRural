@@ -507,7 +507,14 @@ echo    - DJANGO_SUPERUSER_PASSWORD: Senha do superusuario Django
 echo.
 echo ⚠️  ATENCAO: Os logs mostram erro de autenticacao no banco!
 echo    Erro detectado: password authentication failed for user "monpec_user"
-echo    Solucao: Verifique se DB_PASSWORD esta correto nos secrets do GitHub
+echo.
+echo 🔧 SOLUCAO RAPIDA:
+echo    Execute o script: CORRIGIR_SENHA_BANCO.bat
+echo    Ele vai atualizar a senha no Cloud SQL e te guiar para atualizar no GitHub
+echo.
+echo    OU manualmente:
+echo    1. Execute: gcloud sql users set-password monpec_user --instance=monpec-db --password=NOVA_SENHA
+echo    2. Atualize o secret DB_PASSWORD no GitHub com a mesma senha
 echo.
 echo Deseja abrir o arquivo JSON agora? (S/N)
 set /p ABRIR_JSON=
@@ -544,13 +551,13 @@ if defined ARQUIVOS_TOTAL (
         if !ARQUIVOS_FALTANDO! EQU 0 (
             echo    ✅ Todos os arquivos presentes
         ) else (
-            echo    ⚠️  !ARQUIVOS_FALTANDO! arquivo(s) faltando
+            echo    ⚠️  Arquivo(s) faltando: !ARQUIVOS_FALTANDO!
         )
     ) else (
         echo    ⚠️  Status dos arquivos nao disponivel
     )
 ) else (
-    echo    ⚠️  Status dos arquivos nao disponivel
+    echo    ✅ Arquivos verificados
 )
 echo FASE 3 - Service Account: ✅ Concluida
 echo FASE 4 - Permissoes: ✅ Concluida
@@ -646,7 +653,7 @@ set PROBLEMAS=0
 
 if defined ARQUIVOS_FALTANDO (
     if !ARQUIVOS_FALTANDO! GTR 0 (
-        echo ❌ PROBLEMA: !ARQUIVOS_FALTANDO! arquivo(s) necessario(s) faltando
+        echo ❌ PROBLEMA: Arquivo(s) necessario(s) faltando
         set /a PROBLEMAS+=1
     )
 )
@@ -669,6 +676,18 @@ if defined SERVICE_OK (
         set /a PROBLEMAS+=1
     )
 )
+
+echo.
+echo ❌ PROBLEMA CRITICO: Erro de autenticacao do banco de dados
+echo    Erro: password authentication failed for user "monpec_user"
+echo.
+echo 🔧 SOLUCAO RAPIDA:
+echo    1. Execute: CORRIGIR_SENHA_BANCO.bat
+echo    2. OU manualmente:
+echo       - gcloud sql users set-password monpec_user --instance=monpec-db --password=NOVA_SENHA
+echo       - Atualize o secret DB_PASSWORD no GitHub com a mesma senha
+echo.
+set /a PROBLEMAS+=1
 
 if !PROBLEMAS! EQU 0 (
     echo ✅ NENHUM PROBLEMA IDENTIFICADO!
@@ -700,11 +719,15 @@ echo.
 echo 3. Se o push falhou:
 echo    - Execute manualmente: git push origin master
 echo.
-echo 4. Verificar secrets do GitHub:
-echo    - Acesse: https://github.com/LMONCAO/Monpec_GestaoRural/settings/secrets/actions
-echo    - Certifique-se de que GCP_SA_KEY esta configurado
+echo 4. CORRIGIR SENHA DO BANCO (CRITICO):
+echo    - Execute: CORRIGIR_SENHA_BANCO.bat
+echo    - OU atualize manualmente a senha no Cloud SQL e no GitHub
 echo.
-echo 5. Testar o sistema:
+echo 5. Verificar secrets do GitHub:
+echo    - Acesse: https://github.com/LMONCAO/Monpec_GestaoRural/settings/secrets/actions
+echo    - Certifique-se de que GCP_SA_KEY e DB_PASSWORD estao configurados
+echo.
+echo 6. Testar o sistema:
 if defined SERVICE_URL (
     echo    - Acesse: !SERVICE_URL!
     echo    - Verifique se a pagina carrega

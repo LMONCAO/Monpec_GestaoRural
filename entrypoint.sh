@@ -10,11 +10,11 @@ python manage.py collectstatic --noinput --settings=sistema_rural.settings_gcp |
     echo "⚠️ collectstatic falhou, mas continuando..."
 }
 
-# Executar migrações (opcional - pode ser feito manualmente ou via Cloud Run Jobs)
-# echo "🔄 Executando migrações..."
-# python manage.py migrate --noinput --settings=sistema_rural.settings_gcp || {
-#     echo "⚠️ Migrações falharam, mas continuando..."
-# }
+# Executar migrações
+echo "🔄 Executando migrações..."
+python manage.py migrate --noinput --settings=sistema_rural.settings_gcp || {
+    echo "⚠️ Migrações falharam, mas continuando..."
+}
 
 # Iniciar o servidor Gunicorn
 echo "✅ Iniciando servidor Gunicorn..."
