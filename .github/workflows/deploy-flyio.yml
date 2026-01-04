@@ -16,14 +16,26 @@ jobs:
       - name: 📥 Checkout do código
         uses: actions/checkout@v4
 
+      - name: 🔍 Verificar Dockerfile
+        run: |
+          if [ ! -f Dockerfile ]; then
+            echo "❌ ERRO: Dockerfile não encontrado!"
+            echo "Execute CRIAR_DOCKERFILE_FLYIO.bat para criar o Dockerfile"
+            exit 1
+          fi
+          echo "✅ Dockerfile encontrado"
+
       - name: 🔐 Configurar Fly.io
         uses: superfly/flyctl-actions/setup-flyctl@v1
 
       - name: 🚀 Deploy no Fly.io
-        run: flyctl deploy --remote-only
+        run: |
+          echo "🚀 Iniciando deploy no Fly.io..."
+          flyctl deploy --remote-only --wait-timeout 10m
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         continue-on-error: false
+        timeout-minutes: 15
 
       - name: ✅ Deploy concluído
         if: success()

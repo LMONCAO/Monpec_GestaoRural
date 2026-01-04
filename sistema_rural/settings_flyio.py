@@ -28,7 +28,10 @@ if IS_FLY_IO:
     # Fly.io usa formato: app-name.fly.dev
     fly_host = f'{fly_app_name}.fly.dev'
     ALLOWED_HOSTS.append(fly_host)
-    ALLOWED_HOSTS.append('*.fly.dev')  # Permitir qualquer subdomínio .fly.dev
+    
+    # IMPORTANTE: IPs internos do Fly.io (172.x.x.x) serão permitidos
+    # dinamicamente pelo FlyIOHostMiddleware para health checks.
+    # Não precisamos adicionar IPs específicos aqui.
 
 # Configuração CSRF
 CSRF_TRUSTED_ORIGINS = [
@@ -131,6 +134,19 @@ os.makedirs(STATIC_ROOT, exist_ok=True)
 os.makedirs(MEDIA_ROOT, exist_ok=True)
 
 logger.info(f'✅ Sistema de arquivos configurado: MEDIA_ROOT={MEDIA_ROOT}, STATIC_ROOT={STATIC_ROOT}')
+
+# Adicionar middleware para permitir IPs internos do Fly.io
+# Este middleware DEVE ser o primeiro para interceptar antes da validação padrão
+try:
+    from sistema_rural.middleware import FlyIOHostMiddleware
+    middleware_path = 'sistema_rural.middleware.FlyIOHostMiddleware'
+    if middleware_path not in MIDDLEWARE:
+        if isinstance(MIDDLEWARE, list):
+            # Inserir no início da lista (antes de qualquer outro middleware)
+            MIDDLEWARE.insert(0, middleware_path)
+            logger.info('✅ FlyIOHostMiddleware adicionado para permitir IPs internos')
+except (ImportError, AttributeError) as e:
+    logger.warning(f"⚠️ Não foi possível adicionar FlyIOHostMiddleware: {e}")
 
 # Adicionar WhiteNoise para servir arquivos estáticos
 if 'whitenoise.middleware.WhiteNoiseMiddleware' not in MIDDLEWARE:

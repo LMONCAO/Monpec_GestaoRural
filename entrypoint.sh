@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# Configurar variável de ambiente PORT se não estiver definida
+export PORT=${PORT:-8080}
+
 echo "🚀 Iniciando container..."
 
 # Executar collectstatic se necessário
