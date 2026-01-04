@@ -733,3 +733,105 @@ def demo_setup(request):
     logger.warning(f'Demo setup concluído sem criar propriedade. Redirecionando para dashboard.')
     return redirect('dashboard')
 
+
+def _criar_dados_demo_completos(user, nome_completo, email, telefone):
+    """
+    Cria produtor, propriedade e dados de demonstração para um usuário.
+    Retorna a propriedade criada.
+    Esta função é chamada automaticamente quando um usuário se cadastra via formulário de demonstração.
+    """
+    from .models import ProdutorRural, Propriedade, CategoriaAnimal, InventarioRebanho
+    from decimal import Decimal
+    from datetime import date
+    from django.db import transaction
+    import logging
+    
+    logger = logging.getLogger(__name__)
+    logger.info(f'[_criar_dados_demo] Iniciando para usuário: {user.username}')
+    
+    try:
+        with transaction.atomic():
+            # 1. Criar ou obter produtor
+            cpf_demo = f'DEMO-{user.id:06d}'
+            produtor, created = ProdutorRural.objects.get_or_create(
+                usuario_responsavel=user,
+                defaults={
+                    'nome': nome_completo or 'Produtor Demo',
+                    'cpf_cnpj': cpf_demo,
+                    'email': email,
+                    'telefone': telefone or '',
+                    'endereco': 'Campo Grande, MS',
+                    'anos_experiencia': 10
+                }
+            )
+            logger.info(f'[_criar_dados_demo] Produtor: {produtor.nome} (ID: {produtor.id})')
+            
+            # 2. Criar propriedade Monpec1
+            propriedade, created = Propriedade.objects.get_or_create(
+                produtor=produtor,
+                nome_propriedade='Monpec1',
+                defaults={
+                    'municipio': 'Campo Grande',
+                    'uf': 'MS',
+                    'area_total_ha': Decimal('5000.00'),
+                    'tipo_operacao': 'PECUARIA',
+                    'tipo_ciclo_pecuario': ['CICLO_COMPLETO'],
+                    'tipo_propriedade': 'PROPRIA',
+                    'valor_hectare_proprio': Decimal('12000.00'),
+                }
+            )
+            logger.info(f'[_criar_dados_demo] Propriedade: {propriedade.nome_propriedade} (ID: {propriedade.id})')
+            
+            # 3. Criar categorias de animais (se não existirem)
+            categorias_data = [
+                {'nome': 'Vacas em Lactação', 'sexo': 'F', 'idade_minima_meses': 24, 'peso_medio_kg': Decimal('450.00')},
+                {'nome': 'Vacas Secas', 'sexo': 'F', 'idade_minima_meses': 24, 'peso_medio_kg': Decimal('450.00')},
+                {'nome': 'Novilhas', 'sexo': 'F', 'idade_minima_meses': 12, 'peso_medio_kg': Decimal('280.00')},
+                {'nome': 'Bezerras', 'sexo': 'F', 'idade_minima_meses': 0, 'peso_medio_kg': Decimal('35.00')},
+                {'nome': 'Touros', 'sexo': 'M', 'idade_minima_meses': 24, 'peso_medio_kg': Decimal('650.00')},
+                {'nome': 'Bezerros', 'sexo': 'M', 'idade_minima_meses': 0, 'peso_medio_kg': Decimal('38.00')},
+                {'nome': 'Bois', 'sexo': 'M', 'idade_minima_meses': 12, 'peso_medio_kg': Decimal('400.00')},
+            ]
+            
+            categorias = {}
+            for cat_data in categorias_data:
+                categoria, _ = CategoriaAnimal.objects.get_or_create(
+                    nome=cat_data['nome'],
+                    defaults={
+                        'sexo': cat_data['sexo'],
+                        'idade_minima_meses': cat_data['idade_minima_meses'],
+                        'peso_medio_kg': cat_data['peso_medio_kg'],
+                    }
+                )
+                categorias[cat_data['nome']] = categoria
+            
+            # 4. Criar inventário de rebanho
+            inventario_data = [
+                {'categoria': 'Vacas em Lactação', 'quantidade': 850},
+                {'categoria': 'Vacas Secas', 'quantidade': 150},
+                {'categoria': 'Novilhas', 'quantidade': 320},
+                {'categoria': 'Bezerras', 'quantidade': 280},
+                {'categoria': 'Touros', 'quantidade': 25},
+                {'categoria': 'Bezerros', 'quantidade': 310},
+                {'categoria': 'Bois', 'quantidade': 450},
+            ]
+            
+            # Limpar inventário existente
+            InventarioRebanho.objects.filter(propriedade=propriedade).delete()
+            
+            for inv_data in inventario_data:
+                InventarioRebanho.objects.create(
+                    propriedade=propriedade,
+                    categoria=categorias[inv_data['categoria']],
+                    quantidade=inv_data['quantidade'],
+                    data_inventario=date.today(),
+                )
+            
+            logger.info(f'[_criar_dados_demo] Inventário criado com {sum(d["quantidade"] for d in inventario_data)} animais')
+            
+            return propriedade
+            
+    except Exception as e:
+        logger.error(f'[_criar_dados_demo] Erro ao criar dados: {e}', exc_info=True)
+        raise
+

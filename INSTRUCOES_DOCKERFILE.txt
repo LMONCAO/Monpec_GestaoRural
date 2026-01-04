@@ -1,0 +1,85 @@
+========================================
+INSTRUÇÕES PARA CRIAR O DOCKERFILE
+========================================
+
+O Dockerfile está bloqueado pelo .cursorignore, então você precisa criá-lo manualmente.
+
+1. Crie um arquivo chamado "Dockerfile" (sem extensão) na raiz do projeto
+2. Cole o seguinte conteúdo:
+
+----------------------------------------
+# Use a imagem oficial do Python
+FROM python:3.11-slim
+
+# Definir diretório de trabalho
+WORKDIR /app
+
+# Instalar dependências do sistema
+RUN apt-get update && apt-get install -y \
+    gcc \
+    postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copiar requirements e instalar dependências Python
+COPY requirements_producao.txt .
+RUN pip install --no-cache-dir -r requirements_producao.txt
+
+# Copiar código do projeto
+COPY . .
+
+# ✅ EXECUTAR collectstatic ANTES de finalizar a imagem
+# Isso garante que todos os arquivos estáticos estejam em STATIC_ROOT
+RUN python manage.py collectstatic --noinput --settings=sistema_rural.settings_gcp
+
+# Expor porta
+EXPOSE 8080
+
+# Comando para iniciar o servidor
+CMD exec gunicorn sistema_rural.wsgi:application --bind 0.0.0.0:8080 --workers 4 --threads 2 --timeout 600
+----------------------------------------
+
+3. Salve o arquivo
+4. O workflow GitHub Actions vai usar este Dockerfile automaticamente no próximo deploy
+
+========================================
+RESUMO DAS MUDANÇAS IMPLEMENTADAS
+========================================
+
+✅ 1. Função criar_usuario_demonstracao simplificada
+   - Lógica mais simples e direta
+   - Cria propriedade com dados automaticamente via _criar_dados_demo_completos
+   - Logging detalhado com prefixo [DEMO_CADASTRO]
+
+✅ 2. Função _criar_dados_demo_completos criada
+   - Em gestao_rural/views_demo_setup.py
+   - Cria produtor, propriedade Monpec1, categorias e inventário automaticamente
+
+✅ 3. Dashboard modificado
+   - Redireciona para landing_page quando não tem propriedades (não é demo)
+   - Mensagens informativas ao usuário
+
+✅ 4. Redirecionamento após login modificado
+   - Redireciona para landing_page quando não tem propriedades
+   - Mensagem de boas-vindas
+
+✅ 5. CSRF_TRUSTED_ORIGINS já estava configurado corretamente
+
+⏳ 6. Dockerfile precisa ser criado manualmente (veja instruções acima)
+
+========================================
+PRÓXIMOS PASSOS
+========================================
+
+1. Criar o Dockerfile manualmente (veja instruções acima)
+2. Fazer commit das mudanças:
+   git add .
+   git commit -m "Fix: Resolver problemas de deploy - imagens, demo e acesso"
+   git push origin main
+
+3. O workflow GitHub Actions vai fazer o deploy automaticamente
+4. Após deploy, testar:
+   - Imagens do slide aparecem
+   - Formulário demo cria usuário e propriedade
+   - Login sem propriedades redireciona para landing page
+
+========================================
