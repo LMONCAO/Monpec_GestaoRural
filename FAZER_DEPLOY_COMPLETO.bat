@@ -379,11 +379,16 @@ echo ═════════════════════════
 echo   [PASSO !STEP_CURRENT!/!STEP_TOTAL!] Fazendo commit e push do código
 echo ═══════════════════════════════════════════════════════════════
 echo.
-echo Adicionando todos os arquivos ao Git...
-git add . >nul 2>&1
+echo Adicionando arquivos ao Git (excluindo secrets)...
+call git rm --cached %KEY_FILE% >nul 2>&1
+call git add . >nul 2>&1
+call git reset %KEY_FILE% >nul 2>&1
+if exist %KEY_FILE% (
+    echo ✅ Arquivo %KEY_FILE% excluido do Git (mantido localmente)
+)
 set GIT_ADD_ERR=!ERRORLEVEL!
 if !GIT_ADD_ERR! EQU 0 (
-    echo ✅ Arquivos adicionados
+    echo ✅ Arquivos adicionados (secrets excluidos)
 ) else (
     echo ⚠️  Aviso ao adicionar arquivos
 )
