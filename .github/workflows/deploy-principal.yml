@@ -46,78 +46,20 @@ jobs:
           
           echo "🔨 Building image: $IMAGE_TAG"
           
-          # Executar build de forma assíncrona para evitar problemas com stream de logs
-          echo "Iniciando build assíncrono..."
-          BUILD_OUTPUT=$(gcloud builds submit \
+          # Executar build de forma síncrona (mais confiável que async + wait)
+          echo "🔨 Iniciando build da imagem Docker..."
+          echo "⏳ Isso pode levar 5-10 minutos..."
+          
+          if gcloud builds submit \
             --tag $IMAGE_TAG \
             --tag $IMAGE_LATEST \
             --timeout=1800s \
             --machine-type=E2_HIGHCPU_8 \
-            --async \
-            . 2>&1)
-          
-          # Extrair BUILD_ID do output
-          BUILD_ID=$(echo "$BUILD_OUTPUT" | grep -oP 'builds/\K[^/\s]+' | head -1)
-          
-          if [ -z "$BUILD_ID" ]; then
-            echo "❌ Não foi possível obter o ID do build"
-            echo "Output: $BUILD_OUTPUT"
-            exit 1
-          fi
-          
-          echo "Build iniciado com ID: $BUILD_ID"
-          echo "Aguardando conclusão do build..."
-          echo "Você pode acompanhar em: https://console.cloud.google.com/cloud-build/builds/$BUILD_ID?project=${PROJECT_ID}"
-          
-          # Aguardar build completar (até 40 minutos, já que o build tem timeout de 1800s = 30min + margem)
-          MAX_WAIT=2400
-          ELAPSED=0
-          LAST_STATUS=""
-          
-          while [ $ELAPSED -lt $MAX_WAIT ]; do
-            STATUS=$(gcloud builds describe $BUILD_ID --format="value(status)" 2>/dev/null || echo "UNKNOWN")
-            
-            # Log apenas quando status mudar
-            if [ "$STATUS" != "$LAST_STATUS" ]; then
-              echo "Status do build: $STATUS (${ELAPSED}s)"
-              LAST_STATUS=$STATUS
-            fi
-            
-            case "$STATUS" in
-              "SUCCESS")
-                echo "✅ Build concluído com sucesso!"
-                break
-                ;;
-              "FAILURE"|"CANCELLED"|"EXPIRED"|"TIMEOUT")
-                echo "❌ Build falhou com status: $STATUS"
-                echo "🔍 Obtendo informações do build..."
-                gcloud builds describe $BUILD_ID --format="yaml" 2>/dev/null | head -50 || true
-                echo ""
-                echo "Verifique os logs completos em: https://console.cloud.google.com/cloud-build/builds/$BUILD_ID?project=${PROJECT_ID}"
-                exit 1
-                ;;
-              "WORKING"|"QUEUED")
-                # Build ainda em progresso
-                if [ $((ELAPSED % 60)) -eq 0 ]; then
-                  echo "⏳ Build ainda em progresso... (${ELAPSED}s)"
-                fi
-                ;;
-              "UNKNOWN")
-                echo "⚠️ Status desconhecido, tentando novamente..."
-                ;;
-            esac
-            
-            sleep 10
-            ELAPSED=$((ELAPSED + 10))
-          done
-          
-          # Verificar status final
-          FINAL_STATUS=$(gcloud builds describe $BUILD_ID --format="value(status)" 2>/dev/null || echo "UNKNOWN")
-          if [ "$FINAL_STATUS" != "SUCCESS" ]; then
-            echo "❌ Timeout ou falha aguardando build completar"
-            echo "Status final: $FINAL_STATUS"
-            echo "Tempo decorrido: ${ELAPSED}s"
-            echo "Verifique os logs em: https://console.cloud.google.com/cloud-build/builds/$BUILD_ID?project=${PROJECT_ID}"
+            .; then
+            echo "✅ Build concluído com sucesso!"
+          else
+            echo "❌ Build falhou!"
+            echo "Verifique os logs acima para mais detalhes"
             exit 1
           fi
           
@@ -210,25 +152,30 @@ jobs:
 
       - name: 🔍 Verificar Status do Servico
         if: always()
+        continue-on-error: true
         run: |
           echo "🔍 Verificando status do servico..."
           gcloud run services describe ${{ env.SERVICE_NAME }} \
             --region=${{ env.REGION }} \
-            --format="table(status.conditions[0].type,status.conditions[0].status,status.url)" || true
+            --format="table(status.conditions[0].type,status.conditions[0].status,status.url)" || echo "⚠️ Não foi possível verificar status (não crítico)"
           
           echo ""
           echo "📋 Verificando logs recentes (ultimas 10 linhas)..."
-          gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=${{ env.SERVICE_NAME }}" \
+          if gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=${{ env.SERVICE_NAME }}" \
             --limit=10 \
             --format="table(timestamp,severity,textPayload)" \
-            --project=${{ env.PROJECT_ID }} || true
+            --project=${{ env.PROJECT_ID }} 2>/dev/null; then
+            echo "✅ Logs verificados"
+          else
+            echo "⚠️ Não foi possível ler logs (falta de permissão - não crítico)"
+          fi
           
           echo ""
           echo "🔴 Verificando erros..."
           ERRORS=$(gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=${{ env.SERVICE_NAME }} AND severity>=ERROR" \
             --limit=5 \
             --format="value(textPayload)" \
-            --project=${{ env.PROJECT_ID }} || echo "")
+            --project=${{ env.PROJECT_ID }} 2>/dev/null || echo "")
           
           if [ -z "$ERRORS" ]; then
             echo "✅ Nenhum erro encontrado nos logs recentes!"

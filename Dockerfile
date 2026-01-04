@@ -1,24 +1,24 @@
-﻿# Use a imagem oficial do Python
+# Use a imagem oficial do Python
 FROM python:3.11-slim
 
-# Definir diretÃ³rio de trabalho
+# Definir diretório de trabalho
 WORKDIR /app
 
-# Instalar dependÃªncias do sistema
+# Instalar dependências do sistema
 RUN apt-get update && apt-get install -y \
     gcc \
     postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
-# Copiar requirements e instalar dependÃªncias Python
+# Copiar requirements e instalar dependências Python
 COPY requirements_producao.txt .
 RUN pip install --no-cache-dir -r requirements_producao.txt
 
-# Copiar cÃ³digo do projeto
+# Copiar código do projeto
 COPY . .
 
-# âœ… EXECUTAR collectstatic ANTES de finalizar a imagem
-# Isso garante que todos os arquivos estÃ¡ticos estejam em STATIC_ROOT
+# ✅ EXECUTAR collectstatic ANTES de finalizar a imagem
+# Isso garante que todos os arquivos estáticos estejam em STATIC_ROOT
 RUN python manage.py collectstatic --noinput --settings=sistema_rural.settings_gcp
 
 # Expor porta
