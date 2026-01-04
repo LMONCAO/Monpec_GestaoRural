@@ -93,8 +93,20 @@ else:
     DB_NAME = os.getenv('DB_NAME', 'monpec_db')
     DB_USER = os.getenv('DB_USER', 'monpec_user')
     DB_PASSWORD = os.getenv('DB_PASSWORD', '')
-    DB_HOST = os.getenv('DB_HOST', 'localhost')
+    DB_HOST = os.getenv('DB_HOST', '')
     DB_PORT = os.getenv('DB_PORT', '5432')
+    
+    # Se não tiver DATABASE_URL nem variáveis individuais, ERRO
+    if not DB_HOST:
+        error_msg = (
+            "❌ ERRO: DATABASE_URL não está configurado!\n"
+            "Configure DATABASE_URL no Fly.io:\n"
+            "1. Acesse: https://fly.io/apps/monpec-gestaorural/settings/secrets\n"
+            "2. Adicione: DATABASE_URL com a URL do PostgreSQL\n"
+            "3. Ou configure: DB_HOST, DB_NAME, DB_USER, DB_PASSWORD"
+        )
+        logger.error(error_msg)
+        raise ValueError(error_msg)
     
     DATABASES = {
         'default': {

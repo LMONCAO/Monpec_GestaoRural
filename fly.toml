@@ -10,8 +10,9 @@ primary_region = "gru"  # São Paulo (mais próximo do Brasil)
   PORT = "8080"
   DJANGO_SETTINGS_MODULE = "sistema_rural.settings_flyio"
 
-[deploy]
-  release_command = "python manage.py migrate --noinput --settings=sistema_rural.settings_flyio"
+# NOTA: release_command removido - migrações rodam no entrypoint.sh
+# O release_command não tem acesso ao DATABASE_URL por padrão
+# As migrações são executadas automaticamente no entrypoint.sh antes de iniciar o servidor
 
 [http_service]
   internal_port = 8080
