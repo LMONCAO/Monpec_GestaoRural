@@ -175,3 +175,4 @@ class TestDashboardServiceCompleto:
         if dados['propriedade_prioritaria']:
             assert dados['propriedade_prioritaria'].produtor == produtor
 
+

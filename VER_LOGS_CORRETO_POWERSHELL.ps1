@@ -35,3 +35,4 @@ $logs = gcloud logging read `
 # Filtrar por erros
 $logs | Select-String -Pattern "Traceback|ProgrammingError|DoesNotExist|Exception|Error" -Context 0,25
 
+

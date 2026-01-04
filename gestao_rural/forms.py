@@ -11,6 +11,7 @@ class ProdutorRuralForm(forms.ModelForm):
         fields = [
             'nome', 'cpf_cnpj', 'documento_identidade', 'data_nascimento', 
             'anos_experiencia', 'telefone', 'email', 'endereco',
+            'vai_emitir_nfe',
             'certificado_digital', 'senha_certificado', 'certificado_valido_ate', 'certificado_tipo'
         ]
         widgets = {
@@ -22,16 +23,21 @@ class ProdutorRuralForm(forms.ModelForm):
             'telefone': forms.TextInput(attrs={'class': 'form-control'}),
             'email': forms.EmailInput(attrs={'class': 'form-control'}),
             'endereco': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'certificado_digital': forms.FileInput(attrs={'class': 'form-control', 'accept': '.p12,.pfx', 'style': 'position: absolute; opacity: 0; width: 100%; height: 100%; cursor: pointer; top: 0; left: 0;'}),
-            'senha_certificado': forms.PasswordInput(attrs={'class': 'form-control', 'autocomplete': 'new-password', 'placeholder': 'Deixe em branco para manter a senha atual'}),
+            'vai_emitir_nfe': forms.CheckboxInput(attrs={'class': 'form-check-input', 'id': 'id_vai_emitir_nfe'}),
+            'certificado_digital': forms.FileInput(attrs={'class': 'form-control', 'accept': '.p12,.pfx'}),
+            'senha_certificado': forms.PasswordInput(attrs={'class': 'form-control', 'autocomplete': 'new-password', 'placeholder': 'Senha do certificado digital'}),
             'certificado_valido_ate': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'certificado_tipo': forms.Select(attrs={'class': 'form-control'}),
         }
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Tornar senha_certificado não obrigatória
+        # Tornar campos de certificado não obrigatórios
         self.fields['senha_certificado'].required = False
+        self.fields['certificado_digital'].required = False
+        self.fields['certificado_valido_ate'].required = False
+        self.fields['certificado_tipo'].required = False
+        self.fields['vai_emitir_nfe'].required = False
     
     def save(self, commit=True):
         # Se a senha estiver vazia e já existir uma senha, manter a senha existente

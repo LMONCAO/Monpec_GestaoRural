@@ -50,3 +50,4 @@ else
     echo "❌ Erro ao marcar 0036 como fake. Verifique os logs."
 fi
 
+

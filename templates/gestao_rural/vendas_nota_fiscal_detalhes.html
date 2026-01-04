@@ -33,15 +33,39 @@
                 <div class="small text-muted mt-1">Cancelada em {{ nota.data_cancelamento|date:"d/m/Y H:i" }}</div>
                 {% endif %}
                 <div class="d-flex gap-2 mt-2 justify-content-end flex-wrap">
+                    {% if nota.status == 'AUTORIZADA' %}
+                    {% if nota.arquivo_pdf %}
+                    <a href="{{ nota.arquivo_pdf.url }}" class="btn btn-sm btn-danger" download><i class="bi bi-file-earmark-pdf me-1"></i>Baixar PDF</a>
+                    {% else %}
+                    <a href="{% url 'vendas_nota_fiscal_baixar_arquivos' propriedade.id nota.id %}" class="btn btn-sm btn-outline-danger" title="Baixar arquivos da NF-e">
+                        <i class="bi bi-file-earmark-pdf me-1"></i>Baixar PDF
+                    </a>
+                    {% endif %}
                     {% if nota.arquivo_xml %}
                     <a href="{{ nota.arquivo_xml.url }}" class="btn btn-sm btn-outline-success" download><i class="bi bi-download me-1"></i>Baixar XML</a>
+                    {% else %}
+                    <a href="{% url 'vendas_nota_fiscal_baixar_arquivos' propriedade.id nota.id %}" class="btn btn-sm btn-outline-success" title="Baixar arquivos da NF-e">
+                        <i class="bi bi-download me-1"></i>Baixar XML
+                    </a>
+                    {% endif %}
                     {% endif %}
                     {% if nota.chave_acesso %}
                     <button type="button" class="btn btn-sm btn-outline-info" onclick="consultarStatus()" id="btn-consultar-status">
                         <i class="bi bi-search me-1"></i>Consultar Status
                     </button>
                     {% endif %}
+                    {% if nota.status == 'PENDENTE' %}
+                    <a href="{% url 'vendas_nota_fiscal_autorizar_teste' propriedade.id nota.id %}" class="btn btn-sm btn-success" onclick="return confirm('Deseja autorizar esta NF-e para testes?');">
+                        <i class="bi bi-check-circle me-1"></i>Autorizar (Teste)
+                    </a>
+                    {% endif %}
                     {% if nota.status == 'AUTORIZADA' %}
+                    <button type="button" class="btn btn-sm btn-primary" onclick="enviarPorEmail({{ nota.id }})">
+                        <i class="bi bi-envelope me-1"></i>Enviar por E-mail
+                    </button>
+                    <button type="button" class="btn btn-sm btn-success" onclick="enviarPorWhatsapp({{ nota.id }})">
+                        <i class="bi bi-whatsapp me-1"></i>Enviar por WhatsApp
+                    </button>
                     <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modalCancelar">
                         <i class="bi bi-x-circle me-1"></i>Cancelar NF-e
                     </button>
@@ -128,5 +152,192 @@
         <a href="{% url 'vendas_notas_fiscais_lista' propriedade.id %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Voltar</a>
     </div>
 </div>
+
+<!-- Modal para Cancelar NF-e -->
+{% if nota.status == 'AUTORIZADA' %}
+<div class="modal fade" id="modalCancelar" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="{% url 'vendas_nota_fiscal_cancelar' propriedade.id nota.id %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title">Cancelar NF-e {{ nota.numero }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Deseja realmente cancelar esta NF-e?</p>
+                    <div class="mb-3">
+                        <label class="form-label">Justificativa (mínimo 15 caracteres)</label>
+                        <textarea name="justificativa" class="form-control" rows="3" required minlength="15"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Confirmar Cancelamento</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<script>
+// Função para obter CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+const csrftoken = getCookie('csrftoken');
+
+// Função para consultar status
+function consultarStatus() {
+    const btn = document.getElementById('btn-consultar-status');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Consultando...';
+    
+    fetch('{% url "vendas_nota_fiscal_consultar_status" propriedade.id nota.id %}', {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.sucesso) {
+            alert('Status atualizado: ' + data.status_display);
+            location.reload();
+        } else {
+            alert('Erro: ' + (data.erro || 'Erro desconhecido'));
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-search me-1"></i>Consultar Status';
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro ao consultar status. Tente novamente.');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-search me-1"></i>Consultar Status';
+    });
+}
+
+// Enviar por email
+function enviarPorEmail(notaId) {
+    {% if nota.cliente and nota.cliente.email %}
+    const emailPadrao = '{{ nota.cliente.email }}';
+    const email = prompt('Digite o e-mail para enviar a NF-e:', emailPadrao);
+    {% else %}
+    const email = prompt('Digite o e-mail para enviar a NF-e:');
+    {% endif %}
+    if (!email) return;
+    
+    fetch(`/propriedade/{{ propriedade.id }}/vendas/nota-fiscal/${notaId}/enviar-email/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': csrftoken
+        },
+        body: JSON.stringify({ email: email })
+    })
+    .then(response => {
+        const contentType = response.headers.get('content-type');
+        if (!response.ok) {
+            if (contentType && contentType.includes('application/json')) {
+                return response.json().then(data => {
+                    throw new Error(data.erro || 'Erro ao processar requisição');
+                });
+            } else {
+                return response.text().then(text => {
+                    throw new Error('Erro ao processar requisição. O servidor retornou uma resposta HTML.');
+                });
+            }
+        }
+        if (contentType && contentType.includes('application/json')) {
+            return response.json();
+        } else {
+            return response.text().then(text => {
+                throw new Error('Resposta do servidor não é JSON válido.');
+            });
+        }
+    })
+    .then(data => {
+        if (data.sucesso) {
+            alert('✅ ' + data.mensagem);
+        } else {
+            alert('❌ Erro ao enviar e-mail:\n\n' + (data.erro || 'Erro desconhecido'));
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        alert('❌ Erro ao enviar e-mail: ' + error.message);
+    });
+}
+
+// Enviar por WhatsApp
+function enviarPorWhatsapp(notaId) {
+    const telefone = prompt('Digite o telefone para enviar a NF-e (com DDD):');
+    if (!telefone) return;
+    
+    fetch(`/propriedade/{{ propriedade.id }}/vendas/nota-fiscal/${notaId}/enviar-whatsapp/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': csrftoken
+        },
+        body: JSON.stringify({ telefone: telefone })
+    })
+    .then(response => {
+        const contentType = response.headers.get('content-type');
+        if (!response.ok) {
+            // Tentar parsear JSON se o content-type for JSON, senão usar texto
+            if (contentType && contentType.includes('application/json')) {
+                return response.json().then(data => {
+                    throw new Error(data.erro || 'Erro ao processar requisição');
+                });
+            } else {
+                return response.text().then(text => {
+                    throw new Error('Erro ao processar requisição. O servidor retornou uma resposta HTML.');
+                });
+            }
+        }
+        // Verificar se a resposta é JSON antes de fazer parse
+        if (contentType && contentType.includes('application/json')) {
+            return response.json();
+        } else {
+            return response.text().then(text => {
+                throw new Error('Resposta do servidor não é JSON válido.');
+            });
+        }
+    })
+    .then(data => {
+        if (data.sucesso) {
+            if (data.whatsapp_url) {
+                // Abrir link do WhatsApp Web
+                window.open(data.whatsapp_url, '_blank');
+                alert('✅ ' + data.mensagem + '\n\n' + (data.observacao || ''));
+            } else {
+                alert('✅ ' + data.mensagem);
+            }
+        } else {
+            alert('❌ Erro ao enviar WhatsApp:\n\n' + (data.erro || 'Erro desconhecido'));
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        alert('❌ Erro ao enviar WhatsApp:\n\n' + (error.message || 'Erro desconhecido. Por favor, tente novamente.'));
+    });
+}
+</script>
 {% endblock %}
 

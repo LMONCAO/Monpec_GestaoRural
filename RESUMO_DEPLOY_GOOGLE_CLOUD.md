@@ -186,3 +186,4 @@ gcloud run services describe monpec --region us-central1
 
 Para mais detalhes, consulte o arquivo `VERIFICACAO_PRE_DEPLOY.md`.
 
+

@@ -251,3 +251,4 @@ gcloud run services logs read monpec --region us-central1 --limit 50
 **Última atualização**: Janeiro 2026
 **Versão**: 1.0 Final
 
+

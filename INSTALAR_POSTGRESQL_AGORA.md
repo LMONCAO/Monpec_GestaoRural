@@ -119,3 +119,4 @@ python manage.py dbshell
 **Dificuldade**: Fácil  
 **Resultado**: Banco configurado e todas as migrações aplicadas! 🎉
 
+

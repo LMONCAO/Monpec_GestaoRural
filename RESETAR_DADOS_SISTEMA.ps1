@@ -47,3 +47,4 @@ if ($LASTEXITCODE -eq 0) {
     Write-Host "Verifique os erros acima." -ForegroundColor Red
 }
 
+

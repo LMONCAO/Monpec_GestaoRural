@@ -134,3 +134,4 @@ Write-Host "Se houver migrações pendentes, execute:" -ForegroundColor Yellow
 Write-Host "  .\aplicar_migracoes_postgresql.ps1" -ForegroundColor White
 Write-Host ""
 
+

@@ -9,7 +9,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q, Sum, Count
 from django.forms import inlineformset_factory
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse, Http404
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 from decimal import Decimal
@@ -154,16 +154,17 @@ def vendas_nota_fiscal_emitir(request, propriedade_id):
         validate_min=True
     )
     
-    # Obter próximo número de NF-e
-    from .services_nfe_utils import obter_proximo_numero_nfe
     serie_padrao = '1'
-    proximo_numero = obter_proximo_numero_nfe(propriedade, serie_padrao)
     
     if request.method == 'POST':
         form = NotaFiscalSaidaForm(request.POST, propriedade=propriedade)
         formset = ItemNotaFiscalFormSet(request.POST)
         
         if form.is_valid() and formset.is_valid():
+            # Obter próximo número E INCREMENTAR (apenas ao salvar)
+            from .services_nfe_utils import obter_proximo_numero_nfe
+            proximo_numero = obter_proximo_numero_nfe(propriedade, serie_padrao)
+            
             nota = form.save(commit=False)
             nota.propriedade = propriedade
             nota.tipo = 'SAIDA'
@@ -203,6 +204,72 @@ def vendas_nota_fiscal_emitir(request, propriedade_id):
                         nota.arquivo_xml.save(f'nfe_{nota.numero}.xml', ContentFile(resultado['xml']), save=False)
                     nota.save()
                     
+                    # Criar lançamento financeiro se forma de recebimento foi informada
+                    forma_recebimento = form.cleaned_data.get('forma_recebimento')
+                    if forma_recebimento:
+                        try:
+                            from .models_financeiro import LancamentoFinanceiro, CategoriaFinanceira
+                            from django.db import transaction
+                            
+                            conta_destino = form.cleaned_data.get('conta_destino')
+                            categoria_receita = form.cleaned_data.get('categoria_receita')
+                            data_vencimento_recebimento = form.cleaned_data.get('data_vencimento_recebimento')
+                            
+                            # Se não informado, buscar padrão
+                            if not conta_destino:
+                                from .models_financeiro import ContaFinanceira
+                                conta_destino = ContaFinanceira.objects.filter(
+                                    propriedade=propriedade,
+                                    ativa=True
+                                ).first()
+                            
+                            if not categoria_receita:
+                                categoria_receita = CategoriaFinanceira.objects.filter(
+                                    propriedade=propriedade,
+                                    tipo=CategoriaFinanceira.TIPO_RECEITA,
+                                    ativa=True
+                                ).first()
+                                if not categoria_receita:
+                                    categoria_receita = CategoriaFinanceira.objects.create(
+                                        propriedade=propriedade,
+                                        nome='Vendas de Animais',
+                                        tipo=CategoriaFinanceira.TIPO_RECEITA,
+                                        descricao='Receitas provenientes de vendas',
+                                        ativa=True
+                                    )
+                            
+                            # Se tem conta e categoria, criar lançamento
+                            if conta_destino and categoria_receita:
+                                cliente_nome = nota.cliente.nome if nota.cliente else 'Cliente não informado'
+                                data_vencimento = data_vencimento_recebimento or nota.data_emissao
+                                
+                                # Para PIX/Dinheiro, marcar como quitado na data de emissão
+                                # Para Boleto/Transferência, deixar pendente
+                                formas_quitadas_imediato = ['PIX', 'DINHEIRO']
+                                status_lancamento = LancamentoFinanceiro.STATUS_QUITADO if forma_recebimento in formas_quitadas_imediato else LancamentoFinanceiro.STATUS_PENDENTE
+                                data_quitacao = nota.data_emissao if forma_recebimento in formas_quitadas_imediato else None
+                                
+                                with transaction.atomic():
+                                    lancamento = LancamentoFinanceiro.objects.create(
+                                        propriedade=propriedade,
+                                        categoria=categoria_receita,
+                                        conta_destino=conta_destino,
+                                        tipo=CategoriaFinanceira.TIPO_RECEITA,
+                                        descricao=f'NF-e {nota.numero}/{nota.serie} - {cliente_nome}',
+                                        valor=nota.valor_total,
+                                        data_competencia=nota.data_emissao,
+                                        data_vencimento=data_vencimento,
+                                        data_quitacao=data_quitacao,
+                                        forma_pagamento=forma_recebimento,
+                                        status=status_lancamento,
+                                        documento_referencia=f'NF-e {nota.numero}',
+                                        observacoes=f'Gerado automaticamente da NF-e {nota.numero}. Cliente: {cliente_nome}'
+                                    )
+                                    logger.info(f'Lançamento financeiro criado: ID={lancamento.id} para NF-e {nota.numero}')
+                        except Exception as e:
+                            logger.error(f'Erro ao criar lançamento financeiro para NF-e {nota.numero}: {str(e)}', exc_info=True)
+                            # Não falhar a emissão da NF-e se houver erro ao criar lançamento
+                    
                     # Se for requisição AJAX, retornar JSON
                     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                         return JsonResponse({
@@ -217,14 +284,98 @@ def vendas_nota_fiscal_emitir(request, propriedade_id):
                 else:
                     erro_msg = resultado.get("erro", "Erro desconhecido") if resultado else "Resposta inválida da API"
                     
-                    # Se for requisição AJAX, retornar JSON
-                    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                        return JsonResponse({
-                            'sucesso': False,
-                            'erro': erro_msg
-                        }, status=400)
-                    
-                    messages.error(request, f'Erro ao emitir NF-e: {erro_msg}')
+                    # Se a API não está configurada, criar NF-e com status PENDENTE
+                    if 'API de NF-e não configurada' in erro_msg:
+                        nota.status = 'PENDENTE'
+                        nota.save()
+                        
+                        # Criar lançamento financeiro mesmo com status PENDENTE, se forma_recebimento foi informada
+                        forma_recebimento = form.cleaned_data.get('forma_recebimento')
+                        if forma_recebimento:
+                            try:
+                                from .models_financeiro import LancamentoFinanceiro, CategoriaFinanceira
+                                from django.db import transaction
+                                
+                                conta_destino = form.cleaned_data.get('conta_destino')
+                                categoria_receita = form.cleaned_data.get('categoria_receita')
+                                data_vencimento_recebimento = form.cleaned_data.get('data_vencimento_recebimento')
+                                
+                                # Se não informado, buscar padrão
+                                if not conta_destino:
+                                    from .models_financeiro import ContaFinanceira
+                                    conta_destino = ContaFinanceira.objects.filter(
+                                        propriedade=propriedade,
+                                        ativa=True
+                                    ).first()
+                                
+                                if not categoria_receita:
+                                    categoria_receita = CategoriaFinanceira.objects.filter(
+                                        propriedade=propriedade,
+                                        tipo=CategoriaFinanceira.TIPO_RECEITA,
+                                        ativa=True
+                                    ).first()
+                                    if not categoria_receita:
+                                        categoria_receita = CategoriaFinanceira.objects.create(
+                                            propriedade=propriedade,
+                                            nome='Vendas de Animais',
+                                            tipo=CategoriaFinanceira.TIPO_RECEITA,
+                                            descricao='Receitas provenientes de vendas',
+                                            ativa=True
+                                        )
+                                
+                                # Se tem conta e categoria, criar lançamento
+                                if conta_destino and categoria_receita:
+                                    cliente_nome = nota.cliente.nome if nota.cliente else 'Cliente não informado'
+                                    data_vencimento = data_vencimento_recebimento or nota.data_emissao
+                                    
+                                    # Para PIX/Dinheiro, marcar como quitado na data de emissão
+                                    # Para Boleto/Transferência, deixar pendente
+                                    formas_quitadas_imediato = ['PIX', 'DINHEIRO']
+                                    status_lancamento = LancamentoFinanceiro.STATUS_QUITADO if forma_recebimento in formas_quitadas_imediato else LancamentoFinanceiro.STATUS_PENDENTE
+                                    data_quitacao = nota.data_emissao if forma_recebimento in formas_quitadas_imediato else None
+                                    
+                                    with transaction.atomic():
+                                        lancamento = LancamentoFinanceiro.objects.create(
+                                            propriedade=propriedade,
+                                            categoria=categoria_receita,
+                                            conta_destino=conta_destino,
+                                            tipo=CategoriaFinanceira.TIPO_RECEITA,
+                                            descricao=f'NF-e {nota.numero}/{nota.serie} - {cliente_nome}',
+                                            valor=nota.valor_total,
+                                            data_competencia=nota.data_emissao,
+                                            data_vencimento=data_vencimento,
+                                            data_quitacao=data_quitacao,
+                                            forma_pagamento=forma_recebimento,
+                                            status=status_lancamento,
+                                            documento_referencia=f'NF-e {nota.numero}',
+                                            observacoes=f'Gerado automaticamente da NF-e {nota.numero}. Cliente: {cliente_nome}'
+                                        )
+                                        logger.info(f'Lançamento financeiro criado: ID={lancamento.id} para NF-e {nota.numero} (PENDENTE)')
+                            except Exception as e:
+                                logger.error(f'Erro ao criar lançamento financeiro para NF-e {nota.numero}: {str(e)}', exc_info=True)
+                        
+                        # Se for requisição AJAX, retornar JSON com sucesso mas status PENDENTE
+                        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                            return JsonResponse({
+                                'sucesso': True,
+                                'nota_id': nota.id,
+                                'chave_acesso': '',
+                                'numero': nota.numero,
+                                'mensagem': f'NF-e {nota.numero} criada com status PENDENTE. Configure a API de NF-e para emissão automática.',
+                                'status': 'PENDENTE'
+                            })
+                        
+                        messages.warning(request, f'NF-e {nota.numero} criada com status PENDENTE. Configure a API de NF-e para emissão automática.')
+                    else:
+                        # Outros erros: retornar erro
+                        # Se for requisição AJAX, retornar JSON
+                        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                            return JsonResponse({
+                                'sucesso': False,
+                                'erro': erro_msg
+                            }, status=400)
+                        
+                        messages.error(request, f'Erro ao emitir NF-e: {erro_msg}')
             except Exception as e:
                 logger.error(f'Erro ao emitir NF-e: {str(e)}', exc_info=True)
                 erro_msg = str(e)
@@ -261,10 +412,18 @@ def vendas_nota_fiscal_emitir(request, propriedade_id):
                 }, status=400)
             
             messages.error(request, 'Por favor, corrija os erros no formulário.')
+            # Em caso de erro, obter próximo número SEM INCREMENTAR (para mostrar no formulário)
+            from .services_nfe_utils import visualizar_proximo_numero_nfe
+            proximo_numero = visualizar_proximo_numero_nfe(propriedade, serie_padrao)
     else:
         form = NotaFiscalSaidaForm(propriedade=propriedade)
         form.initial['data_emissao'] = date.today()
+        form.initial['data_entrada'] = date.today()
         formset = ItemNotaFiscalFormSet(instance=NotaFiscal())
+        
+        # Obter próximo número SEM INCREMENTAR (apenas para visualização)
+        from .services_nfe_utils import visualizar_proximo_numero_nfe
+        proximo_numero = visualizar_proximo_numero_nfe(propriedade, serie_padrao)
     
     clientes = Cliente.objects.filter(
         Q(propriedade=propriedade) | Q(propriedade__isnull=True),
@@ -391,6 +550,146 @@ def vendas_nota_fiscal_consultar_status(request, propriedade_id, nota_id):
 
 
 # ============================================================================
+# ATUALIZAR STATUS PARA AUTORIZADA (TEMPORÁRIO PARA TESTES)
+# ============================================================================
+
+@login_required
+def vendas_nota_fiscal_autorizar_teste(request, propriedade_id, nota_id):
+    """Atualizar status de NF-e para AUTORIZADA (temporário para testes)"""
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
+    nota = get_object_or_404(NotaFiscal, id=nota_id, propriedade=propriedade, tipo='SAIDA')
+    
+    if nota.status == 'AUTORIZADA':
+        messages.info(request, 'NF-e já está autorizada.')
+        return redirect('vendas_nota_fiscal_detalhes', propriedade_id=propriedade.id, nota_id=nota.id)
+    
+    try:
+        nota.status = 'AUTORIZADA'
+        nota.protocolo_autorizacao = '123456789012345'
+        nota.data_autorizacao = timezone.now()
+        if not nota.chave_acesso:
+            # Gerar chave de acesso única baseada no número da nota e série
+            import random
+            import time
+            chave_base = f'3520011234567800019055001000000000{nota.numero:08d}{nota.serie:02d}'
+            # Adicionar dígitos aleatórios e timestamp para garantir unicidade
+            max_tentativas = 100
+            tentativa = 0
+            chave_gerada = False
+            
+            while not chave_gerada and tentativa < max_tentativas:
+                # Usar timestamp e random para garantir unicidade
+                timestamp_suffix = str(int(time.time() * 1000))[-6:]  # Últimos 6 dígitos do timestamp
+                random_suffix = f'{random.randint(1000, 9999):04d}'
+                chave_sufixo = (timestamp_suffix + random_suffix)[:4]
+                chave_candidata = chave_base[:40] + chave_sufixo[:4]
+                
+                # Verificar se a chave já existe
+                if not NotaFiscal.objects.filter(chave_acesso=chave_candidata).exclude(id=nota.id).exists():
+                    nota.chave_acesso = chave_candidata
+                    chave_gerada = True
+                else:
+                    tentativa += 1
+                    time.sleep(0.001)  # Pequeno delay para evitar colisões
+            
+            if not chave_gerada:
+                # Se não conseguiu gerar uma chave única, usar UUID como fallback
+                import uuid
+                chave_fallback = f'3520011234567800019055001000000000{nota.numero:08d}{nota.serie:02d}{str(uuid.uuid4())[:4].replace("-", "")}'
+                nota.chave_acesso = chave_fallback[:44]
+        
+        # Tentar salvar com tratamento de IntegrityError
+        try:
+            nota.save()
+        except Exception as ie:
+            from django.db import IntegrityError
+            # Se ainda houver erro de unicidade, tentar novamente com nova chave
+            if isinstance(ie, IntegrityError) and 'chave_acesso' in str(ie).lower():
+                import uuid
+                chave_fallback = f'3520011234567800019055001000000000{nota.numero:08d}{nota.serie:02d}{str(uuid.uuid4())[:4].replace("-", "")}'
+                nota.chave_acesso = chave_fallback[:44]
+                nota.save()
+            else:
+                raise
+        
+        messages.success(request, f'✅ NF-e {nota.numero}/{nota.serie} atualizada para AUTORIZADA com sucesso!')
+        logger.info(f'NF-e {nota.id} atualizada para AUTORIZADA manualmente por {request.user.username}')
+    except Exception as e:
+        logger.error(f'Erro ao atualizar status da NF-e: {str(e)}', exc_info=True)
+        messages.error(request, f'Erro ao atualizar status: {str(e)}')
+    
+    return redirect('vendas_nota_fiscal_detalhes', propriedade_id=propriedade.id, nota_id=nota.id)
+
+
+@login_required
+def vendas_nota_fiscal_autorizar_teste_numero(request, propriedade_id, numero, serie='1'):
+    """Atualizar status de NF-e para AUTORIZADA por número (temporário para testes)"""
+    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
+    nota = get_object_or_404(NotaFiscal, numero=numero, serie=serie, propriedade=propriedade, tipo='SAIDA')
+    
+    if nota.status == 'AUTORIZADA':
+        messages.info(request, 'NF-e já está autorizada.')
+        return redirect('vendas_nota_fiscal_detalhes', propriedade_id=propriedade.id, nota_id=nota.id)
+    
+    try:
+        nota.status = 'AUTORIZADA'
+        nota.protocolo_autorizacao = '123456789012345'
+        nota.data_autorizacao = timezone.now()
+        if not nota.chave_acesso:
+            # Gerar chave de acesso única baseada no número da nota e série
+            import random
+            import time
+            chave_base = f'3520011234567800019055001000000000{nota.numero:08d}{nota.serie:02d}'
+            # Adicionar dígitos aleatórios e timestamp para garantir unicidade
+            max_tentativas = 100
+            tentativa = 0
+            chave_gerada = False
+            
+            while not chave_gerada and tentativa < max_tentativas:
+                # Usar timestamp e random para garantir unicidade
+                timestamp_suffix = str(int(time.time() * 1000))[-6:]  # Últimos 6 dígitos do timestamp
+                random_suffix = f'{random.randint(1000, 9999):04d}'
+                chave_sufixo = (timestamp_suffix + random_suffix)[:4]
+                chave_candidata = chave_base[:40] + chave_sufixo[:4]
+                
+                # Verificar se a chave já existe
+                if not NotaFiscal.objects.filter(chave_acesso=chave_candidata).exclude(id=nota.id).exists():
+                    nota.chave_acesso = chave_candidata
+                    chave_gerada = True
+                else:
+                    tentativa += 1
+                    time.sleep(0.001)  # Pequeno delay para evitar colisões
+            
+            if not chave_gerada:
+                # Se não conseguiu gerar uma chave única, usar UUID como fallback
+                import uuid
+                chave_fallback = f'3520011234567800019055001000000000{nota.numero:08d}{nota.serie:02d}{str(uuid.uuid4())[:4].replace("-", "")}'
+                nota.chave_acesso = chave_fallback[:44]
+        
+        # Tentar salvar com tratamento de IntegrityError
+        try:
+            nota.save()
+        except Exception as ie:
+            from django.db import IntegrityError
+            # Se ainda houver erro de unicidade, tentar novamente com nova chave
+            if isinstance(ie, IntegrityError) and 'chave_acesso' in str(ie).lower():
+                import uuid
+                chave_fallback = f'3520011234567800019055001000000000{nota.numero:08d}{nota.serie:02d}{str(uuid.uuid4())[:4].replace("-", "")}'
+                nota.chave_acesso = chave_fallback[:44]
+                nota.save()
+            else:
+                raise
+        
+        messages.success(request, f'✅ NF-e {nota.numero}/{nota.serie} atualizada para AUTORIZADA com sucesso!')
+        logger.info(f'NF-e {nota.id} (número {nota.numero}/{nota.serie}) atualizada para AUTORIZADA manualmente por {request.user.username}')
+    except Exception as e:
+        logger.error(f'Erro ao atualizar status da NF-e: {str(e)}', exc_info=True)
+        messages.error(request, f'Erro ao atualizar status: {str(e)}')
+    
+    return redirect('vendas_nota_fiscal_detalhes', propriedade_id=propriedade.id, nota_id=nota.id)
+
+
+# ============================================================================
 # ENVIAR NF-E POR E-MAIL
 # ============================================================================
 
@@ -399,8 +698,11 @@ def vendas_nota_fiscal_consultar_status(request, propriedade_id, nota_id):
 def vendas_nota_fiscal_enviar_email(request, propriedade_id, nota_id):
     """Enviar NF-e por e-mail"""
     import json
-    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
-    nota = get_object_or_404(NotaFiscal, id=nota_id, propriedade=propriedade, tipo='SAIDA')
+    try:
+        propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
+        nota = get_object_or_404(NotaFiscal, id=nota_id, propriedade=propriedade, tipo='SAIDA')
+    except Http404 as e:
+        return JsonResponse({'sucesso': False, 'erro': str(e)}, status=404)
     
     try:
         data = json.loads(request.body)
@@ -421,8 +723,67 @@ def vendas_nota_fiscal_enviar_email(request, propriedade_id, nota_id):
         # Obter dados do cliente se disponível
         cliente_nome = nota.cliente.nome if nota.cliente else 'Cliente'
         cliente_cpf_cnpj = nota.cliente.cpf_cnpj if nota.cliente and nota.cliente.cpf_cnpj else ''
+        cliente_email = nota.cliente.email if nota.cliente and nota.cliente.email else None
+        
+        # Buscar boletos relacionados à nota fiscal (ANTES de criar o corpo do email)
+        anexos_boleto = []
+        try:
+            from .models_financeiro import LancamentoFinanceiro, AnexoLancamentoFinanceiro
+            from decimal import Decimal
+            from django.db.models import Q
+            
+            # Buscar LancamentoFinanceiro relacionado (por documento_referencia contendo número da NF)
+            numero_nota_refs = []
+            if nota.numero:
+                numero_nota_refs.append(f"NF {nota.numero}")
+                numero_nota_refs.append(f"NF-e {nota.numero}")
+                numero_nota_refs.append(f"NFe {nota.numero}")
+                numero_nota_refs.append(f"{nota.numero}")
+            
+            # Buscar por documento_referencia
+            lancamentos_relacionados = LancamentoFinanceiro.objects.none()
+            if numero_nota_refs:
+                query = Q()
+                for ref in numero_nota_refs:
+                    query |= Q(documento_referencia__icontains=ref)
+                
+                lancamentos_relacionados = LancamentoFinanceiro.objects.filter(
+                    propriedade=propriedade,
+                    forma_pagamento=LancamentoFinanceiro.FORMA_BOLETO,
+                    status=LancamentoFinanceiro.STATUS_PENDENTE
+                ).filter(query)
+            
+            # Se não encontrou por referência, buscar por cliente e valor (tolerância de 2%)
+            if not lancamentos_relacionados.exists() and nota.cliente:
+                valor_min = nota.valor_total * Decimal('0.98')
+                valor_max = nota.valor_total * Decimal('1.02')
+                
+                lancamentos_relacionados = LancamentoFinanceiro.objects.filter(
+                    propriedade=propriedade,
+                    descricao__icontains=cliente_nome,
+                    valor__gte=valor_min,
+                    valor__lte=valor_max,
+                    forma_pagamento=LancamentoFinanceiro.FORMA_BOLETO,
+                    status=LancamentoFinanceiro.STATUS_PENDENTE
+                )
+            
+            # Buscar anexos PDF que possam ser boletos
+            for lancamento in lancamentos_relacionados:
+                anexos = AnexoLancamentoFinanceiro.objects.filter(
+                    lancamento=lancamento
+                )
+                for anexo in anexos:
+                    if anexo.arquivo and anexo.arquivo.name:
+                        # Verificar se é PDF e se o nome contém "boleto"
+                        if anexo.arquivo.name.lower().endswith('.pdf'):
+                            nome_lower = anexo.arquivo.name.lower()
+                            if 'boleto' in nome_lower or 'boleto' in (anexo.nome_original or '').lower():
+                                anexos_boleto.append(anexo)
+        except Exception as e:
+            logger.warning(f'Erro ao buscar boletos relacionados: {str(e)}')
         
         # Corpo do e-mail em HTML
+        mensagem_boleto = f'<p><strong>Boleto Bancário:</strong> O boleto relacionado a esta NF-e também está anexado.</p>' if anexos_boleto else ''
         html_body = f"""
         <html>
         <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
@@ -442,6 +803,7 @@ def vendas_nota_fiscal_enviar_email(request, propriedade_id, nota_id):
                 </div>
                 
                 <p>Os arquivos PDF (DANFE) e XML estão anexados a este e-mail.</p>
+                {mensagem_boleto}
                 <p>Em caso de dúvidas, entre em contato conosco.</p>
                 
                 <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
@@ -462,28 +824,46 @@ def vendas_nota_fiscal_enviar_email(request, propriedade_id, nota_id):
         )
         email_msg.content_subtype = "html"  # Definir como HTML
         
-        # Anexar PDF se existir
+        # Anexar PDF e XML se existirem
+        arquivos_anexados = []
         if nota.arquivo_pdf and nota.arquivo_pdf.name:
             try:
                 email_msg.attach_file(nota.arquivo_pdf.path, mimetype='application/pdf')
+                arquivos_anexados.append('PDF (DANFE)')
             except Exception as e:
                 logger.warning(f'Erro ao anexar PDF ao e-mail: {str(e)}')
         
-        # Anexar XML se existir
         if nota.arquivo_xml and nota.arquivo_xml.name:
             try:
                 email_msg.attach_file(nota.arquivo_xml.path, mimetype='application/xml')
+                arquivos_anexados.append('XML')
             except Exception as e:
                 logger.warning(f'Erro ao anexar XML ao e-mail: {str(e)}')
+        
+        # Anexar boletos se encontrados
+        for anexo_boleto in anexos_boleto:
+            try:
+                email_msg.attach_file(anexo_boleto.arquivo.path, mimetype='application/pdf')
+                arquivos_anexados.append('Boleto')
+            except Exception as e:
+                logger.warning(f'Erro ao anexar boleto ao e-mail: {str(e)}')
+        
+        # Verificar se há arquivos para anexar
+        if not arquivos_anexados:
+            return JsonResponse({
+                'sucesso': False,
+                'erro': 'A NF-e não possui arquivos PDF ou XML para anexar. Gere os arquivos antes de enviar por e-mail.'
+            }, status=400)
         
         # Enviar e-mail
         try:
             email_msg.send()
-            logger.info(f'NF-e {nota.numero} enviada por e-mail para {email}')
+            logger.info(f'NF-e {nota.numero} enviada por e-mail para {email} com arquivos: {", ".join(arquivos_anexados)}')
             
+            arquivos_msg = f" com {', '.join(arquivos_anexados)}" if arquivos_anexados else ""
             return JsonResponse({
                 'sucesso': True,
-                'mensagem': f'NF-e enviada para {email} com sucesso!'
+                'mensagem': f'NF-e enviada para {email} com sucesso!{arquivos_msg}.'
             })
         except Exception as e:
             logger.error(f'Erro ao enviar e-mail: {str(e)}', exc_info=True)
@@ -505,8 +885,11 @@ def vendas_nota_fiscal_enviar_email(request, propriedade_id, nota_id):
 def vendas_nota_fiscal_enviar_whatsapp(request, propriedade_id, nota_id):
     """Enviar NF-e por WhatsApp"""
     import json
-    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
-    nota = get_object_or_404(NotaFiscal, id=nota_id, propriedade=propriedade, tipo='SAIDA')
+    try:
+        propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
+        nota = get_object_or_404(NotaFiscal, id=nota_id, propriedade=propriedade, tipo='SAIDA')
+    except Http404 as e:
+        return JsonResponse({'sucesso': False, 'erro': str(e)}, status=404)
     
     try:
         data = json.loads(request.body)
@@ -680,45 +1063,64 @@ _Propriedade: {propriedade.nome_propriedade}_"""
 
 @login_required
 def vendas_nota_fiscal_baixar_arquivos(request, propriedade_id, nota_id):
-    """Baixar PDF e XML da NF-e em um arquivo ZIP"""
+    """Baixar PDF e XML da NF-e em um arquivo ZIP (apenas se ambos existirem)"""
     import zipfile
     import io
-    from django.http import HttpResponse
+    from django.http import HttpResponse, FileResponse
     
     propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     nota = get_object_or_404(NotaFiscal, id=nota_id, propriedade=propriedade, tipo='SAIDA')
     
-    try:
-        # Criar arquivo ZIP em memória
-        zip_buffer = io.BytesIO()
-        
-        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
-            # Adicionar PDF se existir
-            if nota.arquivo_pdf and nota.arquivo_pdf.name:
+    # Verificar quais arquivos existem
+    tem_pdf = nota.arquivo_pdf and nota.arquivo_pdf.name
+    tem_xml = nota.arquivo_xml and nota.arquivo_xml.name
+    
+    # Se houver apenas um arquivo, baixar diretamente
+    if tem_pdf and not tem_xml:
+        try:
+            return FileResponse(nota.arquivo_pdf.open(), as_attachment=True, filename=f'NF-e_{nota.numero}.pdf')
+        except Exception as e:
+            logger.error(f'Erro ao baixar PDF: {str(e)}', exc_info=True)
+            messages.error(request, f'Erro ao baixar PDF: {str(e)}')
+            return redirect('vendas_nota_fiscal_detalhes', propriedade_id=propriedade.id, nota_id=nota.id)
+    
+    if tem_xml and not tem_pdf:
+        try:
+            return FileResponse(nota.arquivo_xml.open(), as_attachment=True, filename=f'NF-e_{nota.numero}.xml')
+        except Exception as e:
+            logger.error(f'Erro ao baixar XML: {str(e)}', exc_info=True)
+            messages.error(request, f'Erro ao baixar XML: {str(e)}')
+            return redirect('vendas_nota_fiscal_detalhes', propriedade_id=propriedade.id, nota_id=nota.id)
+    
+    # Se houver ambos, baixar em ZIP
+    if tem_pdf and tem_xml:
+        try:
+            zip_buffer = io.BytesIO()
+            with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
                 try:
                     pdf_path = nota.arquivo_pdf.path
                     zip_file.write(pdf_path, f'NF-e_{nota.numero}.pdf')
                 except Exception as e:
                     logger.warning(f'Erro ao adicionar PDF ao ZIP: {str(e)}')
-            
-            # Adicionar XML se existir
-            if nota.arquivo_xml and nota.arquivo_xml.name:
+                
                 try:
                     xml_path = nota.arquivo_xml.path
                     zip_file.write(xml_path, f'NF-e_{nota.numero}.xml')
                 except Exception as e:
                     logger.warning(f'Erro ao adicionar XML ao ZIP: {str(e)}')
-        
-        # Preparar resposta
-        zip_buffer.seek(0)
-        response = HttpResponse(zip_buffer.read(), content_type='application/zip')
-        response['Content-Disposition'] = f'attachment; filename="NF-e_{nota.numero}.zip"'
-        
-        return response
-    except Exception as e:
-        logger.error(f'Erro ao criar arquivo ZIP da NF-e: {str(e)}', exc_info=True)
-        messages.error(request, f'Erro ao baixar arquivos: {str(e)}')
-        return redirect('vendas_nota_fiscal_detalhes', propriedade_id=propriedade.id, nota_id=nota.id)
+            
+            zip_buffer.seek(0)
+            response = HttpResponse(zip_buffer.read(), content_type='application/zip')
+            response['Content-Disposition'] = f'attachment; filename="NF-e_{nota.numero}.zip"'
+            return response
+        except Exception as e:
+            logger.error(f'Erro ao criar arquivo ZIP da NF-e: {str(e)}', exc_info=True)
+            messages.error(request, f'Erro ao baixar arquivos: {str(e)}')
+            return redirect('vendas_nota_fiscal_detalhes', propriedade_id=propriedade.id, nota_id=nota.id)
+    
+    # Se não houver nenhum arquivo
+    messages.warning(request, 'Esta NF-e não possui arquivos PDF ou XML para download.')
+    return redirect('vendas_nota_fiscal_detalhes', propriedade_id=propriedade.id, nota_id=nota.id)
 
 
 # ============================================================================
@@ -741,10 +1143,7 @@ def vendas_venda_nova(request, propriedade_id):
         validate_min=True
     )
     
-    # Obter o próximo número de NF-e e série padrão
-    from .services_nfe_utils import obter_proximo_numero_nfe
     serie_padrao = '1'
-    proximo_numero = obter_proximo_numero_nfe(propriedade, serie_padrao)
     
     if request.method == 'POST':
         form = VendaForm(request.POST, propriedade=propriedade)
@@ -752,6 +1151,10 @@ def vendas_venda_nova(request, propriedade_id):
         emitir_nfe = request.POST.get('emitir_nfe', '') == 'on'
         
         if form.is_valid() and formset.is_valid():
+            # Obter próximo número E INCREMENTAR (apenas ao salvar)
+            from .services_nfe_utils import obter_proximo_numero_nfe
+            proximo_numero = obter_proximo_numero_nfe(propriedade, serie_padrao)
+            
             nota = form.save(commit=False)
             nota.propriedade = propriedade
             nota.tipo = 'SAIDA'
@@ -811,11 +1214,18 @@ def vendas_venda_nova(request, propriedade_id):
             return redirect('vendas_nota_fiscal_detalhes', propriedade_id=propriedade.id, nota_id=nota.id)
         else:
             messages.error(request, 'Por favor, corrija os erros no formulário.')
+            # Em caso de erro, obter próximo número SEM INCREMENTAR (para mostrar no formulário)
+            from .services_nfe_utils import visualizar_proximo_numero_nfe
+            proximo_numero = visualizar_proximo_numero_nfe(propriedade, serie_padrao)
     else:
         form = VendaForm(propriedade=propriedade)
         # Definir data padrão como hoje
         form.initial['data_emissao'] = date.today()
         formset = ItemVendaFormSet(instance=NotaFiscal())
+        
+        # Obter próximo número SEM INCREMENTAR (apenas para visualização)
+        from .services_nfe_utils import visualizar_proximo_numero_nfe
+        proximo_numero = visualizar_proximo_numero_nfe(propriedade, serie_padrao)
     
     clientes = Cliente.objects.filter(
         Q(propriedade=propriedade) | Q(propriedade__isnull=True),

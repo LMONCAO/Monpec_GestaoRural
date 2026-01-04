@@ -24,3 +24,4 @@ GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public TO monpec_user;
 -- Mostrar algumas tabelas para confirmar
 \dt
 
+

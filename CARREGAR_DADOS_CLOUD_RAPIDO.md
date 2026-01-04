@@ -89,3 +89,4 @@ gcloud run jobs executions list --job=carregar-dados-banco --region=us-central1
 
 Veja documentação completa em: `docs/CARREGAR_DADOS_GOOGLE_CLOUD.md`
 
+

@@ -81,3 +81,4 @@ Os logs mostram:
 
 Após o novo deploy, o sistema estará 100% funcional!
 
+

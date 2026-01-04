@@ -202,3 +202,4 @@ Se encontrar problemas:
 3. Execute `python manage.py check` para verificar configurações
 4. Consulte a documentação do Django sobre PostgreSQL
 
+

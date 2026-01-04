@@ -2172,11 +2172,35 @@
                 </div>
                 {% endif %}
 
-                <!-- Configurações -->
-                <div class="nav-item modulo-configuracoes {% if 'editar' in request.path and 'propriedade' in request.path %}active{% endif %}">
-                    <a href="{% url 'propriedade_editar' propriedade.id %}" class="nav-link">
-                        <i class="bi bi-sliders"></i> <span style="margin-left: 0.5rem;">Configurações</span>
-                    </a>
+                <!-- Configurações com Submenu -->
+                <div class="accordion-item">
+                    <div class="nav-item modulo-configuracoes {% if 'editar' in request.path and 'propriedade' in request.path or 'usuarios' in request.path %}active{% endif %}">
+                        <button class="accordion-button {% if 'editar' not in request.path and 'usuarios' not in request.path %}collapsed{% endif %}" type="button" 
+                                data-bs-toggle="collapse" data-bs-target="#submenu-configuracoes" 
+                                aria-expanded="{% if 'editar' in request.path and 'propriedade' in request.path or 'usuarios' in request.path %}true{% else %}false{% endif %}" 
+                                aria-controls="submenu-configuracoes">
+                            <i class="bi bi-sliders"></i>
+                            <span style="flex: 1; margin-left: 0.5rem;">Configurações</span>
+                            <i class="bi bi-chevron-right chevron-icon"></i>
+                        </button>
+                        <div id="submenu-configuracoes" class="accordion-collapse collapse {% if 'editar' in request.path and 'propriedade' in request.path or 'usuarios' in request.path %}show{% endif %}" 
+                             data-bs-parent="#sidebarAccordion">
+                            <div class="nav-submenu">
+                                <a href="{% url 'propriedade_editar' propriedade.id %}" 
+                                   class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'propriedade_editar' %}active{% endif %}">
+                                    <i class="bi bi-building"></i> Editar Propriedade
+                                </a>
+                                {% if user.is_authenticated %}
+                                    {% if user.is_superuser or user.is_staff or assinatura %}
+                                    <a href="{% url 'tenant_usuarios_dashboard' %}" 
+                                       class="nav-link nav-link-submenu {% if 'usuarios' in request.path %}active{% endif %}">
+                                        <i class="bi bi-people"></i> Gerenciar Usuários
+                                    </a>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 {% endwith %}
             </div>
@@ -2196,8 +2220,8 @@
                 </div>
                 {% for produtor in produtores_menu %}
                 <div class="nav-item">
-                    <a href="{% url 'propriedades_lista' produtor.id %}" 
-                       class="nav-link {% if request.resolver_match.url_name == 'propriedades_lista' %}active{% endif %}">
+                    <a href="{% url 'produtor_novo' %}?editar={{ produtor.id }}" 
+                       class="nav-link {% if request.resolver_match.url_name == 'produtor_novo' and request.GET.editar == produtor.id|stringformat:'s' %}active{% endif %}">
                         <i class="bi bi-person-badge"></i>
                         <span style="margin-left: 0.5rem;">{{ produtor.nome }}</span>
                     </a>

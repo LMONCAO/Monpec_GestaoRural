@@ -77,3 +77,4 @@ Este script tem:
 
 **Importante:** Os arquivos de correção estão no repositório local. Faça commit e push se quiser manter as mudanças, ou simplesmente execute o novo build que usará o Dockerfile atualizado.
 
+

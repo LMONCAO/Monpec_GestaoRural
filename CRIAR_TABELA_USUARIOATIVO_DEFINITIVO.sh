@@ -57,3 +57,4 @@ fi
 
 gcloud run jobs delete criar-usuarioativo-definitivo --region=$REGION --quiet 2>/dev/null || true
 
+

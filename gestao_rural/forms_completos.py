@@ -816,6 +816,54 @@ class CurralEventoForm(forms.ModelForm):
 
 class NotaFiscalSaidaForm(forms.ModelForm):
     """Formulário para emissão de NF-e de saída (venda)"""
+    # Campos adicionais para integração financeira
+    forma_recebimento = forms.ChoiceField(
+        choices=[
+            ('', 'Selecione...'),
+            ('PIX', 'PIX'),
+            ('BOLETO', 'Boleto'),
+            ('TRANSFERENCIA', 'Transferência'),
+            ('DINHEIRO', 'Dinheiro'),
+            ('CARTAO', 'Cartão'),
+            ('CHEQUE', 'Cheque'),
+        ],
+        required=False,
+        label='Forma de Recebimento',
+        help_text='Selecione a forma de recebimento para criar lançamento financeiro',
+        widget=forms.Select(attrs={
+            'class': 'form-select'
+        })
+    )
+    conta_destino = forms.ModelChoiceField(
+        queryset=None,
+        required=False,
+        label='Conta de Destino',
+        help_text='Conta financeira onde o dinheiro será recebido',
+        widget=forms.Select(attrs={
+            'class': 'form-select'
+        }),
+        empty_label='Selecione uma conta...'
+    )
+    categoria_receita = forms.ModelChoiceField(
+        queryset=None,
+        required=False,
+        label='Categoria de Receita',
+        help_text='Categoria financeira para o lançamento',
+        widget=forms.Select(attrs={
+            'class': 'form-select'
+        }),
+        empty_label='Selecione uma categoria...'
+    )
+    data_vencimento_recebimento = forms.DateField(
+        required=False,
+        label='Data de Vencimento',
+        help_text='Data de vencimento do recebimento (obrigatório para boleto)',
+        widget=forms.DateInput(attrs={
+            'type': 'date',
+            'class': 'form-control'
+        })
+    )
+    
     class Meta:
         model = NotaFiscal
         fields = [
@@ -884,24 +932,51 @@ class NotaFiscalSaidaForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         
         if propriedade:
+            from .models_cadastros import Cliente
+            from .models_financeiro import ContaFinanceira, CategoriaFinanceira
+            
             self.fields['cliente'].queryset = Cliente.objects.filter(
                 Q(propriedade=propriedade) | Q(propriedade__isnull=True),
                 ativo=True
             ).order_by('nome')
+            
+            # Preencher queryset de contas financeiras
+            self.fields['conta_destino'].queryset = ContaFinanceira.objects.filter(
+                propriedade=propriedade,
+                ativa=True
+            ).order_by('nome')
+            
+            # Preencher queryset de categorias de receita
+            self.fields['categoria_receita'].queryset = CategoriaFinanceira.objects.filter(
+                propriedade=propriedade,
+                tipo=CategoriaFinanceira.TIPO_RECEITA,
+                ativa=True
+            ).order_by('nome')
         
         # Definir tipo como SAIDA
         self.instance.tipo = 'SAIDA'
-        if not self.instance.data_emissao:
-            self.instance.data_emissao = date.today()
-        if not self.instance.data_entrada:
-            self.instance.data_entrada = date.today()
+        
+        # Definir datas iniciais automaticamente (apenas para novos formulários)
+        if not self.instance.pk:  # Se for um novo formulário
+            if not self.initial.get('data_emissao'):
+                self.initial['data_emissao'] = date.today()
+            if not self.initial.get('data_entrada'):
+                self.initial['data_entrada'] = date.today()
     
     def clean(self):
         cleaned_data = super().clean()
         cliente = cleaned_data.get('cliente')
+        forma_recebimento = cleaned_data.get('forma_recebimento')
+        data_vencimento_recebimento = cleaned_data.get('data_vencimento_recebimento')
         
         if not cliente:
             raise forms.ValidationError('Cliente é obrigatório para NF-e de saída.')
+        
+        # Se forma de recebimento for BOLETO, data de vencimento é obrigatória
+        if forma_recebimento == 'BOLETO' and not data_vencimento_recebimento:
+            raise forms.ValidationError({
+                'data_vencimento_recebimento': 'Data de vencimento é obrigatória quando a forma de recebimento é Boleto.'
+            })
         
         return cleaned_data
 

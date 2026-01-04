@@ -52,3 +52,4 @@ gcloud run deploy monpec --region us-central1
 - [ ] Novo deploy feito
 - [ ] Testar dashboard
 
+

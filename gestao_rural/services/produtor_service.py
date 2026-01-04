@@ -35,9 +35,6 @@ class ProdutorService:
                     'usuario_responsavel'
                 ).annotate(
                     propriedades_count=Count('propriedade')
-                ).only(
-                    'id', 'nome', 'cpf_cnpj', 'email', 'telefone', 
-                    'usuario_responsavel_id', 'data_cadastro'
                 ).order_by('nome')
             
             # Verificar se é assinante
@@ -67,9 +64,6 @@ class ProdutorService:
                     'usuario_responsavel'
                 ).annotate(
                     propriedades_count=Count('propriedade')
-                ).only(
-                    'id', 'nome', 'cpf_cnpj', 'email', 'telefone', 
-                    'usuario_responsavel_id', 'data_cadastro'
                 ).order_by('nome')
             else:
                 # Usuário normal: apenas os produtores que ele cadastrou
@@ -79,23 +73,20 @@ class ProdutorService:
                     'usuario_responsavel'
                 ).annotate(
                     propriedades_count=Count('propriedade')
-                ).only(
-                    'id', 'nome', 'cpf_cnpj', 'email', 'telefone', 
-                    'usuario_responsavel_id', 'data_cadastro'
                 ).order_by('nome')
                 
         except (ProgrammingError, DatabaseError, OperationalError) as e:
             logger.warning(f'Erro ao buscar produtores com annotate: {e}. Tentando query simplificada.')
             try:
                 if user.is_superuser or user.is_staff:
-                    return ProdutorRural.objects.only(
-                        'id', 'nome', 'cpf_cnpj', 'usuario_responsavel_id'
+                    return ProdutorRural.objects.select_related(
+                        'usuario_responsavel'
                     ).order_by('nome')
                 else:
                     return ProdutorRural.objects.filter(
                         usuario_responsavel=user
-                    ).only(
-                        'id', 'nome', 'cpf_cnpj', 'usuario_responsavel_id'
+                    ).select_related(
+                        'usuario_responsavel'
                     ).order_by('nome')
             except Exception as e2:
                 logger.error(f'Erro ao buscar produtores mesmo com query simplificada: {e2}')
@@ -220,4 +211,5 @@ class ProdutorService:
             }
         except Exception:
             return {}
+
 

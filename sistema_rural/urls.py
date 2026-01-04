@@ -27,6 +27,7 @@ from gestao_rural import views_sitemap
 from gestao_rural import views_password_reset
 from gestao_rural import views_static
 from gestao_rural import views_media
+from gestao_rural import views_diagnostico_imagens
 
 urlpatterns = [
     # LANDING PAGE COM VÍDEO - DEVE VIR PRIMEIRO (página inicial)
@@ -73,6 +74,9 @@ urlpatterns = [
     
     # Rota para servir arquivos media (fotos, uploads) em produção
     path('media/<path:path>', views_media.serve_media, name='serve_media'),
+    
+    # Diagnóstico de imagens (útil para debug)
+    path('diagnostico-imagens/', views_diagnostico_imagens.diagnostico_imagens, name='diagnostico_imagens'),
     
     path('', include('gestao_rural.urls')),
 ]

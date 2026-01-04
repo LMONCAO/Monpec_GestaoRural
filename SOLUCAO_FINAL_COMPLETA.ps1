@@ -74,3 +74,4 @@ if ($LASTEXITCODE -eq 0) {
     Write-Host "❌ Erro no build. Verifique os logs acima." -ForegroundColor Red
 }
 
+

@@ -579,3 +579,4 @@ class Command(BaseCommand):
                 self.style.WARNING(f'  ⚠️  Erro ao excluir {nome_descritivo}: {e}')
             )
 
+

@@ -90,3 +90,4 @@ class TestProdutorViews:
         # Deve redirecionar ou dar erro 403/404
         assert response.status_code in [302, 403, 404]
 
+

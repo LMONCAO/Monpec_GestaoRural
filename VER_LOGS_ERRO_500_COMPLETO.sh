@@ -42,3 +42,4 @@ gcloud logging read "resource.type=cloud_run_revision AND resource.labels.servic
   --format="value(timestamp,textPayload)" \
   --freshness=15m | tail -30
 
+

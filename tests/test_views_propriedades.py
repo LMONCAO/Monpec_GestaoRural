@@ -92,3 +92,4 @@ class TestPropriedadeViews:
             # Verificar que redirecionou corretamente
             assert 'propriedades' in response.url or 'dashboard' in response.url
 
+

@@ -48,3 +48,4 @@ gcloud run jobs delete fix-database --region=$REGION --quiet 2>$null
 Write-Host ""
 Write-Host "✅ Pronto! Teste: https://monpec-29862706245.us-central1.run.app/login/" -ForegroundColor Green
 
+

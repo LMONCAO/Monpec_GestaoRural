@@ -184,3 +184,4 @@ Write-Host "✅ Configuração concluída!" -ForegroundColor Green
 Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host ""
 
+

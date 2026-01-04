@@ -58,3 +58,4 @@ Refatorar o arquivo `views.py` principal (5276 linhas) em módulos menores e mai
 - Manter compatibilidade com código existente
 - Não quebrar funcionalidades em produção
 
+

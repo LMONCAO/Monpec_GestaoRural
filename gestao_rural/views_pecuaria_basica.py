@@ -405,3 +405,4 @@ def pecuaria_inventario_dados(request, propriedade_id, categoria_id):
         logger.error(f'Erro ao buscar dados do inventário: {e}', exc_info=True)
         return JsonResponse({'error': str(e)}, status=500)
 
+

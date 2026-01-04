@@ -23,3 +23,4 @@ if (Test-Path "DEPLOY_GARANTIR_VERSAO_CORRETA.bat") {
     exit 1
 }
 
+

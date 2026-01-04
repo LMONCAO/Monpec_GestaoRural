@@ -36,3 +36,4 @@ echo ""
 echo "https://console.cloud.google.com/logs/viewer?project=$PROJECT_ID&resource=cloud_run_revision/service_name/$SERVICE_NAME"
 echo ""
 
+

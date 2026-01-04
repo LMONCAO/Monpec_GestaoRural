@@ -18,3 +18,4 @@ if os.path.exists(env_file):
 else:
     print(f'Arquivo {env_file} nao encontrado')
 
+

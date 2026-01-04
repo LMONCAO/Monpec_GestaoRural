@@ -23,6 +23,13 @@ class ProdutorRural(models.Model):
     email = models.EmailField(blank=True, null=True, verbose_name="E-mail")
     endereco = models.TextField(blank=True, null=True, verbose_name="Endereço")
     
+    # Opção para emitir NF-e
+    vai_emitir_nfe = models.BooleanField(
+        default=False,
+        verbose_name="Vai emitir Notas Fiscais?",
+        help_text="Marque esta opção se o produtor vai emitir NF-e"
+    )
+    
     # Certificado Digital para emissão de NF-e
     certificado_digital = models.FileField(
         upload_to='certificados_digitais/',
@@ -91,14 +98,25 @@ class PlanoAssinatura(models.Model):
     """Planos de assinatura disponibilizados via Stripe."""
     
     MODULOS_PADRAO = [
+        'dashboard_pecuaria',
+        'curral',
+        'cadastro',
+        'planejamento',
         'pecuaria',
-        'financeiro',
-        'projetos',
-        'compras',
-        'funcionarios',
         'rastreabilidade',
         'reproducao',
+        'pesagem',
+        'movimentacoes',
+        'patrimonio',
+        'nutricao',
+        'compras',
+        'vendas',
+        'operacoes',
+        'financeiro',
+        'projetos',
         'relatorios',
+        'categorias',
+        'configuracoes',
     ]
     
     nome = models.CharField(max_length=120, unique=True, verbose_name="Nome do plano")

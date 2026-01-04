@@ -114,3 +114,4 @@ def test_meu_servico(user):
 - [ ] Adicionar testes de performance
 - [ ] Aumentar cobertura para 80%+
 
+

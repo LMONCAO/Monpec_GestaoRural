@@ -222,12 +222,25 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 # No Cloud Run/App Engine, usar Cloud Storage
 USE_CLOUD_STORAGE = os.getenv('USE_CLOUD_STORAGE', 'False') == 'True'
 
+# MEDIA_URL sempre deve estar configurado (mesmo com Cloud Storage)
+# Isso é necessário para que {{ object.foto.url }} funcione nos templates
+MEDIA_URL = '/media/'
+
 if USE_CLOUD_STORAGE:
     # Usar Cloud Storage para arquivos estáticos e mídia
     DEFAULT_FILE_STORAGE = 'storages.backends.gcloud.GoogleCloudStorage'
     STATICFILES_STORAGE = 'storages.backends.gcloud.GoogleCloudStaticFilesStorage'
     GS_BUCKET_NAME = os.getenv('GS_BUCKET_NAME', 'monpec-static')
     GS_DEFAULT_ACL = 'publicRead'
+    
+    # Configurações adicionais do Cloud Storage
+    GS_PROJECT_ID = os.getenv('GOOGLE_CLOUD_PROJECT', os.getenv('GCP_PROJECT', ''))
+    GS_LOCATION = ''  # Raiz do bucket
+    
+    # IMPORTANTE: Com Cloud Storage, os arquivos são salvos diretamente no bucket
+    # A URL será gerada automaticamente pelo django-storages
+    # Mas ainda precisamos do MEDIA_URL para que o Django saiba como construir as URLs
+    logger.info(f'✅ Cloud Storage configurado: bucket={GS_BUCKET_NAME}, project={GS_PROJECT_ID}')
 else:
     # Usar sistema de arquivos local
     STATIC_URL = '/static/'
@@ -236,8 +249,13 @@ else:
     # Ele aponta para BASE_DIR / 'static' onde estão os arquivos originais (vídeos, imagens, etc.)
     # O collectstatic copia esses arquivos para STATIC_ROOT (/app/staticfiles)
     # O WhiteNoise então serve os arquivos de STATIC_ROOT automaticamente
-    MEDIA_URL = '/media/'
+    # MEDIA_URL já foi definido acima
     MEDIA_ROOT = '/app/media'
+    
+    # Criar diretório de mídia se não existir
+    import os
+    os.makedirs(MEDIA_ROOT, exist_ok=True)
+    logger.info(f'✅ Sistema de arquivos local configurado: MEDIA_ROOT={MEDIA_ROOT}, MEDIA_URL={MEDIA_URL}')
     
     # Adicionar WhiteNoise para servir arquivos estáticos
     # WhiteNoise já está no requirements_producao.txt
@@ -269,6 +287,7 @@ else:
     
     # Garantir que imagens JPEG sejam servidas corretamente
     # Adicionar mais tipos MIME para garantir que todas as imagens sejam servidas
+    # IMPORTANTE: Isso é crítico para as fotos do slideshow (foto1.jpeg a foto6.jpeg)
     WHITENOISE_MIMETYPES = {
         '.jpeg': 'image/jpeg',
         '.jpg': 'image/jpeg',
@@ -278,6 +297,10 @@ else:
         '.svg': 'image/svg+xml',
         '.ico': 'image/x-icon',
     }
+    
+    # Log para verificar se as fotos estão sendo servidas
+    logger.info(f'✅ WhiteNoise configurado para servir arquivos de: {STATIC_ROOT}')
+    logger.info(f'✅ Tipos MIME configurados para imagens JPEG, PNG, etc.')
     
     # Configurar WhiteNoise para servir arquivos com cache apropriado
     # Imagens devem ter cache longo, mas permitir revalidação

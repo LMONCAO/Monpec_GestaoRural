@@ -121,3 +121,4 @@ fi
 # Limpar
 gcloud run jobs delete sincronizar-migrations --region=$REGION --quiet 2>/dev/null || true
 
+

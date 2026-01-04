@@ -94,3 +94,4 @@ Write-Host "   - DEPLOY_AUTOMATICO.ps1 (Windows)" -ForegroundColor Cyan
 Write-Host "   - scripts/deploy/DEPLOY_COMPLETO_AGORA.sh (Linux/Cloud Shell)" -ForegroundColor Cyan
 Write-Host ""
 
+

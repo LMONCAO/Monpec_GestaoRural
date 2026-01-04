@@ -95,3 +95,4 @@ class TestPecuariaViews:
         assert 'quantidade' in data
         assert data['quantidade'] == 10
 
+

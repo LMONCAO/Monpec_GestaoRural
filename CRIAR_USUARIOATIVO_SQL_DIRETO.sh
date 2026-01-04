@@ -52,3 +52,4 @@ fi
 
 gcloud run jobs delete criar-usuarioativo-sql --region=$REGION --quiet 2>/dev/null || true
 
+

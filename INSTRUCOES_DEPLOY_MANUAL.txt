@@ -1,0 +1,119 @@
+﻿========================================
+  SCRIPTS DE DEPLOY MANUAL - GOOGLE CLOUD
+========================================
+
+âœ… Scripts criados com sucesso!
+
+ðŸ“‹ ARQUIVOS DISPONÃVEIS:
+
+1. DEPLOY_MANUAL_COMPLETO.bat
+   - Deploy completo passo a passo
+   - Verifica tudo antes de executar
+   - Mostra status detalhado
+   - â±ï¸  Tempo: 10-15 minutos
+   - âœ… RECOMENDADO para primeira vez
+
+2. DEPLOY_RAPIDO.bat
+   - Build e deploy em um Ãºnico comando
+   - Mais rÃ¡pido, menos informaÃ§Ãµes
+   - â±ï¸  Tempo: 10-15 minutos
+   - âœ… Use quando jÃ¡ sabe que tudo estÃ¡ OK
+
+3. VERIFICAR_STATUS_DEPLOY.bat
+   - Verifica status do serviÃ§o
+   - Mostra logs recentes
+   - Mostra erros se houver
+   - âœ… Use para diagnosticar problemas
+
+========================================
+  COMO USAR
+========================================
+
+1. Abra o PowerShell ou CMD na raiz do projeto
+
+2. Execute um dos scripts:
+   - Duplo clique no arquivo .bat
+   - OU digite: .\DEPLOY_MANUAL_COMPLETO.bat
+
+3. Aguarde o processo:
+   - Build: 5-10 minutos
+   - Deploy: 2-3 minutos
+   - Total: ~10-15 minutos
+
+4. Anote a URL que aparecer no final
+
+========================================
+  PRÃ‰-REQUISITOS
+========================================
+
+âœ… Google Cloud SDK instalado
+   - Verificar: gcloud --version
+   - Instalar: https://cloud.google.com/sdk/docs/install
+
+âœ… Autenticado no Google Cloud
+   - O script faz login automaticamente se necessÃ¡rio
+
+âœ… Dockerfile na raiz do projeto
+   - JÃ¡ foi criado âœ…
+
+âœ… PermissÃµes no Google Cloud:
+   - Cloud Build Editor
+   - Cloud Run Admin
+   - Service Account User
+
+========================================
+  O QUE OS SCRIPTS FAZEM
+========================================
+
+1. Verificam se tudo estÃ¡ configurado
+2. Fazem build da imagem Docker (com collectstatic)
+3. Fazem deploy no Cloud Run
+4. Mostram a URL do serviÃ§o
+5. Verificam o status
+
+========================================
+  VARIÃVEIS DE AMBIENTE
+========================================
+
+âš ï¸  IMPORTANTE: Configure as variÃ¡veis no Cloud Run Console:
+   - SECRET_KEY
+   - DB_NAME
+   - DB_USER
+   - DB_PASSWORD
+   - CLOUD_SQL_CONNECTION_NAME
+
+Ou adicione no comando de deploy (edite o .bat):
+   --set-env-vars "SECRET_KEY=xxx,DB_NAME=xxx,..."
+
+========================================
+  TROUBLESHOOTING
+========================================
+
+âŒ Erro: "gcloud nÃ£o encontrado"
+   â†’ Instale o Google Cloud SDK
+
+âŒ Erro: "Falha na autenticaÃ§Ã£o"
+   â†’ Execute: gcloud auth login
+
+âŒ Erro: "Dockerfile nÃ£o encontrado"
+   â†’ Certifique-se de estar na raiz do projeto
+
+âŒ Erro: "Falha no build"
+   â†’ Verifique os logs acima
+   â†’ Verifique se o Dockerfile estÃ¡ correto
+
+âŒ Erro: "Falha no deploy"
+   â†’ Verifique as permissÃµes no Google Cloud
+   â†’ Verifique se o Cloud SQL estÃ¡ configurado
+
+========================================
+  PRÃ“XIMOS PASSOS APÃ“S DEPLOY
+========================================
+
+1. Acesse a URL fornecida
+2. Teste as imagens do slide
+3. Teste o formulÃ¡rio de demonstraÃ§Ã£o
+4. Verifique os logs se houver problemas:
+   .\VERIFICAR_STATUS_DEPLOY.bat
+
+========================================

@@ -10,6 +10,7 @@ from .models_compras_financeiro import NumeroSequencialNFE, NotaFiscal
 def obter_proximo_numero_nfe(propriedade, serie='1'):
     """
     Obtém o próximo número sequencial de NF-e para a propriedade e série
+    E INCREMENTA o contador (usar apenas ao salvar a nota)
     
     Args:
         propriedade: Instância do modelo Propriedade
@@ -28,6 +29,28 @@ def obter_proximo_numero_nfe(propriedade, serie='1'):
     with transaction.atomic():
         sequencial = NumeroSequencialNFE.obter_ou_criar(propriedade, serie)
         return sequencial.obter_proximo_numero()
+
+
+def visualizar_proximo_numero_nfe(propriedade, serie='1'):
+    """
+    Retorna o próximo número sequencial de NF-e SEM incrementar
+    Use apenas para visualização no formulário (GET)
+    
+    Args:
+        propriedade: Instância do modelo Propriedade
+        serie: Série da NF-e (padrão: '1')
+        
+    Returns:
+        int: Próximo número sequencial (sem incrementar)
+        
+    Raises:
+        ValueError: Se propriedade não for fornecida
+    """
+    if not propriedade:
+        raise ValueError('Propriedade é obrigatória para visualizar próximo número')
+    
+    sequencial = NumeroSequencialNFE.obter_ou_criar(propriedade, serie)
+    return sequencial.proximo_numero
 
 
 def validar_numero_nfe_unico(propriedade, numero, serie='1', nota_fiscal_id=None):
@@ -127,6 +150,7 @@ def configurar_serie_nfe(propriedade, serie, proximo_numero=1, observacoes=''):
             sequencial.save()
     
     return sequencial
+
 
 
 

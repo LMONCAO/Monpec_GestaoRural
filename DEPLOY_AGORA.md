@@ -105,3 +105,4 @@ DB_PASSWORD=<senha>
 
 **Última atualização**: Janeiro 2026
 
+

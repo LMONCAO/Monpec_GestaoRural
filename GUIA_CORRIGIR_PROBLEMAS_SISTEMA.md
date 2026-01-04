@@ -217,3 +217,4 @@ pip install -r requirements.txt
 - **Comando de diagnóstico:** `python manage.py garantir_sistema_configurado`
 - **Script PowerShell:** `.\CORRIGIR_SISTEMA_COMPLETO.ps1`
 
+

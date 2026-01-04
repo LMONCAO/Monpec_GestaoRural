@@ -55,3 +55,4 @@ def debug_static_files(request):
     
     return JsonResponse(info, indent=2)
 
+

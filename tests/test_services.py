@@ -155,3 +155,4 @@ class DashboardServiceTest(TestCase):
         self.assertIn('total_area', dados)
         self.assertGreaterEqual(dados['total_propriedades'], 1)
 
+

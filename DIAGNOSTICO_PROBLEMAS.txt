@@ -1,0 +1,62 @@
+﻿========================================
+  DIAGNÃ“STICO E SOLUÃ‡Ã•ES
+========================================
+
+âœ… STATUS ATUAL:
+   - ServiÃ§o Cloud Run: FUNCIONANDO âœ…
+   - URL: https://monpec-fzzfjppzva-uc.a.run.app
+   - Builds: SUCESSO âœ…
+
+âŒ PROBLEMAS ENCONTRADOS:
+
+1. IMAGENS DO SLIDE NÃƒO APARECEM
+   - Erro: "Not Found: /static/site/foto1.jpeg"
+   - Causa: Imagens nÃ£o estÃ£o sendo coletadas pelo collectstatic
+   - SoluÃ§Ã£o: Verificar se Dockerfile estÃ¡ coletando corretamente
+
+2. ERRO DE BANCO DE DADOS
+   - Erro: "column certificado_digital does not exist"
+   - Causa: Migration 0082 nÃ£o foi aplicada
+   - SoluÃ§Ã£o: Aplicar migrations pendentes
+
+========================================
+  SOLUÃ‡Ã•ES
+========================================
+
+SOLUÃ‡ÃƒO 1: APLICAR MIGRATIONS
+   Execute: .\APLICAR_MIGRATIONS_CLOUD.bat
+   OU manualmente via Cloud Shell:
+   gcloud run jobs execute aplicar-migrations --region=us-central1
+
+SOLUÃ‡ÃƒO 2: VERIFICAR IMAGENS
+   O Dockerfile jÃ¡ tem collectstatic, mas vamos verificar:
+   1. As imagens estÃ£o em static/site/foto1.jpeg atÃ© foto6.jpeg âœ…
+   2. O Dockerfile executa collectstatic âœ…
+   3. Pode ser que precise fazer rebuild
+
+SOLUÃ‡ÃƒO 3: REBUILD COMPLETO
+   Execute: .\DEPLOY_MANUAL_COMPLETO.bat
+   Isso vai:
+   - Fazer novo build com collectstatic
+   - Fazer deploy
+   - As imagens devem aparecer
+
+========================================
+  PRÃ“XIMOS PASSOS
+========================================
+
+1. Aplicar migrations:
+   .\APLICAR_MIGRATIONS_CLOUD.bat
+
+2. Fazer rebuild completo:
+   .\DEPLOY_MANUAL_COMPLETO.bat
+
+3. Verificar status:
+   .\VERIFICAR_STATUS_DEPLOY.bat
+
+4. Testar:
+   - Acesse: https://monpec-fzzfjppzva-uc.a.run.app
+   - Verifique se imagens aparecem
+   - Teste formulÃ¡rio demo
+
+========================================

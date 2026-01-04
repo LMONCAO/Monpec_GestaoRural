@@ -242,3 +242,4 @@ echo -e "${GREEN}  - Middleware e views atualizados${NC}"
 echo -e "${GREEN}========================================${NC}"
 echo ""
 
+

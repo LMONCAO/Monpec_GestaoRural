@@ -113,3 +113,4 @@ A correção na view `gestao_rural/views_static.py` já foi aplicada. Ela agora 
 
 Após executar o collectstatic no servidor, as imagens devem aparecer corretamente no site.
 
+

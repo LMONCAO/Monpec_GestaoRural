@@ -53,7 +53,7 @@
         {% csrf_token %}
         
         <div class="row">
-            <div class="col-xl-8">
+            <div class="col-12">
                 <!-- ETAPA 1: Dados da NF-e -->
                 <div class="card mb-3 wizard-step" id="step-1" data-step="1">
                     <div class="card-header bg-success text-white">
@@ -95,6 +95,47 @@
                                 {% endif %}
                             </div>
                         </div>
+                        
+                        <!-- Integração Financeira -->
+                        <hr class="my-4">
+                        <h6 class="mb-3"><i class="bi bi-cash-coin me-2"></i>Integração Financeira (Opcional)</h6>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label">{{ form.forma_recebimento.label }}</label>
+                                {{ form.forma_recebimento }}
+                                <small class="text-muted">{{ form.forma_recebimento.help_text }}</small>
+                                {% if form.forma_recebimento.errors %}
+                                    <div class="text-danger small">{{ form.forma_recebimento.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">{{ form.conta_destino.label }}</label>
+                                {{ form.conta_destino }}
+                                <small class="text-muted">{{ form.conta_destino.help_text }}</small>
+                                {% if form.conta_destino.errors %}
+                                    <div class="text-danger small">{{ form.conta_destino.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">{{ form.categoria_receita.label }}</label>
+                                {{ form.categoria_receita }}
+                                <small class="text-muted">{{ form.categoria_receita.help_text }}</small>
+                                {% if form.categoria_receita.errors %}
+                                    <div class="text-danger small">{{ form.categoria_receita.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-4" id="div-data-vencimento" style="display: none;">
+                                <label class="form-label">{{ form.data_vencimento_recebimento.label }}</label>
+                                {{ form.data_vencimento_recebimento }}
+                                <small class="text-muted">{{ form.data_vencimento_recebimento.help_text }}</small>
+                                {% if form.data_vencimento_recebimento.errors %}
+                                    <div class="text-danger small">{{ form.data_vencimento_recebimento.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <small class="text-muted d-block mt-2">
+                            <i class="bi bi-info-circle me-1"></i>Preencha estes campos para criar automaticamente um lançamento financeiro quando a NF-e for autorizada.
+                        </small>
                     </div>
                 </div>
 
@@ -105,115 +146,90 @@
                     </div>
                     <div class="card-body">
                         {{ formset.management_form }}
-                        <div id="itens-container">
-                            {% for item_form in formset %}
-                            <div class="item-form border rounded p-3 mb-3" data-item-index="{{ forloop.counter0 }}">
-                                <div class="row g-3">
-                                    <div class="col-md-12">
-                                        <label class="form-label">Buscar Produto Cadastrado</label>
-                                        <div class="input-group">
+                        
+                        <!-- Busca Centralizada de Produtos -->
+                        <div class="card bg-light mb-4">
+                            <div class="card-body">
+                                <h6 class="mb-3"><i class="bi bi-search me-2"></i>Buscar e Adicionar Produto</h6>
+                                <div class="row g-2">
+                                    <div class="col-md-10">
+                                        <div class="position-relative">
                                             <input type="text" 
-                                                   class="form-control produto-busca" 
-                                                   placeholder="Digite código, descrição ou NCM do produto..."
-                                                   data-item-index="{{ forloop.counter0 }}"
+                                                   id="busca-produto-centralizada" 
+                                                   class="form-control form-control-lg" 
+                                                   placeholder="Digite código, descrição ou NCM do produto para buscar..."
                                                    autocomplete="off">
-                                            <button type="button" class="btn btn-outline-secondary" onclick="limparProduto({{ forloop.counter0 }})">
-                                                <i class="bi bi-x-circle"></i> Limpar
-                                            </button>
-                                        </div>
-                                        <div class="list-group produto-sugestoes" id="sugestoes-{{ forloop.counter0 }}" style="display: none; position: absolute; z-index: 1000; max-height: 200px; overflow-y: auto; width: 100%;"></div>
-                                    </div>
-                                    <div class="col-md-12">
-                                        <label class="form-label">Produto *</label>
-                                        {{ item_form.produto }}
-                                        <small class="text-muted">Selecione um produto cadastrado ou preencha manualmente abaixo</small>
-                                    </div>
-                                    <div class="col-md-12">
-                                        <label class="form-label">Descrição do Produto/Serviço *</label>
-                                        {{ item_form.descricao }}
-                                        {% if item_form.descricao.errors %}
-                                            <div class="text-danger small">{{ item_form.descricao.errors }}</div>
-                                        {% endif %}
-                                    </div>
-                                    <div class="col-md-3">
-                                        <label class="form-label">Código do Produto</label>
-                                        {{ item_form.codigo_produto }}
-                                    </div>
-                                    <div class="col-md-3">
-                                        <label class="form-label">NCM *</label>
-                                        {{ item_form.ncm }}
-                                        <small class="text-muted">Ex: 0102.29.00</small>
-                                        <button type="button" class="btn btn-sm btn-outline-info mt-1" onclick="consultarNCM({{ forloop.counter0 }})">
-                                            <i class="bi bi-search"></i> Validar
-                                        </button>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <label class="form-label">Origem da Mercadoria *</label>
-                                        {{ item_form.origem_mercadoria }}
-                                        <small class="text-muted">Obrigatório na NF-e</small>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <label class="form-label">CFOP</label>
-                                        {{ item_form.cfop }}
-                                        <small class="text-muted">Ex: 5102</small>
-                                        <button type="button" class="btn btn-sm btn-outline-info mt-1" onclick="validarCFOP({{ forloop.counter0 }})">
-                                            <i class="bi bi-search"></i> Validar
-                                        </button>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <label class="form-label">Unidade</label>
-                                        {{ item_form.unidade_medida }}
-                                    </div>
-                                    <div class="col-md-3">
-                                        <label class="form-label">CEST</label>
-                                        {{ item_form.cest }}
-                                        <small class="text-muted">Ex: 01.001.00</small>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <label class="form-label">GTIN/EAN</label>
-                                        {{ item_form.gtin }}
-                                        <small class="text-muted">Código de barras</small>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <label class="form-label">Exceção TIPI</label>
-                                        {{ item_form.ex_tipi }}
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label">Quantidade *</label>
-                                        {{ item_form.quantidade }}
-                                        {% if item_form.quantidade.errors %}
-                                            <div class="text-danger small">{{ item_form.quantidade.errors }}</div>
-                                        {% endif %}
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label">Valor Unitário (R$) *</label>
-                                        {{ item_form.valor_unitario }}
-                                        {% if item_form.valor_unitario.errors %}
-                                            <div class="text-danger small">{{ item_form.valor_unitario.errors }}</div>
-                                        {% endif %}
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label">Valor Total (R$)</label>
-                                        <input type="text" class="form-control" id="valor-total-{{ forloop.counter0 }}" readonly>
-                                    </div>
-                                    {% if item_form.DELETE %}
-                                    <div class="col-md-12">
-                                        <div class="form-check">
-                                            {{ item_form.DELETE }}
-                                            <label class="form-check-label" for="{{ item_form.DELETE.id_for_label }}">
-                                                Remover este item
-                                            </label>
+                                            <div class="list-group produto-sugestoes-centralizada" 
+                                                 id="sugestoes-centralizadas" 
+                                                 style="display: none; position: absolute; z-index: 1000; max-height: 300px; overflow-y: auto; width: 100%; margin-top: 2px;"></div>
                                         </div>
                                     </div>
-                                    {% endif %}
+                                    <div class="col-md-2">
+                                        <button type="button" class="btn btn-primary btn-lg w-100" id="btn-adicionar-manual" title="Adicionar produto manualmente">
+                                            <i class="bi bi-plus-circle me-1"></i>Manual
+                                        </button>
+                                    </div>
                                 </div>
+                                <small class="text-muted mt-2 d-block">
+                                    <i class="bi bi-info-circle me-1"></i>Busque um produto cadastrado e clique para adicionar. As configurações serão preenchidas automaticamente.
+                                </small>
+                            </div>
+                        </div>
+
+                        <!-- Grid de Produtos Adicionados -->
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle" id="grid-produtos">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 5%;">#</th>
+                                        <th style="width: 25%;">Descrição</th>
+                                        <th style="width: 8%;">Código</th>
+                                        <th style="width: 8%;">NCM</th>
+                                        <th style="width: 6%;">Unidade</th>
+                                        <th style="width: 10%;">Quantidade</th>
+                                        <th style="width: 12%;">Valor Unit.</th>
+                                        <th style="width: 12%;">Valor Total</th>
+                                        <th style="width: 4%;">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-produtos">
+                                    <tr id="linha-vazia">
+                                        <td colspan="9" class="text-center text-muted py-4">
+                                            <i class="bi bi-inbox me-2"></i>Nenhum produto adicionado. Use a busca acima para adicionar produtos.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                                <tfoot class="table-light">
+                                    <tr>
+                                        <td colspan="7" class="text-end fw-bold">Total dos Produtos:</td>
+                                        <td class="fw-bold text-success" id="total-produtos">R$ 0,00</td>
+                                        <td></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+
+                        <!-- Container oculto para os formulários do formset -->
+                        <div id="itens-container" style="display: none;">
+                            {% for item_form in formset %}
+                            <div class="item-form" data-item-index="{{ forloop.counter0 }}">
+                                {{ item_form.produto }}
+                                {{ item_form.codigo_produto }}
+                                {{ item_form.descricao }}
+                                {{ item_form.ncm }}
+                                {{ item_form.origem_mercadoria }}
+                                {{ item_form.cest }}
+                                {{ item_form.gtin }}
+                                {{ item_form.ex_tipi }}
+                                {{ item_form.cfop }}
+                                {{ item_form.unidade_medida }}
+                                {{ item_form.quantidade }}
+                                {{ item_form.valor_unitario }}
+                                {% if item_form.DELETE %}{{ item_form.DELETE }}{% endif %}
                                 {{ item_form.id }}
                             </div>
                             {% endfor %}
                         </div>
-                        <button type="button" class="btn btn-outline-primary btn-sm" id="adicionar-item">
-                            <i class="bi bi-plus-circle me-1"></i>Adicionar Item
-                        </button>
                     </div>
                 </div>
 
@@ -311,9 +327,12 @@
                     </div>
                 </div>
             </div>
+        </div>
 
-            <div class="col-xl-4">
-                <div class="card">
+        <!-- Card Informações -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card mb-4">
                     <div class="card-header">
                         <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Informações</h6>
                     </div>
@@ -421,6 +440,62 @@
         transform: translateY(0);
     }
 }
+
+/* Estilos para o grid de produtos */
+#grid-produtos {
+    font-size: 0.9rem;
+}
+
+#grid-produtos thead th {
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+#grid-produtos tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+#grid-produtos .quantidade-produto,
+#grid-produtos .valor-unitario-produto {
+    border: 1px solid #dee2e6;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+#grid-produtos .quantidade-produto:focus,
+#grid-produtos .valor-unitario-produto:focus {
+    border-color: #86b7fe;
+    outline: 0;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.produto-sugestoes-centralizada {
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    background-color: white;
+}
+
+.produto-sugestoes-centralizada .list-group-item {
+    border-left: none;
+    border-right: none;
+    cursor: pointer;
+}
+
+.produto-sugestoes-centralizada .list-group-item:first-child {
+    border-top-left-radius: 0.375rem;
+    border-top-right-radius: 0.375rem;
+}
+
+.produto-sugestoes-centralizada .list-group-item:last-child {
+    border-bottom-left-radius: 0.375rem;
+    border-bottom-right-radius: 0.375rem;
+}
+
+.produto-sugestoes-centralizada .list-group-item:hover {
+    background-color: #f8f9fa;
+}
 </style>
 
 <script>
@@ -429,6 +504,67 @@ let currentStep = 1;
 const totalSteps = 4;
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Mostrar/ocultar campo de data de vencimento baseado na forma de recebimento
+    const formaRecebimentoSelect = document.getElementById('id_forma_recebimento');
+    const divDataVencimento = document.getElementById('div-data-vencimento');
+    
+    if (formaRecebimentoSelect && divDataVencimento) {
+        function toggleDataVencimento() {
+            if (formaRecebimentoSelect.value === 'BOLETO') {
+                divDataVencimento.style.display = 'block';
+                const inputDataVenc = document.getElementById('id_data_vencimento_recebimento');
+                if (inputDataVenc) inputDataVenc.required = true;
+            } else {
+                divDataVencimento.style.display = 'none';
+                const inputDataVenc = document.getElementById('id_data_vencimento_recebimento');
+                if (inputDataVenc) inputDataVenc.required = false;
+            }
+        }
+        
+        formaRecebimentoSelect.addEventListener('change', toggleDataVencimento);
+        toggleDataVencimento(); // Executar na carga inicial
+    }
+    
+    // Corrigir formato das datas para inputs HTML tipo date (yyyy-MM-dd)
+    const dataEmissao = document.querySelector('#id_data_emissao');
+    const dataEntrada = document.querySelector('#id_data_entrada');
+    
+    if (dataEmissao && dataEmissao.type === 'date') {
+        const valorAtual = dataEmissao.value;
+        // Se o valor estiver no formato dd/MM/yyyy, converter para yyyy-MM-dd
+        if (valorAtual && valorAtual.includes('/')) {
+            const partes = valorAtual.split('/');
+            if (partes.length === 3) {
+                dataEmissao.value = `${partes[2]}-${partes[1]}-${partes[0]}`;
+            }
+        } else if (!valorAtual) {
+            // Se não houver valor, definir data de hoje no formato correto
+            const hoje = new Date();
+            const ano = hoje.getFullYear();
+            const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+            const dia = String(hoje.getDate()).padStart(2, '0');
+            dataEmissao.value = `${ano}-${mes}-${dia}`;
+        }
+    }
+    
+    if (dataEntrada && dataEntrada.type === 'date') {
+        const valorAtual = dataEntrada.value;
+        // Se o valor estiver no formato dd/MM/yyyy, converter para yyyy-MM-dd
+        if (valorAtual && valorAtual.includes('/')) {
+            const partes = valorAtual.split('/');
+            if (partes.length === 3) {
+                dataEntrada.value = `${partes[2]}-${partes[1]}-${partes[0]}`;
+            }
+        } else if (!valorAtual) {
+            // Se não houver valor, definir data de hoje no formato correto
+            const hoje = new Date();
+            const ano = hoje.getFullYear();
+            const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+            const dia = String(hoje.getDate()).padStart(2, '0');
+            dataEntrada.value = `${ano}-${mes}-${dia}`;
+        }
+    }
+    
     // Inicializar wizard
     initWizard();
     
@@ -495,49 +631,439 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // Calcular valores iniciais
-    document.querySelectorAll('[id^="valor-total-"]').forEach((input, index) => {
-        calcularValorTotal(index);
-    });
-    
-    // Busca de produtos
-    document.querySelectorAll('.produto-busca').forEach(input => {
-        input.addEventListener('input', function() {
-            const index = this.dataset.itemIndex;
+    // Inicializar sistema de produtos com grid
+    initSistemaProdutos();
+});
+
+// ============================================================================
+// SISTEMA DE PRODUTOS COM GRID
+// ============================================================================
+let produtosAdicionados = [];
+let proximoIndiceFormset = 0;
+let timeoutBuscaCentralizada = null;
+
+function initSistemaProdutos() {
+    // Busca centralizada de produtos
+    const buscaInput = document.getElementById('busca-produto-centralizada');
+    if (buscaInput) {
+        buscaInput.addEventListener('input', function() {
             const termo = this.value.trim();
-            
-            clearTimeout(timeoutBusca);
+            clearTimeout(timeoutBuscaCentralizada);
             
             if (termo.length < 2) {
-                const sugestoesEl = document.getElementById(`sugestoes-${index}`);
-                if (sugestoesEl) sugestoesEl.style.display = 'none';
+                document.getElementById('sugestoes-centralizadas').style.display = 'none';
                 return;
             }
             
-            timeoutBusca = setTimeout(() => {
-                buscarProdutos(termo, index);
+            timeoutBuscaCentralizada = setTimeout(() => {
+                buscarProdutosCentralizada(termo);
             }, 300);
         });
         
         // Fechar sugestões ao clicar fora
         document.addEventListener('click', function(e) {
-            if (!e.target.closest('.item-form')) {
-                document.querySelectorAll('.produto-sugestoes').forEach(el => {
-                    el.style.display = 'none';
-                });
+            if (!e.target.closest('#busca-produto-centralizada') && 
+                !e.target.closest('#sugestoes-centralizadas')) {
+                document.getElementById('sugestoes-centralizadas').style.display = 'none';
             }
         });
+    }
+    
+    // Botão adicionar manual
+    const btnAdicionarManual = document.getElementById('btn-adicionar-manual');
+    if (btnAdicionarManual) {
+        btnAdicionarManual.addEventListener('click', adicionarProdutoManual);
+    }
+    
+    // Carregar produtos existentes do formset
+    carregarProdutosDoFormset();
+}
+
+function buscarProdutosCentralizada(termo) {
+    fetch(`/ajax/buscar-produtos/?termo=${encodeURIComponent(termo)}`)
+        .then(response => response.json())
+        .then(data => {
+            const sugestoes = document.getElementById('sugestoes-centralizadas');
+            if (!sugestoes) return;
+            
+            sugestoes.innerHTML = '';
+            
+            if (data.produtos && data.produtos.length > 0) {
+                data.produtos.forEach(produto => {
+                    const item = document.createElement('a');
+                    item.href = '#';
+                    item.className = 'list-group-item list-group-item-action';
+                    item.innerHTML = `
+                        <div class="d-flex w-100 justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1">${produto.codigo} - ${produto.descricao}</h6>
+                                <small class="text-muted">NCM: ${produto.ncm || '-'} | Unidade: ${produto.unidade_medida || 'UN'}</small>
+                                ${produto.preco_venda ? `<div class="mt-1"><strong class="text-success">R$ ${parseFloat(produto.preco_venda).toFixed(2).replace('.', ',')}</strong></div>` : ''}
+                            </div>
+                            <button class="btn btn-sm btn-primary ms-2" data-produto-id="${produto.id}">
+                                <i class="bi bi-plus-circle me-1"></i>Adicionar
+                            </button>
+                        </div>
+                    `;
+                    // Adicionar event listener ao botão
+                    const btnAdicionar = item.querySelector('button');
+                    btnAdicionar.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        adicionarProdutoAoGrid(produto);
+                    });
+                    sugestoes.appendChild(item);
+                });
+                sugestoes.style.display = 'block';
+            } else {
+                sugestoes.innerHTML = '<div class="list-group-item text-muted">Nenhum produto encontrado</div>';
+                sugestoes.style.display = 'block';
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao buscar produtos:', error);
+        });
+}
+
+function adicionarProdutoAoGrid(produto) {
+    // Fechar sugestões
+    document.getElementById('sugestoes-centralizadas').style.display = 'none';
+    document.getElementById('busca-produto-centralizada').value = '';
+    
+    // Adicionar produto ao array
+    const produtoItem = {
+        id: produto.id,
+        codigo: produto.codigo || '',
+        descricao: produto.descricao || '',
+        ncm: produto.ncm || '',
+        origem_mercadoria: produto.origem_mercadoria || '0',
+        cest: produto.cest || '',
+        gtin: produto.gtin || '',
+        ex_tipi: produto.ex_tipi || '',
+        cfop: produto.cfop_saida_estadual || '',
+        unidade_medida: produto.unidade_medida || 'UN',
+        quantidade: 1,
+        valor_unitario: produto.preco_venda ? parseFloat(produto.preco_venda) : 0,
+        index: proximoIndiceFormset++
+    };
+    
+    produtosAdicionados.push(produtoItem);
+    atualizarGrid();
+    sincronizarFormset();
+}
+
+function adicionarProdutoManual() {
+    const produtoItem = {
+        id: null,
+        codigo: '',
+        descricao: '',
+        ncm: '',
+        origem_mercadoria: '0',
+        cest: '',
+        gtin: '',
+        ex_tipi: '',
+        cfop: '',
+        unidade_medida: 'UN',
+        quantidade: 1,
+        valor_unitario: 0,
+        index: proximoIndiceFormset++
+    };
+    
+    produtosAdicionados.push(produtoItem);
+    atualizarGrid();
+    sincronizarFormset();
+}
+
+function atualizarGrid() {
+    const tbody = document.getElementById('tbody-produtos');
+    if (!tbody) return;
+    
+    tbody.innerHTML = '';
+    
+    if (produtosAdicionados.length === 0) {
+        tbody.innerHTML = '<tr id="linha-vazia"><td colspan="9" class="text-center text-muted py-4"><i class="bi bi-inbox me-2"></i>Nenhum produto adicionado. Use a busca acima para adicionar produtos.</td></tr>';
+        atualizarTotal();
+        return;
+    }
+    
+    produtosAdicionados.forEach((produto, idx) => {
+        const valorTotal = produto.quantidade * produto.valor_unitario;
+        const row = document.createElement('tr');
+        row.dataset.produtoIndex = idx;
+        row.innerHTML = `
+            <td>${idx + 1}</td>
+            <td>
+                <input type="text" class="form-control form-control-sm descricao-produto" 
+                       value="${produto.descricao || ''}" 
+                       placeholder="Descrição do produto *"
+                       data-index="${idx}"
+                       required>
+            </td>
+            <td>${produto.codigo || '-'}</td>
+            <td>${produto.ncm || '-'}</td>
+            <td>${produto.unidade_medida || 'UN'}</td>
+            <td>
+                <input type="number" class="form-control form-control-sm quantidade-produto" 
+                       value="${produto.quantidade}" 
+                       min="0.01" 
+                       step="0.01"
+                       data-index="${idx}"
+                       style="width: 100px;">
+            </td>
+            <td>
+                <input type="number" class="form-control form-control-sm valor-unitario-produto" 
+                       value="${produto.valor_unitario.toFixed(2)}" 
+                       min="0" 
+                       step="0.01"
+                       data-index="${idx}"
+                       style="width: 120px;">
+            </td>
+            <td class="fw-bold">R$ ${valorTotal.toFixed(2).replace('.', ',')}</td>
+            <td>
+                <button type="button" class="btn btn-sm btn-danger" onclick="removerProduto(${idx})" title="Remover produto">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </td>
+        `;
+        tbody.appendChild(row);
     });
     
-    // Listener para mudança de produto selecionado
-    document.querySelectorAll('.produto-select').forEach(select => {
-        select.addEventListener('change', function() {
-            if (this.value) {
-                carregarDadosProduto(this.value, this);
-            }
-        });
+    // Adicionar listeners para edição
+    tbody.querySelectorAll('.quantidade-produto, .valor-unitario-produto, .descricao-produto').forEach(input => {
+        // Para campos numéricos, usar 'blur' para não perder foco durante a digitação
+        if (input.classList.contains('quantidade-produto') || input.classList.contains('valor-unitario-produto')) {
+            input.addEventListener('blur', function() {
+                const idx = parseInt(this.dataset.index);
+                if (this.classList.contains('quantidade-produto')) {
+                    produtosAdicionados[idx].quantidade = parseFloat(this.value) || 0;
+                } else if (this.classList.contains('valor-unitario-produto')) {
+                    produtosAdicionados[idx].valor_unitario = parseFloat(this.value) || 0;
+                }
+                atualizarValorTotalLinha(idx);
+                atualizarTotal();
+                sincronizarFormset();
+            });
+            
+            // Atualizar apenas visualmente durante a digitação (sem sincronizar)
+            input.addEventListener('input', function() {
+                const idx = parseInt(this.dataset.index);
+                const valor = parseFloat(this.value) || 0;
+                const quantidade = input.classList.contains('quantidade-produto') 
+                    ? valor 
+                    : produtosAdicionados[idx].quantidade;
+                const valorUnitario = input.classList.contains('valor-unitario-produto')
+                    ? valor
+                    : produtosAdicionados[idx].valor_unitario;
+                
+                // Atualizar apenas o valor total visualmente
+                const valorTotal = quantidade * valorUnitario;
+                const row = document.querySelector(`#tbody-produtos tr[data-produto-index="${idx}"]`);
+                if (row) {
+                    const valorTotalCell = row.querySelector('td:nth-child(8)');
+                    if (valorTotalCell) {
+                        valorTotalCell.innerHTML = `<strong>R$ ${valorTotal.toFixed(2).replace('.', ',')}</strong>`;
+                    }
+                }
+            });
+        } else if (input.classList.contains('descricao-produto')) {
+            input.addEventListener('input', function() {
+                const idx = parseInt(this.dataset.index);
+                produtosAdicionados[idx].descricao = this.value || '';
+                sincronizarFormset();
+            });
+        }
     });
-});
+    
+    atualizarTotal();
+}
+
+function removerProduto(index) {
+    if (confirm('Deseja remover este produto da nota fiscal?')) {
+        produtosAdicionados.splice(index, 1);
+        atualizarGrid();
+        sincronizarFormset();
+    }
+}
+
+function atualizarValorTotalLinha(idx) {
+    const produto = produtosAdicionados[idx];
+    const valorTotal = produto.quantidade * produto.valor_unitario;
+    const row = document.querySelector(`#tbody-produtos tr[data-produto-index="${idx}"]`);
+    if (row) {
+        const valorTotalCell = row.querySelector('td:nth-child(8)'); // 8ª coluna (Valor Total)
+        if (valorTotalCell) {
+            valorTotalCell.innerHTML = `<strong>R$ ${valorTotal.toFixed(2).replace('.', ',')}</strong>`;
+        }
+    }
+}
+
+function atualizarTotal() {
+    const total = produtosAdicionados.reduce((sum, p) => sum + (p.quantidade * p.valor_unitario), 0);
+    const totalEl = document.getElementById('total-produtos');
+    if (totalEl) {
+        totalEl.textContent = `R$ ${total.toFixed(2).replace('.', ',')}`;
+    }
+    
+    // Atualizar campo valor_produtos do formulário
+    const valorProdutosEl = document.querySelector('#id_valor_produtos');
+    if (valorProdutosEl) {
+        valorProdutosEl.value = total.toFixed(2);
+    }
+}
+
+function atualizarDadosDoGrid() {
+    // Atualizar array produtosAdicionados com valores atuais do grid
+    const tbody = document.getElementById('tbody-produtos');
+    if (!tbody) return;
+    
+    produtosAdicionados.forEach((produto, idx) => {
+        const row = tbody.querySelector(`tr[data-produto-index="${idx}"]`);
+        if (row) {
+            const descricaoInput = row.querySelector('.descricao-produto');
+            const quantidadeInput = row.querySelector('.quantidade-produto');
+            const valorUnitarioInput = row.querySelector('.valor-unitario-produto');
+            
+            if (descricaoInput) {
+                produto.descricao = descricaoInput.value.trim() || '';
+            }
+            if (quantidadeInput) {
+                produto.quantidade = parseFloat(quantidadeInput.value) || 0;
+            }
+            if (valorUnitarioInput) {
+                produto.valor_unitario = parseFloat(valorUnitarioInput.value) || 0;
+            }
+        }
+    });
+}
+
+function sincronizarFormset() {
+    // Primeiro, atualizar dados do grid para o array (se o grid estiver visível)
+    atualizarDadosDoGrid();
+    
+    console.log('Sincronizando formset. Total de produtos:', produtosAdicionados.length);
+    console.log('Dados dos produtos:', JSON.stringify(produtosAdicionados, null, 2));
+    
+    const container = document.getElementById('itens-container');
+    if (!container) {
+        console.error('Container itens-container não encontrado!');
+        return;
+    }
+    
+    // Primeiro, encontrar e atualizar/criar TOTAL_FORMS antes de limpar
+    let totalForms = document.querySelector('input[name*="TOTAL_FORMS"]');
+    if (!totalForms) {
+        // Procurar em todo o documento (pode ser id_itens-TOTAL_FORMS ou id_form-TOTAL_FORMS)
+        totalForms = document.querySelector('#id_itens-TOTAL_FORMS') || document.querySelector('#id_form-TOTAL_FORMS');
+    }
+    
+    // Se não encontrar, criar o campo
+    if (!totalForms) {
+        const form = document.getElementById('form-nfe');
+        if (form) {
+            // Procurar onde está o management_form (geralmente antes do container)
+            const managementDiv = container.previousElementSibling || container.parentElement;
+            totalForms = document.createElement('input');
+            totalForms.type = 'hidden';
+            totalForms.name = 'itens-TOTAL_FORMS';
+            totalForms.id = 'id_itens-TOTAL_FORMS';
+            if (managementDiv && managementDiv.tagName !== 'TBODY') {
+                managementDiv.appendChild(totalForms);
+            } else {
+                form.insertBefore(totalForms, container);
+            }
+            console.log('Campo TOTAL_FORMS criado');
+        }
+    }
+    
+    // Atualizar TOTAL_FORMS
+    if (totalForms) {
+        totalForms.value = produtosAdicionados.length;
+        console.log('TOTAL_FORMS atualizado para:', produtosAdicionados.length, 'campo:', totalForms.name, 'id:', totalForms.id);
+    }
+    
+    // Limpar container (isso remove todos os campos do formset dentro dele)
+    container.innerHTML = '';
+    
+    // Criar campos do formset para cada produto
+    produtosAdicionados.forEach((produto, idx) => {
+        console.log(`Criando formset para produto ${idx}:`, produto);
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'item-form';
+        itemDiv.dataset.itemIndex = idx;
+        
+        // Criar elementos de forma segura para evitar problemas com HTML
+        const criarInput = (name, value, id) => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = name;
+            input.id = id;
+            input.value = value !== null && value !== undefined ? String(value) : '';
+            return input;
+        };
+        
+        // Usar o prefixo correto do formset (itens- em vez de form-)
+        const prefix = 'itens';
+        itemDiv.appendChild(criarInput(`${prefix}-${idx}-produto`, produto.id || '', `id_${prefix}-${idx}-produto`));
+        itemDiv.appendChild(criarInput(`${prefix}-${idx}-codigo_produto`, produto.codigo || '', `id_${prefix}-${idx}-codigo_produto`));
+        itemDiv.appendChild(criarInput(`${prefix}-${idx}-descricao`, produto.descricao || '', `id_${prefix}-${idx}-descricao`));
+        itemDiv.appendChild(criarInput(`${prefix}-${idx}-ncm`, produto.ncm || '', `id_${prefix}-${idx}-ncm`));
+        itemDiv.appendChild(criarInput(`${prefix}-${idx}-origem_mercadoria`, produto.origem_mercadoria || '0', `id_${prefix}-${idx}-origem_mercadoria`));
+        itemDiv.appendChild(criarInput(`${prefix}-${idx}-cest`, produto.cest || '', `id_${prefix}-${idx}-cest`));
+        itemDiv.appendChild(criarInput(`${prefix}-${idx}-gtin`, produto.gtin || '', `id_${prefix}-${idx}-gtin`));
+        itemDiv.appendChild(criarInput(`${prefix}-${idx}-ex_tipi`, produto.ex_tipi || '', `id_${prefix}-${idx}-ex_tipi`));
+        itemDiv.appendChild(criarInput(`${prefix}-${idx}-cfop`, produto.cfop || '', `id_${prefix}-${idx}-cfop`));
+        itemDiv.appendChild(criarInput(`${prefix}-${idx}-unidade_medida`, produto.unidade_medida || 'UN', `id_${prefix}-${idx}-unidade_medida`));
+        itemDiv.appendChild(criarInput(`${prefix}-${idx}-quantidade`, produto.quantidade || 0, `id_${prefix}-${idx}-quantidade`));
+        itemDiv.appendChild(criarInput(`${prefix}-${idx}-valor_unitario`, (produto.valor_unitario || 0).toFixed(2), `id_${prefix}-${idx}-valor_unitario`));
+        itemDiv.appendChild(criarInput(`${prefix}-${idx}-id`, '', `id_${prefix}-${idx}-id`));
+        
+        container.appendChild(itemDiv);
+    });
+}
+
+function carregarProdutosDoFormset() {
+    // Carregar produtos existentes do formset inicial
+    const itensContainer = document.getElementById('itens-container');
+    if (!itensContainer) return;
+    
+    const itemForms = itensContainer.querySelectorAll('.item-form');
+    itemForms.forEach((itemForm, idx) => {
+        const produtoId = itemForm.querySelector('[id$="-produto"]')?.value;
+        const descricao = itemForm.querySelector('[id$="-descricao"]')?.value;
+        const codigo = itemForm.querySelector('[id$="-codigo_produto"]')?.value;
+        const ncm = itemForm.querySelector('[id$="-ncm"]')?.value;
+        const origem = itemForm.querySelector('[id$="-origem_mercadoria"]')?.value || '0';
+        const quantidade = parseFloat(itemForm.querySelector('[id$="-quantidade"]')?.value || '1');
+        const valorUnitario = parseFloat(itemForm.querySelector('[id$="-valor_unitario"]')?.value || '0');
+        const unidade = itemForm.querySelector('[id$="-unidade_medida"]')?.value || 'UN';
+        const cfop = itemForm.querySelector('[id$="-cfop"]')?.value || '';
+        const cest = itemForm.querySelector('[id$="-cest"]')?.value || '';
+        const gtin = itemForm.querySelector('[id$="-gtin"]')?.value || '';
+        const exTipi = itemForm.querySelector('[id$="-ex_tipi"]')?.value || '';
+        
+        if (descricao || produtoId) {
+            produtosAdicionados.push({
+                id: produtoId || null,
+                codigo: codigo || '',
+                descricao: descricao || '',
+                ncm: ncm || '',
+                origem_mercadoria: origem,
+                cest: cest,
+                gtin: gtin,
+                ex_tipi: exTipi,
+                cfop: cfop,
+                unidade_medida: unidade,
+                quantidade: quantidade,
+                valor_unitario: valorUnitario,
+                index: proximoIndiceFormset++
+            });
+        }
+    });
+    
+    if (produtosAdicionados.length > 0) {
+        atualizarGrid();
+    }
+}
 
 // Funções do Wizard
 function initWizard() {
@@ -547,6 +1073,11 @@ function initWizard() {
 
 function nextStep() {
     if (currentStep < totalSteps) {
+        // Se estiver na etapa 2, sincronizar formset antes de avançar
+        if (currentStep === 2) {
+            sincronizarFormset();
+        }
+        
         currentStep++;
         showStep(currentStep);
         updateStepIndicator();
@@ -584,6 +1115,11 @@ function showStep(step) {
     const stepEl = document.querySelector(`#step-${step}`);
     if (stepEl) {
         stepEl.style.display = 'block';
+    }
+    
+    // Se for a etapa 2, garantir que o sistema de produtos está inicializado
+    if (step === 2) {
+        sincronizarFormset();
     }
 }
 
@@ -646,29 +1182,48 @@ function validateCurrentStep() {
             isValid = false;
         }
     } else if (currentStep === 2) {
-        // Validar itens (pelo menos um item deve ter descrição, quantidade e valor)
-        let hasValidItem = false;
-        document.querySelectorAll('[id^="id_form-"][id$="-descricao"]').forEach(input => {
-            const match = input.id.match(/id_form-(\d+)-/);
-            if (match) {
-                const index = match[1];
-                const descricao = input.value;
-                const quantidadeEl = document.querySelector(`#id_form-${index}-quantidade`);
-                const valorUnitarioEl = document.querySelector(`#id_form-${index}-valor_unitario`);
-                const deleteEl = document.querySelector(`#id_form-${index}-DELETE`);
-                
-                // Verificar se o item não está marcado para deletar
-                if (!deleteEl || !deleteEl.checked) {
-                    if (descricao && descricao.trim() && quantidadeEl && quantidadeEl.value && valorUnitarioEl && valorUnitarioEl.value) {
-                        hasValidItem = true;
-                    }
+        // Atualizar dados do grid antes de validar
+        atualizarDadosDoGrid();
+        
+        // Validar itens usando o novo sistema de grid
+        if (produtosAdicionados.length === 0) {
+            alert('Por favor, adicione pelo menos um produto à nota fiscal.');
+            isValid = false;
+        } else {
+            // Validar cada produto
+            for (let i = 0; i < produtosAdicionados.length; i++) {
+                const produto = produtosAdicionados[i];
+                if (!produto.descricao || !produto.descricao.trim()) {
+                    alert(`O produto na linha ${i + 1} precisa ter uma descrição.`);
+                    isValid = false;
+                    break;
+                }
+                if (!produto.ncm || !produto.ncm.trim()) {
+                    alert(`O produto "${produto.descricao || 'na linha ' + (i + 1)}" precisa ter um NCM.`);
+                    isValid = false;
+                    break;
+                }
+                if (!produto.quantidade || produto.quantidade <= 0) {
+                    alert(`O produto "${produto.descricao || 'na linha ' + (i + 1)}" precisa ter uma quantidade maior que zero.`);
+                    isValid = false;
+                    break;
+                }
+                if (!produto.valor_unitario || produto.valor_unitario <= 0) {
+                    alert(`O produto "${produto.descricao || 'na linha ' + (i + 1)}" precisa ter um valor unitário maior que zero.`);
+                    isValid = false;
+                    break;
+                }
+                if (!produto.origem_mercadoria) {
+                    alert(`O produto "${produto.descricao || 'na linha ' + (i + 1)}" precisa ter a origem da mercadoria definida.`);
+                    isValid = false;
+                    break;
+                }
+                if (!produto.unidade_medida || !produto.unidade_medida.trim()) {
+                    alert(`O produto "${produto.descricao || 'na linha ' + (i + 1)}" precisa ter uma unidade de medida.`);
+                    isValid = false;
+                    break;
                 }
             }
-        });
-        
-        if (!hasValidItem) {
-            alert('Por favor, adicione pelo menos um item com descrição, quantidade e valor unitário.');
-            isValid = false;
         }
     }
     
@@ -876,33 +1431,20 @@ function gerarPreviewNFe() {
     // Calcular valor total
     const valorTotal = valorProdutos + valorFrete + valorSeguro + valorOutros - valorDesconto;
     
-    // Coletar itens
+    // Coletar itens do novo sistema de grid
     let itensHtml = '';
-    let itemIndex = 0;
-    document.querySelectorAll('.item-form').forEach(itemForm => {
-        const deleteCheckbox = itemForm.querySelector('[name$="-DELETE"]');
-        if (deleteCheckbox && deleteCheckbox.checked) return;
-        
-        const descricao = itemForm.querySelector(`#id_form-${itemIndex}-descricao`) ? itemForm.querySelector(`#id_form-${itemIndex}-descricao`).value : '';
-        const quantidade = itemForm.querySelector(`#id_form-${itemIndex}-quantidade`) ? itemForm.querySelector(`#id_form-${itemIndex}-quantidade`).value : '0';
-        const unidade = itemForm.querySelector(`#id_form-${itemIndex}-unidade_medida`) ? itemForm.querySelector(`#id_form-${itemIndex}-unidade_medida`).value : 'UN';
-        const ncm = itemForm.querySelector(`#id_form-${itemIndex}-ncm`) ? itemForm.querySelector(`#id_form-${itemIndex}-ncm`).value : '';
-        const valorUnitario = itemForm.querySelector(`#id_form-${itemIndex}-valor_unitario`) ? parseFloat(itemForm.querySelector(`#id_form-${itemIndex}-valor_unitario`).value) || 0 : 0;
-        const valorTotalItem = parseFloat(quantidade) * valorUnitario;
-        
-        if (descricao) {
-            itensHtml += `
-                <tr>
-                    <td><strong>${descricao}</strong></td>
-                    <td class="text-end">${quantidade}</td>
-                    <td>${unidade}</td>
-                    <td>${ncm || '-'}</td>
-                    <td class="text-end">R$ ${valorUnitario.toFixed(2).replace('.', ',')}</td>
-                    <td class="text-end">R$ ${valorTotalItem.toFixed(2).replace('.', ',')}</td>
-                </tr>
-            `;
-        }
-        itemIndex++;
+    produtosAdicionados.forEach((produto, idx) => {
+        const valorTotalItem = produto.quantidade * produto.valor_unitario;
+        itensHtml += `
+            <tr>
+                <td><strong>${produto.descricao || '-'}</strong></td>
+                <td class="text-end">${produto.quantidade}</td>
+                <td>${produto.unidade_medida || 'UN'}</td>
+                <td>${produto.ncm || '-'}</td>
+                <td class="text-end">R$ ${produto.valor_unitario.toFixed(2).replace('.', ',')}</td>
+                <td class="text-end">R$ ${valorTotalItem.toFixed(2).replace('.', ',')}</td>
+            </tr>
+        `;
     });
     
     // Formatar datas
@@ -1023,6 +1565,84 @@ function gerarPreviewNFe() {
 
 // Emitir nota fiscal
 function emitirNotaFiscal() {
+    // Primeiro, atualizar dados do grid para o array
+    atualizarDadosDoGrid();
+    
+    // Validar produtos antes de sincronizar
+    if (produtosAdicionados.length === 0) {
+        alert('Por favor, adicione pelo menos um produto à nota fiscal.');
+        return;
+    }
+    
+    // Validar campos obrigatórios de cada produto
+    for (let i = 0; i < produtosAdicionados.length; i++) {
+        const produto = produtosAdicionados[i];
+        if (!produto.descricao || !produto.descricao.trim()) {
+            alert(`O produto na linha ${i + 1} precisa ter uma descrição.`);
+            // Voltar para etapa 2 para corrigir
+            currentStep = 2;
+            showStep(2);
+            updateStepIndicator();
+            updateNavigationButtons();
+            return;
+        }
+        if (!produto.ncm || !produto.ncm.trim()) {
+            alert(`O produto "${produto.descricao || 'na linha ' + (i + 1)}" precisa ter um NCM.`);
+            currentStep = 2;
+            showStep(2);
+            updateStepIndicator();
+            updateNavigationButtons();
+            return;
+        }
+        if (!produto.quantidade || produto.quantidade <= 0) {
+            alert(`O produto "${produto.descricao || 'na linha ' + (i + 1)}" precisa ter uma quantidade maior que zero.`);
+            currentStep = 2;
+            showStep(2);
+            updateStepIndicator();
+            updateNavigationButtons();
+            return;
+        }
+        if (!produto.valor_unitario || produto.valor_unitario <= 0) {
+            alert(`O produto "${produto.descricao || 'na linha ' + (i + 1)}" precisa ter um valor unitário maior que zero.`);
+            currentStep = 2;
+            showStep(2);
+            updateStepIndicator();
+            updateNavigationButtons();
+            return;
+        }
+        if (!produto.origem_mercadoria) {
+            alert(`O produto "${produto.descricao || 'na linha ' + (i + 1)}" precisa ter a origem da mercadoria definida.`);
+            currentStep = 2;
+            showStep(2);
+            updateStepIndicator();
+            updateNavigationButtons();
+            return;
+        }
+        if (!produto.unidade_medida || !produto.unidade_medida.trim()) {
+            alert(`O produto "${produto.descricao || 'na linha ' + (i + 1)}" precisa ter uma unidade de medida.`);
+            currentStep = 2;
+            showStep(2);
+            updateStepIndicator();
+            updateNavigationButtons();
+            return;
+        }
+    }
+    
+    // Agora sincronizar formset com os dados validados
+    sincronizarFormset();
+    
+    // Verificar se os dados foram sincronizados corretamente
+    const container = document.getElementById('itens-container');
+    if (container) {
+        const hiddenInputs = container.querySelectorAll('input[type="hidden"]');
+        console.log('Total de inputs hidden criados:', hiddenInputs.length);
+        hiddenInputs.forEach(input => {
+            if (input.name.includes('-descricao') || input.name.includes('-quantidade') || input.name.includes('-valor_unitario')) {
+                console.log(`Input ${input.name}: "${input.value}"`);
+            }
+        });
+    }
+    
     // Validar formulário antes de enviar
     const form = document.getElementById('form-nfe');
     if (!form.checkValidity()) {
@@ -1041,6 +1661,14 @@ function emitirNotaFiscal() {
     // Enviar formulário via AJAX
     const formData = new FormData(form);
     
+    // Log do FormData para debug
+    console.log('Dados do FormData:');
+    for (let pair of formData.entries()) {
+        if ((pair[0].includes('itens-') || pair[0].includes('form-')) && (pair[0].includes('-descricao') || pair[0].includes('-quantidade') || pair[0].includes('-valor_unitario'))) {
+            console.log(`${pair[0]}: "${pair[1]}"`);
+        }
+    }
+    
     fetch(form.action || window.location.href, {
         method: 'POST',
         body: formData,
@@ -1048,21 +1676,105 @@ function emitirNotaFiscal() {
             'X-Requested-With': 'XMLHttpRequest',
         }
     })
-    .then(response => response.json())
+    .then(response => {
+        // Verificar se a resposta é JSON
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+            return response.json();
+        } else {
+            // Se não for JSON, retornar como texto
+            return response.text().then(text => {
+                console.error('Resposta do servidor não é JSON:', text);
+                return { sucesso: false, erro: 'Erro inesperado do servidor. Verifique o console para mais detalhes.' };
+            });
+        }
+    })
     .then(data => {
+        console.log('Resposta do servidor:', data); // Log para debug
+        console.log('Estado de produtosAdicionados antes do envio:', JSON.stringify(produtosAdicionados, null, 2));
+        
         if (data.sucesso) {
             // Esconder tela de processamento
             document.getElementById('processamento-nfe').style.display = 'none';
-            
-            // Abrir modal de envio
-            abrirModalEnvio(data.nota_id, data.chave_acesso);
+
+            // Se a NF-e foi criada com status PENDENTE (API não configurada), mostrar mensagem diferente
+            if (data.status === 'PENDENTE') {
+                alert('✅ NF-e criada com sucesso!\n\nStatus: PENDENTE\n\n' + 
+                      'A nota fiscal foi criada, mas está pendente de emissão. ' +
+                      'Configure a API de NF-e nas settings para emissão automática.\n\n' +
+                      `Número da NF-e: ${data.numero}`);
+                // Redirecionar para a lista de notas fiscais ou detalhes da nota
+                window.location.href = window.location.href.replace('/emitir/', '/');
+            } else {
+                // Abrir modal de envio (NF-e autorizada)
+                abrirModalEnvio(data.nota_id, data.chave_acesso);
+            }
         } else {
-            // Mostrar erro
-            alert('Erro ao emitir NF-e: ' + (data.erro || 'Erro desconhecido'));
+            // Esconder tela de processamento
+            document.getElementById('processamento-nfe').style.display = 'none';
+            
             // Voltar para etapa 4
             document.querySelector('#step-4').style.display = 'block';
             document.querySelector('.card.mb-4').style.display = 'block';
-            document.getElementById('processamento-nfe').style.display = 'none';
+            
+            // Construir mensagem de erro detalhada
+            let mensagemErro = data.erro || 'Erro desconhecido';
+            let errosDetalhados = [];
+            
+            if (data.errors) {
+                console.error('Erros detalhados:', data.errors); // Log para debug
+                
+                // Erros do formulário principal
+                Object.keys(data.errors).forEach(campo => {
+                    if (campo !== 'formset' && campo !== '__all__') {
+                        const erro = data.errors[campo];
+                        if (Array.isArray(erro)) {
+                            errosDetalhados.push(`• ${campo}: ${erro.join(', ')}`);
+                        } else if (typeof erro === 'object') {
+                            Object.keys(erro).forEach(subcampo => {
+                                errosDetalhados.push(`• ${campo}.${subcampo}: ${erro[subcampo].join(', ')}`);
+                            });
+                        } else {
+                            errosDetalhados.push(`• ${campo}: ${erro}`);
+                        }
+                    }
+                });
+                
+                // Erros do formset (itens)
+                if (data.errors.formset) {
+                    errosDetalhados.push('\n📋 ERROS NOS ITENS DA NOTA FISCAL:');
+                    Object.keys(data.errors.formset).forEach(index => {
+                        const itemErrors = data.errors.formset[index];
+                        Object.keys(itemErrors).forEach(campo => {
+                            const erroMsg = Array.isArray(itemErrors[campo]) 
+                                ? itemErrors[campo].join(', ') 
+                                : itemErrors[campo];
+                            errosDetalhados.push(`  ⚠ Item ${parseInt(index) + 1} - ${campo}: ${erroMsg}`);
+                        });
+                    });
+                }
+                
+                // Erros gerais
+                if (data.errors.__all__) {
+                    errosDetalhados.push('\n• Erro geral: ' + (Array.isArray(data.errors.__all__) 
+                        ? data.errors.__all__.join(', ') 
+                        : data.errors.__all__));
+                }
+            }
+            
+            // Construir mensagem final
+            let mensagemFinal = '❌ ERRO AO EMITIR NF-e\n\n';
+            mensagemFinal += mensagemErro;
+            
+            if (errosDetalhados.length > 0) {
+                mensagemFinal += '\n\n📝 DETALHES DOS ERROS:\n' + errosDetalhados.join('\n');
+            }
+            
+            mensagemFinal += '\n\n💡 DICA: Verifique o console do navegador (F12) para mais informações.';
+            
+            // Mostrar erro detalhado
+            alert(mensagemFinal);
+            console.error('Erro completo:', JSON.stringify(data, null, 2));
         }
     })
     .catch(error => {
@@ -1208,7 +1920,29 @@ function enviarPorWhatsapp(notaId) {
         },
         body: JSON.stringify({ telefone: telefoneLimpo })
     })
-    .then(response => response.json())
+    .then(response => {
+        const contentType = response.headers.get('content-type');
+        if (!response.ok) {
+            // Tentar parsear JSON se o content-type for JSON, senão usar texto
+            if (contentType && contentType.includes('application/json')) {
+                return response.json().then(data => {
+                    throw new Error(data.erro || 'Erro ao processar requisição');
+                });
+            } else {
+                return response.text().then(text => {
+                    throw new Error('Erro ao processar requisição. O servidor retornou uma resposta HTML.');
+                });
+            }
+        }
+        // Verificar se a resposta é JSON antes de fazer parse
+        if (contentType && contentType.includes('application/json')) {
+            return response.json();
+        } else {
+            return response.text().then(text => {
+                throw new Error('Resposta do servidor não é JSON válido.');
+            });
+        }
+    })
     .then(data => {
         btnWhatsapp.disabled = false;
         btnWhatsapp.innerHTML = originalText;

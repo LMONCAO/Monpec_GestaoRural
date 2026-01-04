@@ -69,3 +69,4 @@ gcloud run jobs delete aplicar-mig-0034-0035-0036 --region=$REGION --quiet 2>/de
 echo ""
 echo "✅ Processo concluído!"
 
+

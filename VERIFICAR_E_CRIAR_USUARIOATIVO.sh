@@ -49,3 +49,4 @@ echo "✅ Pronto! Teste: https://monpec-29862706245.us-central1.run.app/login/"
 
 gcloud run jobs delete verificar-usuarioativo --region=$REGION --quiet 2>/dev/null || true
 
+

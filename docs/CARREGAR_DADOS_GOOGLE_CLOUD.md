@@ -295,3 +295,4 @@ Se encontrar problemas:
 2. Verifique a documentação completa: `docs/CARREGAR_DADOS_BANCO.md`
 3. Teste localmente primeiro: `python manage.py carregar_dados_banco --dry-run`
 
+

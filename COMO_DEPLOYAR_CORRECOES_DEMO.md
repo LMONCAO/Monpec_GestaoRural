@@ -226,3 +226,4 @@ Se houver problemas:
 3. Execute o script de deploy novamente com `--no-cache`
 4. Verifique que os arquivos modificados estão no diretório correto
 
+

@@ -116,3 +116,4 @@ Se houver problemas no deploy:
 3. Verifique as variáveis de ambiente
 4. Verifique a conexão com o Cloud SQL
 
+

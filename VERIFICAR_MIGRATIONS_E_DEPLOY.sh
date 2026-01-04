@@ -42,3 +42,4 @@ gcloud logging read "resource.type=cloud_run_job AND resource.labels.job_name=ve
 
 gcloud run jobs delete verificar-migrations-final --region=$REGION --quiet 2>/dev/null || true
 
+

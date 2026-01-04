@@ -62,3 +62,4 @@ def client_logged_in(client, user):
     client.force_login(user)
     return client
 
+
