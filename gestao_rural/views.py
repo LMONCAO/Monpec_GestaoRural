@@ -314,12 +314,12 @@ def criar_usuario_demonstracao(request):
             'redirect_url': reverse('demo_loading')
         })
                 
-        except Exception as e:
+    except Exception as e:
         logger.error(f'[DEMO_CADASTRO] Erro inesperado: {type(e).__name__}: {e}', exc_info=True)
-                return JsonResponse({
-                    'success': False,
+        return JsonResponse({
+            'success': False,
             'message': 'Erro ao criar usuário. Por favor, tente novamente ou entre em contato com o suporte.'
-            }, status=500)
+        }, status=500)
 
 
 def contato_submit(request):
