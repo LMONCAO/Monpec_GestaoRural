@@ -5,6 +5,11 @@ Configurações específicas para produção no Fly.io.
 """
 import os
 from urllib.parse import urlparse
+
+# IMPORTANTE: Configurar DATABASE_URL ANTES de importar settings.py
+# para evitar que o settings.py base configure SQLite
+DATABASE_URL = os.getenv('DATABASE_URL', '')
+
 from .settings import *
 
 # Detectar se está rodando no Fly.io
@@ -50,7 +55,9 @@ import logging
 logger = logging.getLogger(__name__)
 
 # Fly.io fornece DATABASE_URL no formato: postgres://user:password@host:port/dbname
-DATABASE_URL = os.getenv('DATABASE_URL', '')
+# DATABASE_URL já foi obtido no início do arquivo, mas vamos garantir
+if not DATABASE_URL:
+    DATABASE_URL = os.getenv('DATABASE_URL', '')
 
 if DATABASE_URL:
     # Parse da URL do banco de dados
