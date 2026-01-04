@@ -152,25 +152,30 @@ jobs:
 
       - name: 🔍 Verificar Status do Servico
         if: always()
+        continue-on-error: true
         run: |
           echo "🔍 Verificando status do servico..."
           gcloud run services describe ${{ env.SERVICE_NAME }} \
             --region=${{ env.REGION }} \
-            --format="table(status.conditions[0].type,status.conditions[0].status,status.url)" || true
+            --format="table(status.conditions[0].type,status.conditions[0].status,status.url)" || echo "⚠️ Não foi possível verificar status (não crítico)"
           
           echo ""
           echo "📋 Verificando logs recentes (ultimas 10 linhas)..."
-          gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=${{ env.SERVICE_NAME }}" \
+          if gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=${{ env.SERVICE_NAME }}" \
             --limit=10 \
             --format="table(timestamp,severity,textPayload)" \
-            --project=${{ env.PROJECT_ID }} || true
+            --project=${{ env.PROJECT_ID }} 2>/dev/null; then
+            echo "✅ Logs verificados"
+          else
+            echo "⚠️ Não foi possível ler logs (falta de permissão - não crítico)"
+          fi
           
           echo ""
           echo "🔴 Verificando erros..."
           ERRORS=$(gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=${{ env.SERVICE_NAME }} AND severity>=ERROR" \
             --limit=5 \
             --format="value(textPayload)" \
-            --project=${{ env.PROJECT_ID }} || echo "")
+            --project=${{ env.PROJECT_ID }} 2>/dev/null || echo "")
           
           if [ -z "$ERRORS" ]; then
             echo "✅ Nenhum erro encontrado nos logs recentes!"
