@@ -844,7 +844,7 @@ Esta mensagem foi enviada automaticamente pelo sistema MONPEC.
                     if next_url:
                         return redirect(next_url)
                     
-                    # Para outros usuários, buscar primeira propriedade ou redirecionar para landing page
+                    # Para outros usuários, buscar primeira propriedade ou direcionar para cadastro inicial
                     try:
                         from .models import Propriedade
                         propriedade = Propriedade.objects.filter(
@@ -855,14 +855,19 @@ Esta mensagem foi enviada automaticamente pelo sistema MONPEC.
                             # Redirecionar direto para a página inicial (módulos)
                             return redirect('propriedade_modulos', propriedade_id=propriedade.id)
                         else:
-                            # ✅ NOVO: Se não tem propriedade, redirecionar para landing page
-                            logger.info(f'[LOGIN] Usuário {user.username} não tem propriedades. Redirecionando para landing page.')
-                            messages.info(request, 'Bem-vindo! Cadastre sua primeira propriedade para começar.')
-                            return redirect('landing_page')
+                            logger.info(
+                                '[LOGIN] Usuário %s não tem propriedades. Redirecionando para cadastro de produtor.',
+                                user.username,
+                            )
+                            messages.info(
+                                request,
+                                'Bem-vindo! Para começar, cadastre o proprietário (Produtor) e depois a Propriedade.',
+                            )
+                            return redirect('produtor_novo')
                     except Exception as e:
                         logger.error(f'[LOGIN] Erro ao buscar propriedade após login: {e}')
-                        # Em caso de erro, redirecionar para landing page
-                        return redirect('landing_page')
+                        # Em caso de erro, ir para um caminho seguro (cadastro inicial)
+                        return redirect('produtor_novo')
                 except Exception as e:
                     logger.error(f'Erro após autenticação bem-sucedida: {e}')
                     messages.error(
@@ -1004,11 +1009,16 @@ def dashboard(request):
             messages.info(request, 'Configurando sua demonstração...')
             return redirect('demo_setup')
         
-        # ✅ NOVO: Se não houver propriedades e não for demo, redirecionar para landing page
+        # Se não houver propriedades e não for demo, direcionar para o cadastro inicial
+        # (produtor/proprietário e depois propriedade). Sem isso, o sistema não tem como funcionar
+        # porque a maioria das telas depende de uma propriedade_id.
         if dados['total_propriedades'] == 0:
-            logger.info(f'[DASHBOARD] Nenhuma propriedade encontrada. Redirecionando para landing page.')
-            messages.info(request, 'Você ainda não tem propriedades cadastradas. Acesse o menu para cadastrar sua primeira propriedade.')
-            return redirect('landing_page')
+            logger.info('[DASHBOARD] Nenhuma propriedade encontrada. Redirecionando para cadastro de produtor.')
+            messages.info(
+                request,
+                'Para começar, cadastre primeiro o proprietário (Produtor) e depois a Propriedade.',
+            )
+            return redirect('produtor_novo')
         
         # Renderizar dashboard com lista de produtores
         context = {
