@@ -1,0 +1,82 @@
+========================================
+CORREÇÕES APLICADAS NO FLY.IO
+========================================
+
+Data: 2026-01-04
+Status: Parcialmente resolvido
+
+========================================
+PROBLEMAS IDENTIFICADOS
+========================================
+
+1. ❌ Dockerfile não estava usando entrypoint.sh
+   - O Dockerfile estava executando o gunicorn diretamente
+   - Não estava usando o entrypoint.sh que executa collectstatic e migrations
+
+2. ❌ Erro de conexão com banco de dados
+   - statement_timeout nas OPTIONS do PostgreSQL
+   - PgBouncer (usado pelo Fly.io) não suporta esse parâmetro
+   - Erro: "unsupported startup parameter in options: statement_timeout"
+
+3. ⚠️ Health check falhando
+   - O servidor está iniciando, mas o health check está falhando
+   - Possível problema com workers travando durante o carregamento
+
+========================================
+CORREÇÕES APLICADAS
+========================================
+
+1. ✅ Dockerfile corrigido
+   - Agora usa ENTRYPOINT com entrypoint.sh
+   - entrypoint.sh detecta automaticamente Fly.io ou GCP
+   - Executa collectstatic e migrations antes de iniciar o servidor
+
+2. ✅ settings_flyio.py corrigido
+   - Removido statement_timeout das OPTIONS
+   - Agora usa apenas connect_timeout
+   - Compatível com PgBouncer do Fly.io
+
+3. ✅ Deploy executado
+   - Deploy concluído com sucesso
+   - Migrations sendo aplicadas corretamente
+   - Gunicorn iniciando corretamente
+
+========================================
+STATUS ATUAL
+========================================
+
+✅ Máquina iniciando corretamente
+✅ Migrations sendo aplicadas
+✅ Gunicorn iniciando
+✅ Workers iniciando
+⚠️ Health check ainda falhando (connection refused)
+
+========================================
+PRÓXIMOS PASSOS
+========================================
+
+1. Verificar se os workers estão carregando completamente
+2. Verificar se há algum erro durante o carregamento da aplicação Django
+3. Verificar se o health check está configurado corretamente
+4. Testar acessando a aplicação diretamente
+
+========================================
+COMANDOS ÚTEIS
+========================================
+
+Verificar status:
+  flyctl status -a monpec-gestaorural
+
+Ver logs:
+  flyctl logs -a monpec-gestaorural
+
+Verificar máquinas:
+  flyctl machines list -a monpec-gestaorural
+
+Acessar SSH:
+  flyctl ssh console -a monpec-gestaorural
+
+URL da aplicação:
+  https://monpec-gestaorural.fly.dev
+
+========================================

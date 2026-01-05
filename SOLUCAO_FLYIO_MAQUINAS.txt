@@ -1,0 +1,113 @@
+========================================
+SOLUÇÃO: MÁQUINAS NÃO FUNCIONANDO NO FLY.IO
+========================================
+
+PROBLEMA:
+As máquinas no Fly.io podem estar paradas devido à configuração 
+auto_stop_machines = true no fly.toml. Quando não há tráfego, 
+as máquinas param automaticamente para economizar recursos.
+
+========================================
+SOLUÇÕES RÁPIDAS
+========================================
+
+1. DIAGNÓSTICO COMPLETO
+   Execute: .\DIAGNOSTICO_FLYIO.bat
+   
+   Este script vai verificar:
+   - Status do app
+   - Lista de máquinas
+   - Variáveis de ambiente
+   - Logs recentes
+
+2. CORRIGIR PROBLEMAS
+   Execute: .\CORRIGIR_FLYIO.bat
+   
+   Este script vai:
+   - Verificar autenticação
+   - Listar máquinas
+   - Iniciar máquinas paradas
+   - Verificar variáveis de ambiente
+   - Testar aplicação
+
+3. FAZER DEPLOY COMPLETO
+   Execute: .\DEPLOY_FLYIO.bat
+   
+   Este script vai:
+   - Verificar/instalar flyctl
+   - Fazer login se necessário
+   - Verificar DATABASE_URL
+   - Fazer deploy completo
+   - Testar aplicação
+
+========================================
+COMANDOS MANUAIS
+========================================
+
+Verificar Status:
+  flyctl status -a monpec-gestaorural
+
+Listar Máquinas:
+  flyctl machines list -a monpec-gestaorural
+
+Iniciar Máquinas:
+  flyctl machines start -a monpec-gestaorural
+
+Ver Logs:
+  flyctl logs -a monpec-gestaorural
+
+Verificar Variáveis:
+  flyctl secrets list -a monpec-gestaorural
+
+========================================
+PROBLEMAS COMUNS
+========================================
+
+1. MÁQUINAS PARADAS
+   Sintoma: Aplicação não responde, erro 503 ou timeout
+   Solução: Execute .\CORRIGIR_FLYIO.bat
+
+2. DATABASE_URL NÃO CONFIGURADO
+   Sintoma: Erro ao conectar ao banco de dados
+   Solução: Execute .\ADICIONAR_DATABASE_URL.bat
+
+3. BUILD ANTIGO OU COM ERROS
+   Sintoma: Aplicação não inicia ou erros no deploy
+   Solução: Execute .\DEPLOY_FLYIO.bat
+
+4. FLYCTL NÃO INSTALADO
+   Sintoma: Comando flyctl não encontrado
+   Solução: powershell -Command "iwr https://fly.io/install.ps1 -useb | iex"
+
+5. NÃO AUTENTICADO
+   Sintoma: Erro de autenticação ao executar comandos
+   Solução: flyctl auth login
+
+========================================
+SE NADA FUNCIONAR
+========================================
+
+1. Verifique os logs:
+   flyctl logs -a monpec-gestaorural
+
+2. Verifique o status:
+   flyctl status -a monpec-gestaorural
+
+3. Verifique as máquinas:
+   flyctl machines list -a monpec-gestaorural
+
+4. Faça rebuild completo:
+   flyctl deploy -a monpec-gestaorural
+
+5. Se necessário, recrie as máquinas:
+   flyctl machines destroy -a monpec-gestaorural --force
+   flyctl deploy -a monpec-gestaorural
+
+========================================
+URLS ÚTEIS
+========================================
+
+Dashboard: https://fly.io/dashboard
+App: https://fly.io/apps/monpec-gestaorural
+Logs: https://fly.io/apps/monpec-gestaorural/monitoring
+Config: https://fly.io/apps/monpec-gestaorural/settings

@@ -30,6 +30,9 @@ from gestao_rural import views_media
 from gestao_rural import views_diagnostico_imagens
 
 urlpatterns = [
+    # Health check endpoint (deve vir primeiro para ser encontrado rapidamente)
+    path('health/', gestao_views.health_check, name='health_check'),
+    
     # LANDING PAGE COM VÍDEO - DEVE VIR PRIMEIRO (página inicial)
     path('', gestao_views.landing_page, name='landing_page'),
     

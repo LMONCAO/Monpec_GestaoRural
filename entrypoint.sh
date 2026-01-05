@@ -38,4 +38,5 @@ python manage.py migrate --noinput --settings="$SETTINGS_MODULE" || {
 
 # Iniciar o servidor Gunicorn
 echo "✅ Iniciando servidor Gunicorn..."
-exec gunicorn sistema_rural.wsgi:application --bind 0.0.0.0:8080 --workers 4 --threads 2 --timeout 600
+# Reduzir workers para 2 para debug - aumentar timeout e adicionar preload
+exec gunicorn sistema_rural.wsgi:application --bind 0.0.0.0:8080 --workers 2 --threads 2 --timeout 600 --access-logfile - --error-logfile - --log-level info

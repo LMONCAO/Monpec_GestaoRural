@@ -79,7 +79,7 @@ if DATABASE_URL:
                 'PORT': DB_PORT,
                 'OPTIONS': {
                     'connect_timeout': 10,
-                    'options': '-c statement_timeout=300000',  # 5 minutos
+                    # Removido statement_timeout - PgBouncer não suporta esse parâmetro
                 },
                 'CONN_MAX_AGE': 600,  # Reutilizar conexões por até 10 minutos
             }

@@ -175,6 +175,11 @@ def google_search_console_verification(request):
     return HttpResponse(content, content_type='text/html; charset=utf-8')
 
 
+def health_check(request):
+    """Endpoint de health check para monitoramento (Fly.io, Cloud Run, etc)."""
+    return HttpResponse("OK", content_type="text/plain", status=200)
+
+
 def landing_page(request):
     """Página pública do sistema antes do login."""
     # Se o usuário já estiver autenticado, redirecionar para o dashboard
