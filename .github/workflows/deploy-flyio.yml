@@ -1,0 +1,51 @@
+name: 🚀 Deploy Principal - Fly.io
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    steps:
+      - name: 📥 Checkout do código
+        uses: actions/checkout@v4
+
+      - name: 🔍 Verificar Dockerfile
+        run: |
+          if [ ! -f Dockerfile ]; then
+            echo "❌ ERRO: Dockerfile não encontrado!"
+            echo "Execute CRIAR_DOCKERFILE_FLYIO.bat para criar o Dockerfile"
+            exit 1
+          fi
+          echo "✅ Dockerfile encontrado"
+
+      - name: 🔐 Configurar Fly.io
+        uses: superfly/flyctl-actions/setup-flyctl@v1
+
+      - name: 🚀 Deploy no Fly.io
+        run: |
+          echo "🚀 Iniciando deploy no Fly.io..."
+          flyctl deploy --remote-only --wait-timeout 10m
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        continue-on-error: false
+        timeout-minutes: 15
+
+      - name: ✅ Deploy concluído
+        if: success()
+        run: |
+          echo "✅ Deploy no Fly.io concluído com sucesso!"
+          echo "🌐 Acesse: https://monpec-gestaorural.fly.dev"
+      
+      - name: ❌ Deploy falhou
+        if: failure()
+        run: |
+          echo "❌ Deploy falhou!"
+          echo "Verifique os logs acima para mais detalhes"
+          echo "Verifique se FLY_API_TOKEN está configurado no GitHub Secrets"
