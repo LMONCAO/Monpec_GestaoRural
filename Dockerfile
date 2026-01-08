@@ -1,36 +1,36 @@
-﻿# Use a imagem oficial do Python
+# Use a imagem oficial do Python
 FROM python:3.11-slim
 
-# Definir diretÃ³rio de trabalho
+# Definir diretório de trabalho
 WORKDIR /app
 
-# Instalar dependÃªncias do sistema
+# Instalar dependências do sistema
 RUN apt-get update && apt-get install -y \
     gcc \
     postgresql-client \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copiar requirements e instalar dependÃªncias Python
-COPY requirements_producao.txt .
-RUN pip install --no-cache-dir -r requirements_producao.txt
+# Copiar requirements e instalar dependências Python
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Copiar cÃ³digo do projeto
+# Copiar código do projeto
 COPY . .
 
 <<<<<<< HEAD
-# Tornar entrypoint executável
+# Tornar entrypoint execut�vel
 RUN chmod +x entrypoint.sh
 =======
-# âœ… EXECUTAR collectstatic ANTES de finalizar a imagem
-# Isso garante que todos os arquivos estÃ¡ticos estejam em STATIC_ROOT
-# Usar --noinput para nÃ£o pedir confirmaÃ§Ã£o
-# Nota: Pode falhar se nÃ£o houver variÃ¡veis de ambiente, mas isso Ã© OK
-# O entrypoint.sh vai executar novamente com as variÃ¡veis corretas
-RUN python manage.py collectstatic --noinput --settings=sistema_rural.settings_gcp || echo "âš ï¸ collectstatic falhou no build, serÃ¡ executado no entrypoint..."
+# ✅ EXECUTAR collectstatic ANTES de finalizar a imagem
+# Isso garante que todos os arquivos estáticos estejam em STATIC_ROOT
+# Usar --noinput para não pedir confirmação
+# Nota: Pode falhar se não houver variáveis de ambiente, mas isso é OK
+# O entrypoint.sh vai executar novamente com as variáveis corretas
+RUN python manage.py collectstatic --noinput --settings=sistema_rural.settings_gcp || echo "⚠️ collectstatic falhou no build, será executado no entrypoint..."
 >>>>>>> 684d7dc9eeaad652e600bd3006f8f8ea7c4e5bfd
 
-# Expor porta (Cloud Run usa a variÃ¡vel PORT)
+# Expor porta (Cloud Run usa a variável PORT)
 EXPOSE 8080
 
 <<<<<<< HEAD
@@ -38,10 +38,10 @@ EXPOSE 8080
 # e executa collectstatic, migrations e inicia o servidor
 ENTRYPOINT ["/app/entrypoint.sh"]
 =======
-# Usar entrypoint.sh para inicializaÃ§Ã£o
+# Usar entrypoint.sh para inicialização
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# Comando para iniciar o servidor (entrypoint.sh jÃ¡ configura tudo)
+# Comando para iniciar o servidor (entrypoint.sh já configura tudo)
 CMD ["/entrypoint.sh"]
 >>>>>>> 684d7dc9eeaad652e600bd3006f8f8ea7c4e5bfd
