@@ -959,43 +959,51 @@ Esta mensagem foi enviada automaticamente pelo sistema MONPEC.
 def logout_view(request):
     """View para logout do usuário - redireciona para landing page"""
     try:
-        from .security_avancado import (
-            registrar_log_auditoria,
-            invalidar_sessao_segura,
-            obter_ip_address,
-        )
-
-        usuario = request.user if request.user.is_authenticated else None
-        ip_address = obter_ip_address(request)
-        user_agent = request.META.get('HTTP_USER_AGENT', '')
-
-        # Invalidar sessão segura (apenas se a tabela existir)
+        # Tentar importar módulos de segurança (se existirem)
         try:
-            if request.session.session_key:
-                invalidar_sessao_segura(request.session.session_key)
-        except Exception as e:
-            # Se a tabela SessaoSegura não existir, continuar sem erro
+            from .security_avancado import (
+                registrar_log_auditoria,
+                invalidar_sessao_segura,
+                obter_ip_address,
+            )
+
+            usuario = request.user if request.user.is_authenticated else None
+            ip_address = obter_ip_address(request)
+            user_agent = request.META.get('HTTP_USER_AGENT', '')
+
+            # Invalidar sessão segura (apenas se a tabela existir)
+            try:
+                if request.session.session_key:
+                    invalidar_sessao_segura(request.session.session_key)
+            except Exception as e:
+                # Se a tabela SessaoSegura não existir, continuar sem erro
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f'Tabela SessaoSegura não existe, pulando invalidação: {e}')
+
+            # Registrar log (apenas se conseguir importar)
+            try:
+                if usuario:
+                    registrar_log_auditoria(
+                        tipo_acao='LOGOUT',
+                        descricao=f"Logout: {usuario.username}",
+                        usuario=usuario,
+                        ip_address=ip_address,
+                        user_agent=user_agent,
+                        nivel_severidade='BAIXO',
+                        sucesso=True,
+                    )
+            except Exception as e:
+                # Se houver erro no registro de auditoria, continuar
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f'Erro no registro de auditoria do logout: {e}')
+        except ImportError as e:
+            # Se o módulo security_avancado não existir, fazer logout básico
             import logging
             logger = logging.getLogger(__name__)
-            logger.warning(f'Tabela SessaoSegura não existe, pulando invalidação: {e}')
+            logger.info(f'Módulo security_avancado não encontrado, fazendo logout básico: {e}')
 
-        # Registrar log (apenas se conseguir importar)
-        try:
-            if usuario:
-                registrar_log_auditoria(
-                    tipo_acao='LOGOUT',
-                    descricao=f"Logout: {usuario.username}",
-                    usuario=usuario,
-                    ip_address=ip_address,
-                    user_agent=user_agent,
-                    nivel_severidade='BAIXO',
-                    sucesso=True,
-                )
-        except Exception as e:
-            # Se houver erro no registro de auditoria, continuar
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.warning(f'Erro no registro de auditoria do logout: {e}')
     except Exception as e:
         # Se houver erro geral, continuar com o logout básico
         import logging
@@ -1016,7 +1024,7 @@ def logout_view(request):
     # Garantir que não há redirecionamento automático para demo_loading
     # Todos os usuários (incluindo demo) vão para landing_page com parâmetro logout
     messages.success(request, 'Você saiu do sistema com sucesso.')
-    return redirect('landing_page?logout=true')
+    return redirect('landing_page')
 
 
 @login_required
