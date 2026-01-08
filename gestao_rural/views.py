@@ -185,7 +185,7 @@ def landing_page(request):
     # Se o usuário já estiver autenticado, redirecionar para o dashboard
     if request.user.is_authenticated:
         return redirect('dashboard')
-    
+
     # Limpar mensagens antigas que não sejam relacionadas a um envio recente
     # Verificar se há um parâmetro indicando que acabamos de processar um formulário
     if 'form_submitted' not in request.GET:
@@ -196,9 +196,15 @@ def landing_page(request):
         list(storage)
         # Marcar como usado para garantir limpeza
         storage.used = True
-    
+
+    # Adicionar contexto para indicar se é um logout
+    # Isso pode ser usado no template para evitar redirecionamentos automáticos
+    context = {
+        'is_logout': 'logout' in request.GET,
+    }
+
     # Renderizar a landing page normalmente
-    return render(request, 'site/landing_page.html')
+    return render(request, 'site/landing_page.html', context)
 
 
 def criar_usuario_demonstracao(request):
@@ -952,35 +958,65 @@ Esta mensagem foi enviada automaticamente pelo sistema MONPEC.
 
 def logout_view(request):
     """View para logout do usuário - redireciona para landing page"""
-    from .security_avancado import (
-        registrar_log_auditoria,
-        invalidar_sessao_segura,
-        obter_ip_address,
-    )
-    
-    usuario = request.user if request.user.is_authenticated else None
-    ip_address = obter_ip_address(request)
-    user_agent = request.META.get('HTTP_USER_AGENT', '')
-    
-    # Invalidar sessão segura
-    if request.session.session_key:
-        invalidar_sessao_segura(request.session.session_key)
-    
-    # Registrar log
-    if usuario:
-        registrar_log_auditoria(
-            tipo_acao='LOGOUT',
-            descricao=f"Logout: {usuario.username}",
-            usuario=usuario,
-            ip_address=ip_address,
-            user_agent=user_agent,
-            nivel_severidade='BAIXO',
-            sucesso=True,
+    try:
+        from .security_avancado import (
+            registrar_log_auditoria,
+            invalidar_sessao_segura,
+            obter_ip_address,
         )
-    
+
+        usuario = request.user if request.user.is_authenticated else None
+        ip_address = obter_ip_address(request)
+        user_agent = request.META.get('HTTP_USER_AGENT', '')
+
+        # Invalidar sessão segura (apenas se a tabela existir)
+        try:
+            if request.session.session_key:
+                invalidar_sessao_segura(request.session.session_key)
+        except Exception as e:
+            # Se a tabela SessaoSegura não existir, continuar sem erro
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f'Tabela SessaoSegura não existe, pulando invalidação: {e}')
+
+        # Registrar log (apenas se conseguir importar)
+        try:
+            if usuario:
+                registrar_log_auditoria(
+                    tipo_acao='LOGOUT',
+                    descricao=f"Logout: {usuario.username}",
+                    usuario=usuario,
+                    ip_address=ip_address,
+                    user_agent=user_agent,
+                    nivel_severidade='BAIXO',
+                    sucesso=True,
+                )
+        except Exception as e:
+            # Se houver erro no registro de auditoria, continuar
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f'Erro no registro de auditoria do logout: {e}')
+    except Exception as e:
+        # Se houver erro geral, continuar com o logout básico
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f'Erro geral no logout avançado, fazendo logout básico: {e}')
+
+    # FAZER LOGOUT COMPLETO - limpar todas as sessões e dados
     logout(request)
+
+    # Limpar sessão completamente para garantir
+    request.session.flush()
+
+    # Limpar qualquer dado de sessão relacionado a demo
+    keys_to_delete = [key for key in request.session.keys() if 'demo' in key.lower()]
+    for key in keys_to_delete:
+        del request.session[key]
+
+    # Garantir que não há redirecionamento automático para demo_loading
+    # Todos os usuários (incluindo demo) vão para landing_page com parâmetro logout
     messages.success(request, 'Você saiu do sistema com sucesso.')
-    return redirect('landing_page')
+    return redirect('landing_page?logout=true')
 
 
 @login_required
@@ -1267,7 +1303,7 @@ def produtor_novo(request):
                 assinatura = None
                 if hasattr(request.user, 'assinatura'):
                     # Sempre usar defer() para evitar campos do Stripe removidos
-                    assinatura = AssinaturaCliente.objects.defer('stripe_customer_id', 'stripe_subscription_id').filter(usuario=request.user).first()
+                    assinatura = AssinaturaCliente.objects.filter(usuario=request.user).first()
                 
                 if assinatura and assinatura.status == 'ATIVA':
                     # Assinante: buscar todos os usuários da mesma assinatura (equipe)

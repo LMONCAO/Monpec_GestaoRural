@@ -174,57 +174,15 @@ CAMPOS_ASSINATURA_PERMITIDOS = [
 
 
 class AssinaturaClienteQuerySet(models.QuerySet):
-    """QuerySet customizado para AssinaturaCliente que sempre usa defer() para evitar campos removidos"""
-    
-    def _clone(self):
-        clone = super()._clone()
-        # Sempre garantir que defer() seja aplicado, mesmo em clones
-        # Verificar se defer() já foi aplicado verificando deferred_loading
-        deferred, only = clone.query.deferred_loading
-        campos_removidos = {'stripe_customer_id', 'stripe_subscription_id'}
-        if not campos_removidos.issubset(deferred):
-            # Aplicar defer() para excluir campos que não existem mais
-            clone = clone.defer('stripe_customer_id', 'stripe_subscription_id')
-        return clone
-    
-    def filter(self, *args, **kwargs):
-        # Garantir que defer() seja aplicado antes do filter
-        qs = self
-        deferred, only = qs.query.deferred_loading
-        campos_removidos = {'stripe_customer_id', 'stripe_subscription_id'}
-        if not campos_removidos.issubset(deferred):
-            qs = qs.defer('stripe_customer_id', 'stripe_subscription_id')
-        return super(AssinaturaClienteQuerySet, qs).filter(*args, **kwargs)
-    
-    def get(self, *args, **kwargs):
-        # Garantir que defer() seja aplicado antes do get
-        qs = self
-        deferred, only = qs.query.deferred_loading
-        campos_removidos = {'stripe_customer_id', 'stripe_subscription_id'}
-        if not campos_removidos.issubset(deferred):
-            qs = qs.defer('stripe_customer_id', 'stripe_subscription_id')
-        return super(AssinaturaClienteQuerySet, qs).get(*args, **kwargs)
-    
-    def first(self):
-        # Garantir que defer() seja aplicado antes do first
-        qs = self
-        deferred, only = qs.query.deferred_loading
-        campos_removidos = {'stripe_customer_id', 'stripe_subscription_id'}
-        if not campos_removidos.issubset(deferred):
-            qs = qs.defer('stripe_customer_id', 'stripe_subscription_id')
-        return super(AssinaturaClienteQuerySet, qs).first()
+    """QuerySet customizado para AssinaturaCliente"""
+    pass
 
 
 class AssinaturaClienteManager(models.Manager):
     """Manager customizado para AssinaturaCliente"""
     def get_queryset(self):
-        # CRÍTICO: Usar defer() para EXCLUIR explicitamente os campos do Stripe
-        # que não existem mais no banco, mesmo que apareçam no estado do modelo
-        # Isso garante que o Django nunca tente buscar esses campos
-        qs = AssinaturaClienteQuerySet(self.model, using=self._db)
-        # Usar defer() para excluir campos que não existem mais no banco
-        return qs.defer('stripe_customer_id', 'stripe_subscription_id')
-    
+        return AssinaturaClienteQuerySet(self.model, using=self._db)
+
     def all(self):
         return self.get_queryset()
     

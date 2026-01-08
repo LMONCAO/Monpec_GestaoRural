@@ -41,7 +41,7 @@ class PropriedadeService:
             from ..models import AssinaturaCliente, TenantUsuario
             
             # Sempre usar defer() para evitar campos do Stripe removidos
-            assinatura = AssinaturaCliente.objects.defer('stripe_customer_id', 'stripe_subscription_id').filter(usuario=user).first()
+            assinatura = AssinaturaCliente.objects.filter(usuario=user).first()
             
             if assinatura and assinatura.status == 'ATIVA':
                 usuarios_tenant = TenantUsuario.objects.filter(
@@ -90,7 +90,7 @@ class PropriedadeService:
             from ..models import AssinaturaCliente, TenantUsuario
             
             # Sempre usar defer() para evitar campos do Stripe removidos
-            assinatura = AssinaturaCliente.objects.defer('stripe_customer_id', 'stripe_subscription_id').filter(usuario=user).first()
+            assinatura = AssinaturaCliente.objects.filter(usuario=user).first()
             
             if assinatura and assinatura.status == 'ATIVA':
                 usuarios_tenant = TenantUsuario.objects.filter(

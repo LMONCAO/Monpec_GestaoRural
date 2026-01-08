@@ -41,7 +41,7 @@ class ProdutorService:
             from ..models import AssinaturaCliente, TenantUsuario
             
             # Sempre usar defer() para evitar campos do Stripe removidos
-            assinatura = AssinaturaCliente.objects.defer('stripe_customer_id', 'stripe_subscription_id').filter(usuario=user).first()
+            assinatura = AssinaturaCliente.objects.filter(usuario=user).first()
             
             if assinatura and assinatura.status == 'ATIVA':
                 # Assinante: buscar todos os usuários da mesma assinatura (equipe)
@@ -108,7 +108,7 @@ class ProdutorService:
             from ..models import AssinaturaCliente, TenantUsuario
             
             # Sempre usar defer() para evitar campos do Stripe removidos
-            assinatura = AssinaturaCliente.objects.defer('stripe_customer_id', 'stripe_subscription_id').filter(usuario=user).first()
+            assinatura = AssinaturaCliente.objects.filter(usuario=user).first()
             
             if assinatura and assinatura.status == 'ATIVA':
                 # Verificar se o produtor pertence a algum usuário da equipe
