@@ -208,7 +208,7 @@ def landing_page(request):
 
 
 def criar_usuario_demonstracao(request):
-    """Cria usuário para demonstração a partir do popup - VERSÃO SIMPLIFICADA"""
+    """Cria usu??rio para demonstra????o a partir do popup - VERS??O SIMPLIFICADA"""
     from django.contrib.auth.models import User
     from .models_auditoria import UsuarioAtivo
     from django.contrib.auth import login
@@ -220,7 +220,7 @@ def criar_usuario_demonstracao(request):
     logger.info(f'[DEMO_CADASTRO] Iniciando - IP: {request.META.get("REMOTE_ADDR")}')
     
     if request.method != 'POST':
-        return JsonResponse({'success': False, 'message': 'Método não permitido'}, status=405)
+        return JsonResponse({'success': False, 'message': 'M??todo n??o permitido'}, status=405)
     
     try:
         nome_completo = request.POST.get('nome_completo', '').strip()
@@ -229,11 +229,11 @@ def criar_usuario_demonstracao(request):
         
         logger.info(f'[DEMO_CADASTRO] Dados recebidos: nome={nome_completo[:50]}, email={email}')
         
-        # Validação
+        # Valida????o
         if not nome_completo or not email:
             return JsonResponse({
                 'success': False,
-                'message': 'Por favor, preencha todos os campos obrigatórios.'
+                'message': 'Por favor, preencha todos os campos obrigat??rios.'
             }, status=400)
         
         # Validar formato de email
@@ -244,15 +244,15 @@ def criar_usuario_demonstracao(request):
         except ValidationError:
             return JsonResponse({
                 'success': False,
-                'message': 'Por favor, informe um e-mail válido.'
+                'message': 'Por favor, informe um e-mail v??lido.'
             }, status=400)
             
-        # 1. Verificar se usuário existe (case-insensitive)
-        # Adicionar tratamento de erro para problemas de conexão com banco
+        # 1. Verificar se usu??rio existe (case-insensitive)
+        # Adicionar tratamento de erro para problemas de conex??o com banco
         try:
             user = User.objects.filter(email__iexact=email).first()
         except Exception as db_error:
-            logger.error(f'[DEMO_CADASTRO] Erro de conexão com banco de dados: {type(db_error).__name__}: {db_error}', exc_info=True)
+            logger.error(f'[DEMO_CADASTRO] Erro de conex??o com banco de dados: {type(db_error).__name__}: {db_error}', exc_info=True)
             return JsonResponse({
                 'success': False,
                 'message': 'Erro ao conectar com o banco de dados. Por favor, tente novamente em alguns instantes.'
@@ -261,19 +261,19 @@ def criar_usuario_demonstracao(request):
         usuario_existente = False
         
         if user:
-            # Usuário existe - apenas atualizar senha e ativar
-            logger.info(f'[DEMO_CADASTRO] Usuário existente encontrado: {user.username}')
-            user.set_password('monpec')  # Senha padrão para demo
+            # Usu??rio existe - apenas atualizar senha e ativar
+            logger.info(f'[DEMO_CADASTRO] Usu??rio existente encontrado: {user.username}')
+            user.set_password('monpec')  # Senha padr??o para demo
             user.is_active = True
             user.save()
             usuario_existente = True
         else:
-            # Criar novo usuário
-            logger.info(f'[DEMO_CADASTRO] Criando novo usuário...')
+            # Criar novo usu??rio
+            logger.info(f'[DEMO_CADASTRO] Criando novo usu??rio...')
             import os
             try:
                 username = email.split('@')[0]
-                # Garantir username único
+                # Garantir username ??nico
                 counter = 1
                 original_username = username
                 while User.objects.filter(username=username).exists():
@@ -289,17 +289,17 @@ def criar_usuario_demonstracao(request):
                     last_name=' '.join(nome_completo.split()[1:]) if len(nome_completo.split()) > 1 else '',
                     is_active=True,
                 )
-                logger.info(f'[DEMO_CADASTRO] Usuário criado: {user.username} (ID: {user.id})')
+                logger.info(f'[DEMO_CADASTRO] Usu??rio criado: {user.username} (ID: {user.id})')
             except Exception as db_error:
-                logger.error(f'[DEMO_CADASTRO] Erro ao criar usuário no banco: {type(db_error).__name__}: {db_error}', exc_info=True)
+                logger.error(f'[DEMO_CADASTRO] Erro ao criar usu??rio no banco: {type(db_error).__name__}: {db_error}', exc_info=True)
                 return JsonResponse({
                     'success': False,
-                    'message': 'Erro ao criar usuário. Por favor, tente novamente em alguns instantes.'
+                    'message': 'Erro ao criar usu??rio. Por favor, tente novamente em alguns instantes.'
                 }, status=503)
         
         # 2. UsuarioAtivo removido - tabela não existe no banco atual
         
-        # 3. ✅ NOVO: Criar propriedade com dados automaticamente
+        # 3. ??? NOVO: Criar propriedade com dados automaticamente
         from .views_demo_setup import _criar_dados_demo_completos
         propriedade_criada = False
         try:
@@ -316,10 +316,10 @@ def criar_usuario_demonstracao(request):
         # 4. Fazer login automático
         try:
             login(request, user)
-            logger.info(f'[DEMO_CADASTRO] Login automático realizado')
+            logger.info(f'[DEMO_CADASTRO] Login autom??tico realizado')
         except Exception as e:
             logger.error(f'[DEMO_CADASTRO] Erro no login automático: {e}')
-        
+
         # 5. Retornar sucesso - SEMPRE redirecionar para demo_loading
         mensagem = 'Demonstração criada com sucesso! Preparando ambiente...'
         demo_loading_url = reverse('demo_loading')
@@ -334,7 +334,7 @@ def criar_usuario_demonstracao(request):
         logger.error(f'[DEMO_CADASTRO] Erro inesperado: {type(e).__name__}: {e}', exc_info=True)
         return JsonResponse({
             'success': False,
-            'message': 'Erro ao criar usuário. Por favor, tente novamente ou entre em contato com o suporte.'
+            'message': 'Erro ao criar usu??rio. Por favor, tente novamente ou entre em contato com o suporte.'
         }, status=500)
 
 
