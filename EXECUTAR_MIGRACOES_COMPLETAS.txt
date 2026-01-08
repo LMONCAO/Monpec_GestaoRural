@@ -1,0 +1,55 @@
+========================================
+EXECUTAR MIGRAÇÕES COMPLETAS MANUALMENTE
+========================================
+
+Execute estes comandos no Cloud Shell, um por vez:
+
+# 1. Criar job para executar migrações
+gcloud run jobs create monpec-migrate-all \
+  --image gcr.io/monpec-sistema-rural/monpec \
+  --region us-central1 \
+  --set-env-vars="DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp" \
+  --add-cloudsql-instances=monpec-sistema-rural:us-central1:monpec-db \
+  --command="python" \
+  --args="manage.py,migrate,--noinput,--settings=sistema_rural.settings_gcp"
+
+# 2. Executar migrações (aguarde terminar)
+gcloud run jobs execute monpec-migrate-all --region us-central1 --wait
+
+# 3. Ver logs do job para confirmar
+gcloud run jobs executions logs read monpec-migrate-all --region us-central1 --limit=100
+
+# 4. Carregar categorias
+gcloud run jobs update monpec-migrate-all \
+  --args="manage.py,carregar_categorias,--settings=sistema_rural.settings_gcp"
+
+gcloud run jobs execute monpec-migrate-all --region us-central1 --wait
+
+# 5. Garantir admin
+gcloud run jobs update monpec-migrate-all \
+  --args="manage.py,garantir_admin,--settings=sistema_rural.settings_gcp"
+
+gcloud run jobs execute monpec-migrate-all --region us-central1 --wait
+
+# 6. Limpar job temporário
+gcloud run jobs delete monpec-migrate-all --region us-central1
+
+========================================
+APÓS EXECUTAR
+========================================
+
+1. Reiniciar o serviço Cloud Run:
+   gcloud run services update monpec --region us-central1
+
+2. Verificar logs:
+   gcloud run services logs read monpec --region=us-central1 --limit=50
+
+3. Testar login novamente
+
+========================================
+
+
+
+
+
+

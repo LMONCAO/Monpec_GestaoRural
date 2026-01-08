@@ -1,162 +1,173 @@
-# 📋 Instruções para Criar Admin no Cloud Shell
+# 📋 Instruções para Executar Deploy no Google Cloud Shell
 
-## ⚠️ IMPORTANTE: Você tentou executar código Python no bash!
+## ⚠️ Problema Comum
 
-O código Python precisa ser executado **dentro do Python**, não no bash.
+Se você recebeu o erro: `❌ ERRO: manage.py não encontrado!`
 
-## ✅ SOLUÇÃO CORRETA
+Isso significa que o script foi executado no diretório home (`~`) ao invés do diretório do projeto Django.
 
-### Opção 1: Executar Script Python (MAIS FÁCIL)
+## ✅ Solução
 
-1. No Cloud Shell, baixe o arquivo `criar_admin_cloud_shell.py` ou crie-o:
+### Opção 1: Se o código JÁ está no Cloud Shell
 
-```bash
-# Criar o arquivo
-cat > criar_admin_cloud_shell.py << 'EOF'
-#!/usr/bin/env python
-import os
-import sys
-import django
+1. **Navegue até o diretório do projeto:**
+   ```bash
+   # Liste os diretórios disponíveis
+   ls -la
+   
+   # Navegue até o diretório do projeto (ajuste o nome se necessário)
+   cd Monpec_GestaoRural
+   # ou
+   cd monpec-gestao-rural
+   # ou qualquer outro nome que você tenha
+   ```
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'sistema_rural.settings_gcp')
-sys.path.insert(0, '/app')
+2. **Verifique se está no lugar certo:**
+   ```bash
+   ls manage.py
+   # Se aparecer "manage.py", você está no lugar certo!
+   ```
 
-django.setup()
+3. **Execute o script novamente:**
+   ```bash
+   bash ~/DEPLOY_CORRECOES_DEMO.sh
+   ```
 
-from django.contrib.auth import get_user_model
-User = get_user_model()
+### Opção 2: Fazer Clone do Repositório Git
 
-username = 'admin'
-password = 'L6171r12@@'
-email = 'admin@monpec.com.br'
+Se o código ainda não está no Cloud Shell, faça clone:
 
-try:
-    user = User.objects.get(username=username)
-    print(f"✅ Usuário encontrado: {user.username}")
-except User.DoesNotExist:
-    user = User.objects.create_user(username=username, email=email, password=password)
-    print(f"✅ Usuário criado: {user.username}")
+1. **Clone o repositório:**
+   ```bash
+   git clone https://github.com/SEU_USUARIO/SEU_REPOSITORIO.git
+   ```
 
-user.set_password(password)
-user.is_staff = True
-user.is_superuser = True
-user.is_active = True
-user.email = email
-user.save()
+2. **Entre no diretório:**
+   ```bash
+   cd SEU_REPOSITORIO
+   ```
 
-print(f"✅ Admin configurado! Username: {username}, Password: {password}")
-EOF
-```
+3. **Faça upload do script para dentro do projeto:**
+   - Use o menu Upload do Cloud Shell
+   - Ou copie o script diretamente:
+     ```bash
+     # Se o script está na home, copie para o diretório do projeto
+     cp ~/DEPLOY_CORRECOES_DEMO.sh .
+     ```
 
-2. Execute via Cloud Run Job:
+4. **Execute o script:**
+   ```bash
+   bash DEPLOY_CORRECOES_DEMO.sh
+   ```
 
-```bash
-gcloud run jobs create monpec-admin-final \
-  --image gcr.io/monpec-sistema-rural/monpec \
-  --region us-central1 \
-  --set-env-vars "DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,DEBUG=False" \
-  --command python \
-  --args criar_admin_cloud_shell.py \
-  --max-retries 1 \
-  --task-timeout 300
+### Opção 3: Copiar o Código para o Cloud Shell
 
-gcloud run jobs execute monpec-admin-final --region us-central1 --wait
-```
+Se você tem o código localmente:
 
-### Opção 2: Usar Django Shell (INTERATIVO)
+1. **Faça upload de todos os arquivos do projeto:**
+   - Use o menu do Cloud Shell (☰) → Upload
+   - Selecione todos os arquivos do projeto
+   - Ou use um arquivo ZIP e extraia no Cloud Shell
 
-1. Execute o Django shell via Cloud Run:
+2. **Navegue até o diretório:**
+   ```bash
+   cd Monpec_GestaoRural  # ou nome do diretório
+   ```
 
-```bash
-# Criar job para shell interativo
-gcloud run jobs create monpec-shell \
-  --image gcr.io/monpec-sistema-rural/monpec \
-  --region us-central1 \
-  --set-env-vars "DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,DEBUG=False" \
-  --command python \
-  --args manage.py,shell \
-  --max-retries 1 \
-  --task-timeout 300
-```
+3. **Execute o script:**
+   ```bash
+   bash DEPLOY_CORRECOES_DEMO.sh
+   ```
 
-2. **MAS** o shell interativo não funciona bem em jobs. Melhor usar a Opção 1.
+## 🔍 Verificar se Está no Diretório Correto
 
-### Opção 3: Executar Código Python Diretamente (SEM SHELL)
-
-Execute este comando completo de uma vez:
+Execute estes comandos para verificar:
 
 ```bash
-gcloud run jobs create monpec-admin-oneline \
-  --image gcr.io/monpec-sistema-rural/monpec \
-  --region us-central1 \
-  --set-env-vars "DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,DEBUG=False" \
-  --command python \
-  --args -c,"import os,django;os.environ.setdefault('DJANGO_SETTINGS_MODULE','sistema_rural.settings_gcp');django.setup();from django.contrib.auth import get_user_model;User=get_user_model();u,created=User.objects.get_or_create(username='admin',defaults={'email':'admin@monpec.com.br'});u.set_password('L6171r12@@');u.is_staff=u.is_superuser=u.is_active=True;u.save();print('✅ Admin criado!')" \
-  --max-retries 1 \
-  --task-timeout 300
+# Ver diretório atual
+pwd
 
-gcloud run jobs execute monpec-admin-oneline --region us-central1 --wait
+# Listar arquivos
+ls -la
+
+# Verificar se manage.py existe
+ls manage.py
+
+# Verificar se Dockerfile.prod existe
+ls Dockerfile.prod
 ```
 
-## 🔍 Verificar se Funcionou
+Se todos os arquivos existirem, você está no lugar certo! ✅
 
-Depois de executar, verifique os logs:
+## 📝 Comandos Rápidos
+
+**Sequência completa (se o código já está no Cloud Shell):**
 
 ```bash
-gcloud logging read "resource.type=cloud_run_job" --limit 20 --format="table(timestamp,textPayload)" --project monpec-sistema-rural
+# 1. Ver onde você está
+pwd
+
+# 2. Listar diretórios
+ls -la
+
+# 3. Navegar até o projeto (ajuste o nome)
+cd Monpec_GestaoRural
+
+# 4. Verificar arquivos
+ls manage.py Dockerfile.prod
+
+# 5. Executar o script (se estiver na home)
+bash ~/DEPLOY_CORRECOES_DEMO.sh
+
+# OU se copiou o script para dentro do projeto:
+bash DEPLOY_CORRECOES_DEMO.sh
 ```
 
-## 📝 Credenciais
+## 🚨 Erros Comuns
 
-- **URL**: https://monpec-fzzfjppzva-uc.a.run.app
-- **Usuário**: admin
-- **Senha**: L6171r12@@
+### Erro: "manage.py não encontrado"
+- **Causa:** Script executado no diretório errado
+- **Solução:** Navegue até o diretório do projeto Django
 
-## ⚠️ O QUE NÃO FAZER
+### Erro: "Dockerfile.prod não encontrado"
+- **Causa:** Arquivos do projeto incompletos
+- **Solução:** Certifique-se de fazer upload/copy de todos os arquivos
 
-❌ **NÃO** execute código Python diretamente no bash (como você fez)
-❌ **NÃO** cole código Python no terminal bash
-✅ **SIM** execute scripts Python com `python script.py`
-✅ **SIM** use Cloud Run Jobs para executar código Python
+### Erro: "Permission denied"
+- **Causa:** Script não tem permissão de execução
+- **Solução:** `chmod +x DEPLOY_CORRECOES_DEMO.sh`
 
+## ✅ Checklist Antes de Executar
 
+Antes de executar o script, certifique-se de:
 
+- [ ] Você está no diretório raiz do projeto Django
+- [ ] O arquivo `manage.py` existe
+- [ ] O arquivo `Dockerfile.prod` existe
+- [ ] O arquivo `DEPLOY_CORRECOES_DEMO.sh` está disponível
+- [ ] Você está autenticado no Google Cloud (`gcloud auth list`)
 
+## 🎯 Próximos Passos
 
+Depois que o script executar com sucesso:
 
+1. Aguarde o build completar (15-25 minutos)
+2. Aguarde o deploy completar (3-10 minutos)
+3. Aguarde 1-2 minutos para o serviço inicializar
+4. Teste o login com usuário demo
+5. Verifique que o sistema reconhece corretamente como usuário demo
 
+---
 
+**Dica:** Se você sempre trabalha com o mesmo projeto, pode criar um alias no Cloud Shell:
 
+```bash
+# Adicionar ao ~/.bashrc
+echo "alias cdmonpec='cd ~/Monpec_GestaoRural'" >> ~/.bashrc
+source ~/.bashrc
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# Depois basta usar:
+cdmonpec
+```
 
 

@@ -1,0 +1,256 @@
+========================================
+GUIA COMPLETO: DEPLOY PRESERVANDO DADOS EXISTENTES
+========================================
+
+✅ SIM, O SISTEMA PODE FAZER DEPLOY PRESERVANDO TODOS OS DADOS!
+
+Todos os dados cadastrados (usuários, fazendas, propriedades, etc.) 
+serão preservados durante o deploy se você seguir este guia.
+
+========================================
+COMO FUNCIONA O DEPLOY COM DADOS EXISTENTES
+========================================
+
+1. O DEPLOY NÃO APAGA OS DADOS
+   - O deploy apenas atualiza o código da aplicação
+   - O banco de dados PostgreSQL permanece intacto
+   - As migrações do Django são executadas automaticamente
+   - As migrações PRESERVAM os dados existentes
+
+2. O QUE ACONTECE DURANTE O DEPLOY:
+   ✅ Código atualizado
+   ✅ Migrações executadas (preservam dados)
+   ✅ Arquivos estáticos coletados
+   ✅ Servidor reiniciado
+   ❌ DADOS NÃO SÃO APAGADOS
+
+========================================
+IMPORTANTE: FAZER BACKUP ANTES DO DEPLOY
+========================================
+
+Mesmo que o deploy preserve os dados, SEMPRE faça backup antes!
+
+========================================
+OPÇÃO 1: BACKUP MANUAL (PostgreSQL)
+========================================
+
+1. Fazer backup do banco de dados ANTES do deploy:
+
+   # No servidor de produção (Locaweb)
+   pg_dump -h localhost -U monpec -d sistema_rural > backup_antes_deploy_$(date +%Y%m%d_%H%M%S).sql
+   
+   # Ou com senha
+   PGPASSWORD=L6171r12@@jjms pg_dump -h localhost -U monpec -d sistema_rural > backup_antes_deploy_$(date +%Y%m%d_%H%M%S).sql
+
+2. Salvar o backup em local seguro:
+   - Copiar para seu computador
+   - Ou salvar em diretório de backups no servidor
+
+3. Verificar tamanho do backup:
+   ls -lh backup_antes_deploy_*.sql
+
+========================================
+OPÇÃO 2: BACKUP AUTOMÁTICO (Script)
+========================================
+
+Execute o script de backup antes do deploy:
+
+# Linux (servidor Locaweb)
+bash scripts/emergencia/backup_antes_deploy.sh
+
+# Ou usar comando Django
+python manage.py backup_completo --settings=sistema_rural.settings_producao
+
+========================================
+PROCESSO DE DEPLOY PRESERVANDO DADOS
+========================================
+
+PASSO 1: FAZER BACKUP
+----------------------
+Execute um dos métodos acima para fazer backup do banco.
+
+PASSO 2: VERIFICAR MIGRAÇÕES
+----------------------------
+Antes do deploy, verifique quais migrações serão executadas:
+
+python manage.py showmigrations --settings=sistema_rural.settings_producao
+
+Se houver migrações pendentes, elas serão executadas automaticamente
+durante o deploy e PRESERVARÃO os dados existentes.
+
+PASSO 3: FAZER O DEPLOY
+------------------------
+Para Google Cloud:
+- O entrypoint.sh já executa migrações automaticamente
+- Os dados são preservados durante as migrações
+
+Para Locaweb (produção local):
+- Atualizar código
+- Executar: python manage.py migrate --settings=sistema_rural.settings_producao
+- Executar: python manage.py collectstatic --settings=sistema_rural.settings_producao
+- Reiniciar servidor
+
+PASSO 4: VERIFICAR DADOS APÓS DEPLOY
+-------------------------------------
+1. Acessar o sistema
+2. Verificar se usuários ainda existem
+3. Verificar se fazendas/propriedades ainda existem
+4. Verificar se dados estão corretos
+
+========================================
+COMO AS MIGRAÇÕES PRESERVAM DADOS
+========================================
+
+As migrações do Django são projetadas para preservar dados:
+
+✅ Adicionar colunas: Dados existentes mantidos
+✅ Adicionar tabelas: Dados existentes não afetados
+✅ Modificar campos: Dados convertidos automaticamente
+✅ Renomear campos: Dados migrados automaticamente
+
+⚠️ ATENÇÃO: Algumas migrações podem requerer atenção:
+   - Remover colunas (dados são perdidos - raro)
+   - Alterar tipos de dados incompatíveis (conversão automática)
+   - Renomear tabelas (dados migrados)
+
+========================================
+RESTAURAR BACKUP SE ALGO DER ERRADO
+========================================
+
+Se algo der errado durante o deploy, você pode restaurar o backup:
+
+# Restaurar backup do PostgreSQL
+psql -h localhost -U monpec -d sistema_rural < backup_antes_deploy_YYYYMMDD_HHMMSS.sql
+
+# Ou com senha
+PGPASSWORD=L6171r12@@jjms psql -h localhost -U monpec -d sistema_rural < backup_antes_deploy_YYYYMMDD_HHMMSS.sql
+
+========================================
+CHECKLIST ANTES DO DEPLOY
+========================================
+
+[ ] Backup do banco de dados feito
+[ ] Backup salvo em local seguro
+[ ] Verificadas migrações pendentes (showmigrations)
+[ ] Testado em ambiente de desenvolvimento primeiro
+[ ] Plano de rollback preparado (backup pronto)
+[ ] Horário de menor uso escolhido (se possível)
+
+========================================
+DEPLOY PARA GOOGLE CLOUD
+========================================
+
+1. BACKUP DO BANCO ATUAL (se já tem dados):
+   
+   # Conectar ao banco atual e fazer backup
+   pg_dump -h [HOST_ATUAL] -U [USER] -d [DB_NAME] > backup_antes_migracao_gcp.sql
+
+2. TRANSFERIR DADOS PARA GOOGLE CLOUD:
+   
+   # Usar o script enviar_dados.bat (Windows) ou adaptar para Linux
+   # Este script faz pg_dump do banco local e restaura no Cloud SQL
+   
+   scripts/enviar_dados.bat
+
+3. FAZER DEPLOY:
+   
+   # O entrypoint.sh já executa migrações automaticamente
+   # Os dados serão preservados durante as migrações
+   
+   gcloud run deploy monpec --source .
+
+4. VERIFICAR DADOS:
+   
+   # Acessar o sistema no Google Cloud
+   # Verificar se todos os dados foram migrados corretamente
+
+========================================
+DEPLOY PARA LOCAWEB (PRODUÇÃO ATUAL)
+========================================
+
+1. BACKUP:
+   
+   PGPASSWORD=L6171r12@@jjms pg_dump -h localhost -U monpec -d sistema_rural > backup_antes_deploy_$(date +%Y%m%d_%H%M%S).sql
+
+2. ATUALIZAR CÓDIGO:
+   
+   # Fazer pull do código atualizado ou copiar arquivos
+
+3. EXECUTAR MIGRAÇÕES:
+   
+   python manage.py migrate --settings=sistema_rural.settings_producao
+
+4. COLETAR ARQUIVOS ESTÁTICOS:
+   
+   python manage.py collectstatic --noinput --settings=sistema_rural.settings_producao
+
+5. REINICIAR SERVIDOR:
+   
+   # Reiniciar Gunicorn ou serviço systemd
+
+6. VERIFICAR:
+   
+   # Acessar sistema e verificar se dados estão intactos
+
+========================================
+PERGUNTAS FREQUENTES
+========================================
+
+Q: Os dados serão perdidos durante o deploy?
+A: NÃO. O deploy apenas atualiza o código. O banco de dados permanece intacto.
+
+Q: E se houver migrações?
+A: As migrações do Django preservam os dados existentes automaticamente.
+
+Q: Preciso fazer backup mesmo assim?
+A: SIM! Sempre faça backup antes de qualquer deploy, por segurança.
+
+Q: Como restaurar se algo der errado?
+A: Use o backup criado antes do deploy para restaurar o banco.
+
+Q: Posso fazer deploy durante horário de uso?
+A: Sim, mas é recomendado fazer em horário de menor uso para evitar
+   interrupções. O deploy é rápido e não afeta os dados.
+
+Q: E se eu quiser migrar para outro servidor?
+A: Use pg_dump para fazer backup completo e pg_restore no novo servidor.
+   Todos os dados serão transferidos.
+
+========================================
+COMANDOS ÚTEIS
+========================================
+
+# Ver migrações pendentes
+python manage.py showmigrations --settings=sistema_rural.settings_producao
+
+# Executar migrações (preserva dados)
+python manage.py migrate --settings=sistema_rural.settings_producao
+
+# Fazer backup completo
+pg_dump -h localhost -U monpec -d sistema_rural > backup.sql
+
+# Verificar tamanho do banco
+psql -h localhost -U monpec -d sistema_rural -c "\l+ sistema_rural"
+
+# Contar registros em tabelas importantes
+psql -h localhost -U monpec -d sistema_rural -c "SELECT COUNT(*) FROM auth_user;"
+psql -h localhost -U monpec -d sistema_rural -c "SELECT COUNT(*) FROM gestao_rural_propriedade;"
+
+========================================
+CONCLUSÃO
+========================================
+
+✅ SIM, você pode fazer deploy preservando todos os dados!
+✅ O deploy não apaga dados existentes
+✅ As migrações preservam dados automaticamente
+✅ SEMPRE faça backup antes do deploy (por segurança)
+✅ Se algo der errado, restaure o backup
+
+========================================
+
+
+
+
+
+
+

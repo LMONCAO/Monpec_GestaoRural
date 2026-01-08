@@ -28,8 +28,14 @@ def _is_usuario_demo(user):
     Retorna True se:
     - username está em ['demo', 'demo_monpec']
     - ou tem registro UsuarioAtivo (criado pelo botão demonstração)
+    
+    IMPORTANTE: Superusuários e staff NUNCA são considerados demo.
     """
     if not user or not user.is_authenticated:
+        return False
+    
+    # IMPORTANTE: Superusuários e staff nunca são demo
+    if user.is_superuser or user.is_staff:
         return False
     
     # Verificar se é usuário demo padrão

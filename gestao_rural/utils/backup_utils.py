@@ -94,20 +94,8 @@ def validar_integridade_backup(arquivo: Path, checksum_esperado: Optional[str] =
             resultado['erros'].append(f'Erro ao validar ZIP: {e}')
             return resultado
     
-    # Validar SQLite se for banco
-    if arquivo.suffix == '.sqlite3':
-        import sqlite3
-        try:
-            conn = sqlite3.connect(str(arquivo))
-            # Tentar executar query simples
-            conn.execute('SELECT 1')
-            conn.close()
-        except sqlite3.DatabaseError as e:
-            resultado['erros'].append(f'Banco SQLite corrompido: {e}')
-            return resultado
-        except Exception as e:
-            resultado['erros'].append(f'Erro ao validar SQLite: {e}')
-            return resultado
+    # Validação de arquivos de banco removida - sistema usa apenas PostgreSQL
+    # Arquivos .sqlite3 não são mais suportados
     
     resultado['valido'] = True
     return resultado

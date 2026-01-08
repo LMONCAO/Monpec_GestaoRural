@@ -16,7 +16,7 @@ class CheckoutSessionResult:
     """Resultado da criação de uma sessão de checkout."""
     session_id: str
     url: str
-    gateway: str  # Nome do gateway usado (ex: 'stripe', 'mercadopago', 'asaas')
+    gateway: str  # Nome do gateway usado (ex: 'mercadopago', 'asaas', 'gerencianet')
 
 
 class PaymentGateway(ABC):

@@ -254,13 +254,13 @@ class LancamentoFinanceiroQuerySet(models.QuerySet):
     """Consultas utilitárias para lançamentos financeiros."""
 
     def receitas(self):
-        return self.filter(tipo=CategoriaFinanceira.TIPO_RECEITA)
+        return self.filter(categoria__tipo=CategoriaFinanceira.TIPO_RECEITA)
 
     def despesas(self):
-        return self.filter(tipo=CategoriaFinanceira.TIPO_DESPESA)
+        return self.filter(categoria__tipo=CategoriaFinanceira.TIPO_DESPESA)
 
     def transferencias(self):
-        return self.filter(tipo=CategoriaFinanceira.TIPO_TRANSFERENCIA)
+        return self.filter(categoria__tipo=CategoriaFinanceira.TIPO_TRANSFERENCIA)
 
     def pendentes(self):
         return self.filter(status=LancamentoFinanceiro.STATUS_PENDENTE)

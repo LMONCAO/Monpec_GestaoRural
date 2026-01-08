@@ -1,0 +1,38 @@
+🔧 LOG DE AUDITORIA TEMPORARIAMENTE DESABILITADO!
+
+✅ IDENTIFICADO POSSÍVEL CAUSA DO ERRO 500:
+A função `registrar_log_auditoria()` do módulo `security_avancado` pode estar causando o erro 500 na view de checkout.
+
+📋 MODIFICAÇÃO APLICADA:
+No arquivo `gestao_rural/views_assinaturas.py`, linhas 168-182:
+```python
+# ANTES:
+try:
+    from .security_avancado import registrar_log_auditoria
+    registrar_log_auditoria(...)
+except (ImportError, Exception):
+    pass
+
+# DEPOIS (TEMPORARIO):
+# try:
+#     from .security_avancado import registrar_log_auditoria
+#     registrar_log_auditoria(...)
+# except (ImportError, Exception):
+#     pass
+pass
+```
+
+🎯 PROPÓSITO:
+- Isolar se o problema está na função de auditoria
+- Se o checkout funcionar agora, confirmamos que era o log de auditoria
+- Posteriormente reabilitaremos com correção
+
+🚀 TESTE AGORA:
+Servidor reiniciado - teste o checkout novamente!
+
+**Se funcionar:** Problema era no log de auditoria
+**Se não funcionar:** Problema está em outra parte do código
+
+**Servidor pronto para teste!** 🔍
+
+

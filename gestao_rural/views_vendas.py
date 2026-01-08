@@ -34,34 +34,54 @@ from .forms_vendas import VendaForm, ItemVendaForm, ConfigurarSerieNFeForm, Para
 def vendas_dashboard(request, propriedade_id):
     """Dashboard do módulo de vendas"""
     propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
-    
+
     # Estatísticas gerais
     hoje = date.today()
     mes_atual = date(hoje.year, hoje.month, 1)
-    
-    notas_vendas = NotaFiscal.objects.filter(
-        propriedade=propriedade,
-        tipo='SAIDA'
-    )
-    
-    # Valores
-    valor_total_vendas = notas_vendas.filter(status='AUTORIZADA').aggregate(
-        total=Sum('valor_total')
-    )['total'] or Decimal('0.00')
-    
-    valor_vendas_mes = notas_vendas.filter(
-        status='AUTORIZADA',
-        data_emissao__gte=mes_atual
-    ).aggregate(total=Sum('valor_total'))['total'] or Decimal('0.00')
-    
-    # Contagens
-    total_notas = notas_vendas.count()
-    notas_autorizadas = notas_vendas.filter(status='AUTORIZADA').count()
-    notas_pendentes = notas_vendas.filter(status='PENDENTE').count()
-    notas_canceladas = notas_vendas.filter(status='CANCELADA').count()
-    
-    # Notas recentes
-    notas_recentes = notas_vendas.select_related('cliente').order_by('-data_emissao')[:10]
+
+    try:
+        notas_vendas = NotaFiscal.objects.filter(
+            propriedade=propriedade,
+            tipo='SAIDA'
+        )
+    except Exception as e:
+        print(f'Erro ao buscar notas fiscais de vendas: {e}')
+        notas_vendas = NotaFiscal.objects.none()
+
+    # Valores com tratamento de erro
+    try:
+        valor_total_vendas = notas_vendas.filter(status='AUTORIZADA').aggregate(
+            total=Sum('valor_total')
+        )['total'] or Decimal('0.00')
+    except Exception as e:
+        print(f'Erro ao calcular valor total vendas: {e}')
+        valor_total_vendas = Decimal('0.00')
+
+    try:
+        valor_vendas_mes = notas_vendas.filter(
+            status='AUTORIZADA',
+            data_emissao__gte=mes_atual
+        ).aggregate(total=Sum('valor_total'))['total'] or Decimal('0.00')
+    except Exception as e:
+        print(f'Erro ao calcular valor vendas mês: {e}')
+        valor_vendas_mes = Decimal('0.00')
+
+    # Contagens com tratamento de erro
+    try:
+        total_notas = notas_vendas.count()
+        notas_autorizadas = notas_vendas.filter(status='AUTORIZADA').count()
+        notas_pendentes = notas_vendas.filter(status='PENDENTE').count()
+        notas_canceladas = notas_vendas.filter(status='CANCELADA').count()
+    except Exception as e:
+        print(f'Erro ao contar notas: {e}')
+        total_notas = notas_autorizadas = notas_pendentes = notas_canceladas = 0
+
+    # Notas recentes com tratamento de erro
+    try:
+        notas_recentes = notas_vendas.select_related('cliente').order_by('-data_emissao')[:10]
+    except Exception as e:
+        print(f'Erro ao buscar notas recentes: {e}')
+        notas_recentes = []
     
     context = {
         'propriedade': propriedade,
@@ -192,6 +212,9 @@ def vendas_nota_fiscal_emitir(request, propriedade_id):
             # Emitir NF-e
             try:
                 from .services_nfe import emitir_nfe
+                from .security_avancado import registrar_log_auditoria, obter_ip_address
+                from .models_auditoria import LogAuditoria
+                
                 resultado = emitir_nfe(nota)
                 
                 if resultado and resultado.get('sucesso'):
@@ -203,6 +226,27 @@ def vendas_nota_fiscal_emitir(request, propriedade_id):
                         from django.core.files.base import ContentFile
                         nota.arquivo_xml.save(f'nfe_{nota.numero}.xml', ContentFile(resultado['xml']), save=False)
                     nota.save()
+                    
+                    # Registrar log de auditoria
+                    registrar_log_auditoria(
+                        tipo_acao=LogAuditoria.TipoAcao.EMITIR_NFE,
+                        descricao=f'NF-e {nota.numero}/{nota.serie} emitida com sucesso. Chave: {nota.chave_acesso}',
+                        usuario=request.user,
+                        ip_address=obter_ip_address(request),
+                        user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                        nivel_severidade=LogAuditoria.NivelSeveridade.ALTO,
+                        sucesso=True,
+                        metadata={
+                            'nota_fiscal_id': nota.id,
+                            'numero': nota.numero,
+                            'serie': nota.serie,
+                            'chave_acesso': nota.chave_acesso,
+                            'protocolo': nota.protocolo_autorizacao,
+                            'propriedade_id': propriedade.id,
+                            'cliente_id': nota.cliente.id if nota.cliente else None,
+                            'valor_total': str(nota.valor_total),
+                        }
+                    )
                     
                     # Criar lançamento financeiro se forma de recebimento foi informada
                     forma_recebimento = form.cleaned_data.get('forma_recebimento')
@@ -486,6 +530,15 @@ def vendas_nota_fiscal_cancelar(request, propriedade_id, nota_id):
         
         try:
             from .services_nfe import cancelar_nfe
+            from requests.exceptions import RequestException, Timeout, ConnectionError
+            from .security_avancado import registrar_log_auditoria, obter_ip_address
+            from .models_auditoria import LogAuditoria
+            
+            # Validar se nota tem chave de acesso
+            if not nota.chave_acesso:
+                messages.error(request, 'NF-e não possui chave de acesso. Não é possível cancelar.')
+                return redirect('vendas_nota_fiscal_detalhes', propriedade_id=propriedade.id, nota_id=nota.id)
+            
             resultado = cancelar_nfe(nota, justificativa)
             
             if resultado and resultado.get('sucesso'):
@@ -494,12 +547,60 @@ def vendas_nota_fiscal_cancelar(request, propriedade_id, nota_id):
                 nota.justificativa_cancelamento = justificativa
                 nota.save()
                 messages.success(request, 'NF-e cancelada com sucesso!')
+                
+                # Registrar log de auditoria
+                registrar_log_auditoria(
+                    tipo_acao=LogAuditoria.TipoAcao.CANCELAR_NFE,
+                    descricao=f'NF-e {nota.numero}/{nota.serie} cancelada. Chave: {nota.chave_acesso}',
+                    usuario=request.user,
+                    ip_address=obter_ip_address(request),
+                    user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                    nivel_severidade=LogAuditoria.NivelSeveridade.CRITICO,
+                    sucesso=True,
+                    metadata={
+                        'nota_fiscal_id': nota.id,
+                        'numero': nota.numero,
+                        'serie': nota.serie,
+                        'chave_acesso': nota.chave_acesso,
+                        'justificativa': justificativa[:100],  # Limitar tamanho
+                        'propriedade_id': propriedade.id,
+                    }
+                )
             else:
                 erro_msg = resultado.get("erro", "Erro desconhecido") if resultado else "Resposta inválida da API"
                 messages.error(request, f'Erro ao cancelar NF-e: {erro_msg}')
+                
+                # Registrar log de auditoria para falha
+                registrar_log_auditoria(
+                    tipo_acao=LogAuditoria.TipoAcao.CANCELAR_NFE,
+                    descricao=f'Falha ao cancelar NF-e {nota.numero}/{nota.serie}',
+                    usuario=request.user,
+                    ip_address=obter_ip_address(request),
+                    user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                    nivel_severidade=LogAuditoria.NivelSeveridade.ALTO,
+                    sucesso=False,
+                    erro=erro_msg,
+                    metadata={
+                        'nota_fiscal_id': nota.id,
+                        'numero': nota.numero,
+                        'serie': nota.serie,
+                        'chave_acesso': nota.chave_acesso,
+                        'propriedade_id': propriedade.id,
+                    }
+                )
+                
+        except (Timeout, ConnectionError) as e:
+            logger.error(f'Erro de conexão ao cancelar NF-e: {str(e)}', exc_info=True)
+            messages.error(request, 'Erro de conexão com a API. Verifique sua conexão com a internet e tente novamente.')
+        except RequestException as e:
+            logger.error(f'Erro na requisição ao cancelar NF-e: {str(e)}', exc_info=True)
+            messages.error(request, f'Erro na comunicação com a API de NF-e: {str(e)}')
+        except ValueError as e:
+            logger.error(f'Erro de validação ao cancelar NF-e: {str(e)}', exc_info=True)
+            messages.error(request, f'Erro de validação: {str(e)}')
         except Exception as e:
-            logger.error(f'Erro ao cancelar NF-e: {str(e)}', exc_info=True)
-            messages.error(request, f'Erro ao cancelar NF-e: {str(e)}')
+            logger.error(f'Erro inesperado ao cancelar NF-e: {str(e)}', exc_info=True)
+            messages.error(request, f'Erro inesperado ao cancelar NF-e. Entre em contato com o suporte se o problema persistir.')
         
         return redirect('vendas_nota_fiscal_detalhes', propriedade_id=propriedade.id, nota_id=nota.id)
     
@@ -526,6 +627,9 @@ def vendas_nota_fiscal_consultar_status(request, propriedade_id, nota_id):
     
     try:
         from .services_nfe import consultar_status_nfe
+        from .security_avancado import registrar_log_auditoria, obter_ip_address
+        from .models_auditoria import LogAuditoria
+        
         resultado = consultar_status_nfe(nota)
         
         if resultado and resultado.get('sucesso'):
@@ -534,6 +638,25 @@ def vendas_nota_fiscal_consultar_status(request, propriedade_id, nota_id):
             if novo_status and novo_status != nota.status:
                 nota.status = novo_status
                 nota.save(update_fields=['status'])
+            
+            # Registrar log de auditoria
+            registrar_log_auditoria(
+                tipo_acao=LogAuditoria.TipoAcao.CONSULTAR_STATUS_NFE,
+                descricao=f'Consulta de status da NF-e {nota.numero}/{nota.serie}. Status: {nota.status}',
+                usuario=request.user,
+                ip_address=obter_ip_address(request),
+                user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                nivel_severidade=LogAuditoria.NivelSeveridade.MEDIO,
+                sucesso=True,
+                metadata={
+                    'nota_fiscal_id': nota.id,
+                    'numero': nota.numero,
+                    'serie': nota.serie,
+                    'chave_acesso': nota.chave_acesso,
+                    'status': nota.status,
+                    'propriedade_id': propriedade.id,
+                }
+            )
             
             return JsonResponse({
                 'sucesso': True,
@@ -555,7 +678,22 @@ def vendas_nota_fiscal_consultar_status(request, propriedade_id, nota_id):
 
 @login_required
 def vendas_nota_fiscal_autorizar_teste(request, propriedade_id, nota_id):
-    """Atualizar status de NF-e para AUTORIZADA (temporário para testes)"""
+    """
+    Atualizar status de NF-e para AUTORIZADA (temporário para testes)
+    
+    ⚠️ ATENÇÃO: Esta função só está disponível em ambiente de desenvolvimento (DEBUG=True).
+    Em produção, esta função é bloqueada para evitar problemas fiscais.
+    """
+    from django.conf import settings
+    from django.core.exceptions import PermissionDenied
+    
+    # Bloquear em produção
+    if not settings.DEBUG:
+        raise PermissionDenied(
+            "Esta função só está disponível em ambiente de desenvolvimento. "
+            "Em produção, use a emissão real através da SEFAZ ou APIs autorizadas."
+        )
+    
     propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
     nota = get_object_or_404(NotaFiscal, id=nota_id, propriedade=propriedade, tipo='SAIDA')
     

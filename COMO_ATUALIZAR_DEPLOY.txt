@@ -1,0 +1,89 @@
+========================================
+COMO ATUALIZAR O DEPLOY COM OS DADOS INICIAIS
+========================================
+
+PROBLEMA IDENTIFICADO:
+- O sistema foi deployado mas os dados iniciais (categorias e admin) não foram carregados
+- O arquivo entrypoint.sh foi corrigido para carregar os dados automaticamente
+
+SOLUÇÃO:
+Você precisa fazer um NOVO DEPLOY para que as mudanças sejam aplicadas.
+
+========================================
+OPÇÃO 1: DEPLOY DIRETO (MAIS SIMPLES)
+========================================
+
+Execute este comando no PowerShell ou CMD (na pasta do projeto):
+
+gcloud run deploy monpec --source . --region us-central1 --platform managed --allow-unauthenticated
+
+O comando vai:
+1. Fazer build da aplicação (incluindo o entrypoint.sh atualizado)
+2. Fazer deploy no Cloud Run
+3. Quando o container iniciar, vai executar automaticamente:
+   - Migrações
+   - Carregar categorias de animais
+   - Criar usuário admin
+
+========================================
+OPÇÃO 2: SE VOCÊ USA GIT
+========================================
+
+1. Adicionar os arquivos modificados:
+   git add entrypoint.sh
+   git add gestao_rural/management/commands/carregar_categorias.py
+
+2. Fazer commit:
+   git commit -m "Adicionar carregamento automático de dados iniciais no deploy"
+
+3. Fazer push (se usar repositório remoto):
+   git push
+
+4. Fazer deploy:
+   gcloud run deploy monpec --source . --region us-central1 --platform managed --allow-unauthenticated
+
+========================================
+VERIFICAR SE FUNCIONOU
+========================================
+
+Após o deploy, verifique os logs:
+
+gcloud run services logs read monpec --region=us-central1 --limit=100
+
+Procure por estas mensagens:
+✅ "📦 Carregando dados iniciais..."
+✅ "✅ Categorias carregadas com sucesso!"
+✅ "👤 Garantindo usuário admin..."
+✅ "✅ Usuário admin criado/encontrado"
+
+========================================
+TESTAR O SISTEMA
+========================================
+
+1. Acesse: https://monpec-29862706245.us-central1.run.app
+
+2. Faça login com:
+   Username: admin
+   Senha: L6171r12@@
+
+3. Verifique se as categorias de animais aparecem no sistema
+
+========================================
+SE PRECISAR CARREGAR DADOS MANUALMENTE
+========================================
+
+Se o deploy automático não funcionar, você pode carregar os dados manualmente
+usando Cloud Run Jobs ou conectando diretamente ao banco.
+
+Comandos para executar manualmente:
+python manage.py carregar_categorias --settings=sistema_rural.settings_gcp
+python manage.py garantir_admin --settings=sistema_rural.settings_gcp
+
+========================================
+
+
+
+
+
+
+

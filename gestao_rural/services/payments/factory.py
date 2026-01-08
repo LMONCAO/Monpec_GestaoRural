@@ -26,8 +26,8 @@ class PaymentGatewayFactory:
         Parameters
         ----------
         nome:
-            Nome do gateway ('stripe', 'mercadopago', 'asaas', etc.).
-            Se None, usa o gateway padrão das configurações.
+            Nome do gateway ('mercadopago', 'asaas', 'gerencianet', etc.).
+            Se None, usa o gateway padrão das configurações (mercadopago).
         
         Returns
         -------

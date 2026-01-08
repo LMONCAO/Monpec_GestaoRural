@@ -1,0 +1,95 @@
+========================================
+📥 COMO CLONAR O REPOSITÓRIO NO CLOUD SHELL
+========================================
+
+Repositório: https://github.com/LMONCAO/Monpec_GestaoRural.git
+
+========================================
+COMANDOS PARA EXECUTAR NO CLOUD SHELL:
+========================================
+
+1. Navegar para o diretório home:
+   cd ~
+
+2. Clonar o repositório:
+   git clone https://github.com/LMONCAO/Monpec_GestaoRural.git
+
+3. Entrar no diretório:
+   cd Monpec_GestaoRural
+
+4. Verificar se arquivos importantes existem:
+   ls -la Dockerfile
+   ls -la entrypoint.sh
+   ls -la requirements_producao.txt
+   ls -la manage.py
+
+5. Tornar entrypoint.sh executável:
+   chmod +x entrypoint.sh
+
+========================================
+TUDO EM UM COMANDO:
+========================================
+
+cd ~ && \
+git clone https://github.com/LMONCAO/Monpec_GestaoRural.git && \
+cd Monpec_GestaoRural && \
+chmod +x entrypoint.sh && \
+ls -la Dockerfile entrypoint.sh requirements_producao.txt manage.py
+
+========================================
+SE O REPOSITÓRIO JÁ EXISTIR:
+========================================
+
+Se você já clonou antes e quer atualizar:
+
+cd ~/Monpec_GestaoRural
+git pull origin master
+
+OU se quiser clonar novamente (sobrescrever):
+
+cd ~
+rm -rf Monpec_GestaoRural
+git clone https://github.com/LMONCAO/Monpec_GestaoRural.git
+cd Monpec_GestaoRural
+chmod +x entrypoint.sh
+
+========================================
+VERIFICAR SE ESTÁ TUDO OK:
+========================================
+
+Após clonar, verificar arquivos essenciais:
+
+ls -la Dockerfile          # Deve existir
+ls -la entrypoint.sh       # Deve existir e ser executável
+ls -la requirements_producao.txt  # Deve existir
+ls -la manage.py           # Deve existir
+ls -la sistema_rural/      # Deve existir diretório
+
+========================================
+PRÓXIMO PASSO APÓS CLONAR:
+========================================
+
+Depois de clonar, fazer deploy:
+
+gcloud run deploy monpec \
+    --source . \
+    --platform managed \
+    --region us-central1 \
+    --allow-unauthenticated \
+    --port 8080 \
+    --memory 4Gi \
+    --cpu 2 \
+    --timeout 900 \
+    --add-cloudsql-instances=monpec-sistema-rural:us-central1:monpec-db \
+    --set-env-vars="CLOUD_SQL_CONNECTION_NAME=monpec-sistema-rural:us-central1:monpec-db,DB_NAME=sistema_rural,DB_USER=postgres,DB_PASSWORD=L6171r12@@jjms,SECRET_KEY=rfzjy1t\$\$d_cmjb2n-wda0oi+)p!(_4!4\$na-n-1a60\$2gyspo,DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,DEBUG=False" \
+    --max-instances=10 \
+    --min-instances=0
+
+========================================
+
+
+
+
+
+
+

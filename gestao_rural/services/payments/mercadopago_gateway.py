@@ -32,19 +32,27 @@ class MercadoPagoGateway(PaymentGateway):
         
         # Tentar ler de múltiplas formas
         access_token = getattr(settings, 'MERCADOPAGO_ACCESS_TOKEN', '')
-        
+
         # Se não encontrou, tentar via decouple diretamente
         if not access_token:
-            from decouple import config
-            access_token = config('MERCADOPAGO_ACCESS_TOKEN', default='')
-            logger.info(f"Token lido via decouple: {'✅ Encontrado' if access_token else '❌ Não encontrado'}")
-        
+            try:
+                from decouple import config
+                access_token = config('MERCADOPAGO_ACCESS_TOKEN', default='')
+                logger.info(f"Token lido via decouple: {'✅ Encontrado' if access_token else '❌ Não encontrado'}")
+            except Exception as e:
+                logger.warning(f"Erro ao ler via decouple: {e}. Tentando outras formas...")
+
+        # Se ainda não encontrou, tentar variável de ambiente diretamente
         if not access_token:
-            logger.error("MERCADOPAGO_ACCESS_TOKEN não encontrado em settings nem via decouple")
+            import os
+            access_token = os.getenv('MERCADOPAGO_ACCESS_TOKEN', '')
+            logger.info(f"Token lido via os.getenv: {'✅ Encontrado' if access_token else '❌ Não encontrado'}")
+
+        if not access_token:
+            logger.error("MERCADOPAGO_ACCESS_TOKEN não encontrado em settings, decouple nem variável de ambiente")
             raise RuntimeError(
                 "MERCADOPAGO_ACCESS_TOKEN não configurado. "
-                "Defina a variável de ambiente antes de usar a integração. "
-                "Verifique se o arquivo .env está na raiz do projeto e reinicie o servidor."
+                "Configure a variável de ambiente MERCADOPAGO_ACCESS_TOKEN ou adicione ao arquivo .env na raiz do projeto."
             )
         
         logger.info(f"Token configurado: {access_token[:20]}...")
@@ -68,6 +76,11 @@ class MercadoPagoGateway(PaymentGateway):
         # Usar preço do plano ou padrão de R$ 99,90
         preco = float(plano.preco_mensal_referencia or 99.90)
         
+        # Obter dados do usuário para o pagamento
+        usuario = assinatura.usuario
+        nome_cliente = usuario.get_full_name() or usuario.username or "Cliente"
+        email_cliente = usuario.email or ""
+        
         # Criar preferência de pagamento simples (checkout direto)
         # Não usar Preapproval por enquanto - apenas pagamento único
         preference_data = {
@@ -85,6 +98,11 @@ class MercadoPagoGateway(PaymentGateway):
                 "failure": cancel_url,
                 "pending": success_url,  # Para PIX e boleto
             },
+            # Informações do pagador (payer)
+            "payer": {
+                "name": nome_cliente,
+                "email": email_cliente,
+            },
             # Remover auto_return se causar problemas - o Mercado Pago redireciona automaticamente
             "payment_methods": {
                 "excluded_payment_types": [],
@@ -98,6 +116,8 @@ class MercadoPagoGateway(PaymentGateway):
                 "assinatura_id": str(assinatura.id),
                 "usuario_id": str(assinatura.usuario_id),
                 "plano_slug": plano.slug,
+                "nome_cliente": nome_cliente,
+                "email_cliente": email_cliente,
             },
         }
         

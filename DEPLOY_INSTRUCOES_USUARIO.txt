@@ -1,0 +1,259 @@
+========================================
+🚀 INSTRUÇÕES DE DEPLOY - GOOGLE CLOUD
+========================================
+
+Projeto: monpec-sistema-rural
+Email: l.moncaosilva@gmail.com
+
+========================================
+PASSO 1: VERIFICAR DOCKERFILE
+========================================
+
+O Dockerfile deve existir na raiz do projeto. Se não existir, crie com o seguinte conteúdo:
+
+---
+# Use a imagem oficial do Python
+FROM python:3.11-slim
+
+# Definir diretório de trabalho
+WORKDIR /app
+
+# Instalar dependências do sistema
+RUN apt-get update && apt-get install -y \
+    gcc \
+    postgresql-client \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copiar requirements e instalar dependências Python
+COPY requirements_producao.txt .
+RUN pip install --no-cache-dir -r requirements_producao.txt
+
+# Copiar código do projeto
+COPY . .
+
+# Executar collectstatic (pode falhar sem variáveis, mas OK)
+RUN python manage.py collectstatic --noinput --settings=sistema_rural.settings_gcp || echo "⚠️ collectstatic será executado no entrypoint..."
+
+# Expor porta
+EXPOSE 8080
+
+# Usar entrypoint.sh
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+CMD ["/entrypoint.sh"]
+---
+
+========================================
+PASSO 2: INSTALAR GOOGLE CLOUD SDK
+========================================
+
+Se ainda não tiver instalado:
+Windows: https://cloud.google.com/sdk/docs/install
+Ou via PowerShell:
+(New-Object Net.WebClient).DownloadFile("https://dl.google.com/dl/cloudsdk/channels/rapid/GoogleCloudSDKInstaller.exe", "$env:Temp\GoogleCloudSDKInstaller.exe"); & $env:Temp\GoogleCloudSDKInstaller.exe
+
+========================================
+PASSO 3: AUTENTICAR E CONFIGURAR
+========================================
+
+Abra o PowerShell e execute:
+
+# Autenticar
+gcloud auth login
+
+# Configurar projeto
+gcloud config set project monpec-sistema-rural
+
+# Verificar configuração
+gcloud config list
+
+========================================
+PASSO 4: HABILITAR APIS NECESSÁRIAS
+========================================
+
+gcloud services enable run.googleapis.com
+gcloud services enable sqladmin.googleapis.com
+gcloud services enable cloudbuild.googleapis.com
+gcloud services enable storage-api.googleapis.com
+
+========================================
+PASSO 5: CRIAR CLOUD SQL (se não existir)
+========================================
+
+# Verificar se já existe
+gcloud sql instances describe monpec-db
+
+# Se não existir, criar:
+gcloud sql instances create monpec-db `
+    --database-version=POSTGRES_15 `
+    --tier=db-f1-micro `
+    --region=us-central1 `
+    --root-password=L6171r12@@jjms
+
+# Criar banco de dados
+gcloud sql databases create sistema_rural --instance=monpec-db
+
+# Criar usuário
+gcloud sql users create monpec --instance=monpec-db --password=L6171r12@@jjms
+
+# Obter connection name (anote este valor!)
+gcloud sql instances describe monpec-db --format="value(connectionName)"
+
+O connection name terá formato: monpec-sistema-rural:us-central1:monpec-db
+
+========================================
+PASSO 6: GERAR SECRET_KEY DO DJANGO
+========================================
+
+Execute no PowerShell para gerar uma SECRET_KEY:
+
+python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+
+OU use este comando PowerShell:
+
+-join ((48..57) + (65..90) + (97..122) | Get-Random -Count 50 | ForEach-Object {[char]$_})
+
+Anote a SECRET_KEY gerada!
+
+========================================
+PASSO 7: FAZER DEPLOY
+========================================
+
+Execute o comando abaixo (substitua CONNECTION_NAME e SECRET_KEY pelos valores obtidos):
+
+gcloud run deploy monpec `
+    --source . `
+    --platform managed `
+    --region us-central1 `
+    --allow-unauthenticated `
+    --port 8080 `
+    --memory 2Gi `
+    --cpu 2 `
+    --timeout 600 `
+    --add-cloudsql-instances=CONNECTION_NAME `
+    --set-env-vars="CLOUD_SQL_CONNECTION_NAME=CONNECTION_NAME,DB_NAME=sistema_rural,DB_USER=monpec,DB_PASSWORD=L6171r12@@jjms,SECRET_KEY=SUA_SECRET_KEY,DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,DEBUG=False" `
+    --max-instances=10 `
+    --min-instances=0
+
+EXEMPLO COMPLETO (substitua os valores):
+gcloud run deploy monpec `
+    --source . `
+    --platform managed `
+    --region us-central1 `
+    --allow-unauthenticated `
+    --port 8080 `
+    --memory 2Gi `
+    --cpu 2 `
+    --timeout 600 `
+    --add-cloudsql-instances=monpec-sistema-rural:us-central1:monpec-db `
+    --set-env-vars="CLOUD_SQL_CONNECTION_NAME=monpec-sistema-rural:us-central1:monpec-db,DB_NAME=sistema_rural,DB_USER=monpec,DB_PASSWORD=L6171r12@@jjms,SECRET_KEY=django-insecure-abc123...,DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,DEBUG=False" `
+    --max-instances=10 `
+    --min-instances=0
+
+========================================
+PASSO 8: VERIFICAR DEPLOY
+========================================
+
+# Obter URL do serviço
+gcloud run services describe monpec --region=us-central1 --format="value(status.url)"
+
+# Ver logs
+gcloud run services logs read monpec --region=us-central1 --limit=50
+
+# Verificar variáveis de ambiente
+gcloud run services describe monpec --region=us-central1 --format="value(spec.template.spec.containers[0].env)"
+
+========================================
+PASSO 9: CONFIGURAR VARIÁVEIS (se necessário)
+========================================
+
+Se precisar alterar variáveis de ambiente após o deploy:
+
+1. Acesse: https://console.cloud.google.com/run
+2. Clique no serviço "monpec"
+3. Clique em "Edit & Deploy New Revision"
+4. Vá na aba "Variables & Secrets"
+5. Adicione/edite as variáveis:
+   - CLOUD_SQL_CONNECTION_NAME = monpec-sistema-rural:us-central1:monpec-db
+   - DB_NAME = sistema_rural
+   - DB_USER = monpec
+   - DB_PASSWORD = L6171r12@@jjms
+   - SECRET_KEY = (sua SECRET_KEY)
+   - DJANGO_SETTINGS_MODULE = sistema_rural.settings_gcp
+   - DEBUG = False
+6. Clique em "Deploy"
+
+========================================
+PASSO 10: VERIFICAR CONEXÃO CLOUD SQL
+========================================
+
+No Cloud Run Console:
+1. Aba "Connections"
+2. Verifique se "monpec-db" está listado
+3. Se não estiver, clique em "Add Connection" e selecione "monpec-db"
+
+========================================
+TROUBLESHOOTING
+========================================
+
+Erro: "CLOUD_SQL_CONNECTION_NAME não definido"
+   → Verifique se a variável está configurada no Cloud Run
+
+Erro: "Connection refused" ao conectar no banco
+   → Verifique se Cloud SQL está conectado no Cloud Run (aba Connections)
+   → Verifique se o connection name está correto
+
+Erro: "Static files not found"
+   → Verifique os logs: gcloud run services logs read monpec --region=us-central1
+   → O collectstatic deve ter executado no entrypoint.sh
+
+Erro: "Module not found"
+   → Verifique se todas as dependências estão em requirements_producao.txt
+   → Verifique os logs do build
+
+Para ver logs em tempo real:
+gcloud run services logs tail monpec --region=us-central1
+
+========================================
+COMANDOS ÚTEIS
+========================================
+
+# Listar serviços Cloud Run
+gcloud run services list --region=us-central1
+
+# Descrever serviço
+gcloud run services describe monpec --region=us-central1
+
+# Ver logs
+gcloud run services logs read monpec --region=us-central1
+
+# Ver logs em tempo real
+gcloud run services logs tail monpec --region=us-central1
+
+# Deletar serviço (se necessário)
+gcloud run services delete monpec --region=us-central1
+
+# Listar instâncias Cloud SQL
+gcloud sql instances list
+
+# Conectar ao Cloud SQL via proxy (para migrações manuais)
+gcloud sql connect monpec-db --user=monpec
+
+========================================
+✅ TUDO PRONTO!
+========================================
+
+Siga os passos acima e seu sistema estará rodando no Google Cloud Run!
+
+Boa sorte! 🚀
+
+========================================
+
+
+
+
+
+
+

@@ -1,0 +1,90 @@
+========================================
+📋 INSTRUÇÕES PARA USAR O SCRIPT deploy_completo.bat
+========================================
+
+O script deploy_completo.bat foi criado e faz TUDO automaticamente!
+
+========================================
+O QUE O SCRIPT FAZ:
+========================================
+
+✅ Verifica se Google Cloud SDK está instalado
+✅ Verifica e configura autenticação
+✅ Configura projeto monpec-sistema-rural
+✅ Habilita APIs necessárias
+✅ Verifica/cria instância Cloud SQL (monpec-db)
+✅ Verifica/cria banco de dados (sistema_rural)
+✅ Verifica/cria usuário (postgres)
+✅ Obtém connection name automaticamente
+✅ Verifica se todos os arquivos necessários existem
+✅ Faz deploy completo com todas as variáveis de ambiente
+✅ Conecta Cloud SQL ao Cloud Run
+✅ Mostra URL do serviço ao final
+
+========================================
+COMO USAR:
+========================================
+
+1. Abra o PowerShell ou Prompt de Comando
+2. Navegue até o diretório do projeto:
+   cd "C:\Users\lmonc\Desktop\MonPO-Monitor de Plano Orçamentario\Monpec_GestaoRural"
+
+3. Execute o script:
+   deploy_completo.bat
+
+4. Aguarde o processo terminar (pode levar 5-10 minutos)
+
+5. O script mostrará a URL do serviço ao final
+
+========================================
+REQUISITOS:
+========================================
+
+- Google Cloud SDK instalado
+- Autenticado no gcloud (o script pede se não estiver)
+- Estar no diretório do projeto
+- Arquivos necessários presentes:
+  - Dockerfile
+  - entrypoint.sh
+  - requirements_producao.txt
+  - manage.py
+  - sistema_rural/
+
+========================================
+VARIÁVEIS CONFIGURADAS AUTOMATICAMENTE:
+========================================
+
+- CLOUD_SQL_CONNECTION_NAME (obtido automaticamente)
+- DB_NAME=sistema_rural
+- DB_USER=postgres
+- DB_PASSWORD=L6171r12@@jjms
+- SECRET_KEY=rfzjy1t$$d_cmjb2n-wda0oi+)p!(_4!4$na-n-1a60$2gyspo
+- DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp
+- DEBUG=False
+
+========================================
+APÓS O DEPLOY:
+========================================
+
+1. Acesse a URL mostrada no final do script
+2. Verifique logs: gcloud run services logs read monpec --region=us-central1
+3. Teste o sistema no navegador
+
+========================================
+TROUBLESHOOTING:
+========================================
+
+Se o script falhar:
+1. Verifique se está no diretório correto
+2. Verifique se Google Cloud SDK está instalado
+3. Verifique se está autenticado: gcloud auth login
+4. Verifique se o projeto está configurado: gcloud config set project monpec-sistema-rural
+
+========================================
+
+
+
+
+
+
+

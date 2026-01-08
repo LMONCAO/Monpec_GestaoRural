@@ -152,7 +152,7 @@ def produtores_menu(request):
                     
                     assinatura = obter_assinatura_usuario_seguro(user)
                     
-                    if assinatura and hasattr(assinatura, 'ativa') and assinatura.ativa:
+                    if assinatura and hasattr(assinatura, 'status') and assinatura.status == 'ATIVA':
                         # Assinante: buscar todos os usuários da mesma assinatura (equipe)
                         usuarios_tenant = obter_usuarios_tenant_seguro(assinatura)
                         

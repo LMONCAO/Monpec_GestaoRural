@@ -1,0 +1,119 @@
+========================================
+PROBLEMA: Migrações não foram executadas
+========================================
+
+ERRO:
+relation "django_session" does not exist
+
+CAUSA:
+As migrações do Django não foram aplicadas ao banco de dados.
+Isso pode acontecer se:
+- As migrações falharam silenciosamente no entrypoint.sh
+- O banco de dados está vazio
+- Há problema de conexão com o banco
+
+========================================
+SOLUÇÃO: Executar migrações manualmente
+========================================
+
+OPÇÃO 1: Via Cloud Run Jobs (RECOMENDADO)
+
+1. Criar um job temporário para executar migrações:
+   
+   No Cloud Shell, execute:
+   
+   gcloud run jobs create monpec-migrate \
+     --image gcr.io/monpec-sistema-rural/monpec \
+     --region us-central1 \
+     --set-env-vars="DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,CLOUD_SQL_CONNECTION_NAME=monpec-sistema-rural:us-central1:monpec-db,DB_NAME=sistema_rural,DB_USER=monpec,DB_PASSWORD=SUA_SENHA,SECRET_KEY=SUA_SECRET_KEY" \
+     --add-cloudsql-instances=monpec-sistema-rural:us-central1:monpec-db \
+     --command="python" \
+     --args="manage.py,migrate,--noinput,--settings=sistema_rural.settings_gcp"
+
+2. Executar o job:
+   
+   gcloud run jobs execute monpec-migrate --region us-central1
+
+3. Após executar, carregar categorias:
+   
+   gcloud run jobs update monpec-migrate \
+     --args="manage.py,carregar_categorias,--settings=sistema_rural.settings_gcp"
+   
+   gcloud run jobs execute monpec-migrate --region us-central1
+
+4. Garantir admin:
+   
+   gcloud run jobs update monpec-migrate \
+     --args="manage.py,garantir_admin,--settings=sistema_rural.settings_gcp"
+   
+   gcloud run jobs execute monpec-migrate --region us-central1
+
+5. Deletar job após uso:
+   
+   gcloud run jobs delete monpec-migrate --region us-central1
+
+OPÇÃO 2: Conectar diretamente ao banco e executar
+
+1. Conectar ao Cloud SQL via proxy:
+   
+   cloud_sql_proxy -instances=monpec-sistema-rural:us-central1:monpec-db=tcp:5432
+
+2. Em outro terminal, executar migrações localmente:
+   
+   export DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp
+   export CLOUD_SQL_CONNECTION_NAME=monpec-sistema-rural:us-central1:monpec-db
+   export DB_NAME=sistema_rural
+   export DB_USER=monpec
+   export DB_PASSWORD=SUA_SENHA
+   export SECRET_KEY=SUA_SECRET_KEY
+   
+   python manage.py migrate --settings=sistema_rural.settings_gcp
+   python manage.py carregar_categorias --settings=sistema_rural.settings_gcp
+   python manage.py garantir_admin --settings=sistema_rural.settings_gcp
+
+OPÇÃO 3: Verificar logs do entrypoint.sh
+
+1. Ver logs completos do container:
+   
+   gcloud run services logs read monpec --region=us-central1 --limit=500
+
+2. Procurar por:
+   - "🔄 Executando migrações..."
+   - "⚠️ Migrações falharam"
+   - "📦 Carregando dados iniciais..."
+   - "✅ Categorias carregadas"
+
+3. Se as migrações falharam, ver o erro específico
+
+========================================
+VERIFICAÇÃO APÓS CORRIGIR
+========================================
+
+1. Verificar se tabelas foram criadas:
+   
+   Conectar ao banco e executar:
+   \dt django_session
+   
+   Deve mostrar a tabela django_session
+
+2. Testar login novamente:
+   
+   - Acessar https://monpec.com.br/login/
+   - Fazer login com usuário demo
+   - Verificar se não dá mais erro de django_session
+
+3. Verificar se categorias foram carregadas:
+   
+   Conectar ao banco e executar:
+   SELECT COUNT(*) FROM gestao_rural_categoriaanimal;
+   
+   Deve retornar um número maior que 0 (provavelmente 10)
+
+========================================
+
+
+
+
+
+
+

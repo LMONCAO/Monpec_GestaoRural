@@ -1,0 +1,38 @@
+========================================
+🔌 CONECTAR CLOUD SQL AO CLOUD RUN
+========================================
+
+O Cloud SQL não está conectado! Vamos conectar agora.
+
+========================================
+COMANDO PARA CONECTAR:
+========================================
+
+gcloud run services update monpec \
+    --region=us-central1 \
+    --add-cloudsql-instances=monpec-sistema-rural:us-central1:monpec-db
+
+========================================
+VERIFICAR APÓS CONECTAR:
+========================================
+
+gcloud run services describe monpec --region=us-central1 --format="value(spec.template.spec.containers[0].cloudSqlInstances)"
+
+Deve retornar: monpec-sistema-rural:us-central1:monpec-db
+
+========================================
+DEPOIS VERIFICAR LOGS:
+========================================
+
+gcloud run services logs read monpec --region=us-central1 --limit=50 | grep -i "cloud\|socket\|diagnóstico"
+
+Não deve mais aparecer erro de 127.0.0.1
+
+========================================
+
+
+
+
+
+
+

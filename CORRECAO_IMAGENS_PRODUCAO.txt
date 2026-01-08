@@ -1,0 +1,113 @@
+========================================
+CORREÇÃO: IMAGENS NÃO APARECEM EM PRODUÇÃO
+========================================
+
+PROBLEMA:
+As imagens (foto1.jpeg a foto6.jpeg) não aparecem na landing page quando o sistema é deployado em produção.
+
+CAUSA:
+O WhiteNoise não estava configurado no settings_producao.py, então os arquivos estáticos não eram servidos corretamente.
+
+SOLUÇÃO APLICADA:
+✅ Adicionado WhiteNoise ao settings_producao.py
+✅ Configurações de MIME types para imagens JPEG/PNG
+✅ Cache configurado para arquivos estáticos
+
+========================================
+PASSOS PARA APLICAR EM PRODUÇÃO
+========================================
+
+1. COLETAR ARQUIVOS ESTÁTICOS (OBRIGATÓRIO):
+   
+   python manage.py collectstatic --noinput --settings=sistema_rural.settings_producao
+   
+   Este comando copia todos os arquivos de static/ para STATIC_ROOT
+   e inclui as imagens foto1.jpeg a foto6.jpeg.
+
+2. VERIFICAR SE AS IMAGENS FORAM COLETADAS:
+   
+   ls -la /var/www/monpec.com.br/static/site/
+   
+   Você deve ver foto1.jpeg até foto6.jpeg
+
+3. VERIFICAR PERMISSÕES:
+   
+   chmod -R 755 /var/www/monpec.com.br/static
+   chown -R www-data:www-data /var/www/monpec.com.br/static
+
+4. REINICIAR O SERVIDOR:
+   
+   Após coletar os arquivos estáticos, reinicie o servidor Django/Gunicorn.
+
+========================================
+VERIFICAÇÃO
+========================================
+
+1. Acesse: http://monpec.com.br ou https://monpec.com.br
+2. Verifique se as imagens do slideshow aparecem
+3. Abra o console do navegador (F12) e verifique se há erros 404
+
+========================================
+TROUBLESHOOTING
+========================================
+
+Se as imagens ainda não aparecerem:
+
+1. Verificar se collectstatic foi executado:
+   ls -la /var/www/monpec.com.br/static/site/
+
+2. Verificar logs do Django:
+   tail -f /var/log/monpec/django.log
+
+3. Testar URL diretamente:
+   http://monpec.com.br/static/site/foto1.jpeg
+   
+   Se retornar 404, o problema é com o WhiteNoise ou collectstatic.
+
+4. Verificar configuração do servidor web (Nginx/Apache):
+   - Se estiver usando Nginx/Apache como proxy reverso, 
+     verifique se não está bloqueando /static/
+   - O WhiteNoise serve os arquivos diretamente, então o servidor 
+     web não precisa servir /static/
+
+========================================
+NOTAS IMPORTANTES
+========================================
+
+- WhiteNoise serve arquivos de STATIC_ROOT, não de STATICFILES_DIRS
+- SEMPRE execute collectstatic após fazer deploy ou atualizar arquivos estáticos
+- As imagens devem estar em static/site/ no código-fonte
+- Após collectstatic, as imagens estarão em /var/www/monpec.com.br/static/site/
+
+========================================
+ESTRUTURA DE ARQUIVOS
+========================================
+
+Código-fonte:
+static/
+└── site/
+    ├── foto1.jpeg
+    ├── foto2.jpeg
+    ├── foto3.jpeg
+    ├── foto4.jpeg
+    ├── foto5.jpeg
+    └── foto6.jpeg
+
+Após collectstatic (STATIC_ROOT):
+/var/www/monpec.com.br/static/
+└── site/
+    ├── foto1.jpeg
+    ├── foto2.jpeg
+    ├── foto3.jpeg
+    ├── foto4.jpeg
+    ├── foto5.jpeg
+    └── foto6.jpeg
+
+========================================
+
+
+
+
+
+
+

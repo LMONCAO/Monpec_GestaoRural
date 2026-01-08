@@ -1,0 +1,171 @@
+========================================
+CHECKLIST COMPLETO DE DEPLOY PARA GOOGLE CLOUD
+========================================
+
+📋 PRÉ-REQUISITOS
+-----------------
+
+1. Conta e Projeto Google Cloud
+   [ ] Conta Google Cloud ativa
+   [ ] Projeto criado no Google Cloud Console
+   [ ] Billing habilitado no projeto
+   [ ] APIs necessárias habilitadas:
+       - Cloud Run API
+       - Cloud SQL Admin API
+       - Cloud Build API
+       - Cloud Storage API (se usar Cloud Storage)
+
+2. Banco de Dados Cloud SQL
+   [ ] Instância PostgreSQL criada no Cloud SQL
+   [ ] Banco de dados criado (sistema_rural ou outro nome)
+   [ ] Usuário do banco criado
+   [ ] Senha do banco definida
+   [ ] Connection name anotado (formato: PROJECT:REGION:INSTANCE)
+
+3. Variáveis de Ambiente (Configurar no Cloud Run)
+   
+   OBRIGATÓRIAS:
+   [ ] CLOUD_SQL_CONNECTION_NAME - Formato: PROJECT:REGION:INSTANCE
+   [ ] DB_NAME - Nome do banco de dados (ex: sistema_rural)
+   [ ] DB_USER - Usuário do banco de dados (ex: monpec)
+   [ ] DB_PASSWORD - Senha do banco de dados
+   [ ] SECRET_KEY - Chave secreta do Django
+   [ ] DJANGO_SETTINGS_MODULE - Definir como: sistema_rural.settings_gcp
+   
+   OPCIONAIS (mas recomendadas):
+   [ ] GOOGLE_CLOUD_PROJECT - ID do projeto GCP
+   [ ] DEBUG - False para produção
+   [ ] USE_CLOUD_STORAGE - True se usar Cloud Storage
+   [ ] GS_BUCKET_NAME - Nome do bucket se usar Cloud Storage
+   [ ] REDIS_HOST - Host do Redis se usar cache Redis
+
+🔧 CONFIGURAÇÃO DO CLOUD RUN
+-----------------------------
+
+1. Criar Serviço Cloud Run
+   Comando:
+   gcloud run deploy monpec \
+     --source . \
+     --platform managed \
+     --region us-central1 \
+     --allow-unauthenticated \
+     --add-cloudsql-instances=PROJECT:REGION:INSTANCE \
+     --set-env-vars="CLOUD_SQL_CONNECTION_NAME=PROJECT:REGION:INSTANCE,DB_NAME=sistema_rural,DB_USER=monpec,DB_PASSWORD=SUA_SENHA,SECRET_KEY=SUA_SECRET_KEY,DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp"
+
+2. Configurar Permissões
+   [ ] Service account com permissão para acessar Cloud SQL
+   [ ] Service account com permissão para acessar Cloud Storage (se usar)
+
+3. Configurar Domínio Customizado (Opcional)
+   [ ] Domínio configurado no Cloud Run
+   [ ] DNS configurado apontando para o Cloud Run
+   [ ] Certificado SSL configurado
+
+📦 ARQUIVOS NECESSÁRIOS
+-----------------------
+
+Arquivos que DEVEM estar no repositório:
+   [x] Dockerfile - Criar manualmente (veja CRIAR_DOCKERFILE_INSTRUCOES.txt)
+   [x] entrypoint.sh - Já existe
+   [x] requirements_producao.txt - Já existe
+   [x] sistema_rural/settings_gcp.py - Já existe
+   [ ] .dockerignore - Criar se necessário
+   [ ] .gcloudignore - Criar se necessário
+
+Arquivos que NÃO devem estar no repositório:
+   [ ] .env ou .env_producao (usar variáveis de ambiente do Cloud Run)
+   [ ] __pycache__/ (adicionar ao .gitignore)
+   [ ] *.pyc (adicionar ao .gitignore)
+   [ ] venv/ ou env/ (adicionar ao .gitignore)
+
+🚀 PROCESSO DE DEPLOY
+----------------------
+
+Opção 1: Deploy via Cloud Build (Recomendado)
+   1. Fazer commit das mudanças:
+      git add .
+      git commit -m "Preparar para deploy GCP"
+      git push origin main
+
+   2. Criar trigger do Cloud Build (se usar GitHub Actions)
+      Ou executar build manualmente:
+      gcloud builds submit --tag gcr.io/PROJECT_ID/monpec
+
+Opção 2: Deploy Direto via Cloud Run
+   gcloud run deploy monpec \
+     --source . \
+     --platform managed \
+     --region us-central1
+
+✅ VERIFICAÇÕES PÓS-DEPLOY
+---------------------------
+
+1. Verificar Logs
+   Comando: gcloud run services logs read monpec --region us-central1
+   
+   Verificar se há:
+   [ ] Conexão com banco de dados estabelecida
+   [ ] Migrações executadas com sucesso
+   [ ] Arquivos estáticos coletados
+   [ ] Servidor iniciado sem erros
+
+2. Testar Aplicação
+   [ ] Acessar URL do Cloud Run
+   [ ] Testar login
+   [ ] Verificar se imagens/arquivos estáticos carregam
+   [ ] Testar funcionalidades principais
+
+3. Verificar Performance
+   [ ] Tempo de resposta adequado
+   [ ] Sem erros 500
+   [ ] Conexões com banco funcionando
+
+🐛 TROUBLESHOOTING
+------------------
+
+Erro: "CLOUD_SQL_CONNECTION_NAME não definido"
+   Solução: Verificar se a variável de ambiente está configurada no Cloud Run
+
+Erro: "Connection refused" ao conectar no banco
+   Solução: 
+   - Verificar se o Cloud SQL instance está rodando
+   - Verificar se o Cloud Run tem permissão para acessar Cloud SQL
+   - Verificar se o connection name está correto
+
+Erro: "Static files not found"
+   Solução:
+   - Verificar se collectstatic foi executado
+   - Verificar configuração do WhiteNoise ou Cloud Storage
+   - Verificar se STATIC_ROOT está correto
+
+Erro: "Module not found"
+   Solução:
+   - Verificar se todas as dependências estão em requirements_producao.txt
+   - Verificar se o build instalou todas as dependências
+
+📝 NOTAS IMPORTANTES
+--------------------
+
+1. Banco de Dados: O Cloud Run se conecta ao Cloud SQL via Unix Socket quando 
+   CLOUD_SQL_CONNECTION_NAME está definido. Não precisa de IP público.
+
+2. Arquivos Estáticos: Por padrão, usa WhiteNoise para servir arquivos estáticos. 
+   Para melhor performance, considere usar Cloud Storage.
+
+3. Migrações: As migrações são executadas automaticamente no entrypoint.sh. 
+   Se falharem, o container ainda inicia mas pode haver problemas.
+
+4. Logs: Todos os logs vão para o Cloud Logging. Use gcloud run services logs read 
+   para visualizar.
+
+5. Timeout: O Cloud Run tem timeout padrão de 300 segundos. Se suas migrações 
+   demorarem mais, considere aumentar o timeout.
+
+========================================
+
+
+
+
+
+
+

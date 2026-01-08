@@ -640,7 +640,7 @@
                         <li><i class="bi bi-check-circle-fill"></i> Backup diário dos dados</li>
                     </ul>
                     
-                    {% if assinatura and assinatura.ativa %}
+                    {% if assinatura and assinatura.status == 'ATIVA' %}
                         <button class="btn btn-success btn-assinar" disabled>
                             <i class="bi bi-check-circle"></i> Você já possui uma assinatura ativa
                         </button>
@@ -668,7 +668,7 @@
                 <div class="col-lg-4 col-md-6 col-sm-12">
                     <div class="pricing-card {% if forloop.first %}featured{% endif %}" style="position: relative;">
                         <div class="pricing-header">
-                            <h3 class="pricing-title">{% if plano.nome == "Plano Administrador" %}Plano Monpec{% else %}{{ plano.nome }}{% endif %}</h3>
+                            <h3 class="pricing-title">{% if plano.nome == "Plano Administrador" %}Plano Monpec{% elif "BÃ¡sico" in plano.nome or "Básico" in plano.nome %}Plano Básico{% else %}{{ plano.nome }}{% endif %}</h3>
                             <p class="pricing-description">{{ plano.descricao|default:"Plano completo para gestão rural" }}</p>
                         </div>
                         
@@ -694,7 +694,7 @@
                             <li><i class="bi bi-check-circle-fill"></i> Backup diário dos dados</li>
                         </ul>
                         
-                        {% if assinatura and assinatura.plano_id == plano.id and assinatura.ativa %}
+                        {% if assinatura and assinatura.plano_id == plano.id and assinatura.status == 'ATIVA' %}
                             <button class="btn btn-success btn-assinar" disabled>
                                 <i class="bi bi-check-circle"></i> Plano Ativo
                             </button>
@@ -802,10 +802,219 @@
     <!-- Font Awesome para ícones das redes sociais -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer">
 
+    <!-- Modal para Capturar Dados Antes do Pagamento -->
+    <div class="modal fade" id="modalDadosPagamento" tabindex="-1" aria-labelledby="modalDadosPagamentoLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header" style="background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%); color: white;">
+                    <h5 class="modal-title" id="modalDadosPagamentoLabel">
+                        <i class="bi bi-person-check"></i> Dados para Pagamento
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-3">Por favor, confirme seus dados antes de prosseguir com o pagamento:</p>
+                    <form id="formDadosPagamento">
+                        <div class="mb-3">
+                            <label for="nome_pagamento" class="form-label">Nome Completo <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="nome_pagamento" name="nome" required 
+                                   value="{{ user.get_full_name|default:user.username }}" 
+                                   placeholder="Digite seu nome completo">
+                        </div>
+                        <div class="mb-3">
+                            <label for="email_pagamento" class="form-label">E-mail <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control" id="email_pagamento" name="email" required 
+                                   value="{{ user.email|default:'' }}" 
+                                   placeholder="seu@email.com">
+                        </div>
+                        <div id="alertDadosPagamento" class="alert" style="display: none;"></div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="btnConfirmarDados">
+                        <i class="bi bi-credit-card"></i> Prosseguir para Pagamento
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             console.log('=== INICIANDO SCRIPT DE CHECKOUT ===');
+            
+            let planoSlugSelecionado = null;
+            let botaoOriginal = null;
+            
+            // Variáveis globais para o modal - inicializar apenas se o elemento existir
+            const modalElement = document.getElementById('modalDadosPagamento');
+            const modalDadosPagamento = modalElement ? new bootstrap.Modal(modalElement) : null;
+            const formDadosPagamento = document.getElementById('formDadosPagamento');
+            const btnConfirmarDados = document.getElementById('btnConfirmarDados');
+            const alertDadosPagamento = document.getElementById('alertDadosPagamento');
+            
+            if (!modalElement) {
+                console.error('❌ Modal de dados de pagamento não encontrado!');
+            }
+            
+            function getCookie(name) {
+                const value = `; ${document.cookie}`;
+                const parts = value.split(`; ${name}=`);
+                if (parts.length === 2) {
+                    return parts.pop().split(';').shift();
+                }
+                return null;
+            }
+
+            const csrftoken = getCookie('csrftoken');
+            console.log('CSRF Token:', csrftoken ? '✅ Encontrado' : '❌ Não encontrado');
+
+            // Função para iniciar checkout após confirmar dados
+            async function iniciarCheckoutComDados(nome, email) {
+                if (!planoSlugSelecionado || !botaoOriginal) {
+                    console.error('❌ Plano ou botão não definido');
+                    return;
+                }
+                
+                const currentBtn = botaoOriginal;
+                const originalHTML = currentBtn.innerHTML;
+                currentBtn.disabled = true;
+                currentBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processando...';
+
+                try {
+                    const baseUrl = window.location.origin;
+                    const checkoutUrl = `${baseUrl}/assinaturas/plano/${planoSlugSelecionado}/checkout/`;
+                    console.log('📤 URL de checkout:', checkoutUrl);
+                    
+                    const formData = new FormData();
+                    formData.append('gateway', 'mercadopago');
+                    formData.append('nome', nome);
+                    formData.append('email', email);
+                    
+                    console.log('📤 Enviando requisição POST com dados:', { nome, email });
+                    const response = await fetch(checkoutUrl, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': csrftoken || '',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: formData
+                    });
+
+                    console.log('📥 Resposta recebida:', response.status, response.statusText);
+
+                    if (!response.ok) {
+                        let errorData;
+                        try {
+                            errorData = await response.json();
+                        } catch {
+                            errorData = { detail: `Erro HTTP ${response.status}: ${response.statusText}` };
+                        }
+                        console.error('❌ Erro na resposta:', errorData);
+                        throw new Error(errorData.detail || 'Erro desconhecido.');
+                    }
+
+                    const data = await response.json();
+                    console.log('✅ Dados recebidos:', data);
+                    
+                    if (data.checkout_url) {
+                        console.log('🔄 Redirecionando para:', data.checkout_url);
+                        // Fechar modal antes de redirecionar
+                        if (modalDadosPagamento) {
+                            modalDadosPagamento.hide();
+                        }
+                        // Pequeno delay para garantir que o modal feche antes de redirecionar
+                        setTimeout(() => {
+                            // Redirecionar para o link de pagamento do Mercado Pago
+                            window.location.href = data.checkout_url;
+                        }, 300);
+                    } else if (data.detail) {
+                        throw new Error(data.detail);
+                    } else {
+                        throw new Error('URL de checkout não recebida do servidor.');
+                    }
+                } catch (error) {
+                    console.error('❌ Erro ao iniciar checkout:', error);
+                    let errorMessage = error.message;
+                    
+                    if (errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError')) {
+                        errorMessage = 'Erro de conexão: Não foi possível conectar ao servidor. Verifique se o servidor está rodando.';
+                    } else if (errorMessage.includes('500') || errorMessage.includes('Internal Server Error')) {
+                        errorMessage = 'Erro interno do servidor. Por favor, tente novamente em alguns instantes ou entre em contato com o suporte.';
+                    } else if (errorMessage.includes('MERCADOPAGO_ACCESS_TOKEN')) {
+                        errorMessage = '⚠️ CONFIGURAÇÃO NECESSÁRIA\n\nO token do Mercado Pago não está configurado. Entre em contato com o suporte.';
+                    }
+                    
+                    // Mostrar erro no modal
+                    if (alertDadosPagamento) {
+                        alertDadosPagamento.className = 'alert alert-danger';
+                        alertDadosPagamento.innerHTML = '<strong>Erro:</strong> ' + errorMessage + '<br><small>Verifique o console (F12) para mais detalhes.</small>';
+                        alertDadosPagamento.style.display = 'block';
+                        
+                        // Scroll até o alerta
+                        alertDadosPagamento.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }
+                    
+                    // Reabilitar botão do modal
+                    if (btnConfirmarDados) {
+                        btnConfirmarDados.disabled = false;
+                        btnConfirmarDados.innerHTML = '<i class="bi bi-credit-card"></i> Prosseguir para Pagamento';
+                    }
+                    
+                    // Reabilitar botão original se existir
+                    if (currentBtn) {
+                        currentBtn.disabled = false;
+                        currentBtn.innerHTML = originalHTML;
+                    }
+                }
+            }
+            
+            // Event listener para botão de confirmar dados
+            if (btnConfirmarDados) {
+                btnConfirmarDados.addEventListener('click', function() {
+                    const nome = document.getElementById('nome_pagamento').value.trim();
+                    const email = document.getElementById('email_pagamento').value.trim();
+                    
+                    if (!nome || !email) {
+                        alertDadosPagamento.className = 'alert alert-warning';
+                        alertDadosPagamento.textContent = 'Por favor, preencha todos os campos obrigatórios.';
+                        alertDadosPagamento.style.display = 'block';
+                        return;
+                    }
+                    
+                    // Validar email
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!emailRegex.test(email)) {
+                        alertDadosPagamento.className = 'alert alert-warning';
+                        alertDadosPagamento.textContent = 'Por favor, insira um e-mail válido.';
+                        alertDadosPagamento.style.display = 'block';
+                        return;
+                    }
+                    
+                    // Verificar se plano foi selecionado
+                    if (!planoSlugSelecionado) {
+                        alertDadosPagamento.className = 'alert alert-danger';
+                        alertDadosPagamento.textContent = 'Erro: Plano não selecionado. Por favor, recarregue a página e tente novamente.';
+                        alertDadosPagamento.style.display = 'block';
+                        return;
+                    }
+                    
+                    // Ocultar alerta
+                    alertDadosPagamento.style.display = 'none';
+                    
+                    // Desabilitar botão e mostrar loading
+                    btnConfirmarDados.disabled = true;
+                    btnConfirmarDados.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processando...';
+                    
+                    // Iniciar checkout
+                    iniciarCheckoutComDados(nome, email).finally(() => {
+                        btnConfirmarDados.disabled = false;
+                        btnConfirmarDados.innerHTML = '<i class="bi bi-credit-card"></i> Prosseguir para Pagamento';
+                    });
+                });
+            }
             
             // Aguardar um pouco para garantir que o DOM está totalmente carregado
             setTimeout(function() {
@@ -814,33 +1023,12 @@
                 
                 if (!buttons.length) {
                     console.error('❌ Nenhum botão com classe "iniciar-checkout" encontrado!');
-                    console.log('Procurando por botões...');
-                    const allButtons = document.querySelectorAll('button');
-                    console.log('Total de botões na página:', allButtons.length);
-                    allButtons.forEach((btn, idx) => {
-                        console.log(`Botão ${idx}:`, btn.className, btn.textContent.trim());
-                    });
                     return;
                 }
 
-                function getCookie(name) {
-                    const value = `; ${document.cookie}`;
-                    const parts = value.split(`; ${name}=`);
-                    if (parts.length === 2) {
-                        return parts.pop().split(';').shift();
-                    }
-                    return null;
-                }
-
-                const csrftoken = getCookie('csrftoken');
-                console.log('CSRF Token:', csrftoken ? '✅ Encontrado' : '❌ Não encontrado');
-
                 buttons.forEach((btn, index) => {
                     console.log(`\n--- Configurando botão ${index + 1} ---`);
-                    console.log('Elemento:', btn);
                     console.log('Plano slug:', btn.dataset.plano);
-                    console.log('Botão desabilitado?', btn.disabled);
-                    console.log('Classes:', btn.className);
                     
                     // Remover event listeners anteriores se houver
                     const newBtn = btn.cloneNode(true);
@@ -858,13 +1046,12 @@
                         currentBtn.style.cursor = 'pointer';
                     }
                     
-                    currentBtn.addEventListener('click', async function(e) {
+                    currentBtn.addEventListener('click', function(e) {
                         e.preventDefault();
                         e.stopPropagation();
                         e.stopImmediatePropagation();
                         
                         console.log('\n🎯 BOTÃO CLICADO!');
-                        console.log('Botão:', currentBtn);
                         
                         const planoSlug = currentBtn.dataset.plano;
                         console.log('Plano slug:', planoSlug);
@@ -876,71 +1063,35 @@
                             return;
                         }
                         
-                        const originalHTML = currentBtn.innerHTML;
-                        currentBtn.disabled = true;
-                        currentBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processando...';
-
-                        try {
-                            // Construir URL de checkout
-                            const baseUrl = window.location.origin;
-                            const checkoutUrl = `${baseUrl}/assinaturas/plano/${planoSlug}/checkout/`;
-                            console.log('📤 URL de checkout:', checkoutUrl);
-                            
-                            const formData = new FormData();
-                            formData.append('gateway', 'mercadopago');
-                            
-                            console.log('📤 Enviando requisição POST...');
-                            const response = await fetch(checkoutUrl, {
-                                method: 'POST',
-                                headers: {
-                                    'X-CSRFToken': csrftoken || '',
-                                    'X-Requested-With': 'XMLHttpRequest'
-                                },
-                                body: formData
-                            });
-
-                            console.log('📥 Resposta recebida:', response.status, response.statusText);
-
-                            if (!response.ok) {
-                                let errorData;
-                                try {
-                                    errorData = await response.json();
-                                } catch {
-                                    errorData = { detail: `Erro HTTP ${response.status}: ${response.statusText}` };
-                                }
-                                console.error('❌ Erro na resposta:', errorData);
-                                throw new Error(errorData.detail || 'Erro desconhecido.');
-                            }
-
-                            const data = await response.json();
-                            console.log('✅ Dados recebidos:', data);
-                            
-                            if (data.checkout_url) {
-                                console.log('🔄 Redirecionando para:', data.checkout_url);
-                                // Redirecionar para o link de pagamento do Mercado Pago
-                                window.location.href = data.checkout_url;
-                            } else if (data.detail) {
-                                throw new Error(data.detail);
-                            } else {
-                                throw new Error('URL de checkout não recebida do servidor.');
-                            }
-                        } catch (error) {
-                            console.error('❌ Erro ao iniciar checkout:', error);
-                            let errorMessage = error.message;
-                            
-                            // Tratamento específico para "Failed to fetch"
-                            if (errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError')) {
-                                errorMessage = 'Erro de conexão: Não foi possível conectar ao servidor.\n\nVerifique:\n1. Se o servidor Django está rodando\n2. Se a URL está correta\n3. Se há problemas de firewall ou proxy';
+                        // Armazenar plano e botão selecionados
+                        planoSlugSelecionado = planoSlug;
+                        botaoOriginal = currentBtn;
+                        
+                        // Verificar se o modal existe antes de abrir
+                        if (modalDadosPagamento && modalElement) {
+                            // Limpar alertas anteriores
+                            if (alertDadosPagamento) {
+                                alertDadosPagamento.style.display = 'none';
+                                alertDadosPagamento.className = 'alert';
+                                alertDadosPagamento.textContent = '';
                             }
                             
-                            // Tratamento específico para token não configurado
-                            if (errorMessage.includes('MERCADOPAGO_ACCESS_TOKEN')) {
-                                errorMessage = '⚠️ CONFIGURAÇÃO NECESSÁRIA\n\nO token do Mercado Pago não está configurado.\n\nPara configurar:\n\n1. Crie um arquivo .env na raiz do projeto\n2. Adicione a linha:\n   MERCADOPAGO_ACCESS_TOKEN=seu_token_aqui\n\n3. Para obter o token:\n   - Acesse: https://www.mercadopago.com.br/developers/panel\n   - Faça login\n   - Crie uma aplicação\n   - Copie o Access Token\n\n4. Reinicie o servidor Django\n\nConsulte o arquivo .env.example para mais detalhes.';
+                            // Preencher campos com dados do usuário se vazios
+                            const nomeField = document.getElementById('nome_pagamento');
+                            const emailField = document.getElementById('email_pagamento');
+                            
+                            if (nomeField && !nomeField.value.trim()) {
+                                nomeField.value = '{{ user.get_full_name|default:user.username }}';
+                            }
+                            if (emailField && !emailField.value.trim()) {
+                                emailField.value = '{{ user.email|default:"" }}';
                             }
                             
-                            alert('Erro ao iniciar o pagamento:\n\n' + errorMessage + '\n\nAbra o console (F12) para mais detalhes.');
-                            currentBtn.disabled = false;
-                            currentBtn.innerHTML = originalHTML;
+                            // Abrir modal para capturar dados
+                            modalDadosPagamento.show();
+                        } else {
+                            console.error('❌ Modal não encontrado!');
+                            alert('Erro: Modal de dados não encontrado. Por favor, recarregue a página.');
                         }
                     });
                     

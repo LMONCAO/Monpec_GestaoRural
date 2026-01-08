@@ -1,0 +1,73 @@
+========================================
+🔐 REAUTENTICAR E VERIFICAR
+========================================
+
+O serviço está respondendo (HTTP 403), mas precisa reautenticar.
+
+========================================
+1. REAUTENTICAR NO GCLOUD:
+========================================
+
+gcloud auth login
+
+OU se já estiver logado com outra conta:
+
+gcloud config set account l.moncaosilva@gmail.com
+
+========================================
+2. CONFIGURAR PROJETO:
+========================================
+
+gcloud config set project monpec-sistema-rural
+
+========================================
+3. VERIFICAR CLOUD SQL CONECTADO:
+========================================
+
+gcloud run services describe monpec --region=us-central1 --format="value(spec.template.spec.containers[0].cloudSqlInstances)"
+
+========================================
+4. VER LOGS (VERIFICAR ERROS):
+========================================
+
+gcloud run services logs read monpec --region=us-central1 --limit=100 | grep -i "error\|cloud\|socket\|connection"
+
+OU ver todos os logs:
+
+gcloud run services logs read monpec --region=us-central1 --limit=100
+
+========================================
+5. VERIFICAR BANCO DE DADOS:
+========================================
+
+gcloud sql databases list --instance=monpec-db
+
+Se sistema_rural não existir, criar:
+
+gcloud sql databases create sistema_rural --instance=monpec-db
+
+========================================
+6. VERIFICAR VARIÁVEIS DE AMBIENTE:
+========================================
+
+gcloud run services describe monpec --region=us-central1 --format="value(spec.template.spec.containers[0].env)"
+
+========================================
+SOBRE O ERRO 403:
+========================================
+
+O HTTP 403 pode ser:
+- Erro interno do Django (erro 500 sendo mascarado)
+- Problema de conexão com banco ainda
+- CSRF ou segurança bloqueando
+
+Verifique os logs para ver o erro real.
+
+========================================
+
+
+
+
+
+
+

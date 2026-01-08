@@ -1,0 +1,67 @@
+========================================
+✅ VERIFICAR SE ESTÁ FUNCIONANDO
+========================================
+
+Cloud SQL foi conectado! Agora vamos verificar.
+
+========================================
+1. CONFIRMAR CLOUD SQL CONECTADO:
+========================================
+
+gcloud run services describe monpec --region=us-central1 --format="value(spec.template.spec.containers[0].cloudSqlInstances)"
+
+Deve retornar: monpec-sistema-rural:us-central1:monpec-db
+
+========================================
+2. VER LOGS RECENTES:
+========================================
+
+gcloud run services logs read monpec --region=us-central1 --limit=100
+
+Procure por:
+- "✅ Configurado: Cloud SQL via Unix Socket"
+- "🔍 Diagnóstico de Banco de Dados"
+- NÃO deve mais aparecer erro de "127.0.0.1"
+- Verificar se migrações executaram
+
+========================================
+3. VER LOGS DE INICIALIZAÇÃO:
+========================================
+
+gcloud run services logs read monpec --region=us-central1 --limit=200 | grep -i "diagnóstico\|configurado\|cloud\|socket\|migrações"
+
+========================================
+4. TESTAR ACESSO:
+========================================
+
+curl -I https://monpec-29862706245.us-central1.run.app
+
+Ou acesse no navegador:
+https://monpec-29862706245.us-central1.run.app
+
+========================================
+5. VERIFICAR SE BANCO EXISTE:
+========================================
+
+gcloud sql databases list --instance=monpec-db
+
+Se sistema_rural não existir, criar:
+gcloud sql databases create sistema_rural --instance=monpec-db
+
+========================================
+O QUE ESPERAR:
+========================================
+
+✅ Logs devem mostrar conexão via Unix Socket
+✅ Não deve mais ter erro de 127.0.0.1
+✅ Migrações devem executar automaticamente
+✅ Serviço deve responder HTTP 200 (não 403)
+
+========================================
+
+
+
+
+
+
+

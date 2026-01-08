@@ -23,9 +23,13 @@ class LogAuditoria(models.Model):
         ATUALIZAR_ASSINATURA = 'ATUALIZAR_ASSINATURA', 'Atualizar Assinatura'
         CANCELAR_ASSINATURA = 'CANCELAR_ASSINATURA', 'Cancelar Assinatura'
         PROCESSAR_PAGAMENTO = 'PROCESSAR_PAGAMENTO', 'Processar Pagamento'
-        WEBHOOK_STRIPE = 'WEBHOOK_STRIPE', 'Webhook Stripe'
         ACESSO_NAO_AUTORIZADO = 'ACESSO_NAO_AUTORIZADO', 'Tentativa de Acesso Não Autorizado'
         ALTERAR_PERMISSOES = 'ALTERAR_PERMISSOES', 'Alterar Permissões'
+        EMITIR_NFE = 'EMITIR_NFE', 'Emitir Nota Fiscal Eletrônica'
+        CANCELAR_NFE = 'CANCELAR_NFE', 'Cancelar Nota Fiscal Eletrônica'
+        CONSULTAR_STATUS_NFE = 'CONSULTAR_STATUS_NFE', 'Consultar Status de NF-e'
+        UPLOAD_XML_NFE = 'UPLOAD_XML_NFE', 'Upload de XML de NF-e'
+        SINCRONIZAR_NFE_RECEBIDAS = 'SINCRONIZAR_NFE_RECEBIDAS', 'Sincronizar NF-e Recebidas'
     
     class NivelSeveridade(models.TextChoices):
         BAIXO = 'BAIXO', 'Baixo'

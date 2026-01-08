@@ -1,0 +1,72 @@
+========================================
+🔍 DIAGNÓSTICO COMPLETO DO PROBLEMA
+========================================
+
+O Django ainda está tentando conectar em 127.0.0.1 em vez do Cloud SQL.
+
+========================================
+VERIFICAÇÕES NECESSÁRIAS:
+========================================
+
+1. VERIFICAR SE CLOUD SQL ESTÁ CONECTADO:
+   gcloud run services describe monpec --region=us-central1 --format="value(spec.template.spec.containers[0].cloudSqlInstances)"
+   
+   Deve retornar: monpec-sistema-rural:us-central1:monpec-db
+   Se retornar vazio, o Cloud SQL NÃO está conectado!
+
+2. VERIFICAR VARIÁVEIS DE AMBIENTE:
+   gcloud run services describe monpec --region=us-central1 --format="value(spec.template.spec.containers[0].env)"
+   
+   Deve ter:
+   - CLOUD_SQL_CONNECTION_NAME=monpec-sistema-rural:us-central1:monpec-db
+   - DB_NAME=sistema_rural
+   - DB_USER=postgres
+   - DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp
+
+3. VER LOGS DE INICIALIZAÇÃO (ver o que settings_gcp.py detectou):
+   gcloud run services logs read monpec --region=us-central1 --limit=200 | grep -i "diagnóstico\|cloud\|socket\|IS_CLOUD_RUN\|IS_GAE"
+
+========================================
+SOLUÇÃO DEFINITIVA:
+========================================
+
+Se Cloud SQL não estiver conectado OU variáveis estiverem erradas,
+fazer deploy completo novamente:
+
+cd ~/Monpec_GestaoRural
+
+gcloud run deploy monpec \
+    --source . \
+    --platform managed \
+    --region us-central1 \
+    --allow-unauthenticated \
+    --port 8080 \
+    --memory 4Gi \
+    --cpu 2 \
+    --timeout 900 \
+    --add-cloudsql-instances=monpec-sistema-rural:us-central1:monpec-db \
+    --set-env-vars="CLOUD_SQL_CONNECTION_NAME=monpec-sistema-rural:us-central1:monpec-db,DB_NAME=sistema_rural,DB_USER=postgres,DB_PASSWORD=L6171r12@@jjms,SECRET_KEY=rfzjy1t\$\$d_cmjb2n-wda0oi+)p!(_4!4\$na-n-1a60\$2gyspo,DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,DEBUG=False" \
+    --max-instances=10 \
+    --min-instances=0
+
+========================================
+VERIFICAR APÓS DEPLOY:
+========================================
+
+1. Ver logs de inicialização:
+   gcloud run services logs read monpec --region=us-central1 --limit=100 | grep -i "diagnóstico\|configurado\|cloud"
+
+2. Verificar se não há mais erro 127.0.0.1:
+   gcloud run services logs read monpec --region=us-central1 --limit=50 | grep -i "127.0.0.1"
+
+3. Testar acesso:
+   curl https://monpec-29862706245.us-central1.run.app
+
+========================================
+
+
+
+
+
+
+

@@ -140,6 +140,27 @@
         color: #dc3545;
     }
     
+    /* Botões de Período Rápido */
+    .periodo-rapido {
+        transition: all 0.2s ease;
+        border-radius: 4px;
+    }
+    
+    .periodo-rapido:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .periodo-rapido.active {
+        background-color: #0d6efd;
+        color: white;
+        border-color: #0d6efd;
+    }
+    
+    .btn-group.flex-wrap {
+        gap: 0.25rem;
+    }
+    
     /* Timeline de Atividades */
     .timeline-activities {
         max-height: 700px;
@@ -584,7 +605,7 @@
                     <button class="btn btn-sm btn-outline-secondary" onclick="exportarDashboard()" title="Exportar dashboard">
                         <i class="bi bi-download"></i> Exportar
                     </button>
-                    <button class="btn btn-sm btn-outline-secondary" onclick="window.location.reload()" title="Atualizar dados">
+                    <button class="btn btn-sm btn-outline-secondary" onclick="atualizarDashboard()" title="Atualizar dados">
                         <i class="bi bi-arrow-clockwise"></i> Atualizar
                     </button>
                 </div>
@@ -593,23 +614,56 @@
             <!-- Filtros de Data Personalizada -->
             <div class="card mb-3 border-0 shadow-sm">
                 <div class="card-body py-2">
+                    <!-- Períodos Automáticos -->
+                    <div class="mb-3">
+                        <label class="form-label small text-muted mb-2 d-block">
+                            <i class="bi bi-clock-history me-1"></i>Períodos Rápidos:
+                        </label>
+                        <div class="btn-group btn-group-sm flex-wrap" role="group">
+                            <button type="button" class="btn btn-outline-primary periodo-rapido" data-dias="7">
+                                <i class="bi bi-calendar-week me-1"></i>7 dias
+                            </button>
+                            <button type="button" class="btn btn-outline-primary periodo-rapido" data-dias="30">
+                                <i class="bi bi-calendar-month me-1"></i>30 dias
+                            </button>
+                            <button type="button" class="btn btn-outline-primary periodo-rapido" data-dias="90">
+                                <i class="bi bi-calendar-range me-1"></i>90 dias
+                            </button>
+                            <button type="button" class="btn btn-outline-primary periodo-rapido" data-meses="6">
+                                <i class="bi bi-calendar2-range me-1"></i>6 meses
+                            </button>
+                            <button type="button" class="btn btn-outline-primary periodo-rapido" data-meses="12">
+                                <i class="bi bi-calendar2-range me-1"></i>12 meses
+                            </button>
+                            <button type="button" class="btn btn-outline-primary periodo-rapido" data-mes="atual">
+                                <i class="bi bi-calendar-check me-1"></i>Mês Atual
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Filtros de Data Manual -->
                     <div class="row g-2 align-items-end">
                         <div class="col-md-4">
                             <label class="form-label small text-muted mb-1">
                                 <i class="bi bi-calendar-event me-1"></i>Data Inicial:
                             </label>
-                            <input type="date" class="form-control form-control-sm" id="filtroDataInicio" value="{{ data_inicio|date:'Y-m-d' }}" onchange="aplicarFiltrosData()">
+                            <input type="date" class="form-control form-control-sm" id="filtroDataInicio" value="{{ data_inicio|date:'Y-m-d' }}">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label small text-muted mb-1">
                                 <i class="bi bi-calendar-check me-1"></i>Data Final:
                             </label>
-                            <input type="date" class="form-control form-control-sm" id="filtroDataFim" value="{{ data_fim|date:'Y-m-d' }}" onchange="aplicarFiltrosData()">
+                            <input type="date" class="form-control form-control-sm" id="filtroDataFim" value="{{ data_fim|date:'Y-m-d' }}">
                         </div>
-                        <div class="col-md-4 text-end">
-                            <button class="btn btn-sm btn-outline-secondary" onclick="limparFiltrosData()" title="Limpar filtros de data">
-                                <i class="bi bi-x-circle me-1"></i>Limpar
-                            </button>
+                        <div class="col-md-4">
+                            <div class="d-flex gap-2 justify-content-end">
+                                <button class="btn btn-sm btn-primary" onclick="aplicarFiltrosData()" title="Aplicar filtros de data">
+                                    <i class="bi bi-funnel me-1"></i>Filtrar
+                                </button>
+                                <button class="btn btn-sm btn-outline-secondary" onclick="limparFiltrosData()" title="Limpar filtros de data">
+                                    <i class="bi bi-x-circle me-1"></i>Limpar
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -669,13 +723,13 @@
         <div class="col-lg-3 col-md-6 col-sm-6">
             <div class="metric-card primary">
                 <div class="metric-label">Total de Animais</div>
-                <div class="metric-value">{{ total_animais_inventario|numero_br }}</div>
+                <div class="metric-value">{{ total_animais_inventario|default:0|numero_br }}</div>
                 <div class="d-flex justify-content-between align-items-center mt-1">
-                    <div class="small opacity-75" style="font-size: 0.7rem;">Valor: {{ valor_total_rebanho|moeda_br }}</div>
-                    {% if tendencia_animais != 0 %}
-                    <div class="trend-indicator {% if tendencia_animais > 0 %}trend-up{% else %}trend-down{% endif %}">
-                        <i class="bi {% if tendencia_animais > 0 %}bi-arrow-up{% else %}bi-arrow-down{% endif %}"></i>
-                        <span>{{ percentual_animais_abs|floatformat:1 }}%</span>
+                    <div class="small opacity-75" style="font-size: 0.7rem;">Valor: {{ valor_total_rebanho|default:0|moeda_br }}</div>
+                    {% if tendencia_animais|default:0 != 0 %}
+                    <div class="trend-indicator {% if tendencia_animais|default:0 > 0 %}trend-up{% else %}trend-down{% endif %}">
+                        <i class="bi {% if tendencia_animais|default:0 > 0 %}bi-arrow-up{% else %}bi-arrow-down{% endif %}"></i>
+                        <span>{{ percentual_animais_abs|default:0|floatformat:1 }}%</span>
                     </div>
                     {% endif %}
                 </div>
@@ -687,13 +741,13 @@
         <div class="col-lg-3 col-md-6 col-sm-6">
             <div class="metric-card success">
                 <div class="metric-label">Receitas (Período)</div>
-                <div class="metric-value">{{ receitas_mes|moeda_br }}</div>
+                <div class="metric-value">{{ receitas_mes|default:0|moeda_br }}</div>
                 <div class="d-flex justify-content-between align-items-center mt-1">
-                    <div class="small opacity-75" style="font-size: 0.7rem;">Saldo: {{ saldo_mes|moeda_br }}</div>
-                    {% if tendencia_receitas != 0 %}
-                    <div class="trend-indicator {% if tendencia_receitas > 0 %}trend-up{% else %}trend-down{% endif %}">
-                        <i class="bi {% if tendencia_receitas > 0 %}bi-arrow-up{% else %}bi-arrow-down{% endif %}"></i>
-                        <span>{{ percentual_receitas_abs|floatformat:1 }}%</span>
+                    <div class="small opacity-75" style="font-size: 0.7rem;">Saldo: {{ saldo_mes|default:0|moeda_br }}</div>
+                    {% if tendencia_receitas|default:0 != 0 %}
+                    <div class="trend-indicator {% if tendencia_receitas|default:0 > 0 %}trend-up{% else %}trend-down{% endif %}">
+                        <i class="bi {% if tendencia_receitas|default:0 > 0 %}bi-arrow-up{% else %}bi-arrow-down{% endif %}"></i>
+                        <span>{{ percentual_receitas_abs|default:0|floatformat:1 }}%</span>
                     </div>
                     {% endif %}
                 </div>
@@ -705,13 +759,13 @@
         <div class="col-lg-3 col-md-6 col-sm-6">
             <div class="metric-card warning">
                 <div class="metric-label">Despesas (Período)</div>
-                <div class="metric-value">{{ despesas_mes|moeda_br }}</div>
+                <div class="metric-value">{{ despesas_mes|default:0|moeda_br }}</div>
                 <div class="d-flex justify-content-between align-items-center mt-1">
-                    <div class="small opacity-75" style="font-size: 0.7rem;">Margem: {{ margem_lucro|floatformat:1 }}%</div>
-                    {% if tendencia_despesas != 0 %}
-                    <div class="trend-indicator {% if tendencia_despesas < 0 %}trend-up{% else %}trend-down{% endif %}">
-                        <i class="bi {% if tendencia_despesas < 0 %}bi-arrow-down{% else %}bi-arrow-up{% endif %}"></i>
-                        <span>{{ percentual_despesas_abs|floatformat:1 }}%</span>
+                    <div class="small opacity-75" style="font-size: 0.7rem;">Margem: {{ margem_lucro|default:0|floatformat:1 }}%</div>
+                    {% if tendencia_despesas|default:0 != 0 %}
+                    <div class="trend-indicator {% if tendencia_despesas|default:0 < 0 %}trend-up{% else %}trend-down{% endif %}">
+                        <i class="bi {% if tendencia_despesas|default:0 < 0 %}bi-arrow-down{% else %}bi-arrow-up{% endif %}"></i>
+                        <span>{{ percentual_despesas_abs|default:0|floatformat:1 }}%</span>
                     </div>
                     {% endif %}
                 </div>
@@ -723,13 +777,13 @@
         <div class="col-lg-3 col-md-6 col-sm-6">
             <div class="metric-card info">
                 <div class="metric-label">Custos Operacionais</div>
-                <div class="metric-value">{{ total_custos_operacionais|moeda_br }}</div>
+                <div class="metric-value">{{ total_custos_operacionais|default:0|moeda_br }}</div>
                 <div class="d-flex justify-content-between align-items-center mt-1">
                     <div class="small opacity-75" style="font-size: 0.65rem;">Combustível + Folha + Suplementação</div>
-                    {% if tendencia_custos != 0 %}
-                    <div class="trend-indicator {% if tendencia_custos < 0 %}trend-up{% else %}trend-down{% endif %}">
-                        <i class="bi {% if tendencia_custos < 0 %}bi-arrow-down{% else %}bi-arrow-up{% endif %}"></i>
-                        <span>{{ percentual_custos_abs|floatformat:1 }}%</span>
+                    {% if tendencia_custos|default:0 != 0 %}
+                    <div class="trend-indicator {% if tendencia_custos|default:0 < 0 %}trend-up{% else %}trend-down{% endif %}">
+                        <i class="bi {% if tendencia_custos|default:0 < 0 %}bi-arrow-down{% else %}bi-arrow-up{% endif %}"></i>
+                        <span>{{ percentual_custos_abs|default:0|floatformat:1 }}%</span>
                     </div>
                     {% endif %}
                 </div>
@@ -2149,6 +2203,58 @@ function limparFiltrosData() {
     url.searchParams.delete('modulo_filtro');
     window.location.href = url.toString();
 }
+
+function atualizarDashboard() {
+    // Manter os filtros de data ao atualizar
+    const dataInicio = document.getElementById('filtroDataInicio').value;
+    const dataFim = document.getElementById('filtroDataFim').value;
+    const url = new URL(window.location);
+    
+    // Manter os parâmetros de data se existirem
+    if (dataInicio) {
+        url.searchParams.set('data_inicio', dataInicio);
+    }
+    if (dataFim) {
+        url.searchParams.set('data_fim', dataFim);
+    }
+    
+    // Recarregar a página mantendo os filtros
+    window.location.href = url.toString();
+}
+
+// Função para aplicar períodos automáticos
+function aplicarPeriodoRapido(dias, meses, mesAtual) {
+    const hoje = new Date();
+    const dataFim = new Date(hoje);
+    let dataInicio = new Date(hoje);
+    
+    if (mesAtual) {
+        // Mês atual: primeiro dia do mês até hoje
+        dataInicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+    } else if (meses) {
+        // X meses atrás
+        dataInicio.setMonth(dataInicio.getMonth() - meses);
+    } else if (dias) {
+        // X dias atrás
+        dataInicio.setDate(dataInicio.getDate() - dias);
+    }
+    
+    // Formatar datas para YYYY-MM-DD
+    const formatarData = (data) => {
+        const ano = data.getFullYear();
+        const mes = String(data.getMonth() + 1).padStart(2, '0');
+        const dia = String(data.getDate()).padStart(2, '0');
+        return `${ano}-${mes}-${dia}`;
+    };
+    
+    // Atualizar os campos de data
+    document.getElementById('filtroDataInicio').value = formatarData(dataInicio);
+    document.getElementById('filtroDataFim').value = formatarData(dataFim);
+    
+    // Aplicar os filtros automaticamente
+    aplicarFiltrosData();
+}
+
 
 // Função antiga mantida para compatibilidade (se ainda existir em algum lugar)
 function aplicarFiltrosGlobais() {

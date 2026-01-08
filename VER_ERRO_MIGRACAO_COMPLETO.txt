@@ -1,0 +1,37 @@
+========================================
+VER ERRO COMPLETO DA MIGRAÇÃO
+========================================
+
+Execute no Cloud Shell:
+
+gcloud run services logs read monpec --region=us-central1 --limit=500 | grep -A 20 "0034_financeiro_reestruturado"
+
+Isso vai mostrar o erro completo da migração que está falhando.
+
+========================================
+SOLUÇÃO TEMPORÁRIA: Pular migração problemática
+========================================
+
+Se a migração 0034 está causando problema, você pode:
+
+1. Marcar como aplicada sem executar:
+   
+   Conectar ao banco e executar:
+   INSERT INTO django_migrations (app, name, applied) 
+   VALUES ('gestao_rural', '0034_financeiro_reestruturado', NOW())
+   ON CONFLICT DO NOTHING;
+
+2. Ou executar migrações até antes dessa:
+   
+   python manage.py migrate gestao_rural 0033 --settings=sistema_rural.settings_gcp
+
+3. Depois continuar com as outras migrações
+
+========================================
+
+
+
+
+
+
+

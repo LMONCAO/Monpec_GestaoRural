@@ -3,14 +3,12 @@
 Comando Django para carregar dados do banco de dados para o sistema web.
 
 Suporta múltiplas fontes:
-- SQLite (arquivo .db ou .sqlite3)
 - PostgreSQL
 - Arquivo JSON
 - Arquivo CSV
 - Sincronização de dados existentes
 
 Uso:
-    python manage.py carregar_dados_banco --fonte sqlite --caminho db_backup.sqlite3
     python manage.py carregar_dados_banco --fonte postgresql --host localhost --port 5432 --database meu_banco --user meu_user --password minha_senha
     python manage.py carregar_dados_banco --fonte json --caminho dados.json
     python manage.py carregar_dados_banco --fonte csv --caminho dados.csv --tabela gestao_rural_produtorrural
@@ -20,7 +18,6 @@ Uso:
 import os
 import json
 import csv
-import sqlite3
 from pathlib import Path
 from decimal import Decimal
 from datetime import datetime, date
@@ -45,15 +42,15 @@ class Command(BaseCommand):
             '--fonte',
             type=str,
             required=True,
-            choices=['sqlite', 'postgresql', 'json', 'csv', 'sincronizar'],
-            help='Fonte dos dados: sqlite, postgresql, json, csv ou sincronizar'
+            choices=['postgresql', 'json', 'csv', 'sincronizar'],
+            help='Fonte dos dados: postgresql, json, csv ou sincronizar'
         )
         
-        # Opções para SQLite
+        # Opções para arquivos (JSON ou CSV)
         parser.add_argument(
             '--caminho',
             type=str,
-            help='Caminho do arquivo (SQLite, JSON ou CSV)'
+            help='Caminho do arquivo (JSON ou CSV)'
         )
         
         # Opções para PostgreSQL
@@ -115,9 +112,7 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING('⚠️  MODO DRY-RUN: Nenhum dado será salvo'))
         
         try:
-            if fonte == 'sqlite':
-                self.importar_sqlite(options, dry_run)
-            elif fonte == 'postgresql':
+            if fonte == 'postgresql':
                 self.importar_postgresql(options, dry_run)
             elif fonte == 'json':
                 self.importar_json(options, dry_run)
@@ -131,51 +126,6 @@ class Command(BaseCommand):
         except Exception as e:
             self.stdout.write(self.style.ERROR(f'❌ Erro durante importação: {str(e)}'))
             raise CommandError(f'Erro ao importar dados: {str(e)}')
-
-    def importar_sqlite(self, options: Dict, dry_run: bool):
-        """Importa dados de um banco SQLite"""
-        caminho = options.get('caminho')
-        if not caminho:
-            raise CommandError('--caminho é obrigatório para fonte sqlite')
-        
-        caminho = Path(caminho)
-        if not caminho.exists():
-            raise CommandError(f'Arquivo não encontrado: {caminho}')
-        
-        self.stdout.write(f'📂 Conectando ao banco SQLite: {caminho}')
-        
-        conn = sqlite3.connect(str(caminho))
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
-        
-        try:
-            # Listar todas as tabelas
-            cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
-            tabelas = [row[0] for row in cursor.fetchall()]
-            
-            tabela_especifica = options.get('tabela')
-            if tabela_especifica:
-                tabelas = [t for t in tabelas if t == tabela_especifica]
-            
-            self.stdout.write(f'📊 Encontradas {len(tabelas)} tabelas')
-            
-            for tabela in tabelas:
-                if tabela.startswith('sqlite_') or tabela.startswith('django_'):
-                    continue
-                
-                self.stdout.write(f'  📋 Processando tabela: {tabela}')
-                
-                cursor.execute(f"SELECT * FROM {tabela}")
-                colunas = [desc[0] for desc in cursor.description]
-                registros = cursor.fetchall()
-                
-                self.stdout.write(f'    ✅ {len(registros)} registros encontrados')
-                
-                if not dry_run:
-                    self.processar_registros_sqlite(tabela, colunas, registros, options)
-        
-        finally:
-            conn.close()
 
     def importar_postgresql(self, options: Dict, dry_run: bool):
         """Importa dados de um banco PostgreSQL"""
@@ -319,12 +269,12 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS('✅ Dados sincronizados!'))
 
     @transaction.atomic
-    def processar_registros_sqlite(self, tabela: str, colunas: List[str], registros: List, options: Dict):
-        """Processa registros do SQLite"""
+    def processar_registros_postgresql(self, tabela: str, colunas: List[str], registros: List, options: Dict):
+        """Processa registros do PostgreSQL"""
         sobrescrever = options.get('sobrescrever', False)
         usuario_id = options.get('usuario_id')
         
-        # Mapear tabelas do SQLite para modelos Django
+        # Mapear tabelas para modelos Django
         mapeamento = {
             'gestao_rural_produtorrural': ProdutorRural,
             'gestao_rural_propriedade': Propriedade,
@@ -367,12 +317,6 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.WARNING(f'    ⚠️  Erro ao processar registro: {str(e)}'))
         
         self.stdout.write(self.style.SUCCESS(f'    ✅ {contador} registros importados'))
-
-    @transaction.atomic
-    def processar_registros_postgresql(self, tabela: str, colunas: List[str], registros: List, options: Dict):
-        """Processa registros do PostgreSQL"""
-        # Similar ao SQLite, mas pode ter diferenças de tipos
-        self.processar_registros_sqlite(tabela, colunas, registros, options)
 
     @transaction.atomic
     def processar_registros_json(self, tabela: str, registros: List[Dict], options: Dict):

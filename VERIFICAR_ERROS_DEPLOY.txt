@@ -1,0 +1,154 @@
+========================================
+🔍 COMANDOS PARA VERIFICAR ERROS NO DEPLOY
+========================================
+
+========================================
+1. VER LOGS DO CLOUD RUN
+========================================
+
+# Ver últimos 50 logs
+gcloud run services logs read monpec --region=us-central1 --limit=50
+
+# Ver logs em tempo real
+gcloud run services logs tail monpec --region=us-central1
+
+# Ver apenas erros
+gcloud run services logs read monpec --region=us-central1 --limit=100 | grep -i error
+
+========================================
+2. VERIFICAR CONFIGURAÇÃO DO SERVIÇO
+========================================
+
+# Ver todas as variáveis de ambiente
+gcloud run services describe monpec --region=us-central1 --format="value(spec.template.spec.containers[0].env)"
+
+# Ver configuração completa
+gcloud run services describe monpec --region=us-central1
+
+# Verificar se Cloud SQL está conectado
+gcloud run services describe monpec --region=us-central1 --format="value(spec.template.spec.containers[0].cloudSqlInstances)"
+
+========================================
+3. VERIFICAR STATUS DO SERVIÇO
+========================================
+
+# Ver status geral
+gcloud run services describe monpec --region=us-central1 --format="value(status.conditions)"
+
+# Ver URL do serviço
+gcloud run services describe monpec --region=us-central1 --format="value(status.url)"
+
+# Ver última revisão
+gcloud run revisions list --service=monpec --region=us-central1
+
+========================================
+4. TESTAR CONEXÃO COM O BANCO
+========================================
+
+# Verificar se o banco existe
+gcloud sql databases list --instance=monpec-db
+
+# Verificar usuários
+gcloud sql users list --instance=monpec-db
+
+# Verificar instância Cloud SQL
+gcloud sql instances describe monpec-db
+
+========================================
+5. VERIFICAR BUILD/IMAGEM
+========================================
+
+# Ver logs do Cloud Build (se usado)
+gcloud builds list --limit=5
+
+# Ver detalhes do último build
+gcloud builds list --limit=1 --format="value(id)" | xargs gcloud builds describe
+
+========================================
+6. VERIFICAR PERMISSÕES
+========================================
+
+# Ver IAM do Cloud Run
+gcloud run services get-iam-policy monpec --region=us-central1
+
+# Ver service account usado
+gcloud run services describe monpec --region=us-central1 --format="value(spec.template.spec.serviceAccountName)"
+
+========================================
+7. TESTAR ACESSO AO SERVIÇO
+========================================
+
+# Obter URL
+SERVICE_URL=$(gcloud run services describe monpec --region=us-central1 --format="value(status.url)")
+
+# Testar acesso
+curl -I $SERVICE_URL
+
+# Ver resposta completa
+curl $SERVICE_URL
+
+========================================
+ERROS COMUNS E SOLUÇÕES
+========================================
+
+ERRO: "CLOUD_SQL_CONNECTION_NAME não definido"
+→ Verificar variáveis de ambiente
+→ Solução: Atualizar com --set-env-vars
+
+ERRO: "Connection refused" ou "could not connect"
+→ Verificar se Cloud SQL está conectado ao Cloud Run
+→ Solução: Adicionar conexão no console ou via --add-cloudsql-instances
+
+ERRO: "authentication failed" ou "password authentication failed"
+→ Verificar usuário e senha
+→ Solução: Usar postgres como usuário (não monpec)
+
+ERRO: "database does not exist"
+→ Verificar se banco sistema_rural existe
+→ Solução: Criar banco: gcloud sql databases create sistema_rural --instance=monpec-db
+
+ERRO: "Module not found" ou "ImportError"
+→ Verificar requirements_producao.txt
+→ Solução: Verificar logs do build
+
+ERRO: "Static files not found"
+→ Verificar se collectstatic executou
+→ Solução: Verificar logs do entrypoint.sh
+
+ERRO: "Migration failed"
+→ Verificar logs detalhados
+→ Solução: Executar migrações manualmente se necessário
+
+========================================
+COMANDO RÁPIDO PARA DIAGNÓSTICO COMPLETO
+========================================
+
+Execute tudo de uma vez:
+
+echo "=== STATUS DO SERVIÇO ==="
+gcloud run services describe monpec --region=us-central1 --format="value(status.conditions)"
+
+echo ""
+echo "=== VARIÁVEIS DE AMBIENTE ==="
+gcloud run services describe monpec --region=us-central1 --format="value(spec.template.spec.containers[0].env)"
+
+echo ""
+echo "=== CLOUD SQL CONECTADO ==="
+gcloud run services describe monpec --region=us-central1 --format="value(spec.template.spec.containers[0].cloudSqlInstances)"
+
+echo ""
+echo "=== ÚLTIMOS LOGS (50 linhas) ==="
+gcloud run services logs read monpec --region=us-central1 --limit=50
+
+echo ""
+echo "=== URL DO SERVIÇO ==="
+gcloud run services describe monpec --region=us-central1 --format="value(status.url)"
+
+========================================
+
+
+
+
+
+
+

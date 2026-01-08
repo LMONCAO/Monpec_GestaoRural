@@ -1,0 +1,59 @@
+========================================
+INSTRUÇÕES: CRIAR DOCKERFILE PARA GOOGLE CLOUD
+========================================
+
+O Dockerfile precisa ser criado manualmente na raiz do projeto.
+
+1. Crie um arquivo chamado "Dockerfile" (sem extensão) na raiz
+2. Cole o seguinte conteúdo:
+
+----------------------------------------
+# Dockerfile para Google Cloud Run
+FROM python:3.11-slim
+
+# Definir diretório de trabalho
+WORKDIR /app
+
+# Instalar dependências do sistema
+RUN apt-get update && apt-get install -y \
+    gcc \
+    postgresql-client \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copiar requirements e instalar dependências Python
+COPY requirements_producao.txt .
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements_producao.txt
+
+# Copiar código do projeto
+COPY . .
+
+# Criar diretórios necessários
+RUN mkdir -p /app/staticfiles /app/media /app/logs
+
+# Configurar variáveis de ambiente padrão
+ENV PYTHONUNBUFFERED=1
+ENV DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp
+ENV PORT=8080
+
+# Tornar entrypoint.sh executável
+RUN chmod +x entrypoint.sh
+
+# Expor porta
+EXPOSE 8080
+
+# Usar entrypoint.sh para iniciar o servidor
+ENTRYPOINT ["./entrypoint.sh"]
+----------------------------------------
+
+3. Salve o arquivo
+
+========================================
+
+
+
+
+
+
+

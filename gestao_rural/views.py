@@ -176,7 +176,7 @@ def google_search_console_verification(request):
 
 
 def health_check(request):
-    """Endpoint de health check para monitoramento (Fly.io, Cloud Run, etc)."""
+    """Endpoint de health check para monitoramento do Google Cloud Run."""
     return HttpResponse("OK", content_type="text/plain", status=200)
 
 
@@ -291,57 +291,54 @@ def criar_usuario_demonstracao(request):
                     'message': 'Erro ao criar usuário. Por favor, tente novamente em alguns instantes.'
                 }, status=503)
         
-        # 2. Criar UsuarioAtivo (opcional - não bloqueia se falhar)
-        try:
-            UsuarioAtivo.objects.get_or_create(
-                usuario=user,
-                defaults={
-                    'nome_completo': nome_completo,
-                    'email': email.lower(),
-                    'telefone': telefone or '',
-                }
-            )
-            logger.info(f'[DEMO_CADASTRO] UsuarioAtivo criado/atualizado')
-        except Exception as e:
-            logger.warning(f'[DEMO_CADASTRO] UsuarioAtivo não pôde ser criado (não crítico): {e}')
+        # 2. UsuarioAtivo removido - tabela não existe no banco atual
         
         # 3. ✅ NOVO: Criar propriedade com dados automaticamente
         from .views_demo_setup import _criar_dados_demo_completos
+        propriedade_criada = False
         try:
             propriedade = _criar_dados_demo_completos(user, nome_completo, email, telefone)
             if propriedade:
+                propriedade_criada = True
                 logger.info(f'[DEMO_CADASTRO] Propriedade demo criada: {propriedade.nome_propriedade} (ID: {propriedade.id})')
+            else:
+                logger.warning(f'[DEMO_CADASTRO] Função _criar_dados_demo_completos retornou None')
         except Exception as e:
             logger.error(f'[DEMO_CADASTRO] Erro ao criar dados demo: {e}', exc_info=True)
-            # Continuar mesmo se falhar - usuário pode criar depois
+            # Continuar mesmo se falhar - usuário será redirecionado para demo_setup que criará os dados
         
-        # 4. Fazer login
+        # 4. Fazer login automático
         try:
             login(request, user)
             logger.info(f'[DEMO_CADASTRO] Login automático realizado')
         except Exception as e:
             logger.error(f'[DEMO_CADASTRO] Erro no login automático: {e}')
-            # Mesmo com erro, retornar sucesso e redirecionar para login manual
-            return JsonResponse({
-                'success': True,
-                'message': 'Usuário criado! Redirecionando para login...',
-                'redirect_url': reverse('login') + f'?demo=true&email={urllib.parse.quote(email)}'
-            })
         
-        # 5. Retornar sucesso - redirecionar para demo_loading
-        mensagem = 'Usuário criado com sucesso! Configurando demonstração...' if not usuario_existente else 'Bem-vindo de volta! Redirecionando...'
+        # 5. Retornar sucesso - SEMPRE redirecionar para demo_loading
+        mensagem = 'Demonstração criada com sucesso! Preparando ambiente...'
+        demo_loading_url = reverse('demo_loading')
+        logger.info(f'[DEMO_CADASTRO] SEMPRE redirecionando para demo_loading: {demo_loading_url}')
         return JsonResponse({
             'success': True,
             'message': mensagem,
-            'redirect_url': reverse('demo_loading')
+            'redirect_url': reverse('criando_usuario_demo')
         })
-                
+        
     except Exception as e:
         logger.error(f'[DEMO_CADASTRO] Erro inesperado: {type(e).__name__}: {e}', exc_info=True)
         return JsonResponse({
             'success': False,
             'message': 'Erro ao criar usuário. Por favor, tente novamente ou entre em contato com o suporte.'
         }, status=500)
+
+
+@login_required
+def criando_usuario_demo(request):
+    """
+    Página intermediária mostrando criação do usuário demo
+    Redireciona automaticamente para demo_loading
+    """
+    return render(request, 'gestao_rural/demo/criando_usuario_demo.html')
 
 
 def contato_submit(request):
@@ -501,8 +498,9 @@ Enviado automaticamente através do formulário de contato do site MONPEC."""
             logger.error(f'Erro ao enviar WhatsApp: {str(e)}. Link criado: {url_whatsapp}')
         
         # Se for contato normal, redirecionar para landing page com mensagem de sucesso
-        messages.success(request, 'Mensagem enviada! Logo um dos nossos consultores retornará sua solicitação.')
-        return redirect(reverse('landing_page') + '#contato?form_submitted=1')
+        messages.success(request, 'Mensagem enviada com sucesso! Logo um dos nossos consultores retornará sua solicitação.')
+        # Usar redirect com hash e query parameter para garantir que a mensagem apareça
+        return redirect(reverse('landing_page') + '#contato?form_submitted=1&success=1')
     
     # Se não for POST, redirecionar para landing page
     return redirect('landing_page')
@@ -987,61 +985,141 @@ def logout_view(request):
 
 @login_required
 def dashboard(request):
-    """Dashboard principal - mostra lista de produtores ou redireciona para primeira propriedade"""
+    """Dashboard principal - mostra lista de propriedades (fazendas)"""
     from .services.dashboard_service import DashboardService
     from .helpers_acesso import is_usuario_demo
     from django.db import ProgrammingError
+    from .models import Propriedade
     
     try:
+        # Obter parâmetros de busca e ordenação
+        busca = request.GET.get('busca', '').strip()
+        ordenar_por = request.GET.get('ordenar', 'nome_propriedade')
+        direcao = request.GET.get('direcao', 'asc')
+        
         # Usar serviço para obter dados do dashboard
         dados = DashboardService.obter_dados_dashboard(request.user)
+        propriedades = dados['propriedades']
         
-        # Se encontrou uma propriedade prioritária, redirecionar
-        if dados['propriedade_prioritaria']:
-            return redirect('propriedade_modulos', propriedade_id=dados['propriedade_prioritaria'].id)
+        # Aplicar busca se fornecida
+        if busca:
+            propriedades = propriedades.filter(
+                Q(nome_propriedade__icontains=busca) |
+                Q(municipio__icontains=busca) |
+                Q(uf__icontains=busca) |
+                Q(produtor__nome__icontains=busca)
+            )
+        
+        # Anotar com total de animais para ordenação e exibição
+        propriedades = propriedades.annotate(
+            total_animais_calc=Count('animais_individuais', filter=Q(animais_individuais__status='ATIVO'))
+        )
+        
+        # Aplicar ordenação
+        if ordenar_por == 'nome_propriedade':
+            propriedades = propriedades.order_by(f'{"" if direcao == "asc" else "-"}nome_propriedade')
+        elif ordenar_por == 'municipio':
+            propriedades = propriedades.order_by(f'{"" if direcao == "asc" else "-"}municipio')
+        elif ordenar_por == 'uf':
+            propriedades = propriedades.order_by(f'{"" if direcao == "asc" else "-"}uf')
+        elif ordenar_por == 'animais':
+            propriedades = propriedades.order_by(f'{"" if direcao == "asc" else "-"}total_animais_calc')
+        else:
+            propriedades = propriedades.order_by('nome_propriedade')
+        
+        # Calcular total de animais de todas as propriedades
+        total_animais = sum(prop.total_animais_calc for prop in propriedades)
+        
+        # Paginação
+        paginator = Paginator(propriedades, 12)  # 12 propriedades por página
+        page_number = request.GET.get('page', 1)
+        page_obj = paginator.get_page(page_number)
+        
+        # Adicionar atributo total_animais para cada propriedade (compatibilidade com template)
+        for prop in page_obj:
+            if not hasattr(prop, 'total_animais'):
+                prop.total_animais = getattr(prop, 'total_animais_calc', 0)
         
         # Se não houver propriedades, verificar se é demo
         is_demo_user = is_usuario_demo(request.user)
         logger.info(f'[DASHBOARD] is_demo_user: {is_demo_user}, total_propriedades: {dados["total_propriedades"]}')
         
-        if is_demo_user:
+        if is_demo_user and dados['total_propriedades'] == 0:
             logger.info(f'[DASHBOARD] Usuário demo sem propriedades. Redirecionando para demo_setup.')
             messages.info(request, 'Configurando sua demonstração...')
             return redirect('demo_setup')
         
-        # ✅ NOVO: Se não houver propriedades e não for demo, redirecionar para landing page
+        # Se não houver propriedades e não for demo, mostrar estado vazio
         if dados['total_propriedades'] == 0:
-            logger.info(f'[DASHBOARD] Nenhuma propriedade encontrada. Redirecionando para landing page.')
-            messages.info(request, 'Você ainda não tem propriedades cadastradas. Acesse o menu para cadastrar sua primeira propriedade.')
-            return redirect('landing_page')
+            logger.info(f'[DASHBOARD] Nenhuma propriedade encontrada.')
+            return render(request, 'gestao_rural/dashboard.html', {
+                'propriedades': [],
+                'total_propriedades': 0,
+                'total_animais': 0,
+                'busca': busca,
+                'ordenar_por': ordenar_por,
+                'direcao': direcao,
+                'page_obj': None,
+            })
         
-        # Renderizar dashboard com lista de produtores
+        # ✅ REDIRECIONAR AUTOMATICAMENTE: Se houver propriedades, redirecionar para a primeira propriedade
+        # Buscar propriedade prioritária ou primeira propriedade (usar queryset original antes das anotações)
+        propriedade_prioritaria = dados.get('propriedade_prioritaria')
+        if propriedade_prioritaria:
+            logger.info(f'[DASHBOARD] Redirecionando para módulos da propriedade {propriedade_prioritaria.id}')
+            return redirect('propriedade_modulos', propriedade_id=propriedade_prioritaria.id)
+        elif dados['total_propriedades'] > 0:
+            # Se não houver propriedade prioritária, usar a primeira propriedade do queryset original
+            primeira_propriedade = dados['propriedades'].first() if hasattr(dados['propriedades'], 'first') else (dados['propriedades'][0] if dados['propriedades'] else None)
+            if primeira_propriedade:
+                logger.info(f'[DASHBOARD] Redirecionando para módulos da primeira propriedade {primeira_propriedade.id}')
+                return redirect('propriedade_modulos', propriedade_id=primeira_propriedade.id)
+        
+        # Renderizar dashboard com lista de propriedades (fallback - não deve chegar aqui)
         context = {
-            'produtores': dados['produtores'],
+            'propriedades': page_obj,
             'total_propriedades': dados['total_propriedades'],
-            'total_area': dados['total_area'],
+            'total_animais': total_animais,
+            'busca': busca,
+            'ordenar_por': ordenar_por,
+            'direcao': direcao,
+            'page_obj': page_obj,
         }
         
-        return render(request, 'dashboard_navegacao.html', context)
+        return render(request, 'gestao_rural/dashboard.html', context)
         
     except ProgrammingError as e:
         logger.warning(f'Erro de programação no dashboard: {e}')
         # Fallback para comportamento seguro
-        from .models import ProdutorRural, Propriedade
-        produtores = ProdutorRural.objects.filter(usuario_responsavel=request.user).only('id', 'nome', 'cpf_cnpj').order_by('nome')
+        propriedades = Propriedade.objects.filter(
+            produtor__usuario_responsavel=request.user
+        ).select_related('produtor').order_by('nome_propriedade')
+        
+        paginator = Paginator(propriedades, 12)
+        page_number = request.GET.get('page', 1)
+        page_obj = paginator.get_page(page_number)
+        
         context = {
-            'produtores': produtores,
-            'total_propriedades': 0,
-            'total_area': Decimal('0.00'),
+            'propriedades': page_obj,
+            'total_propriedades': propriedades.count(),
+            'total_animais': 0,
+            'busca': request.GET.get('busca', ''),
+            'ordenar_por': request.GET.get('ordenar', 'nome_propriedade'),
+            'direcao': request.GET.get('direcao', 'asc'),
+            'page_obj': page_obj,
         }
-        return render(request, 'dashboard_navegacao.html', context)
+        return render(request, 'gestao_rural/dashboard.html', context)
     except Exception as e:
         logger.error(f'Erro inesperado no dashboard: {e}', exc_info=True)
         messages.error(request, 'Erro ao carregar dashboard. Por favor, tente novamente.')
-        return render(request, 'dashboard_navegacao.html', {
-            'produtores': [],
+        return render(request, 'gestao_rural/dashboard.html', {
+            'propriedades': [],
             'total_propriedades': 0,
-            'total_area': Decimal('0.00'),
+            'total_animais': 0,
+            'busca': '',
+            'ordenar_por': 'nome_propriedade',
+            'direcao': 'asc',
+            'page_obj': None,
         })
 
 
@@ -1188,14 +1266,10 @@ def produtor_novo(request):
                 # Buscar assinatura do usuário
                 assinatura = None
                 if hasattr(request.user, 'assinatura'):
-                    assinatura = request.user.assinatura
-                elif hasattr(request.user, 'tenant_profile'):
-                    assinatura = request.user.tenant_profile.assinatura
-                else:
-                    # Tentar buscar diretamente
-                    assinatura = AssinaturaCliente.objects.filter(usuario=request.user).first()
+                    # Sempre usar defer() para evitar campos do Stripe removidos
+                    assinatura = AssinaturaCliente.objects.defer('stripe_customer_id', 'stripe_subscription_id').filter(usuario=request.user).first()
                 
-                if assinatura and assinatura.ativa:
+                if assinatura and assinatura.status == 'ATIVA':
                     # Assinante: buscar todos os usuários da mesma assinatura (equipe)
                     usuarios_tenant = TenantUsuario.objects.filter(
                         assinatura=assinatura,
@@ -4357,14 +4431,18 @@ def dividas_amortizacao(request, propriedade_id):
 @login_required
 def projeto_bancario_dashboard(request, propriedade_id):
     """Dashboard do módulo Projeto Bancário"""
+    from .models import ProjetoBancario
+    
     propriedade = get_object_or_404(Propriedade, id=propriedade_id, produtor__usuario_responsavel=request.user)
     
     projetos = ProjetoBancario.objects.filter(propriedade=propriedade).order_by('-data_solicitacao')
     
     # Calcular estatísticas
-    total_solicitado = sum(projeto.valor_solicitado for projeto in projetos)
-    total_aprovado = sum(projeto.valor_aprovado or 0 for projeto in projetos)
+    total_solicitado = sum(projeto.valor_solicitado for projeto in projetos if projeto.valor_solicitado) or 0
+    total_aprovado = sum(projeto.valor_aprovado for projeto in projetos if projeto.valor_aprovado) or 0
     projetos_aprovados = projetos.filter(status='APROVADO').count()
+    projetos_em_analise = projetos.filter(status='EM_ANALISE').count()
+    projetos_pendentes = projetos.filter(status='PENDENTE').count()
     
     context = {
         'propriedade': propriedade,
@@ -4372,6 +4450,9 @@ def projeto_bancario_dashboard(request, propriedade_id):
         'total_solicitado': total_solicitado,
         'total_aprovado': total_aprovado,
         'projetos_aprovados': projetos_aprovados,
+        'projetos_em_analise': projetos_em_analise,
+        'projetos_pendentes': projetos_pendentes,
+        'total_projetos': projetos.count(),
     }
     
     return render(request, 'gestao_rural/projeto_bancario_dashboard.html', context)

@@ -364,10 +364,6 @@ LOGGING = {
     },
 }
 
-# URLs do Stripe para produção
-STRIPE_SUCCESS_URL = os.getenv('STRIPE_SUCCESS_URL', 'https://monpec.com.br/assinaturas/sucesso/')
-STRIPE_CANCEL_URL = os.getenv('STRIPE_CANCEL_URL', 'https://monpec.com.br/assinaturas/cancelado/')
-
 # Google Analytics (pode ser sobrescrito via variável de ambiente)
 # Prioridade: variável de ambiente > settings.py
 GOOGLE_ANALYTICS_ID = os.getenv('GOOGLE_ANALYTICS_ID', GOOGLE_ANALYTICS_ID if 'GOOGLE_ANALYTICS_ID' in globals() else '')

@@ -1,0 +1,76 @@
+========================================
+🔧 CORRIGIR PROBLEMAS IDENTIFICADOS
+========================================
+
+PROBLEMAS:
+1. Workers dando timeout (tentando conectar banco)
+2. Ainda conectando em 127.0.0.1 (Cloud SQL não usado)
+3. Banco sistema_rural não existe
+
+========================================
+SOLUÇÃO PASSO A PASSO:
+========================================
+
+1. CRIAR BANCO sistema_rural:
+   gcloud sql databases create sistema_rural --instance=monpec-db
+
+2. VERIFICAR CLOUD SQL CONECTADO:
+   gcloud run services describe monpec --region=us-central1 --format="value(spec.template.spec.containers[0].cloudSqlInstances)"
+   
+   Se retornar vazio, conectar:
+   gcloud run services update monpec --region=us-central1 --add-cloudsql-instances=monpec-sistema-rural:us-central1:monpec-db
+
+3. VERIFICAR VARIÁVEIS DE AMBIENTE:
+   gcloud run services describe monpec --region=us-central1 --format="value(spec.template.spec.containers[0].env)"
+   
+   Deve ter:
+   - CLOUD_SQL_CONNECTION_NAME=monpec-sistema-rural:us-central1:monpec-db
+   - DB_NAME=sistema_rural
+   - DB_USER=postgres
+   - DB_PASSWORD=L6171r12@@jjms
+
+4. AUMENTAR MEMÓRIA E TIMEOUT (se necessário):
+   gcloud run services update monpec \
+       --region=us-central1 \
+       --memory=4Gi \
+       --timeout=900 \
+       --cpu=2
+
+5. FAZER DEPLOY NOVO COM TUDO CORRETO:
+   cd ~/Monpec_GestaoRural
+   
+   gcloud run deploy monpec \
+       --source . \
+       --platform managed \
+       --region us-central1 \
+       --allow-unauthenticated \
+       --port 8080 \
+       --memory 4Gi \
+       --cpu 2 \
+       --timeout 900 \
+       --add-cloudsql-instances=monpec-sistema-rural:us-central1:monpec-db \
+       --set-env-vars="CLOUD_SQL_CONNECTION_NAME=monpec-sistema-rural:us-central1:monpec-db,DB_NAME=sistema_rural,DB_USER=postgres,DB_PASSWORD=L6171r12@@jjms,SECRET_KEY=rfzjy1t\$\$d_cmjb2n-wda0oi+)p!(_4!4\$na-n-1a60\$2gyspo,DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,DEBUG=False" \
+       --max-instances=10 \
+       --min-instances=0
+
+========================================
+VERIFICAÇÕES APÓS CORREÇÃO:
+========================================
+
+1. Ver logs (não deve mais ter erro 127.0.0.1):
+   gcloud run services logs read monpec --region=us-central1 --limit=50
+
+2. Verificar se Cloud SQL está conectado:
+   gcloud run services describe monpec --region=us-central1 --format="value(spec.template.spec.containers[0].cloudSqlInstances)"
+
+3. Testar acesso:
+   curl -I https://monpec-29862706245.us-central1.run.app
+
+========================================
+
+
+
+
+
+
+

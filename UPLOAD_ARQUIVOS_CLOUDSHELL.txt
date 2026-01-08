@@ -1,0 +1,121 @@
+========================================
+UPLOAD DIRETO DE ARQUIVOS PARA CLOUD SHELL
+========================================
+
+PROBLEMA:
+- Git não está funcionando no Cloud Shell
+- Diretório do projeto não existe
+- Arquivos críticos não estão presentes
+
+SOLUÇÃO: Fazer upload direto dos arquivos necessários
+
+========================================
+ARQUIVOS CRÍTICOS PARA O DEPLOY
+========================================
+
+Você precisa fazer upload destes arquivos:
+
+1. Dockerfile
+2. entrypoint.sh
+3. requirements_producao.txt
+4. manage.py
+5. gestao_rural/ (diretório completo)
+6. sistema_rural/ (diretório completo)
+7. templates/ (diretório completo)
+8. static/ (diretório completo - opcional, mas recomendado)
+
+========================================
+PASSO A PASSO NO CLOUD SHELL
+========================================
+
+1. CRIAR DIRETÓRIO DO PROJETO:
+   
+   No Cloud Shell, execute:
+   mkdir -p ~/monpec-sistema-rural
+   cd ~/monpec-sistema-rural
+
+2. FAZER UPLOAD DOS ARQUIVOS:
+
+   a) Via interface web do Cloud Shell:
+      - Clique no menu (3 linhas) no canto superior direito
+      - Selecione "Fazer upload"
+      - Selecione "Pasta" (não "Arquivo")
+      - Escolha a pasta completa do projeto do seu computador
+      - Diretório de destino: /home/l_moncaosilva/monpec-sistema-rural
+      - Clique em "Upload"
+
+   b) OU fazer upload arquivo por arquivo:
+      - Dockerfile
+      - entrypoint.sh
+      - requirements_producao.txt
+      - manage.py
+      - E depois as pastas: gestao_rural/, sistema_rural/, templates/, static/
+
+3. VERIFICAR SE OS ARQUIVOS FORAM UPLOADED:
+   
+   cd ~/monpec-sistema-rural
+   ls -la
+   ls -la Dockerfile entrypoint.sh requirements_producao.txt manage.py
+   ls -d gestao_rural sistema_rural templates
+
+4. FAZER DEPLOY:
+   
+   gcloud run deploy monpec --source . --region us-central1 --platform managed --allow-unauthenticated
+
+========================================
+OPÇÃO ALTERNATIVA: CLONAR DO GIT
+========================================
+
+Se preferir usar Git (mais rápido):
+
+1. No Cloud Shell:
+   cd ~
+   git clone https://github.com/LMONCAO/Monpec_GestaoRural.git monpec-sistema-rural
+   cd monpec-sistema-rural
+
+2. Verificar arquivos:
+   ls -la Dockerfile entrypoint.sh requirements_producao.txt
+
+3. Fazer deploy:
+   gcloud run deploy monpec --source . --region us-central1 --platform managed --allow-unauthenticated
+
+========================================
+ARQUIVOS MÍNIMOS NECESSÁRIOS
+========================================
+
+Se o upload completo demorar muito, você precisa pelo menos:
+
+1. Dockerfile
+2. entrypoint.sh
+3. requirements_producao.txt
+4. manage.py
+5. gestao_rural/ (pasta completa)
+6. sistema_rural/ (pasta completa)
+
+Sem esses arquivos, o deploy vai falhar!
+
+========================================
+VERIFICAÇÃO FINAL ANTES DO DEPLOY
+========================================
+
+Execute no Cloud Shell:
+
+cd ~/monpec-sistema-rural
+echo "=== Verificando arquivos críticos ==="
+[ -f Dockerfile ] && echo "✅ Dockerfile existe" || echo "❌ Dockerfile NÃO existe"
+[ -f entrypoint.sh ] && echo "✅ entrypoint.sh existe" || echo "❌ entrypoint.sh NÃO existe"
+[ -f requirements_producao.txt ] && echo "✅ requirements_producao.txt existe" || echo "❌ requirements_producao.txt NÃO existe"
+[ -f manage.py ] && echo "✅ manage.py existe" || echo "❌ manage.py NÃO existe"
+[ -d gestao_rural ] && echo "✅ gestao_rural/ existe" || echo "❌ gestao_rural/ NÃO existe"
+[ -d sistema_rural ] && echo "✅ sistema_rural/ existe" || echo "❌ sistema_rural/ NÃO existe"
+
+Se todos mostrarem ✅, pode fazer deploy!
+
+========================================
+
+
+
+
+
+
+

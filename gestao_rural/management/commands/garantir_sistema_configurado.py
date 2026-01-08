@@ -46,41 +46,28 @@ class Command(BaseCommand):
             self.stdout.write('\n1. Aplicando migrations...')
             try:
                 call_command('migrate', verbosity=1, interactive=False)
-                self.stdout.write(self.style.SUCCESS('✅ Migrations aplicadas'))
+                self.stdout.write(self.style.SUCCESS('[OK] Migrations aplicadas'))
             except Exception as e:
-                self.stdout.write(self.style.ERROR(f'❌ Erro ao aplicar migrations: {e}'))
+                self.stdout.write(self.style.ERROR(f'[ERRO] Erro ao aplicar migrations: {e}'))
                 sucesso = False
         
         # 2. Verificar tabelas críticas
         self.stdout.write('\n2. Verificando tabelas críticas...')
         try:
             with connection.cursor() as cursor:
-                if 'postgresql' in settings.DATABASES['default']['ENGINE']:
-                    cursor.execute("""
-                        SELECT table_name 
-                        FROM information_schema.tables 
-                        WHERE table_schema = 'public'
-                        AND table_name IN (
-                            'auth_user',
-                            'gestao_rural_produtorrural',
-                            'gestao_rural_propriedade',
-                            'gestao_rural_usuarioativo',
-                            'django_migrations'
-                        );
-                    """)
-                else:  # SQLite
-                    cursor.execute("""
-                        SELECT name 
-                        FROM sqlite_master 
-                        WHERE type='table' 
-                        AND name IN (
-                            'auth_user',
-                            'gestao_rural_produtorrural',
-                            'gestao_rural_propriedade',
-                            'gestao_rural_usuarioativo',
-                            'django_migrations'
-                        );
-                    """)
+                # Sistema usa apenas PostgreSQL
+                cursor.execute("""
+                    SELECT table_name 
+                    FROM information_schema.tables 
+                    WHERE table_schema = 'public'
+                    AND table_name IN (
+                        'auth_user',
+                        'gestao_rural_produtorrural',
+                        'gestao_rural_propriedade',
+                        'gestao_rural_usuarioativo',
+                        'django_migrations'
+                    );
+                """)
                 
                 tabelas = [row[0] for row in cursor.fetchall()]
                 tabelas_esperadas = [
@@ -93,13 +80,13 @@ class Command(BaseCommand):
                 
                 faltando = [t for t in tabelas_esperadas if t not in tabelas]
                 if faltando:
-                    self.stdout.write(self.style.WARNING(f'⚠️ Tabelas faltando: {", ".join(faltando)}'))
+                    self.stdout.write(self.style.WARNING(f'[AVISO] Tabelas faltando: {", ".join(faltando)}'))
                     self.stdout.write(self.style.WARNING('   Aplicando migrations novamente...'))
                     call_command('migrate', verbosity=0, interactive=False)
                 else:
-                    self.stdout.write(self.style.SUCCESS('✅ Todas as tabelas críticas existem'))
+                    self.stdout.write(self.style.SUCCESS('[OK] Todas as tabelas criticas existem'))
         except Exception as e:
-            self.stdout.write(self.style.ERROR(f'❌ Erro ao verificar tabelas: {e}'))
+            self.stdout.write(self.style.ERROR(f'[ERRO] Erro ao verificar tabelas: {e}'))
             sucesso = False
         
         # 3. Criar usuário demo
@@ -119,16 +106,16 @@ class Command(BaseCommand):
                 if created:
                     demo_user.set_password('demo123')
                     demo_user.save()
-                    self.stdout.write(self.style.SUCCESS('✅ Usuário demo_monpec criado!'))
+                    self.stdout.write(self.style.SUCCESS('[OK] Usuario demo_monpec criado!'))
                 else:
                     if not demo_user.check_password('demo123'):
                         demo_user.set_password('demo123')
                         demo_user.save()
-                        self.stdout.write(self.style.SUCCESS('✅ Senha do usuário demo atualizada!'))
+                        self.stdout.write(self.style.SUCCESS('[OK] Senha do usuario demo atualizada!'))
                     else:
-                        self.stdout.write(self.style.SUCCESS('✅ Usuário demo já existe e está configurado!'))
+                        self.stdout.write(self.style.SUCCESS('[OK] Usuario demo ja existe e esta configurado!'))
             except Exception as e:
-                self.stdout.write(self.style.ERROR(f'❌ Erro ao criar usuário demo: {e}'))
+                self.stdout.write(self.style.ERROR(f'[ERRO] Erro ao criar usuario demo: {e}'))
                 sucesso = False
         
         # 4. Verificar templates
@@ -147,13 +134,13 @@ class Command(BaseCommand):
             for template_path in templates_necessarios:
                 template_file = templates_dir / template_path
                 if not template_file.exists():
-                    self.stdout.write(self.style.WARNING(f'⚠️ Template não encontrado: {template_path}'))
+                    self.stdout.write(self.style.WARNING(f'[AVISO] Template nao encontrado: {template_path}'))
                     todos_ok = False
             
             if todos_ok:
-                self.stdout.write(self.style.SUCCESS('✅ Todos os templates necessários existem'))
+                self.stdout.write(self.style.SUCCESS('[OK] Todos os templates necessarios existem'))
         except Exception as e:
-            self.stdout.write(self.style.ERROR(f'❌ Erro ao verificar templates: {e}'))
+            self.stdout.write(self.style.ERROR(f'[ERRO] Erro ao verificar templates: {e}'))
             sucesso = False
         
         # 5. Verificar permissões de arquivos
@@ -175,21 +162,21 @@ class Command(BaseCommand):
                     test_file.write_text('test')
                     test_file.unlink()
                 except Exception as e:
-                    self.stdout.write(self.style.ERROR(f'❌ Erro em {dir_path}: {e}'))
+                    self.stdout.write(self.style.ERROR(f'[ERRO] Erro em {dir_path}: {e}'))
                     todos_ok = False
             
             if todos_ok:
-                self.stdout.write(self.style.SUCCESS('✅ Diretórios e permissões OK'))
+                self.stdout.write(self.style.SUCCESS('[OK] Diretorios e permissoes OK'))
         except Exception as e:
-            self.stdout.write(self.style.ERROR(f'❌ Erro ao verificar permissões: {e}'))
+            self.stdout.write(self.style.ERROR(f'[ERRO] Erro ao verificar permissoes: {e}'))
             sucesso = False
         
         # Resumo
         self.stdout.write('\n' + '=' * 60)
         if sucesso:
-            self.stdout.write(self.style.SUCCESS('✅ SISTEMA CONFIGURADO COM SUCESSO!'))
+            self.stdout.write(self.style.SUCCESS('[OK] SISTEMA CONFIGURADO COM SUCESSO!'))
         else:
-            self.stdout.write(self.style.WARNING('⚠️ ALGUNS PROBLEMAS FORAM ENCONTRADOS'))
+            self.stdout.write(self.style.WARNING('[AVISO] ALGUNS PROBLEMAS FORAM ENCONTRADOS'))
         self.stdout.write('=' * 60)
         
         return 0 if sucesso else 1

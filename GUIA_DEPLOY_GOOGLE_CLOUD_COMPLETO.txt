@@ -1,0 +1,346 @@
+========================================
+GUIA COMPLETO: DEPLOY NO GOOGLE CLOUD
+========================================
+
+Este guia vai te ajudar a fazer o deploy completo do sistema no Google Cloud Run.
+
+========================================
+PRÉ-REQUISITOS
+========================================
+
+1. Conta Google Cloud ativa
+2. Projeto criado no Google Cloud Console
+3. Billing habilitado
+4. Google Cloud SDK instalado (gcloud CLI)
+5. APIs habilitadas:
+   - Cloud Run API
+   - Cloud SQL Admin API
+   - Cloud Build API
+
+========================================
+PASSO 1: INSTALAR GOOGLE CLOUD SDK
+========================================
+
+Windows:
+   Baixe e instale: https://cloud.google.com/sdk/docs/install
+
+Linux/Mac:
+   curl https://sdk.cloud.google.com | bash
+   exec -l $SHELL
+
+Verificar instalação:
+   gcloud --version
+
+========================================
+PASSO 2: AUTENTICAR NO GOOGLE CLOUD
+========================================
+
+Execute:
+   gcloud auth login
+
+Isso vai abrir o navegador para você fazer login.
+
+========================================
+PASSO 3: CONFIGURAR PROJETO
+========================================
+
+1. Criar projeto (se ainda não tiver):
+   gcloud projects create monpec-sistema-rural --name="Monpec Sistema Rural"
+
+2. Definir projeto como padrão:
+   gcloud config set project monpec-sistema-rural
+
+   (Substitua "monpec-sistema-rural" pelo ID do seu projeto)
+
+3. Verificar projeto atual:
+   gcloud config get-value project
+
+========================================
+PASSO 4: HABILITAR APIS NECESSÁRIAS
+========================================
+
+Execute:
+   gcloud services enable run.googleapis.com
+   gcloud services enable sqladmin.googleapis.com
+   gcloud services enable cloudbuild.googleapis.com
+
+========================================
+PASSO 5: CRIAR INSTÂNCIA CLOUD SQL
+========================================
+
+1. Criar instância PostgreSQL:
+   gcloud sql instances create monpec-db \
+     --database-version=POSTGRES_15 \
+     --tier=db-f1-micro \
+     --region=us-central1
+
+   (Ajuste o tier conforme necessário: db-f1-micro é o mais barato)
+
+2. Criar banco de dados:
+   gcloud sql databases create sistema_rural --instance=monpec-db
+
+3. Criar usuário:
+   gcloud sql users create monpec \
+     --instance=monpec-db \
+     --password=L6171r12@@jjms
+
+4. Obter connection name:
+   gcloud sql instances describe monpec-db --format="value(connectionName)"
+   
+   Formato esperado: PROJECT:REGION:INSTANCE
+   Exemplo: monpec-sistema-rural:us-central1:monpec-db
+
+========================================
+PASSO 6: TRANSFERIR DADOS EXISTENTES (OPCIONAL)
+========================================
+
+Se você já tem dados no banco local e quer transferir:
+
+1. Fazer backup do banco local:
+   pg_dump -h localhost -U monpec -d sistema_rural > backup_local.sql
+
+2. Conectar ao Cloud SQL via proxy:
+   cloud-sql-proxy monpec-sistema-rural:us-central1:monpec-db
+
+3. Em outro terminal, restaurar backup:
+   psql -h 127.0.0.1 -p 5432 -U monpec -d sistema_rural < backup_local.sql
+
+OU usar o script enviar_dados.bat (Windows) que já está configurado.
+
+========================================
+PASSO 7: FAZER DEPLOY
+========================================
+
+OPÇÃO A: Script Automatizado (RECOMENDADO)
+-------------------------------------------
+
+Windows:
+   deploy_gcp.bat
+
+Linux/Mac:
+   bash deploy_gcp.sh
+
+OPÇÃO B: Comando Manual
+------------------------
+
+gcloud run deploy monpec \
+  --source . \
+  --platform managed \
+  --region us-central1 \
+  --allow-unauthenticated \
+  --port 8080 \
+  --memory 2Gi \
+  --cpu 2 \
+  --timeout 600 \
+  --max-instances 10 \
+  --min-instances 0 \
+  --set-env-vars "DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp"
+
+========================================
+PASSO 8: CONFIGURAR VARIÁVEIS DE AMBIENTE
+========================================
+
+Após o deploy, configure as variáveis de ambiente no Cloud Run Console:
+
+1. Acesse: https://console.cloud.google.com/run
+2. Clique no serviço "monpec"
+3. Vá em "Edit & Deploy New Revision"
+4. Vá na aba "Variables & Secrets"
+5. Adicione as seguintes variáveis:
+
+   OBRIGATÓRIAS:
+   - CLOUD_SQL_CONNECTION_NAME = monpec-sistema-rural:us-central1:monpec-db
+   - DB_NAME = sistema_rural
+   - DB_USER = monpec
+   - DB_PASSWORD = L6171r12@@jjms
+   - SECRET_KEY = (sua chave secreta do Django)
+   - DJANGO_SETTINGS_MODULE = sistema_rural.settings_gcp
+
+   OPCIONAIS:
+   - DEBUG = False
+   - GOOGLE_CLOUD_PROJECT = monpec-sistema-rural
+   - USE_CLOUD_STORAGE = False (ou True se usar Cloud Storage)
+
+6. Clique em "Deploy"
+
+========================================
+PASSO 9: CONFIGURAR CONEXÃO CLOUD SQL
+========================================
+
+1. No Cloud Run Console, vá em "Connections"
+2. Clique em "Add Connection"
+3. Selecione a instância Cloud SQL: monpec-db
+4. Salve
+
+Isso permite que o Cloud Run se conecte ao Cloud SQL via Unix Socket.
+
+========================================
+PASSO 10: VERIFICAR DEPLOY
+========================================
+
+1. Obter URL do serviço:
+   gcloud run services describe monpec --region=us-central1 --format="value(status.url)"
+
+2. Acessar a URL no navegador
+
+3. Verificar:
+   [ ] Sistema carrega
+   [ ] Login funciona
+   [ ] Imagens aparecem
+   [ ] Dados estão presentes
+
+4. Ver logs em caso de erro:
+   gcloud run services logs read monpec --region=us-central1 --limit=50
+
+========================================
+ARQUIVOS CRIADOS PARA O DEPLOY
+========================================
+
+✅ Dockerfile - Configuração do container
+✅ entrypoint.sh - Script de inicialização (já existia)
+✅ .gcloudignore - Arquivos ignorados no deploy
+✅ deploy_gcp.sh - Script de deploy (Linux/Mac)
+✅ deploy_gcp.bat - Script de deploy (Windows)
+
+========================================
+ESTRUTURA DO DEPLOY
+========================================
+
+1. Dockerfile cria a imagem:
+   - Instala Python 3.11
+   - Instala dependências do sistema
+   - Instala dependências Python (requirements_producao.txt)
+   - Copia código do projeto
+   - Configura variáveis de ambiente
+
+2. entrypoint.sh executa na inicialização:
+   - Coleta arquivos estáticos (collectstatic)
+   - Executa migrações (migrate)
+   - Inicia servidor Gunicorn
+
+3. Cloud Run:
+   - Recebe requisições HTTP
+   - Conecta ao Cloud SQL
+   - Serve a aplicação Django
+
+========================================
+VARIÁVEIS DE AMBIENTE IMPORTANTES
+========================================
+
+CLOUD_SQL_CONNECTION_NAME:
+   Formato: PROJECT:REGION:INSTANCE
+   Exemplo: monpec-sistema-rural:us-central1:monpec-db
+   
+   Esta variável é CRÍTICA para conexão com o banco!
+
+DB_NAME, DB_USER, DB_PASSWORD:
+   Credenciais do banco de dados Cloud SQL
+
+SECRET_KEY:
+   Chave secreta do Django (use uma chave forte!)
+
+DJANGO_SETTINGS_MODULE:
+   Deve ser: sistema_rural.settings_gcp
+
+========================================
+TROUBLESHOOTING
+========================================
+
+PROBLEMA: Erro de conexão com banco
+SOLUÇÃO: 
+   - Verificar CLOUD_SQL_CONNECTION_NAME está correto
+   - Verificar se Cloud SQL está conectado no Cloud Run
+   - Verificar credenciais do banco
+
+PROBLEMA: Imagens não aparecem
+SOLUÇÃO:
+   - Verificar se collectstatic foi executado (entrypoint.sh faz isso)
+   - Verificar logs do Cloud Run
+   - Verificar se WhiteNoise está configurado (já está em settings_gcp.py)
+
+PROBLEMA: Erro 500
+SOLUÇÃO:
+   - Verificar logs: gcloud run services logs read monpec --region=us-central1
+   - Verificar variáveis de ambiente
+   - Verificar migrações foram executadas
+
+PROBLEMA: Timeout
+SOLUÇÃO:
+   - Aumentar timeout no Cloud Run (já configurado para 600s)
+   - Verificar se banco está respondendo
+
+========================================
+CUSTOS ESTIMADOS
+========================================
+
+Cloud Run:
+   - Primeiros 2 milhões de requisições: GRÁTIS
+   - Depois: ~$0.40 por milhão de requisições
+   - CPU/Memória: cobrado apenas quando em uso
+
+Cloud SQL (db-f1-micro):
+   - ~$7-10/mês (depende da região)
+
+Total estimado: ~$10-15/mês para uso moderado
+
+========================================
+COMANDOS ÚTEIS
+========================================
+
+Ver serviços Cloud Run:
+   gcloud run services list
+
+Ver logs em tempo real:
+   gcloud run services logs tail monpec --region=us-central1
+
+Atualizar serviço:
+   gcloud run deploy monpec --source . --region=us-central1
+
+Ver variáveis de ambiente:
+   gcloud run services describe monpec --region=us-central1 --format="value(spec.template.spec.containers[0].env)"
+
+========================================
+CHECKLIST FINAL
+========================================
+
+ANTES DO DEPLOY:
+[ ] Google Cloud SDK instalado
+[ ] Autenticado no gcloud
+[ ] Projeto criado e configurado
+[ ] APIs habilitadas
+[ ] Cloud SQL criado
+[ ] Banco de dados criado
+[ ] Usuário do banco criado
+[ ] Connection name anotado
+
+DURANTE O DEPLOY:
+[ ] Dockerfile presente
+[ ] entrypoint.sh presente e executável
+[ ] Deploy executado com sucesso
+[ ] Variáveis de ambiente configuradas
+[ ] Cloud SQL conectado ao Cloud Run
+
+APÓS O DEPLOY:
+[ ] URL do serviço obtida
+[ ] Sistema acessível
+[ ] Login funciona
+[ ] Imagens aparecem
+[ ] Dados preservados
+[ ] Sem erros nos logs
+
+========================================
+✅ TUDO PRONTO PARA DEPLOY!
+========================================
+
+Execute o script de deploy e siga as instruções acima.
+
+Boa sorte! 🚀
+
+========================================
+
+
+
+
+
+
+

@@ -279,7 +279,7 @@ def verificar_assinatura_ativa_para_pagamento(usuario: User) -> Tuple[bool, str]
     from .models import AssinaturaCliente
     
     try:
-        assinatura = AssinaturaCliente.objects.get(usuario=usuario)
+        assinatura = AssinaturaCliente.objects.defer('stripe_customer_id', 'stripe_subscription_id').get(usuario=usuario)
         
         # Permitir múltiplos checkouts - não bloquear por assinatura ativa ou pendente
         # O usuário pode tentar pagar novamente se necessário
@@ -312,7 +312,7 @@ def validar_criacao_usuario_segura(
     
     # 2. Verificar se a assinatura é a mesma
     try:
-        assinatura = AssinaturaCliente.objects.get(id=assinatura_id)
+        assinatura = AssinaturaCliente.objects.defer('stripe_customer_id', 'stripe_subscription_id').get(id=assinatura_id)
         if assinatura != assinatura_criador:
             registrar_log_auditoria(
                 tipo_acao=LogAuditoria.TipoAcao.ACESSO_NAO_AUTORIZADO,

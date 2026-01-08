@@ -935,23 +935,40 @@ class NotaFiscalSaidaForm(forms.ModelForm):
             from .models_cadastros import Cliente
             from .models_financeiro import ContaFinanceira, CategoriaFinanceira
             
-            self.fields['cliente'].queryset = Cliente.objects.filter(
-                Q(propriedade=propriedade) | Q(propriedade__isnull=True),
-                ativo=True
-            ).order_by('nome')
+            # Configurar queryset de clientes
+            try:
+                self.fields['cliente'].queryset = Cliente.objects.filter(
+                    Q(propriedade=propriedade) | Q(propriedade__isnull=True),
+                    ativo=True
+                ).order_by('nome')
+            except Exception:
+                self.fields['cliente'].queryset = Cliente.objects.none()
             
             # Preencher queryset de contas financeiras
-            self.fields['conta_destino'].queryset = ContaFinanceira.objects.filter(
-                propriedade=propriedade,
-                ativa=True
-            ).order_by('nome')
+            try:
+                self.fields['conta_destino'].queryset = ContaFinanceira.objects.filter(
+                    propriedade=propriedade,
+                    ativa=True
+                ).order_by('nome')
+            except Exception:
+                self.fields['conta_destino'].queryset = ContaFinanceira.objects.none()
             
             # Preencher queryset de categorias de receita
-            self.fields['categoria_receita'].queryset = CategoriaFinanceira.objects.filter(
-                propriedade=propriedade,
-                tipo=CategoriaFinanceira.TIPO_RECEITA,
-                ativa=True
-            ).order_by('nome')
+            # Usar uma abordagem mais segura para evitar problemas com cursors inválidos
+            try:
+                # Criar queryset de forma que não cause problemas durante a renderização
+                # Usar .all() para garantir que o queryset seja criado corretamente
+                self.fields['categoria_receita'].queryset = CategoriaFinanceira.objects.filter(
+                    propriedade=propriedade,
+                    tipo=CategoriaFinanceira.TIPO_RECEITA,
+                    ativa=True
+                ).order_by('nome')
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f'Erro ao configurar queryset de categoria_receita: {str(e)}', exc_info=True)
+                # Em caso de erro, usar queryset vazio para evitar erros de renderização
+                self.fields['categoria_receita'].queryset = CategoriaFinanceira.objects.none()
         
         # Definir tipo como SAIDA
         self.instance.tipo = 'SAIDA'

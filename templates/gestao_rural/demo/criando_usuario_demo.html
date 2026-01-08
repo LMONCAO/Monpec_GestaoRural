@@ -1,0 +1,131 @@
+{% extends 'base_modulos_unificado.html' %}
+{% load static %}
+
+{% block title %}Criando Usuário Demo - MONPEC{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4" style="padding-top: 2rem !important; padding-bottom: 2rem;">
+    <!-- Cabeçalho -->
+    <div class="d-flex justify-content-center align-items-center mb-5">
+        <div class="text-center">
+            <div class="mb-4">
+                <i class="bi bi-person-plus-fill text-primary" style="font-size: 4rem;"></i>
+            </div>
+            <h1 class="h2 mb-3 fw-bold">Criando seu Usuário de Demonstração</h1>
+            <p class="text-muted lead mb-0">
+                Estamos configurando seu ambiente de demonstração...
+            </p>
+        </div>
+    </div>
+
+    <!-- Barra de progresso -->
+    <div class="row justify-content-center mb-5">
+        <div class="col-md-8 col-lg-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <div class="mb-4">
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-success"
+                                 role="progressbar"
+                                 style="width: 100%"
+                                 aria-valuenow="100"
+                                 aria-valuemin="0"
+                                 aria-valuemax="100">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="text-center">
+                        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                            <span class="visually-hidden">Carregando...</span>
+                        </div>
+                        <h5 class="mb-3">Configurando dados da demonstração</h5>
+                        <p class="text-muted mb-0">
+                            Criando propriedade, animais, fornecedores e lançamentos financeiros...
+                        </p>
+                    </div>
+
+                    <!-- Etapas de configuração -->
+                    <div class="mt-4">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="bi bi-check-circle-fill text-success me-3"></i>
+                            <span>Criando usuário e propriedade</span>
+                        </div>
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="bi bi-check-circle-fill text-success me-3"></i>
+                            <span>Configurando dados de pecuária</span>
+                        </div>
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="bi bi-check-circle-fill text-success me-3"></i>
+                            <span>Preparando módulos financeiros</span>
+                        </div>
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="spinner-border spinner-border-sm text-primary me-3" role="status">
+                                <span class="visually-hidden">Carregando...</span>
+                            </div>
+                            <span>Finalizando configuração...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Informações da demonstração -->
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="alert alert-info border-0 shadow-sm">
+                <div class="d-flex align-items-start">
+                    <i class="bi bi-info-circle-fill me-3 mt-1 text-info fs-5"></i>
+                    <div>
+                        <h6 class="alert-heading mb-2">Sobre a Demonstração</h6>
+                        <p class="mb-2">
+                            Esta é uma versão completa de demonstração do sistema MONPEC, com dados realistas
+                            para você explorar todas as funcionalidades.
+                        </p>
+                        <ul class="mb-0 small">
+                            <li><strong>Propriedade:</strong> Fazenda Demonstração Ltda (1.500 ha)</li>
+                            <li><strong>Rebanho:</strong> 57 animais de corte</li>
+                            <li><strong>Módulos:</strong> Pecuária, Financeiro, Compras, Vendas, Nutrição</li>
+                            <li><strong>Acesso:</strong> Totalmente funcional por 30 dias</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Script para redirecionamento automático -->
+<script>
+    // Redirecionar automaticamente para demo_loading após 3 segundos
+    setTimeout(function() {
+        window.location.href = "{% url 'demo_loading' %}";
+    }, 3000);
+</script>
+
+<style>
+.card {
+    transition: transform 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+}
+
+.progress-bar-animated {
+    animation: progress-bar-stripes 1s linear infinite;
+}
+
+@keyframes progress-bar-stripes {
+    0% { background-position-x: 0; }
+    100% { background-position-x: 40px; }
+}
+
+.spinner-border {
+    border-width: 0.15em;
+}
+</style>
+{% endblock %}
+
+

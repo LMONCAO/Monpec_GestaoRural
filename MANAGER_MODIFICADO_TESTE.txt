@@ -1,0 +1,48 @@
+🔧 MANAGER ASSINATURACLIENTE MODIFICADO PARA TESTE!
+
+✅ POSSÍVEL CAUSA DO ERRO 500 IDENTIFICADA:
+
+O manager do modelo AssinaturaCliente estava fazendo `defer()` dos campos `stripe_customer_id` e `stripe_subscription_id` que foram removidos do banco de dados. Isso pode estar causando problemas quando o Django tenta acessar a base de dados.
+
+🛠️ MODIFICAÇÃO APLICADA:
+
+No arquivo `gestao_rural/models.py`, linha 226:
+```python
+# ANTES:
+return qs.defer('stripe_customer_id', 'stripe_subscription_id')
+
+# DEPOIS (TEMPORARIO):
+# return qs.defer('stripe_customer_id', 'stripe_subscription_id')  # TEMPORARIAMENTE DESABILITADO
+return qs
+```
+
+🎯 TESTE NECESSÁRIO:
+
+1. **Acesse o sistema:**
+   https://localhost:8000/
+
+2. **Faça login:**
+   - admin / L6171r12@@
+
+3. **Teste o checkout:**
+   - Vá para /assinaturas/
+   - Clique em "Assinar Agora"
+   - Preencha: Rafael / rafael@monpec.com.br
+   - Clique "Prosseguir para Pagamento"
+
+4. **Resultado esperado:**
+   - ✅ **NÃO deve mais dar erro 500**
+   - ✅ Deve redirecionar para o Mercado Pago
+   - ✅ Ou pelo menos dar um erro mais específico
+
+📋 SE FUNCIONAR:
+- O problema era mesmo o `defer()` dos campos inexistentes
+- Precisaremos implementar uma solução mais robusta
+
+📋 SE AINDA DER ERRO:
+- Haverá um traceback mais claro nos logs
+- Poderemos identificar o problema real
+
+🚀 **Servidor reiniciado - teste agora!** 🔍
+
+

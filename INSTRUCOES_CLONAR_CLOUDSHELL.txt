@@ -1,0 +1,143 @@
+========================================
+📥 COMO CLONAR O REPOSITÓRIO NO CLOUD SHELL
+========================================
+
+Repositório: https://github.com/LMONCAO/Monpec_GestaoRural.git
+
+========================================
+OPÇÃO 1: CLONAR DIRETAMENTE NO CLOUD SHELL
+========================================
+
+No Cloud Shell, execute:
+
+1. Navegar para o diretório home:
+   cd ~
+
+2. Clonar o repositório:
+   git clone https://github.com/LMONCAO/Monpec_GestaoRural.git
+
+3. Entrar no diretório:
+   cd Monpec_GestaoRural
+
+4. Verificar se o Dockerfile existe:
+   ls -la Dockerfile
+
+5. Executar o deploy:
+   gcloud run deploy monpec \
+       --source . \
+       --platform managed \
+       --region us-central1 \
+       --allow-unauthenticated \
+       --port 8080 \
+       --memory 2Gi \
+       --cpu 2 \
+       --timeout 600 \
+       --add-cloudsql-instances=monpec-sistema-rural:us-central1:monpec-db \
+       --set-env-vars="CLOUD_SQL_CONNECTION_NAME=monpec-sistema-rural:us-central1:monpec-db,DB_NAME=sistema_rural,DB_USER=monpec,DB_PASSWORD=L6171r12@@jjms,SECRET_KEY=rfzjy1t\$\$d_cmjb2n-wda0oi+)p!(_4!4\$na-n-1a60\$2gyspo,DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,DEBUG=False" \
+       --max-instances=10 \
+       --min-instances=0
+
+========================================
+OPÇÃO 2: FAZER COMMIT DAS MUDANÇAS PRIMEIRO
+========================================
+
+Se você quiser incluir as mudanças locais (Dockerfile e views.py):
+
+1. No seu computador local, fazer commit:
+   git add Dockerfile gestao_rural/views.py
+   git commit -m "Preparar para deploy GCP"
+   git push origin master
+
+2. No Cloud Shell, clonar:
+   git clone https://github.com/LMONCAO/Monpec_GestaoRural.git
+   cd Monpec_GestaoRural
+
+3. Executar o deploy (mesmo comando acima)
+
+========================================
+OPÇÃO 3: FAZER UPLOAD DOS ARQUIVOS VIA CLOUD SHELL
+========================================
+
+Se preferir fazer upload dos arquivos diretamente:
+
+1. No Cloud Shell, criar diretório:
+   mkdir -p ~/monpec-deploy
+   cd ~/monpec-deploy
+
+2. No seu computador local, compactar os arquivos necessários:
+   (criar um arquivo .tar.gz com os arquivos do projeto)
+
+3. Fazer upload via Cloud Shell:
+   - Use o botão "Upload" no Cloud Shell
+   - Ou use: gcloud cloud-shell scp
+
+========================================
+VERIFICAÇÕES ANTES DO DEPLOY
+========================================
+
+No Cloud Shell, após clonar, verifique:
+
+1. Dockerfile existe:
+   ls -la Dockerfile
+
+2. entrypoint.sh existe e é executável:
+   ls -la entrypoint.sh
+   chmod +x entrypoint.sh
+
+3. requirements_producao.txt existe:
+   ls -la requirements_producao.txt
+
+4. manage.py existe:
+   ls -la manage.py
+
+5. Diretório sistema_rural existe:
+   ls -la sistema_rural/
+
+========================================
+COMANDO COMPLETO PARA COPIAR E COLAR
+========================================
+
+Execute tudo de uma vez no Cloud Shell:
+
+cd ~
+git clone https://github.com/LMONCAO/Monpec_GestaoRural.git
+cd Monpec_GestaoRural
+chmod +x entrypoint.sh
+gcloud run deploy monpec \
+    --source . \
+    --platform managed \
+    --region us-central1 \
+    --allow-unauthenticated \
+    --port 8080 \
+    --memory 2Gi \
+    --cpu 2 \
+    --timeout 600 \
+    --add-cloudsql-instances=monpec-sistema-rural:us-central1:monpec-db \
+    --set-env-vars="CLOUD_SQL_CONNECTION_NAME=monpec-sistema-rural:us-central1:monpec-db,DB_NAME=sistema_rural,DB_USER=monpec,DB_PASSWORD=L6171r12@@jjms,SECRET_KEY=rfzjy1t\$\$d_cmjb2n-wda0oi+)p!(_4!4\$na-n-1a60\$2gyspo,DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,DEBUG=False" \
+    --max-instances=10 \
+    --min-instances=0
+
+========================================
+APÓS O DEPLOY
+========================================
+
+1. Obter URL do serviço:
+   gcloud run services describe monpec --region=us-central1 --format="value(status.url)"
+
+2. Verificar logs:
+   gcloud run services logs read monpec --region=us-central1 --limit=50
+
+3. Verificar conexão Cloud SQL:
+   - Acesse: https://console.cloud.google.com/run
+   - Clique no serviço "monpec"
+   - Vá na aba "Connections"
+   - Verifique se "monpec-db" está conectado
+
+========================================
+
+
+
+
+
+
+

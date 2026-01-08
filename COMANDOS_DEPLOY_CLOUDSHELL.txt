@@ -1,0 +1,59 @@
+========================================
+COMANDOS PARA EXECUTAR NO CLOUD SHELL
+========================================
+
+Após fazer git clone, execute estes comandos:
+
+1. IR PARA O DIRETÓRIO:
+   cd ~/monpec-sistema-rural
+
+2. VERIFICAR SE OS ARQUIVOS CRÍTICOS EXISTEM:
+   ls -la Dockerfile entrypoint.sh requirements_producao.txt manage.py
+   
+   Deve mostrar os 4 arquivos. Se algum não aparecer, há problema.
+
+3. VERIFICAR ESTRUTURA DE DIRETÓRIOS:
+   ls -d gestao_rural sistema_rural templates static
+   
+   Deve mostrar as 4 pastas.
+
+4. VERIFICAR SE O ENTRYPOINT.SH TEM AS MUDANÇAS:
+   grep -n "carregar_categorias" entrypoint.sh
+   grep -n "garantir_admin" entrypoint.sh
+   
+   Deve mostrar as linhas onde esses comandos aparecem.
+
+5. FAZER DEPLOY:
+   gcloud run deploy monpec --source . --region us-central1 --platform managed --allow-unauthenticated
+
+6. APÓS O DEPLOY, VERIFICAR LOGS:
+   gcloud run services logs read monpec --region=us-central1 --limit=100
+   
+   Procure por:
+   - "✅ Categorias carregadas com sucesso!"
+   - "✅ Usuário admin criado/encontrado"
+   - "Iniciando servidor Gunicorn"
+
+========================================
+SE DER ERRO NO DEPLOY
+========================================
+
+1. Verificar logs do build:
+   gcloud builds list --limit=1
+   gcloud builds log <BUILD_ID>
+
+2. Verificar qual arquivo está faltando:
+   # O erro vai mostrar qual arquivo não foi encontrado
+
+3. Verificar se está no diretório correto:
+   pwd
+   # Deve mostrar: /home/l_moncaosilva/monpec-sistema-rural
+
+========================================
+
+
+
+
+
+
+

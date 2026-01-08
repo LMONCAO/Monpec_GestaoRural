@@ -20,6 +20,7 @@ from .decorators import obter_propriedade_com_permissao
 from .models_operacional import (
     EstoqueSuplementacao, CompraSuplementacao, DistribuicaoSuplementacao
 )
+from decimal import Decimal
 from .models_controles_operacionais import (
     TipoDistribuicao, DistribuicaoPasto, Cocho, ControleCocho, Pastagem
 )
@@ -33,36 +34,71 @@ from .forms_completos import (
 def nutricao_dashboard(request, propriedade_id):
     """Dashboard consolidado de Nutrição"""
     propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
-    
+
     # ========== SUPLEMENTAÇÃO ==========
-    estoques = EstoqueSuplementacao.objects.filter(propriedade=propriedade)
-    estoques_baixo = estoques.filter(
-        quantidade_atual__lte=F('quantidade_minima')
-    )
-    valor_total_estoque = sum(e.valor_total_estoque for e in estoques)
-    
+    try:
+        estoques = EstoqueSuplementacao.objects.filter(propriedade=propriedade)
+        estoques_baixo = estoques.filter(
+            quantidade_atual__lte=F('quantidade_minima')
+        )
+        valor_total_estoque = sum(e.valor_total_estoque for e in estoques)
+    except Exception as e:
+        print(f'Erro ao buscar suplementação: {e}')
+        estoques = EstoqueSuplementacao.objects.none()
+        estoques_baixo = EstoqueSuplementacao.objects.none()
+        valor_total_estoque = Decimal('0.00')
+
     # Distribuições do mês
     mes_atual = date.today().replace(day=1)
-    distribuicoes_mes = DistribuicaoSuplementacao.objects.filter(
-        estoque__propriedade=propriedade,
-        data__gte=mes_atual
-    )
-    total_distribuido_mes = sum(d.quantidade for d in distribuicoes_mes)
-    valor_distribuido_mes = sum(d.valor_total for d in distribuicoes_mes)
-    
+    try:
+        distribuicoes_mes = DistribuicaoSuplementacao.objects.filter(
+            estoque__propriedade=propriedade,
+            data__gte=mes_atual
+        )
+        total_distribuido_mes = sum(d.quantidade for d in distribuicoes_mes)
+        valor_distribuido_mes = sum(d.valor_total or Decimal('0') for d in distribuicoes_mes)
+    except Exception as e:
+        print(f'Erro ao buscar distribuições: {e}')
+        total_distribuido_mes = Decimal('0.00')
+        valor_distribuido_mes = Decimal('0.00')
+
+    # Compras do mês
+    try:
+        compras_mes = CompraSuplementacao.objects.filter(
+            estoque__propriedade=propriedade,
+            data__gte=mes_atual
+        )
+        valor_compras_mes = sum(c.valor_total or Decimal('0') for c in compras_mes)
+    except Exception as e:
+        print(f'Erro ao buscar compras: {e}')
+        valor_compras_mes = Decimal('0.00')
+
     # ========== COCHOS ==========
-    cochos = Cocho.objects.filter(propriedade=propriedade)
-    cochos_ativos = cochos.filter(status='ATIVO')
-    
+    try:
+        cochos = Cocho.objects.filter(propriedade=propriedade)
+        cochos_ativos = cochos.filter(status='ATIVO')
+    except Exception as e:
+        print(f'Erro ao buscar cochos: {e}')
+        cochos = Cocho.objects.none()
+        cochos_ativos = Cocho.objects.none()
+
     # Controles recentes
-    controles_recentes = ControleCocho.objects.filter(
-        cocho__propriedade=propriedade
-    ).select_related('cocho').order_by('-data')[:10]
-    
+    try:
+        controles_recentes = ControleCocho.objects.filter(
+            cocho__propriedade=propriedade
+        ).select_related('cocho').order_by('-data')[:10]
+    except Exception as e:
+        print(f'Erro ao buscar controles: {e}')
+        controles_recentes = []
+
     # ========== DISTRIBUIÇÃO NO PASTO ==========
-    distribuicoes_pasto = DistribuicaoPasto.objects.filter(
-        propriedade=propriedade
-    ).select_related('pastagem', 'tipo_distribuicao').order_by('-data_distribuicao')[:10]
+    try:
+        distribuicoes_pasto = DistribuicaoPasto.objects.filter(
+            propriedade=propriedade
+        ).select_related('pastagem', 'tipo_distribuicao').order_by('-data_distribuicao')[:10]
+    except Exception as e:
+        print(f'Erro ao buscar distribuições pasto: {e}')
+        distribuicoes_pasto = []
     
     context = {
         'propriedade': propriedade,
@@ -72,6 +108,7 @@ def nutricao_dashboard(request, propriedade_id):
         'valor_total_estoque': valor_total_estoque,
         'total_distribuido_mes': total_distribuido_mes,
         'valor_distribuido_mes': valor_distribuido_mes,
+        'valor_compras_mes': valor_compras_mes,
         # Cochos
         'cochos': cochos_ativos,
         'controles_recentes': controles_recentes,

@@ -1,0 +1,105 @@
+========================================
+PROBLEMA IDENTIFICADO: DEMONSTRAÇÃO SEM DADOS
+========================================
+
+SITUAÇÃO:
+- Usuário cria conta de demonstração via formulário
+- Faz login com sucesso
+- Mas o sistema redireciona para login de assinante
+- Erro: "Login realizado, mas houve um erro ao iniciar a sessão"
+- Sistema está sem dados (fazenda de demonstração não foi criada)
+
+========================================
+CAUSA RAIZ
+========================================
+
+1. CATEGORIAS DE ANIMAIS NÃO CARREGADAS
+   - O banco de dados está vazio após o deploy
+   - As categorias padrão (Bezerros, Bezerras, etc.) não existem
+   - A função _criar_dados_demo_completos precisa das categorias para criar o inventário
+   - Quando as categorias não existem, a função falha silenciosamente
+
+2. FUNÇÃO _criar_dados_demo_completos FALHA SILENCIOSAMENTE
+   - Tem try/except que só loga o erro
+   - Não cria propriedade quando falha
+   - Usuário fica sem dados
+
+3. REDIRECIONAMENTO INCORRETO APÓS LOGIN
+   - Quando usuário demo faz login sem propriedades
+   - Sistema deveria redirecionar para demo_setup
+   - Mas pode estar dando erro na sessão antes disso
+
+========================================
+SOLUÇÕES IMPLEMENTADAS
+========================================
+
+1. ✅ CORRIGIDO: entrypoint.sh agora carrega dados iniciais
+   - Carrega categorias de animais automaticamente
+   - Cria usuário admin automaticamente
+   - Executa após as migrações
+
+2. ✅ CORRIGIDO: views.py melhorado
+   - Logs mais detalhados na criação de dados demo
+   - Melhor tratamento de erros
+
+3. ⚠️ PENDENTE: Fazer novo deploy
+   - As mudanças estão apenas no código local
+   - Precisa fazer deploy para aplicar as correções
+
+========================================
+PRÓXIMOS PASSOS
+========================================
+
+1. FAZER NOVO DEPLOY:
+   gcloud run deploy monpec --source . --region us-central1 --platform managed --allow-unauthenticated
+
+2. VERIFICAR LOGS APÓS DEPLOY:
+   gcloud run services logs read monpec --region=us-central1 --limit=100
+   
+   Procurar por:
+   - "✅ Categorias carregadas com sucesso!"
+   - "[DEMO_CADASTRO] Propriedade demo criada"
+
+3. TESTAR FLUXO COMPLETO:
+   a) Criar conta demo via formulário
+   b) Fazer login
+   c) Verificar se redireciona para demo_loading
+   d) Verificar se demo_setup cria os dados
+   e) Verificar se consegue acessar a propriedade Monpec1
+
+========================================
+SE AINDA DER PROBLEMA
+========================================
+
+Se após o deploy ainda der erro, executar manualmente:
+
+1. Carregar categorias:
+   python manage.py carregar_categorias --settings=sistema_rural.settings_gcp
+
+2. Para usuários demo existentes sem propriedades:
+   - Fazer login
+   - Será redirecionado para demo_setup automaticamente
+   - demo_setup criará todos os dados necessários
+
+========================================
+ARQUIVOS MODIFICADOS
+========================================
+
+1. entrypoint.sh
+   - Adicionado: carregar_categorias
+   - Adicionado: garantir_admin
+
+2. gestao_rural/management/commands/carregar_categorias.py
+   - Melhorado para funcionar com --settings
+
+3. gestao_rural/views.py
+   - Melhorados logs na criação de dados demo
+
+========================================
+
+
+
+
+
+
+

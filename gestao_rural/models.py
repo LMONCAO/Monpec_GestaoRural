@@ -95,7 +95,7 @@ class ProdutorRural(models.Model):
 
 
 class PlanoAssinatura(models.Model):
-    """Planos de assinatura disponibilizados via Stripe."""
+    """Planos de assinatura disponibilizados via gateway de pagamento."""
     
     MODULOS_PADRAO = [
         'dashboard_pecuaria',
@@ -122,12 +122,6 @@ class PlanoAssinatura(models.Model):
     nome = models.CharField(max_length=120, unique=True, verbose_name="Nome do plano")
     slug = models.SlugField(max_length=120, unique=True, verbose_name="Slug")
     descricao = models.TextField(blank=True, verbose_name="Descrição")
-    stripe_price_id = models.CharField(
-        max_length=120, 
-        blank=True, 
-        verbose_name="Stripe Price ID",
-        help_text="ID do preço no Stripe (opcional se usar outro gateway)"
-    )
     mercadopago_preapproval_id = models.CharField(
         max_length=120,
         blank=True,
@@ -169,8 +163,83 @@ class PlanoAssinatura(models.Model):
         return self.modulos_disponiveis if self.modulos_disponiveis else self.MODULOS_PADRAO
 
 
+# Campos permitidos para AssinaturaCliente (excluindo campos do Stripe removidos)
+CAMPOS_ASSINATURA_PERMITIDOS = [
+    'id', 'usuario_id', 'produtor_id', 'plano_id', 'status',
+    'mercadopago_customer_id', 'mercadopago_subscription_id',
+    'gateway_pagamento', 'ultimo_checkout_id', 'current_period_end',
+    'cancelamento_agendado', 'metadata', 'data_liberacao',
+    'criado_em', 'atualizado_em'
+]
+
+
+class AssinaturaClienteQuerySet(models.QuerySet):
+    """QuerySet customizado para AssinaturaCliente que sempre usa defer() para evitar campos removidos"""
+    
+    def _clone(self):
+        clone = super()._clone()
+        # Sempre garantir que defer() seja aplicado, mesmo em clones
+        # Verificar se defer() já foi aplicado verificando deferred_loading
+        deferred, only = clone.query.deferred_loading
+        campos_removidos = {'stripe_customer_id', 'stripe_subscription_id'}
+        if not campos_removidos.issubset(deferred):
+            # Aplicar defer() para excluir campos que não existem mais
+            clone = clone.defer('stripe_customer_id', 'stripe_subscription_id')
+        return clone
+    
+    def filter(self, *args, **kwargs):
+        # Garantir que defer() seja aplicado antes do filter
+        qs = self
+        deferred, only = qs.query.deferred_loading
+        campos_removidos = {'stripe_customer_id', 'stripe_subscription_id'}
+        if not campos_removidos.issubset(deferred):
+            qs = qs.defer('stripe_customer_id', 'stripe_subscription_id')
+        return super(AssinaturaClienteQuerySet, qs).filter(*args, **kwargs)
+    
+    def get(self, *args, **kwargs):
+        # Garantir que defer() seja aplicado antes do get
+        qs = self
+        deferred, only = qs.query.deferred_loading
+        campos_removidos = {'stripe_customer_id', 'stripe_subscription_id'}
+        if not campos_removidos.issubset(deferred):
+            qs = qs.defer('stripe_customer_id', 'stripe_subscription_id')
+        return super(AssinaturaClienteQuerySet, qs).get(*args, **kwargs)
+    
+    def first(self):
+        # Garantir que defer() seja aplicado antes do first
+        qs = self
+        deferred, only = qs.query.deferred_loading
+        campos_removidos = {'stripe_customer_id', 'stripe_subscription_id'}
+        if not campos_removidos.issubset(deferred):
+            qs = qs.defer('stripe_customer_id', 'stripe_subscription_id')
+        return super(AssinaturaClienteQuerySet, qs).first()
+
+
+class AssinaturaClienteManager(models.Manager):
+    """Manager customizado para AssinaturaCliente"""
+    def get_queryset(self):
+        # CRÍTICO: Usar defer() para EXCLUIR explicitamente os campos do Stripe
+        # que não existem mais no banco, mesmo que apareçam no estado do modelo
+        # Isso garante que o Django nunca tente buscar esses campos
+        qs = AssinaturaClienteQuerySet(self.model, using=self._db)
+        # Usar defer() para excluir campos que não existem mais no banco
+        return qs.defer('stripe_customer_id', 'stripe_subscription_id')
+    
+    def all(self):
+        return self.get_queryset()
+    
+    def filter(self, *args, **kwargs):
+        return self.get_queryset().filter(*args, **kwargs)
+    
+    def get(self, *args, **kwargs):
+        return self.get_queryset().get(*args, **kwargs)
+    
+    def first(self):
+        return self.get_queryset().first()
+
+
 class AssinaturaCliente(models.Model):
-    """Assinaturas dos usuários integradas com a Stripe."""
+    """Assinaturas dos usuários integradas com gateway de pagamento."""
 
     class Status(models.TextChoices):
         PENDENTE = 'PENDENTE', 'Pendente'
@@ -178,6 +247,9 @@ class AssinaturaCliente(models.Model):
         SUSPENSA = 'SUSPENSA', 'Suspensa'
         CANCELADA = 'CANCELADA', 'Cancelada'
         INADIMPLENTE = 'INADIMPLENTE', 'Inadimplente'
+    
+    # Manager customizado
+    objects = AssinaturaClienteManager()
 
     usuario = models.OneToOneField(
         User,
@@ -207,16 +279,6 @@ class AssinaturaCliente(models.Model):
         default=Status.PENDENTE,
         verbose_name="Status"
     )
-    stripe_customer_id = models.CharField(
-        max_length=120,
-        blank=True,
-        verbose_name="Stripe Customer ID"
-    )
-    stripe_subscription_id = models.CharField(
-        max_length=120,
-        blank=True,
-        verbose_name="Stripe Subscription ID"
-    )
     mercadopago_customer_id = models.CharField(
         max_length=120,
         blank=True,
@@ -229,9 +291,8 @@ class AssinaturaCliente(models.Model):
     )
     gateway_pagamento = models.CharField(
         max_length=50,
-        default='stripe',
+        default='mercadopago',
         choices=[
-            ('stripe', 'Stripe'),
             ('mercadopago', 'Mercado Pago'),
             ('asaas', 'Asaas'),
             ('gerencianet', 'Gerencianet'),
@@ -267,9 +328,8 @@ class AssinaturaCliente(models.Model):
         verbose_name = "Assinatura de Cliente"
         verbose_name_plural = "Assinaturas de Clientes"
         ordering = ['-atualizado_em']
+        default_manager_name = 'objects'
         indexes = [
-            models.Index(fields=['stripe_customer_id']),
-            models.Index(fields=['stripe_subscription_id']),
             models.Index(fields=['mercadopago_customer_id']),
             models.Index(fields=['mercadopago_subscription_id']),
             models.Index(fields=['gateway_pagamento']),

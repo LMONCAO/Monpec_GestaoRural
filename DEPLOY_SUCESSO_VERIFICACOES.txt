@@ -1,0 +1,91 @@
+========================================
+✅ DEPLOY CONCLUÍDO COM SUCESSO!
+========================================
+
+URL do Serviço: https://monpec-29862706245.us-central1.run.app
+
+========================================
+VERIFICAÇÕES PÓS-DEPLOY
+========================================
+
+1. VERIFICAR LOGS DO SERVIÇO:
+   gcloud run services logs read monpec --region=us-central1 --limit=50
+
+2. VERIFICAR STATUS:
+   gcloud run services describe monpec --region=us-central1 --format="value(status.conditions)"
+
+3. VERIFICAR VARIÁVEIS DE AMBIENTE:
+   gcloud run services describe monpec --region=us-central1 --format="value(spec.template.spec.containers[0].env)"
+
+4. TESTAR ACESSO:
+   curl -I https://monpec-29862706245.us-central1.run.app
+
+5. VERIFICAR SE CLOUD SQL ESTÁ CONECTADO:
+   gcloud run services describe monpec --region=us-central1 --format="value(spec.template.spec.containers[0].cloudSqlInstances)"
+
+========================================
+PRÓXIMOS PASSOS
+========================================
+
+1. ✅ Acessar a URL no navegador:
+   https://monpec-29862706245.us-central1.run.app
+
+2. ✅ Verificar se a página carrega corretamente
+
+3. ✅ Verificar logs para garantir que:
+   - Migrações foram executadas
+   - Conexão com banco está funcionando
+   - Arquivos estáticos foram coletados
+
+4. ✅ Se houver problemas com arquivos estáticos (fotos), verificar:
+   - Se collectstatic executou corretamente
+   - Se os arquivos estão em /app/staticfiles
+
+5. ✅ Configurar domínio customizado (opcional):
+   - No Cloud Run Console
+   - Adicionar domínio monpec.com.br
+
+========================================
+COMANDOS ÚTEIS
+========================================
+
+# Ver logs em tempo real
+gcloud run services logs tail monpec --region=us-central1
+
+# Atualizar serviço (se necessário)
+gcloud run services update monpec --region=us-central1
+
+# Ver todas as revisões
+gcloud run revisions list --service=monpec --region=us-central1
+
+# Ver métricas
+gcloud run services describe monpec --region=us-central1 --format="value(status)"
+
+========================================
+TROUBLESHOOTING
+========================================
+
+Se a página não carregar:
+1. Verificar logs: gcloud run services logs read monpec --region=us-central1 --limit=100
+2. Verificar se Cloud SQL está conectado
+3. Verificar variáveis de ambiente
+4. Verificar se migrações executaram
+
+Se houver erro 500:
+- Verificar logs detalhados
+- Verificar conexão com banco de dados
+- Verificar SECRET_KEY está correta
+
+Se arquivos estáticos não carregarem:
+- Verificar se collectstatic executou nos logs
+- Verificar configuração do WhiteNoise
+- Verificar se arquivos estão em staticfiles/
+
+========================================
+
+
+
+
+
+
+

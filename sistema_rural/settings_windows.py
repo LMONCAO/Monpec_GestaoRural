@@ -13,11 +13,37 @@ from .settings import *
 DEBUG = True
 ALLOWED_HOSTS = ['*']
 
-# Database - usar SQLite para desenvolvimento
+# Database - PostgreSQL (obrigatório)
+# Usa as configurações do settings.py base que já valida as variáveis de ambiente
+# Se necessário, sobrescrever aqui para desenvolvimento local
+from decouple import config
+import os
+
+DB_NAME = config('DB_NAME', default=None)
+DB_USER = config('DB_USER', default=None)
+DB_PASSWORD = config('DB_PASSWORD', default=None)
+DB_HOST = config('DB_HOST', default='localhost')
+DB_PORT = config('DB_PORT', default='5432')
+
+# Validar que todas as variáveis necessárias estão configuradas
+if not DB_NAME or not DB_USER or not DB_PASSWORD:
+    raise ValueError(
+        "Configuração do banco de dados PostgreSQL é obrigatória! "
+        "Configure as variáveis DB_NAME, DB_USER e DB_PASSWORD no arquivo .env ou como variáveis de ambiente."
+    )
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': DB_NAME,
+        'USER': DB_USER,
+        'PASSWORD': DB_PASSWORD,
+        'HOST': DB_HOST,
+        'PORT': DB_PORT,
+        'OPTIONS': {
+            'connect_timeout': 10,
+        },
+        'CONN_MAX_AGE': 600,
     }
 }
 

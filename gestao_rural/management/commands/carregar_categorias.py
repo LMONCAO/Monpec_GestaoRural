@@ -5,6 +5,7 @@ Comando Django para carregar categorias pré-cadastradas
 
 from django.core.management.base import BaseCommand
 from django.core.management import call_command
+from django.conf import settings
 
 
 class Command(BaseCommand):
@@ -14,8 +15,8 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS('📦 Carregando categorias de animais...'))
         
         try:
-            # Carregar fixture
-            call_command('loaddata', 'categorias_animais.json')
+            # Carregar fixture (o Django já configura o settings quando --settings é passado)
+            call_command('loaddata', 'categorias_animais.json', verbosity=1)
             
             self.stdout.write(self.style.SUCCESS('✅ Categorias carregadas com sucesso!'))
             self.stdout.write('')

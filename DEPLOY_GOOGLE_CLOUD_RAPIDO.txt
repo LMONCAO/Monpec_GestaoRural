@@ -1,0 +1,71 @@
+========================================
+DEPLOY RÁPIDO - GOOGLE CLOUD
+========================================
+
+PASSO A PASSO RESUMIDO:
+
+1. INSTALAR GOOGLE CLOUD SDK
+   https://cloud.google.com/sdk/docs/install
+
+2. AUTENTICAR
+   gcloud auth login
+
+3. CONFIGURAR PROJETO
+   gcloud config set project SEU_PROJECT_ID
+
+4. HABILITAR APIS
+   gcloud services enable run.googleapis.com sqladmin.googleapis.com cloudbuild.googleapis.com
+
+5. CRIAR CLOUD SQL
+   gcloud sql instances create monpec-db --database-version=POSTGRES_15 --tier=db-f1-micro --region=us-central1
+   gcloud sql databases create sistema_rural --instance=monpec-db
+   gcloud sql users create monpec --instance=monpec-db --password=L6171r12@@jjms
+
+6. OBTER CONNECTION NAME
+   gcloud sql instances describe monpec-db --format="value(connectionName)"
+
+7. CRIAR DOCKERFILE
+   (Veja arquivo CRIAR_DOCKERFILE.txt)
+
+8. FAZER DEPLOY
+   gcloud run deploy monpec --source . --platform managed --region us-central1 --allow-unauthenticated --port 8080 --memory 2Gi --cpu 2 --timeout 600 --set-env-vars "DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp"
+
+9. CONFIGURAR VARIÁVEIS NO CLOUD RUN CONSOLE:
+   - CLOUD_SQL_CONNECTION_NAME = (connection name do passo 6)
+   - DB_NAME = sistema_rural
+   - DB_USER = monpec
+   - DB_PASSWORD = L6171r12@@jjms
+   - SECRET_KEY = (sua chave secreta)
+   - DJANGO_SETTINGS_MODULE = sistema_rural.settings_gcp
+
+10. CONECTAR CLOUD SQL NO CLOUD RUN
+    No console, vá em Connections e adicione a instância Cloud SQL
+
+11. ACESSAR URL DO SERVIÇO
+    gcloud run services describe monpec --region=us-central1 --format="value(status.url)"
+
+========================================
+ARQUIVOS CRIADOS:
+========================================
+
+✅ .gcloudignore - Arquivos ignorados no deploy
+✅ GUIA_DEPLOY_GOOGLE_CLOUD_COMPLETO.txt - Guia completo detalhado
+✅ CRIAR_DOCKERFILE.txt - Instruções para criar Dockerfile
+✅ entrypoint.sh - Já existe e está correto
+
+========================================
+PRÓXIMO PASSO:
+========================================
+
+1. Crie o Dockerfile seguindo CRIAR_DOCKERFILE.txt
+2. Execute o deploy seguindo os passos acima
+3. Configure as variáveis de ambiente no Cloud Run Console
+
+========================================
+
+
+
+
+
+
+

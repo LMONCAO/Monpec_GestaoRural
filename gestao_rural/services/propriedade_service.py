@@ -40,15 +40,10 @@ class PropriedadeService:
             # Assinante: propriedades da equipe
             from ..models import AssinaturaCliente, TenantUsuario
             
-            assinatura = None
-            if hasattr(user, 'assinatura'):
-                assinatura = user.assinatura
-            elif hasattr(user, 'tenant_profile'):
-                assinatura = user.tenant_profile.assinatura
-            else:
-                assinatura = AssinaturaCliente.objects.filter(usuario=user).first()
+            # Sempre usar defer() para evitar campos do Stripe removidos
+            assinatura = AssinaturaCliente.objects.defer('stripe_customer_id', 'stripe_subscription_id').filter(usuario=user).first()
             
-            if assinatura and assinatura.ativa:
+            if assinatura and assinatura.status == 'ATIVA':
                 usuarios_tenant = TenantUsuario.objects.filter(
                     assinatura=assinatura,
                     ativo=True
@@ -94,15 +89,10 @@ class PropriedadeService:
             # Assinante pode acessar propriedades da equipe
             from ..models import AssinaturaCliente, TenantUsuario
             
-            assinatura = None
-            if hasattr(user, 'assinatura'):
-                assinatura = user.assinatura
-            elif hasattr(user, 'tenant_profile'):
-                assinatura = user.tenant_profile.assinatura
-            else:
-                assinatura = AssinaturaCliente.objects.filter(usuario=user).first()
+            # Sempre usar defer() para evitar campos do Stripe removidos
+            assinatura = AssinaturaCliente.objects.defer('stripe_customer_id', 'stripe_subscription_id').filter(usuario=user).first()
             
-            if assinatura and assinatura.ativa:
+            if assinatura and assinatura.status == 'ATIVA':
                 usuarios_tenant = TenantUsuario.objects.filter(
                     assinatura=assinatura,
                     ativo=True

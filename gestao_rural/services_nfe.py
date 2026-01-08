@@ -17,6 +17,28 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# Importar validação de CPF/CNPJ
+try:
+    from ..services.validacao_cpf_cnpj import validar_cpf_cnpj
+except ImportError:
+    try:
+        from gestao_rural.services.validacao_cpf_cnpj import validar_cpf_cnpj
+    except ImportError:
+        # Fallback se módulo não estiver disponível
+        def validar_cpf_cnpj(cpf_cnpj):
+            """Validação básica de CPF/CNPJ"""
+            import re
+            if not cpf_cnpj:
+                return False, "INVALIDO", "CPF/CNPJ não informado"
+            # Remove caracteres não numéricos
+            cpf_cnpj_limpo = re.sub(r'[^0-9]', '', str(cpf_cnpj))
+            if len(cpf_cnpj_limpo) == 11:
+                return True, "CPF", "CPF válido"
+            elif len(cpf_cnpj_limpo) == 14:
+                return True, "CNPJ", "CNPJ válido"
+            else:
+                return False, "INVALIDO", f"CPF/CNPJ inválido: deve ter 11 ou 14 dígitos, encontrado {len(cpf_cnpj_limpo)}"
+
 
 def emitir_nfe(nota_fiscal):
     """
@@ -197,25 +219,85 @@ def _preparar_dados_nfe(nota_fiscal):
     if not propriedade:
         raise ValueError('Propriedade não configurada na nota fiscal')
     
+    # Validar propriedade tem CNPJ
+    if not propriedade.cnpj:
+        raise ValueError('CNPJ da propriedade é obrigatório para emissão de NF-e')
+    
+    # Validar formato do CNPJ da propriedade
+    cnpj_valido, tipo_doc, cnpj_limpo = validar_cpf_cnpj(propriedade.cnpj)
+    if not cnpj_valido or tipo_doc != 'CNPJ':
+        raise ValueError(f'CNPJ da propriedade inválido: {propriedade.cnpj}')
+    
     # Dados do destinatário (cliente)
     cliente = nota_fiscal.cliente
     
     if not cliente and nota_fiscal.tipo == 'SAIDA':
         raise ValueError('Cliente é obrigatório para NF-e de saída')
     
+    # Validar dados do cliente se for NF-e de saída
+    if nota_fiscal.tipo == 'SAIDA' and cliente:
+        if not hasattr(cliente, 'tipo_pessoa') or not cliente.tipo_pessoa:
+            raise ValueError('Tipo de pessoa do cliente é obrigatório (FISICA ou JURIDICA)')
+        
+        if not cliente.cpf_cnpj:
+            raise ValueError('CPF/CNPJ do cliente é obrigatório')
+        
+        # Validar formato do CPF/CNPJ do cliente
+        doc_valido, tipo_doc_cliente, doc_limpo = validar_cpf_cnpj(cliente.cpf_cnpj)
+        if not doc_valido:
+            raise ValueError(f'CPF/CNPJ do cliente inválido: {cliente.cpf_cnpj}')
+        
+        # Validar consistência: tipo_pessoa deve corresponder ao tipo do documento
+        if cliente.tipo_pessoa == 'FISICA' and tipo_doc_cliente != 'CPF':
+            raise ValueError(f'Cliente marcado como pessoa física, mas documento informado não é CPF: {cliente.cpf_cnpj}')
+        elif cliente.tipo_pessoa == 'JURIDICA' and tipo_doc_cliente != 'CNPJ':
+            raise ValueError(f'Cliente marcado como pessoa jurídica, mas documento informado não é CNPJ: {cliente.cpf_cnpj}')
+        
+        if not cliente.nome:
+            raise ValueError('Nome do cliente é obrigatório')
+        
+        # Validar endereço mínimo
+        if not cliente.endereco:
+            raise ValueError('Endereço do cliente é obrigatório')
+        
+        if not cliente.cidade:
+            raise ValueError('Cidade do cliente é obrigatória')
+        
+        if not cliente.estado:
+            raise ValueError('Estado (UF) do cliente é obrigatório')
+        
+        if not cliente.cep:
+            raise ValueError('CEP do cliente é obrigatório')
+    
     # Preparar itens
     itens = []
     for item in nota_fiscal.itens.all():
+        if not item.descricao:
+            raise ValueError('Descrição do item é obrigatória')
+        
+        if not item.quantidade or item.quantidade <= 0:
+            raise ValueError('Quantidade do item deve ser maior que zero')
+        
+        if not item.valor_unitario or item.valor_unitario <= 0:
+            raise ValueError('Valor unitário do item deve ser maior que zero')
+        
         itens.append({
             'codigo': item.codigo_produto or '',
             'descricao': item.descricao,
             'ncm': item.ncm or '',
             'cfop': item.cfop or '5102',  # CFOP padrão para venda
-            'unidade': item.unidade_medida,
+            'unidade': item.unidade_medida or 'UN',
             'quantidade': float(item.quantidade),
             'valor_unitario': float(item.valor_unitario),
-            'valor_total': float(item.valor_total)
+            'valor_total': float(item.valor_total or (item.quantidade * item.valor_unitario))
         })
+    
+    # Validar que há pelo menos um item
+    if not itens:
+        raise ValueError('NF-e deve ter pelo menos um item')
+    
+    # Validar tipo de pessoa do cliente antes de acessar atributos
+    tipo_pessoa = getattr(cliente, 'tipo_pessoa', None) if cliente else None
     
     dados = {
         'natureza_operacao': 'VENDA',
@@ -223,36 +305,36 @@ def _preparar_dados_nfe(nota_fiscal):
         'tipo_documento': '1',  # 1 = NF-e
         'local_destino': '1',  # 1 = Operação interna
         'finalidade_emissao': '1',  # 1 = Normal
-        'consumidor_final': '1' if cliente.tipo_pessoa == 'FISICA' else '0',
+        'consumidor_final': '1' if (tipo_pessoa == 'FISICA') else '0',
         'presenca_comprador': '1',  # 1 = Operação presencial
         
         # Emitente (propriedade)
         'cnpj_emitente': propriedade.cnpj or '',
-        'nome_emitente': propriedade.nome_propriedade,
+        'nome_emitente': propriedade.nome_propriedade or '',
         'inscricao_estadual_emitente': propriedade.inscricao_estadual or '',
         
-        # Destinatário (cliente)
-        'cnpj_destinatario': cliente.cpf_cnpj if cliente.tipo_pessoa == 'JURIDICA' else '',
-        'cpf_destinatario': cliente.cpf_cnpj if cliente.tipo_pessoa == 'FISICA' else '',
-        'nome_destinatario': cliente.nome,
-        'inscricao_estadual_destinatario': cliente.inscricao_estadual or '',
-        'endereco_destinatario': cliente.endereco or '',
-        'numero_destinatario': cliente.numero or '',
-        'bairro_destinatario': cliente.bairro or '',
-        'municipio_destinatario': cliente.cidade or '',
-        'uf_destinatario': cliente.estado or '',
-        'cep_destinatario': cliente.cep or '',
+        # Destinatário (cliente) - apenas se cliente existe
+        'cnpj_destinatario': cliente.cpf_cnpj if (cliente and tipo_pessoa == 'JURIDICA') else '',
+        'cpf_destinatario': cliente.cpf_cnpj if (cliente and tipo_pessoa == 'FISICA') else '',
+        'nome_destinatario': cliente.nome if cliente else '',
+        'inscricao_estadual_destinatario': getattr(cliente, 'inscricao_estadual', '') if cliente else '',
+        'endereco_destinatario': cliente.endereco if cliente else '',
+        'numero_destinatario': getattr(cliente, 'numero', '') if cliente else '',
+        'bairro_destinatario': getattr(cliente, 'bairro', '') if cliente else '',
+        'municipio_destinatario': cliente.cidade if cliente else '',
+        'uf_destinatario': cliente.estado if cliente else '',
+        'cep_destinatario': cliente.cep if cliente else '',
         
         # Itens
         'itens': itens,
         
         # Valores
-        'valor_produtos': float(nota_fiscal.valor_produtos),
-        'valor_frete': float(nota_fiscal.valor_frete),
-        'valor_seguro': float(nota_fiscal.valor_seguro),
-        'valor_desconto': float(nota_fiscal.valor_desconto),
-        'valor_outros': float(nota_fiscal.valor_outros),
-        'valor_total': float(nota_fiscal.valor_total),
+        'valor_produtos': float(nota_fiscal.valor_produtos or 0),
+        'valor_frete': float(nota_fiscal.valor_frete or 0),
+        'valor_seguro': float(nota_fiscal.valor_seguro or 0),
+        'valor_desconto': float(nota_fiscal.valor_desconto or 0),
+        'valor_outros': float(nota_fiscal.valor_outros or 0),
+        'valor_total': float(nota_fiscal.valor_total or 0),
     }
     
     return dados

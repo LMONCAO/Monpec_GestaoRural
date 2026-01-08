@@ -1,0 +1,77 @@
+========================================
+✅ VERIFICAR SE O DEPLOY DEU CERTO
+========================================
+
+Execute estes comandos para verificar:
+
+========================================
+1. VERIFICAR STATUS DO SERVIÇO:
+========================================
+
+gcloud run services describe monpec --region=us-central1 --format="value(status.conditions)"
+
+Deve mostrar: Ready=True
+
+========================================
+2. OBTER URL DO SERVIÇO:
+========================================
+
+gcloud run services describe monpec --region=us-central1 --format="value(status.url)"
+
+========================================
+3. VERIFICAR CLOUD SQL CONECTADO:
+========================================
+
+gcloud run services describe monpec --region=us-central1 --format="value(spec.template.spec.containers[0].cloudSqlInstances)"
+
+Deve retornar: monpec-sistema-rural:us-central1:monpec-db
+
+========================================
+4. VERIFICAR VARIÁVEIS DE AMBIENTE:
+========================================
+
+gcloud run services describe monpec --region=us-central1 --format="value(spec.template.spec.containers[0].env)"
+
+Deve mostrar todas as variáveis configuradas
+
+========================================
+5. VER LOGS RECENTES:
+========================================
+
+gcloud run services logs read monpec --region=us-central1 --limit=50
+
+Procure por:
+- "✅ Configurado: Cloud SQL via Unix Socket"
+- Não deve ter erro de "127.0.0.1"
+- Verificar se migrações executaram
+
+========================================
+6. TESTAR ACESSO:
+========================================
+
+# Obter URL primeiro
+SERVICE_URL=$(gcloud run services describe monpec --region=us-central1 --format="value(status.url)")
+
+# Testar
+curl -I $SERVICE_URL
+
+Ou acesse no navegador a URL retornada
+
+========================================
+SE DERAM ERRO:
+========================================
+
+Ver logs detalhados:
+gcloud run services logs read monpec --region=us-central1 --limit=100
+
+Verificar última revisão:
+gcloud run revisions list --service=monpec --region=us-central1
+
+========================================
+
+
+
+
+
+
+

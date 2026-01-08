@@ -1,0 +1,94 @@
+# 🚀 Como Iniciar o Servidor MONPEC
+
+## Arquivos Disponíveis
+
+### `iniciar_servidor.bat` - Servidor de Desenvolvimento
+Arquivo principal para iniciar o servidor em modo desenvolvimento com PostgreSQL.
+
+**Como usar:**
+1. Clique duplo no arquivo `iniciar_servidor.bat`
+2. Ou execute no terminal: `iniciar_servidor.bat`
+
+**O que o script faz:**
+- ✅ Verifica se está no diretório correto do projeto
+- ✅ Cria arquivo `.env.local` automaticamente se não existir
+- ✅ Configura PostgreSQL como banco de dados
+- ✅ Inicia o servidor Django na porta 8000
+- ✅ Disponibiliza em `http://localhost:8000`
+
+### `iniciar_servidor_producao.bat` - Servidor de Produção
+Para uso em produção ou testes avançados.
+
+**Características:**
+- Usa configurações de produção
+- Suporta Waitress (servidor WSGI)
+- Porta 8000 para todos os IPs (0.0.0.0)
+
+## 📋 Pré-requisitos
+
+### Python
+- Python 3.11 ou superior instalado
+- Variável `PATH` configurada
+
+### PostgreSQL (Recomendado)
+```batch
+# Execute uma vez para configurar
+.\scripts\instalar_e_configurar_postgresql.ps1
+```
+
+### Sem PostgreSQL (SQLite)
+O script criará automaticamente um arquivo `.env.local` com SQLite se PostgreSQL não estiver disponível.
+
+## 🔧 Configuração Automática
+
+O arquivo `iniciar_servidor.bat` cria automaticamente o arquivo `.env.local` com:
+
+```env
+DEBUG=True
+SECRET_KEY=django-insecure-desenvolvimento-postgresql-monpec
+DB_NAME=monpec_db_local
+DB_USER=postgres
+DB_PASSWORD=postgres
+DB_HOST=localhost
+DB_PORT=5432
+```
+
+## 🌐 Acesso ao Sistema
+
+Após iniciar o servidor:
+- **Página inicial**: http://localhost:8000
+- **Login**: http://localhost:8000/login/
+- **Dashboard**: http://localhost:8000/dashboard/
+
+## 🛑 Como Parar o Servidor
+
+- Pressione `Ctrl+C` no terminal
+- Ou feche a janela do terminal
+
+## ⚠️ Solução de Problemas
+
+### Erro: "Python não encontrado"
+- Instale Python e adicione ao PATH do sistema
+
+### Erro: "manage.py não encontrado"
+- Execute o script na raiz do projeto (onde está o manage.py)
+
+### Erro de conexão com PostgreSQL
+- Execute: `.\scripts\instalar_e_configurar_postgresql.ps1`
+- Verifique se PostgreSQL está rodando
+
+### Porta 8000 ocupada
+- O script automaticamente encerra processos na porta 8000
+- Se persistir, mude manualmente: `python manage.py runserver 127.0.0.1:8001`
+
+## 📞 Suporte
+
+Para problemas específicos, consulte:
+- `README_POSTGRESQL.md` - Configuração detalhada do PostgreSQL
+- `docs/` - Documentação completa do sistema
+
+---
+**Criado para facilitar o desenvolvimento local com PostgreSQL** 🐘
+
+
+

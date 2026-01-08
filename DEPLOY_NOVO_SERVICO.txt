@@ -1,0 +1,87 @@
+========================================
+🚀 DEPLOY NOVO SERVIÇO CLOUD RUN
+========================================
+
+Execute estes comandos no Cloud Shell:
+
+========================================
+PASSO 1: CLONAR REPOSITÓRIO
+========================================
+
+cd ~
+git clone https://github.com/LMONCAO/Monpec_GestaoRural.git
+cd Monpec_GestaoRural
+chmod +x entrypoint.sh
+
+========================================
+PASSO 2: FAZER DEPLOY
+========================================
+
+gcloud run deploy monpec \
+    --source . \
+    --platform managed \
+    --region us-central1 \
+    --allow-unauthenticated \
+    --port 8080 \
+    --memory 2Gi \
+    --cpu 2 \
+    --timeout 600 \
+    --add-cloudsql-instances=monpec-sistema-rural:us-central1:monpec-db \
+    --set-env-vars="CLOUD_SQL_CONNECTION_NAME=monpec-sistema-rural:us-central1:monpec-db,DB_NAME=sistema_rural,DB_USER=postgres,DB_PASSWORD=L6171r12@@jjms,SECRET_KEY=rfzjy1t\$\$d_cmjb2n-wda0oi+)p!(_4!4\$na-n-1a60\$2gyspo,DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,DEBUG=False" \
+    --max-instances=10 \
+    --min-instances=0
+
+========================================
+PASSO 3: VERIFICAR DEPLOY
+========================================
+
+# Aguardar alguns minutos para o deploy terminar, depois:
+
+# Ver URL do serviço
+gcloud run services describe monpec --region=us-central1 --format="value(status.url)"
+
+# Ver logs
+gcloud run services logs read monpec --region=us-central1 --limit=50
+
+# Ver status
+gcloud run services describe monpec --region=us-central1 --format="value(status.conditions)"
+
+========================================
+TUDO EM UM COMANDO:
+========================================
+
+cd ~ && \
+git clone https://github.com/LMONCAO/Monpec_GestaoRural.git && \
+cd Monpec_GestaoRural && \
+chmod +x entrypoint.sh && \
+gcloud run deploy monpec \
+    --source . \
+    --platform managed \
+    --region us-central1 \
+    --allow-unauthenticated \
+    --port 8080 \
+    --memory 2Gi \
+    --cpu 2 \
+    --timeout 600 \
+    --add-cloudsql-instances=monpec-sistema-rural:us-central1:monpec-db \
+    --set-env-vars="CLOUD_SQL_CONNECTION_NAME=monpec-sistema-rural:us-central1:monpec-db,DB_NAME=sistema_rural,DB_USER=postgres,DB_PASSWORD=L6171r12@@jjms,SECRET_KEY=rfzjy1t\$\$d_cmjb2n-wda0oi+)p!(_4!4\$na-n-1a60\$2gyspo,DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,DEBUG=False" \
+    --max-instances=10 \
+    --min-instances=0
+
+========================================
+APÓS O DEPLOY:
+========================================
+
+1. O deploy pode levar 5-10 minutos
+2. Você verá a URL do serviço no final
+3. Verifique os logs se houver problemas
+4. Teste a URL no navegador
+
+========================================
+
+
+
+
+
+
+

@@ -193,21 +193,16 @@ def relatorios_sisbov_menu(request, propriedade_id):
 
 
 def _campo_existe_no_banco(tabela, campo):
-    """Verifica se um campo existe em uma tabela do banco de dados"""
+    """Verifica se um campo existe em uma tabela do banco de dados PostgreSQL"""
     try:
         with connection.cursor() as cursor:
-            if 'sqlite' in connection.settings_dict['ENGINE']:
-                cursor.execute(f"PRAGMA table_info({tabela})")
-                columns = [row[1] for row in cursor.fetchall()]
-                return campo in columns
-            else:
-                # Para outros bancos (PostgreSQL, MySQL, etc)
-                cursor.execute(f"""
-                    SELECT column_name 
-                    FROM information_schema.columns 
-                    WHERE table_name = '{tabela}' AND column_name = '{campo}'
-                """)
-                return cursor.fetchone() is not None
+            # Sistema usa apenas PostgreSQL
+            cursor.execute("""
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name = %s AND column_name = %s
+            """, [tabela, campo])
+            return cursor.fetchone() is not None
     except Exception:
         return False
 

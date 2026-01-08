@@ -31,12 +31,10 @@ from . import views_demo_setup, views_demo_loading
 from . import views_planejamento_ia
 from . import views_admin
 from . import views_configuracoes
-from . import views_debug_static
 from . import views_documentos
 
 urlpatterns = [
-    # Debug: verificar arquivos estáticos (remover em produção)
-    path('debug/static-files/', views_debug_static.debug_static_files, name='debug_static_files'),
+    # Debug removido - não utilizado em produção
     # Autenticação
     path('login/', views.login_view, name='login'),
     # Logout está definido no urls.py principal para garantir redirecionamento correto
@@ -107,9 +105,6 @@ urlpatterns = [
     path('propriedade/<int:propriedade_id>/pecuaria/inventario/', views_pecuaria_basica.pecuaria_inventario, name='pecuaria_inventario'),
     path('propriedade/<int:propriedade_id>/pecuaria/parametros/', views_pecuaria_basica.pecuaria_parametros, name='pecuaria_parametros'),
     path('propriedade/<int:propriedade_id>/pecuaria/parametros-avancados/', views_pecuaria_basica.pecuaria_parametros_avancados, name='pecuaria_parametros_avancados'),
-    path('propriedade/<int:propriedade_id>/pecuaria/testar-transferencias/', views.testar_transferencias, name='testar_transferencias'),
-    path('api/saldo-fazenda/<int:fazenda_id>/<int:categoria_id>/', views.obter_saldo_fazenda_ajax, name='obter_saldo_fazenda_ajax'),
-    path('propriedade/<int:propriedade_id>/inventario/saldo/<int:categoria_id>/', views.buscar_saldo_inventario, name='buscar_saldo_inventario'),
     path('propriedade/<int:propriedade_id>/pecuaria/projecao/', views.pecuaria_projecao, name='pecuaria_projecao'),
     path('propriedade/<int:propriedade_id>/pecuaria/projecao/planilha/', views.pecuaria_projecao_planilha, name='pecuaria_projecao_planilha'),
     path('propriedade/<int:propriedade_id>/pecuaria/projecao/demo/planilha/', views.pecuaria_projecao_demo_planilha, name='pecuaria_projecao_demo_planilha'),
@@ -138,17 +133,8 @@ urlpatterns = [
     path('propriedade/<int:propriedade_id>/pecuaria/vendas-projecao/exportar-excel/', views_cenarios.exportar_relatorio_vendas_excel, name='exportar_relatorio_vendas_excel'),
     path('propriedade/<int:propriedade_id>/pecuaria/inventario/dados/', views_pecuaria_basica.pecuaria_inventario_dados, name='pecuaria_inventario_dados'),
     
-    # Rastreabilidade (dentro de Pecuária) - Comentado pois as funções estão em views_rastreabilidade
-    # path('propriedade/<int:propriedade_id>/pecuaria/rastreabilidade/animais/', views_pecuaria_completa.animais_individuais_lista, name='animais_individuais_lista'),
-    # path('propriedade/<int:propriedade_id>/pecuaria/rastreabilidade/animal/novo/', views_pecuaria_completa.animal_individual_novo, name='animal_individual_novo'),
-    # path('propriedade/<int:propriedade_id>/pecuaria/rastreabilidade/animal/<int:animal_id>/', views_pecuaria_completa.animal_individual_detalhes, name='animal_individual_detalhes'),
-    
     # Reprodução (dentro de Pecuária)
     path('propriedade/<int:propriedade_id>/pecuaria/reproducao/', views_pecuaria_completa.reproducao_dashboard, name='reproducao_dashboard'),
-    # path('propriedade/<int:propriedade_id>/pecuaria/reproducao/touros/', views_pecuaria_completa.touros_lista, name='touros_lista'),
-    # path('propriedade/<int:propriedade_id>/pecuaria/reproducao/touro/novo/', views_pecuaria_completa.touro_novo, name='touro_novo'),
-    # path('propriedade/<int:propriedade_id>/pecuaria/reproducao/estacao-monta/nova/', views_pecuaria_completa.estacao_monta_nova, name='estacao_monta_nova'),
-    # path('propriedade/<int:propriedade_id>/pecuaria/reproducao/iatf/nova/', views_pecuaria_completa.iatf_nova, name='iatf_nova'),
     path('propriedade/<int:propriedade_id>/pecuaria/pesagens/', views_pesagem.pesagem_dashboard, name='pesagem_dashboard'),
     path('propriedade/<int:propriedade_id>/pecuaria/pesagens/nova/', views_pesagem.pesagem_nova, name='pesagem_nova'),
     
@@ -172,10 +158,9 @@ urlpatterns = [
 
     # Super Tela de Curral / Manejo
     # Rotas específicas devem vir ANTES da rota genérica
-    # NOTA: curral/v3/ está definido em sistema_rural/urls.py para garantir prioridade
-    # Mas também adicionamos aqui como backup
+    # NOTA: curral/v3/ e v4/ estão definidos em sistema_rural/urls.py para garantir prioridade
     path('propriedade/<int:propriedade_id>/curral/demo/', views_curral.curral_info_demo, name='curral_info_demo'),
-    path('propriedade/<int:propriedade_id>/curral/v3/', views_curral.curral_dashboard_v3, name='curral_dashboard_v3'),
+    path('demo/criando-usuario/', views.criando_usuario_demo, name='criando_usuario_demo'),
     path('propriedade/<int:propriedade_id>/curral/painel/', views_curral.curral_painel, name='curral_painel'),
     path('propriedade/<int:propriedade_id>/curral/tela-unica/', views_curral.curral_tela_unica, name='curral_tela_unica'),
     path('propriedade/<int:propriedade_id>/curral/', views_curral.curral_dashboard, name='curral_dashboard'),
@@ -282,7 +267,6 @@ urlpatterns = [
     
     # Validação de certificado digital
     path('produtor/<int:produtor_id>/validar-certificado/', views_vendas.validar_certificado_digital_produtor, name='validar_certificado_digital_produtor'),
-    path('certificado/validar-upload/', views_vendas.validar_certificado_upload, name='validar_certificado_upload'),
     path('certificado/validar-upload/', views_vendas.validar_certificado_upload, name='validar_certificado_upload'),
     
     # URLs AJAX para NFe

@@ -22,29 +22,43 @@ class ProvisionamentoResultado:
     mensagem: str = ""
 
 
-def _registrar_database(alias: str, caminho: Path) -> None:
+def _registrar_database(alias: str, nome_banco: str) -> None:
+    """Registra um banco PostgreSQL para o tenant."""
+    from django.conf import settings
+    import os
+    
+    # Usar as mesmas credenciais do banco padrão, mas com nome de banco diferente
+    default_db = settings.DATABASES['default']
     settings.DATABASES[alias] = {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': str(caminho),
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': nome_banco,
+        'USER': default_db.get('USER', os.getenv('DB_USER', '')),
+        'PASSWORD': default_db.get('PASSWORD', os.getenv('DB_PASSWORD', '')),
+        'HOST': default_db.get('HOST', os.getenv('DB_HOST', 'localhost')),
+        'PORT': default_db.get('PORT', os.getenv('DB_PORT', '5432')),
+        'OPTIONS': default_db.get('OPTIONS', {}),
+        'CONN_MAX_AGE': default_db.get('CONN_MAX_AGE', 600),
     }
     connections.databases[alias] = settings.DATABASES[alias]
 
 
 def _obter_ou_criar_workspace(assinatura: AssinaturaCliente) -> TenantWorkspace:
+    """Obtém ou cria um workspace para o tenant usando PostgreSQL."""
     alias = assinatura.alias_tenant
-    caminho = Path(settings.TENANT_DATABASE_DIR) / f"{alias}.sqlite3"
+    # Usar nome de banco PostgreSQL em vez de caminho de arquivo SQLite
+    nome_banco = f"monpec_tenant_{alias}"
 
     workspace, _ = TenantWorkspace.objects.get_or_create(
         assinatura=assinatura,
         defaults={
             'alias': alias,
-            'caminho_banco': str(caminho),
+            'caminho_banco': nome_banco,  # Agora armazena nome do banco PostgreSQL
         },
     )
 
-    if workspace.alias != alias or workspace.caminho_banco != str(caminho):
+    if workspace.alias != alias or workspace.caminho_banco != nome_banco:
         workspace.alias = alias
-        workspace.caminho_banco = str(caminho)
+        workspace.caminho_banco = nome_banco
         workspace.save(update_fields=['alias', 'caminho_banco', 'atualizado_em'])
 
     return workspace
@@ -60,14 +74,39 @@ def provisionar_workspace(assinatura: AssinaturaCliente) -> ProvisionamentoResul
     workspace.ultimo_erro = ""
     workspace.save(update_fields=['status', 'ultimo_erro', 'atualizado_em'])
 
-    caminho = Path(workspace.caminho_banco)
-    caminho.parent.mkdir(parents=True, exist_ok=True)
+    nome_banco = workspace.caminho_banco  # Agora é o nome do banco PostgreSQL
 
     try:
-        _registrar_database(workspace.alias, caminho)
-        if caminho.exists():
-            caminho.unlink()
+        # Criar banco PostgreSQL se não existir
+        # Nota: Precisa usar conexão ao banco 'postgres' para criar novos bancos
+        from django.db import connection
+        import psycopg2
+        
+        # Conectar ao banco 'postgres' para criar novos bancos
+        default_db = settings.DATABASES['default']
+        conn_admin = psycopg2.connect(
+            host=default_db.get('HOST', 'localhost'),
+            port=default_db.get('PORT', '5432'),
+            database='postgres',  # Conectar ao banco padrão para criar novos
+            user=default_db.get('USER', ''),
+            password=default_db.get('PASSWORD', '')
+        )
+        conn_admin.autocommit = True  # Necessário para CREATE DATABASE
+        
+        try:
+            with conn_admin.cursor() as cursor:
+                cursor.execute("SELECT 1 FROM pg_database WHERE datname = %s", [nome_banco])
+                if not cursor.fetchone():
+                    # Criar banco de dados
+                    cursor.execute(f'CREATE DATABASE "{nome_banco}"')
+                    logger.info(f"Banco de dados PostgreSQL '{nome_banco}' criado para tenant {workspace.alias}")
+        finally:
+            conn_admin.close()
+        
+        # Registrar conexão do banco
+        _registrar_database(workspace.alias, nome_banco)
 
+        # Aplicar migrations no banco do tenant
         call_command(
             'migrate',
             database=workspace.alias,
@@ -102,13 +141,33 @@ def registrar_workspaces_existentes() -> None:
         return
 
     for workspace in ativos:
-        caminho = Path(workspace.caminho_banco)
-        if not caminho.exists():
-            logger.warning("Arquivo de banco %s não encontrado para workspace %s.", caminho, workspace.alias)
+        nome_banco = workspace.caminho_banco  # Agora é o nome do banco PostgreSQL
+        
+        # Verificar se o banco existe usando conexão ao banco postgres
+        try:
+            import psycopg2
+            default_db = settings.DATABASES['default']
+            conn_check = psycopg2.connect(
+                host=default_db.get('HOST', 'localhost'),
+                port=default_db.get('PORT', '5432'),
+                database='postgres',
+                user=default_db.get('USER', ''),
+                password=default_db.get('PASSWORD', '')
+            )
+            try:
+                with conn_check.cursor() as cursor:
+                    cursor.execute("SELECT 1 FROM pg_database WHERE datname = %s", [nome_banco])
+                    if not cursor.fetchone():
+                        logger.warning("Banco PostgreSQL '%s' não encontrado para workspace %s.", nome_banco, workspace.alias)
+                        continue
+            finally:
+                conn_check.close()
+        except Exception as e:
+            logger.warning("Erro ao verificar banco '%s' para workspace %s: %s", nome_banco, workspace.alias, e)
             continue
 
         try:
-            _registrar_database(workspace.alias, caminho)
+            _registrar_database(workspace.alias, nome_banco)
         except Exception:  # pragma: no cover - log de erro
             logger.exception("Erro ao registrar workspace %s durante inicialização.", workspace.alias)
 

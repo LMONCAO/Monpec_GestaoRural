@@ -1,99 +1,111 @@
 # ✅ DEPLOY CONCLUÍDO COM SUCESSO!
 
-## 🌐 URL do Serviço
+## 🎉 Status: Sistema Deployado no Google Cloud Run
 
-**Serviço Cloud Run:**
-```
-https://monpec-29862706245.us-central1.run.app
-```
+### 🔗 URL do Serviço
+**https://monpec-29862706245.us-central1.run.app**
 
-## ✅ O que foi configurado:
+---
 
-1. ✅ **Build da imagem Docker** - Concluído com sucesso
-2. ✅ **Deploy no Cloud Run** - Serviço ativo e funcionando
-3. ✅ **Landing page** - Atualizada e disponível
-4. ✅ **Formulário de demonstração** - Funcionando
-5. ✅ **Credenciais Mercado Pago** - Configuradas via variáveis de ambiente
-6. ✅ **Variáveis de ambiente** - Todas aplicadas no Cloud Run
+## ✅ O Que Foi Feito
 
-## 🔐 Configurar Admin - PRÓXIMO PASSO IMPORTANTE
+1. ✅ **APIs habilitadas** no Google Cloud
+2. ✅ **Imagem Docker buildada** com sucesso (3m58s)
+3. ✅ **Deploy no Cloud Run** concluído
+4. ✅ **Serviço ativo e rodando**
 
-Para que a senha do admin funcione, você precisa executar o script `criar_admin_producao.py`.
+---
 
-### Opção 1: Via Cloud Shell (Recomendado)
+## ⚠️ PRÓXIMOS PASSOS OBRIGATÓRIOS
 
-1. Acesse: https://shell.cloud.google.com
-2. Configure o projeto:
-   ```bash
-   gcloud config set project monpec-sistema-rural
-   ```
-3. Faça upload do arquivo `criar_admin_producao.py` para o Cloud Shell
-4. Execute o script:
-   ```bash
-   python criar_admin_producao.py
-   ```
+### 1. Aplicar Migrações no Cloud SQL (CRÍTICO!)
 
-### Opção 2: Via Cloud Run Job
+**Você precisa aplicar as 108 migrações no banco de dados!**
 
-Crie um job temporário para executar o script:
+Execute este comando:
 
-```bash
-gcloud run jobs create create-admin \
-  --image gcr.io/monpec-sistema-rural/monpec \
-  --region us-central1 \
-  --command python \
-  --args criar_admin_producao.py \
-  --set-env-vars DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp \
-  --set-env-vars DB_NAME=monpec_db \
-  --set-env-vars DB_USER=monpec_user \
-  --set-env-vars DB_PASSWORD=SUA_SENHA_AQUI \
-  --set-env-vars CLOUD_SQL_CONNECTION_NAME=SUA_CONNECTION_NAME_AQUI
+```powershell
+gcloud run jobs create migrate-job `
+    --image gcr.io/monpec-sistema-rural/monpec:latest `
+    --region us-central1 `
+    --add-cloudsql-instances="monpec-sistema-rural:us-central1:monpec-db" `
+    --set-env-vars="DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,DB_NAME=monpec_db,DB_USER=monpec_user,DB_PASSWORD=L6171r12@@jjms,CLOUD_SQL_CONNECTION_NAME=monpec-sistema-rural:us-central1:monpec-db" `
+    --command="python" `
+    --args="manage.py,migrate" `
+    --memory=2Gi `
+    --cpu=2
 
 # Executar o job
-gcloud run jobs execute create-admin --region us-central1 --wait
+gcloud run jobs execute migrate-job --region us-central1 --wait
 ```
 
-### Credenciais Admin:
+### 2. Testar o Sistema
 
-- **Usuário**: admin
-- **Email**: admin@monpec.com.br
-- **Senha**: L6171r12@@
+Acesse: **https://monpec-29862706245.us-central1.run.app**
 
-## 📋 Verificações Finais:
+Teste:
+- ✅ Landing page carrega
+- ✅ Criação de usuário demo
+- ✅ Sistema de assinaturas
+- ✅ Admin panel
 
-1. ✅ Acesse a landing page: https://monpec-29862706245.us-central1.run.app
-2. ✅ Teste o formulário de demonstração
-3. ✅ Execute o script para configurar o admin
-4. ✅ Teste o login com as credenciais: admin / L6171r12@@
-5. ✅ Verifique a página de assinaturas do Mercado Pago
+### 3. Criar Superusuário (Opcional)
 
-## 🔧 Comandos Úteis:
+Se precisar de um admin:
 
-### Ver logs do serviço:
-```bash
-gcloud run services logs read monpec --region us-central1 --limit 50
+```powershell
+gcloud run jobs create create-admin `
+    --image gcr.io/monpec-sistema-rural/monpec:latest `
+    --region us-central1 `
+    --add-cloudsql-instances="monpec-sistema-rural:us-central1:monpec-db" `
+    --set-env-vars="DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,DB_NAME=monpec_db,DB_USER=monpec_user,DB_PASSWORD=L6171r12@@jjms,CLOUD_SQL_CONNECTION_NAME=monpec-sistema-rural:us-central1:monpec-db" `
+    --command="python" `
+    --args="manage.py,createsuperuser" `
+    --memory=2Gi `
+    --cpu=1
 ```
 
-### Ver informações do serviço:
-```bash
-gcloud run services describe monpec --region us-central1
+---
+
+## 📊 Ver Logs do Serviço
+
+```powershell
+gcloud run services logs read monpec --region us-central1 --limit=50
 ```
 
-### Atualizar variáveis de ambiente:
-```bash
-gcloud run services update monpec \
-  --region us-central1 \
-  --set-env-vars "NOVA_VARIAVEL=valor"
-```
+---
 
-## ⚠️ Observações:
+## 🔧 Informações do Deploy
 
-- O serviço está configurado para ter 1 instância mínima (não escala para zero)
-- Memória: 1Gi
-- CPU: 2 vCPUs
-- Timeout: 300 segundos
-- Máximo de instâncias: 10
+- **Projeto:** monpec-sistema-rural
+- **Serviço:** monpec
+- **Região:** us-central1
+- **URL:** https://monpec-29862706245.us-central1.run.app
+- **Memória:** 2GB
+- **CPU:** 2 vCPUs
+- **Timeout:** 600 segundos
+- **Instâncias mínimas:** 1
+- **Instâncias máximas:** 10
 
-## ✅ Sistema Pronto!
+---
 
-O sistema está deployado e funcionando. Execute o script `criar_admin_producao.py` para finalizar a configuração do admin.
+## ✅ Checklist Final
+
+- [x] Build da imagem Docker
+- [x] Deploy no Cloud Run
+- [x] Serviço ativo
+- [ ] **Aplicar migrações no Cloud SQL** ← **FAZER AGORA!**
+- [ ] Testar sistema
+- [ ] Criar superusuário (se necessário)
+- [ ] Configurar webhook do Mercado Pago
+- [ ] Criar planos de assinatura no admin
+
+---
+
+## 🎉 Parabéns!
+
+O sistema está deployado e rodando no Google Cloud Run!
+
+**Próxima ação:** Aplicar as migrações no Cloud SQL para o sistema funcionar completamente.
+
+

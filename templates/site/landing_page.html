@@ -1161,6 +1161,29 @@
             background: linear-gradient(90deg, transparent, rgba(79, 195, 247, 0.3), transparent);
         }
 
+        .contact-form .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background-color: #fff;
+        }
+        
+        .contact-form .form-control:focus {
+            outline: none;
+            border-color: #28a745;
+            box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
+        }
+        
+        .contact-form label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #212529;
+        }
+        
         .contact-form {
             max-width: 650px;
             margin: 0 auto;
@@ -2021,53 +2044,6 @@
         </div>
     </section>
 
-    <!-- Seção Contato -->
-    <section class="contact-section" id="contato">
-        <div class="container">
-            <h2 class="section-title">Gestão Completa da Sua Propriedade</h2>
-            <p class="section-subtitle">O MONPEC oferece uma solução completa para gestão da sua propriedade rural, integrando controle de rebanho, custos de produção, gestão financeira e operacional. Com funcionalidades avançadas de projetos bancários, é ideal para produtores rurais que querem organizar sua propriedade e facilitar o acesso ao crédito.</p>
-            
-            <div class="contact-form">
-                {% if messages %}
-                    {% for message in messages %}
-                        {% comment %} Exibir apenas mensagens relacionadas ao formulário de contato {% endcomment %}
-                        {% if "brinco" not in message|lower and "lote" not in message|lower and "localizado para o" not in message|lower %}
-                            <div class="alert alert-{{ message.tags }} alert-dismissible" id="alert-contato" style="padding: 15px; margin-bottom: 20px; border-radius: 8px; {% if message.tags == 'success' %}background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb;{% elif message.tags == 'error' %}background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb;{% else %}background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb;{% endif %}">
-                                {{ message }}
-                                <button type="button" class="btn-close" aria-label="Fechar" style="float: right; background: none; border: none; font-size: 20px; cursor: pointer; opacity: 0.5;">&times;</button>
-                            </div>
-                        {% endif %}
-                    {% endfor %}
-                {% endif %}
-                <form method="post" action="{% url 'contato_submit' %}" id="form-contato">
-                    {% csrf_token %}
-                    <input type="hidden" id="tipo_formulario" name="tipo_formulario" value="contato">
-                    <div class="form-group">
-                        <label for="nome">Nome</label>
-                        <input type="text" id="nome" name="nome" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="email">Email</label>
-                        <input type="email" id="email" name="email" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="telefone">Telefone</label>
-                        <input type="tel" id="telefone" name="telefone" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="empresa">Empresa/Fazenda</label>
-                        <input type="text" id="empresa" name="empresa">
-                    </div>
-                    <div class="form-group">
-                        <label for="mensagem">Mensagem</label>
-                        <textarea id="mensagem" name="mensagem" required></textarea>
-                    </div>
-                    <button type="submit" class="btn-submit">Enviar</button>
-                </form>
-                <p class="text-center mt-3" style="color: var(--texto-cinza);">Entraremos em contato em breve!</p>
-            </div>
-        </div>
-    </section>
 
     <!-- Footer -->
     <footer class="footer">
@@ -2262,15 +2238,26 @@
                         
                         if (data.success) {
                             // Sucesso - redirecionar
+                            console.log('✅ Sucesso! Redirecionando para:', data.redirect_url);
                             alertDiv.innerHTML = '<div class="alert alert-success" style="margin-bottom: 0; padding: 12px; border-radius: 6px;">' + data.message + '</div>';
                             alertDiv.style.display = 'block';
                             setTimeout(() => {
                                 if (data.redirect_url) {
+                                    console.log('🔄 Redirecionando para:', data.redirect_url);
                                     window.location.href = data.redirect_url;
                                 } else {
+                                    console.log('⚠️ URL de redirecionamento não fornecida, usando fallback');
                                     window.location.href = '{% url "login" %}?demo=true&email=' + encodeURIComponent(email) + '&nome=' + encodeURIComponent(nomeCompleto);
                                 }
                             }, 1000);
+
+                            // Backup: se por algum motivo não redirecionar, tentar novamente em 3 segundos
+                            setTimeout(() => {
+                                if (window.location.href.indexOf('demo/loading') === -1) {
+                                    console.log('🔄 Backup: Redirecionando para demo_loading');
+                                    window.location.href = '{% url "demo_loading" %}';
+                                }
+                            }, 3000);
                         } else {
                             // Erro
                             const mensagemErro = data.message || 'Erro ao criar conta. Por favor, tente novamente.';
@@ -2409,30 +2396,73 @@
             });
         });
 
-        // Form submission - removido preventDefault para permitir envio real
-        // O formulário agora será enviado normalmente para o servidor
-
-        // Gerenciar mensagens de alerta do formulário de contato
+        // Form submission - melhorar feedback visual
         document.addEventListener('DOMContentLoaded', function() {
-            // Ocultar mensagem de sucesso após 5 segundos
+            const formContato = document.getElementById('form-contato');
+            const btnEnviarContato = document.getElementById('btn-enviar-contato');
+            const btnText = document.getElementById('btn-text');
+            const btnLoading = document.getElementById('btn-loading');
+            
+            if (formContato && btnEnviarContato) {
+                formContato.addEventListener('submit', function(e) {
+                    // Validar campos antes de enviar
+                    const nome = document.getElementById('nome').value.trim();
+                    const email = document.getElementById('email').value.trim();
+                    const telefone = document.getElementById('telefone').value.trim();
+                    const mensagem = document.getElementById('mensagem').value.trim();
+                    
+                    if (!nome || !email || !telefone || !mensagem) {
+                        e.preventDefault();
+                        alert('Por favor, preencha todos os campos obrigatórios.');
+                        return false;
+                    }
+                    
+                    // Mostrar loading
+                    if (btnText && btnLoading) {
+                        btnText.style.display = 'none';
+                        btnLoading.style.display = 'inline';
+                    }
+                    btnEnviarContato.disabled = true;
+                    
+                    // Permitir envio normal do formulário
+                    return true;
+                });
+            }
+            
+            // Gerenciar mensagens de alerta do formulário de contato
+            // Ocultar mensagem de sucesso após 8 segundos (mais tempo para o usuário ler)
             const alertContato = document.getElementById('alert-contato');
             if (alertContato) {
                 // Adicionar evento ao botão de fechar
                 const btnClose = alertContato.querySelector('.btn-close');
                 if (btnClose) {
                     btnClose.addEventListener('click', function() {
-                        alertContato.style.display = 'none';
+                        alertContato.style.transition = 'opacity 0.5s ease-out';
+                        alertContato.style.opacity = '0';
+                        setTimeout(function() {
+                            alertContato.style.display = 'none';
+                        }, 500);
                     });
                 }
                 
-                // Ocultar automaticamente após 5 segundos
+                // Ocultar automaticamente após 8 segundos
                 setTimeout(function() {
                     alertContato.style.transition = 'opacity 0.5s ease-out';
                     alertContato.style.opacity = '0';
                     setTimeout(function() {
                         alertContato.style.display = 'none';
                     }, 500);
-                }, 5000);
+                }, 8000);
+            }
+            
+            // Verificar se há mensagens na URL e rolar até o formulário
+            if (window.location.hash === '#contato' || window.location.search.includes('form_submitted=1')) {
+                setTimeout(function() {
+                    const contatoSection = document.getElementById('contato');
+                    if (contatoSection) {
+                        contatoSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                }, 100);
             }
             
             // Limpar parâmetro form_submitted da URL sem recarregar a página

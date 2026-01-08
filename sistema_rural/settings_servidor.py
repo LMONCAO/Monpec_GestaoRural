@@ -72,13 +72,35 @@ TEMPLATES = [
 WSGI_APPLICATION = 'sistema_rural.wsgi.application'
 
 
-# Database
+# Database - PostgreSQL (obrigatório)
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
+
+# Configuração do banco de dados PostgreSQL
+DB_NAME = os.getenv('DB_NAME')
+DB_USER = os.getenv('DB_USER')
+DB_PASSWORD = os.getenv('DB_PASSWORD')
+DB_HOST = os.getenv('DB_HOST', 'localhost')
+DB_PORT = os.getenv('DB_PORT', '5432')
+
+# Validar que todas as variáveis necessárias estão configuradas
+if not DB_NAME or not DB_USER or not DB_PASSWORD:
+    raise ValueError(
+        "Configuração do banco de dados PostgreSQL é obrigatória! "
+        "Configure as variáveis de ambiente DB_NAME, DB_USER e DB_PASSWORD."
+    )
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': DB_NAME,
+        'USER': DB_USER,
+        'PASSWORD': DB_PASSWORD,
+        'HOST': DB_HOST,
+        'PORT': DB_PORT,
+        'OPTIONS': {
+            'connect_timeout': 10,
+        },
+        'CONN_MAX_AGE': 600,
     }
 }
 

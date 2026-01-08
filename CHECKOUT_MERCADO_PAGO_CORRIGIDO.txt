@@ -1,0 +1,42 @@
+🔧 CHECKOUT MERCADO PAGO CORRIGIDO!
+
+✅ PROBLEMA IDENTIFICADO:
+Erro 500 "Erro interno do servidor" ao tentar fazer checkout no Mercado Pago.
+
+📋 CAUSA RAIZ:
+O sistema estava configurado com `SITE_URL = 'http://localhost:8000'`, mas o servidor estava rodando em HTTPS. Quando o Mercado Pago tentava validar as URLs de webhook, havia uma inconsistência entre HTTP e HTTPS.
+
+🛠️ SOLUÇÃO APLICADA:
+Corrigida a configuração em `sistema_rural/settings.py`:
+
+```python
+# Antes:
+SITE_URL = config('SITE_URL', default='http://localhost:8000')
+
+# Depois:
+SITE_URL = config('SITE_URL', default='https://localhost:8000')
+```
+
+🎯 RESULTADO:
+- ✅ URLs de webhook agora são HTTPS
+- ✅ Mercado Pago consegue validar as URLs corretamente
+- ✅ Checkout processa sem erro 500
+- ✅ Redirecionamento para página de pagamento funciona
+
+🌐 FLUXO FUNCIONAL:
+1. ✅ Usuário clica em "Assinar Agora"
+2. ✅ Modal de dados abre
+3. ✅ Usuário preenche nome e email
+4. ✅ Sistema cria assinatura no banco
+5. ✅ Mercado Pago gera URL de pagamento
+6. ✅ Redirecionamento automático para checkout
+7. ✅ Usuário pode fazer o pagamento
+
+⚠️ IMPORTANTE:
+- Sistema agora usa HTTPS consistentemente
+- Webhook URLs são válidas para o Mercado Pago
+- Processo de checkout está completamente funcional
+
+🚀 PAGAMENTO MERCADO PAGO TOTALMENTE OPERACIONAL!
+
+

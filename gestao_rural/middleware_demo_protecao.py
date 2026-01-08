@@ -50,6 +50,10 @@ class DemoProtecaoMonpec1Middleware:
         if not user.is_authenticated:
             return False
         
+        # IMPORTANTE: Superusuários e staff nunca são demo
+        if user.is_superuser or user.is_staff:
+            return False
+        
         # Verificar se é usuário demo padrão
         if user.username in ['demo', 'demo_monpec']:
             return True

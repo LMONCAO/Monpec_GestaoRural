@@ -1,0 +1,63 @@
+========================================
+🚀 DEPLOY COMPLETO COM VARIÁVEIS DE AMBIENTE
+========================================
+
+As variáveis de ambiente não estão configuradas!
+Vamos fazer deploy completo com tudo configurado.
+
+========================================
+COMANDO COMPLETO:
+========================================
+
+cd ~/Monpec_GestaoRural
+
+gcloud run deploy monpec \
+    --source . \
+    --platform managed \
+    --region us-central1 \
+    --allow-unauthenticated \
+    --port 8080 \
+    --memory 4Gi \
+    --cpu 2 \
+    --timeout 900 \
+    --add-cloudsql-instances=monpec-sistema-rural:us-central1:monpec-db \
+    --set-env-vars="CLOUD_SQL_CONNECTION_NAME=monpec-sistema-rural:us-central1:monpec-db,DB_NAME=sistema_rural,DB_USER=postgres,DB_PASSWORD=L6171r12@@jjms,SECRET_KEY=rfzjy1t\$\$d_cmjb2n-wda0oi+)p!(_4!4\$na-n-1a60\$2gyspo,DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,DEBUG=False" \
+    --max-instances=10 \
+    --min-instances=0
+
+========================================
+VERIFICAR APÓS DEPLOY:
+========================================
+
+1. Verificar variáveis de ambiente:
+   gcloud run services describe monpec --region=us-central1 --format="value(spec.template.spec.containers[0].env)"
+
+2. Verificar Cloud SQL conectado:
+   gcloud run services describe monpec --region=us-central1 --format="value(spec.template.spec.containers[0].cloudSqlInstances)"
+
+3. Ver logs:
+   gcloud run services logs read monpec --region=us-central1 --limit=100
+
+4. Testar acesso:
+   curl -I https://monpec-29862706245.us-central1.run.app
+
+========================================
+VARIÁVEIS QUE SERÃO CONFIGURADAS:
+========================================
+
+- CLOUD_SQL_CONNECTION_NAME=monpec-sistema-rural:us-central1:monpec-db
+- DB_NAME=sistema_rural
+- DB_USER=postgres
+- DB_PASSWORD=L6171r12@@jjms
+- SECRET_KEY=rfzjy1t$$d_cmjb2n-wda0oi+)p!(_4!4$na-n-1a60$2gyspo
+- DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp
+- DEBUG=False
+
+========================================
+
+
+
+
+
+
+

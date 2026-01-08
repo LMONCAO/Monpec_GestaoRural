@@ -1,0 +1,71 @@
+========================================
+🔧 CORRIGIR CONEXÃO COM CLOUD SQL
+========================================
+
+PROBLEMA IDENTIFICADO:
+- Django está tentando conectar em 127.0.0.1:5432 (localhost)
+- Cloud SQL NÃO está conectado ao Cloud Run
+- Deveria usar Unix Socket: /cloudsql/monpec-sistema-rural:us-central1:monpec-db
+
+========================================
+SOLUÇÃO: ATUALIZAR SERVIÇO COM CLOUD SQL
+========================================
+
+Execute este comando para atualizar o serviço e conectar o Cloud SQL:
+
+gcloud run services update monpec \
+    --region=us-central1 \
+    --add-cloudsql-instances=monpec-sistema-rural:us-central1:monpec-db
+
+OU fazer deploy novamente com a conexão:
+
+gcloud run deploy monpec \
+    --source . \
+    --platform managed \
+    --region us-central1 \
+    --allow-unauthenticated \
+    --port 8080 \
+    --memory 2Gi \
+    --cpu 2 \
+    --timeout 600 \
+    --add-cloudsql-instances=monpec-sistema-rural:us-central1:monpec-db \
+    --set-env-vars="CLOUD_SQL_CONNECTION_NAME=monpec-sistema-rural:us-central1:monpec-db,DB_NAME=sistema_rural,DB_USER=postgres,DB_PASSWORD=L6171r12@@jjms,SECRET_KEY=rfzjy1t\$\$d_cmjb2n-wda0oi+)p!(_4!4\$na-n-1a60\$2gyspo,DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,DEBUG=False" \
+    --max-instances=10 \
+    --min-instances=0
+
+========================================
+VERIFICAR APÓS ATUALIZAÇÃO:
+========================================
+
+1. Verificar se Cloud SQL está conectado:
+   gcloud run services describe monpec --region=us-central1 --format="value(spec.template.spec.containers[0].cloudSqlInstances)"
+
+   Deve retornar: monpec-sistema-rural:us-central1:monpec-db
+
+2. Verificar logs:
+   gcloud run services logs read monpec --region=us-central1 --limit=50
+
+3. Verificar se conexão está funcionando:
+   - Procurar por "✅ Configurado: Cloud SQL via Unix Socket" nos logs
+   - Não deve mais aparecer erro de "127.0.0.1"
+
+========================================
+ALTERNATIVA: CONECTAR VIA CONSOLE
+========================================
+
+1. Acesse: https://console.cloud.google.com/run
+2. Clique no serviço "monpec"
+3. Clique em "Edit & Deploy New Revision"
+4. Vá na aba "Connections"
+5. Clique em "Add Connection"
+6. Selecione: monpec-db
+7. Clique em "Deploy"
+
+========================================
+
+
+
+
+
+
+

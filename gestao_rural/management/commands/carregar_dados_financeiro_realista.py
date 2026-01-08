@@ -435,26 +435,14 @@ class Command(BaseCommand):
                             else:
                                 valores_sql.append('')
                     
-                    # Montar SQL
-                    placeholders = ', '.join(['?' for _ in colunas_sql])
+                    # Montar SQL para PostgreSQL
+                    placeholders = ', '.join(['%s' for _ in colunas_sql])
                     colunas_str = ', '.join(colunas_sql)
-                    sql = f"INSERT INTO gestao_rural_contafinanceira ({colunas_str}) VALUES ({placeholders})"
+                    sql = f"INSERT INTO gestao_rural_contafinanceira ({colunas_str}) VALUES ({placeholders}) RETURNING id"
                     
-                    # Executar SQL diretamente - usar _execute para evitar problema de debug
-                    # O problema é que o Django tenta formatar o SQL para debug usando %, mas usamos ? placeholders
-                    # Vamos usar o método interno do cursor para evitar isso
-                    import sqlite3
-                    # Converter valores para tipos compatíveis com SQLite
-                    valores_sqlite = []
-                    for v in valores_sql:
-                        if isinstance(v, (date, timezone.datetime)):
-                            valores_sqlite.append(v.isoformat() if hasattr(v, 'isoformat') else str(v))
-                        else:
-                            valores_sqlite.append(v)
-                    
-                    # Usar execute diretamente no cursor SQLite (bypass Django debug)
-                    cursor._execute(sql, tuple(valores_sqlite))
-                    conta_id = cursor.lastrowid
+                    # Executar SQL diretamente no PostgreSQL
+                    cursor.execute(sql, tuple(valores_sql))
+                    conta_id = cursor.fetchone()[0]
                     conta = ContaFinanceira.objects.get(id=conta_id)
             else:
                 # Se não tem campo instituicao, usar método normal do Django

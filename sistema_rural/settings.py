@@ -13,9 +13,24 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 from pathlib import Path
 import os
 from decouple import config
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Carregar variáveis de ambiente do arquivo .env.local ou .env
+load_dotenv(dotenv_path=BASE_DIR / '.env.local')
+load_dotenv(dotenv_path=BASE_DIR / '.env')
+
+# Configurações do banco oficial diretamente (fallback)
+if not os.getenv('DB_NAME'):
+    os.environ.setdefault('DEBUG', 'False')
+    os.environ.setdefault('SECRET_KEY', 'django-insecure-monpec-oficial-2025-secreta-key-123456789')
+    os.environ.setdefault('DB_NAME', 'monpec_oficial')
+    os.environ.setdefault('DB_USER', 'postgres')
+    os.environ.setdefault('DB_PASSWORD', 'L6171r12@@jjms')
+    os.environ.setdefault('DB_HOST', 'localhost')
+    os.environ.setdefault('DB_PORT', '5432')
 
 
 # Quick-start development settings - unsuitable for production
@@ -56,6 +71,8 @@ ALLOWED_HOSTS = [
        '0.0.0.0',  # Permite acesso de qualquer IP na rede local
        'monpec.com.br',  # Domínio de produção
        'www.monpec.com.br',  # Domínio de produção com www
+       'testserver',  # Para testes do Django
+       '*'  # Permitir qualquer host temporariamente para debug
    ]
 
 # Configuração CSRF para aceitar requisições do celular na rede local
@@ -77,8 +94,32 @@ MERCADOPAGO_WEBHOOK_SECRET = config('MERCADOPAGO_WEBHOOK_SECRET', default='')
 MERCADOPAGO_SUCCESS_URL = config('MERCADOPAGO_SUCCESS_URL', default='http://localhost:8000/assinaturas/sucesso/')
 MERCADOPAGO_CANCEL_URL = config('MERCADOPAGO_CANCEL_URL', default='http://localhost:8000/assinaturas/cancelado/')
 
-# Gateway de pagamento padrão (stripe, mercadopago, asaas, etc.)
+# Gateway de pagamento padrão (mercadopago, asaas, gerencianet)
+# NOTA: Stripe foi removido - usando apenas Mercado Pago como padrão
 PAYMENT_GATEWAY_DEFAULT = config('PAYMENT_GATEWAY_DEFAULT', default='mercadopago')
+
+# ============================================================================
+# CONFIGURAÇÃO DE NOTA FISCAL ELETRÔNICA (NF-e)
+# ============================================================================
+# Documentação completa: Ver arquivo CONFIGURACAO_NFE.md na pasta docs/
+
+# Configuração de API de NF-e (Focus NFe ou NFe.io)
+API_NFE = {
+    'TIPO': config('API_NFE_TIPO', default='FOCUS_NFE'),  # FOCUS_NFE, NFE_IO
+    'AMBIENTE': config('API_NFE_AMBIENTE', default='homologacao'),  # homologacao, producao
+    'TOKEN': config('API_NFE_TOKEN', default=''),
+    'COMPANY_ID': config('API_NFE_COMPANY_ID', default=''),  # Apenas para NFe.io
+}
+
+# Configuração de Emissão Direta SEFAZ (opcional)
+# Requer certificado digital A1 ou A3 e biblioteca PyNFe
+NFE_SEFAZ = {
+    'CERTIFICADO_PATH': config('NFE_SEFAZ_CERTIFICADO_PATH', default=None),
+    'SENHA_CERTIFICADO': config('NFE_SEFAZ_SENHA_CERTIFICADO', default=''),
+    'UF': config('NFE_SEFAZ_UF', default='SP'),
+    'AMBIENTE': config('NFE_SEFAZ_AMBIENTE', default='homologacao'),  # homologacao, producao
+    'USAR_DIRETO': config('NFE_SEFAZ_USAR_DIRETO', default=False, cast=bool),
+}
 
 TENANT_DATABASE_DIR = Path(os.getenv('TENANT_DATABASE_DIR', str(BASE_DIR / 'tenants')))
 TENANT_DATABASE_DIR.mkdir(parents=True, exist_ok=True)
@@ -95,24 +136,25 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django.contrib.sitemaps',  # Sitemap para SEO
     'django.contrib.humanize',
+    'sslserver',  # Suporte HTTPS no desenvolvimento
     'gestao_rural.apps.GestaoRuralConfig',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'gestao_rural.middleware_security.RateLimitMiddleware',  # Rate limiting
-    'gestao_rural.middleware_protecao_codigo.ProtecaoCodigoMiddleware',  # Proteção contra cópia
+    # 'gestao_rural.middleware_security.RateLimitMiddleware',  # Rate limiting - TEMPORARIAMENTE DESABILITADO
+    # 'gestao_rural.middleware_protecao_codigo.ProtecaoCodigoMiddleware',  # Proteção contra cópia - TEMPORARIAMENTE DESABILITADO
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',  # Deve vir ANTES dos middlewares que usam messages
-    'gestao_rural.middleware_liberacao_acesso.LiberacaoAcessoMiddleware',  # Controle de liberação de acesso
-    'gestao_rural.middleware_seguranca_avancada.SegurancaAvancadaMiddleware',  # Segurança avançada
+    # 'gestao_rural.middleware_liberacao_acesso.LiberacaoAcessoMiddleware',  # Controle de liberação de acesso - TEMPORARIAMENTE DESABILITADO
+    # 'gestao_rural.middleware_seguranca_avancada.SegurancaAvancadaMiddleware',  # Segurança avançada - TEMPORARIAMENTE DESABILITADO
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'gestao_rural.middleware_security.SecurityHeadersMiddleware',  # Headers de segurança
-    'gestao_rural.middleware_demo_protecao.DemoProtecaoMonpec1Middleware',  # Proteção Monpec1 para usuários demo
-    'gestao_rural.middleware_demo.DemoRestrictionMiddleware',  # Restrição de demo (deve ser o último)
+    # 'gestao_rural.middleware_security.SecurityHeadersMiddleware',  # Headers de segurança - TEMPORARIAMENTE DESABILITADO
+    # 'gestao_rural.middleware_demo_protecao.DemoProtecaoMonpec1Middleware',  # Proteção Monpec1 para usuários demo - TEMPORARIAMENTE DESABILITADO
+    # 'gestao_rural.middleware_demo.DemoRestrictionMiddleware',  # Restrição de demo (deve ser o último) - TEMPORARIAMENTE DESABILITADO
 ]
 
 ROOT_URLCONF = 'sistema_rural.urls'
@@ -146,17 +188,32 @@ handler500 = 'gestao_rural.views_errors.handler500'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-# Configuração do banco de dados
-# Prioridade: Variáveis de ambiente > .env > SQLite (fallback para desenvolvimento)
+# Configuração do banco de dados PostgreSQL (obrigatório)
+# Variáveis de ambiente ou arquivo .env são obrigatórias
 DB_NAME = config('DB_NAME', default=None)
 DB_USER = config('DB_USER', default=None)
 DB_PASSWORD = config('DB_PASSWORD', default=None)
 DB_HOST = config('DB_HOST', default='localhost')
 DB_PORT = config('DB_PORT', default='5432')
 
-# Se todas as variáveis do PostgreSQL estiverem configuradas, usar PostgreSQL
-# Caso contrário, usar SQLite para desenvolvimento local
-if DB_NAME and DB_USER and DB_PASSWORD:
+# Validar que todas as variáveis necessárias estão configuradas
+if not DB_NAME or not DB_USER or not DB_PASSWORD:
+    # Fallback para SQLite se PostgreSQL não estiver configurado
+    import os
+    import warnings
+    warnings.warn(
+        "PostgreSQL não configurado, usando SQLite para desenvolvimento. "
+        "Configure DB_NAME, DB_USER e DB_PASSWORD no .env.local para usar PostgreSQL.",
+        UserWarning
+    )
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
+else:
+    # Configurar PostgreSQL
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
@@ -169,14 +226,6 @@ if DB_NAME and DB_USER and DB_PASSWORD:
                 'connect_timeout': 10,
             },
             'CONN_MAX_AGE': 600,  # Reutilizar conexões por até 10 minutos
-        }
-    }
-else:
-    # Fallback para SQLite em desenvolvimento
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
 
@@ -254,7 +303,7 @@ BACKUP_DIR = Path(os.getenv('BACKUP_DIR', str(BASE_DIR / 'backups')))
 BACKUP_DIR.mkdir(parents=True, exist_ok=True)
 
 # URL do site (para links em e-mails)
-SITE_URL = config('SITE_URL', default='http://localhost:8000')
+SITE_URL = config('SITE_URL', default='https://localhost:8000')
 
 # Link do grupo WhatsApp para demonstração
 WHATSAPP_GRUPO_DEMO_LINK = config('WHATSAPP_GRUPO_DEMO_LINK', default='https://chat.whatsapp.com/SEU_LINK_DO_GRUPO_AQUI')

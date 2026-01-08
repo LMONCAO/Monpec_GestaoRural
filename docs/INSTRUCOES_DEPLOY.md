@@ -1,93 +1,105 @@
-# 🚀 Instruções de Deploy Completo - Sistema MONPEC
+# Instruções para Deploy das Alterações
 
-## ✅ Status Atual
-- ✅ Erro de sintaxe corrigido em `views_pecuaria_completa.py`
-- ✅ Sistema funcionando no localhost
-- ⚠️ Migrações pendentes precisam ser aplicadas
+As alterações para login automático após criar usuário demo foram realizadas com sucesso. Para fazer o deploy, siga os passos abaixo:
 
-## 📋 Passos para Deploy Completo
+## Arquivos Modificados
 
-### 1. Navegue até o diretório do projeto
+1. `gestao_rural/views.py` - Adicionado login automático após criar/atualizar usuário demo
+2. `templates/site/landing_page.html` - Adicionado `credentials: 'same-origin'` no fetch
 
-Abra o PowerShell ou Terminal no diretório:
-```
-C:\Users\lmonc\Desktop\MonPO-Monitor de Plano Orçamentario\Monpec_GestaoRural
-```
+## Passos para Deploy
 
-### 2. Execute o Script de Deploy Simplificado
+### Opção 1: Via GitHub Actions (Recomendado)
 
-**Opção A: Script Simples (Recomendado)**
+1. **Abra o terminal no diretório do projeto:**
+   ```
+   cd "C:\Users\lmonc\Desktop\MonPO-Monitor de Plano Orçamentario\Monpec_GestaoRural"
+   ```
+
+2. **Verifique os arquivos modificados:**
+   ```powershell
+   git status
+   ```
+
+3. **Adicione os arquivos modificados:**
+   ```powershell
+   git add gestao_rural/views.py templates/site/landing_page.html
+   ```
+
+4. **Faça o commit:**
+   ```powershell
+   git commit -m "Fix: Login automático após criar usuário demo - redireciona para demo_loading"
+   ```
+
+5. **Configure o remote (se ainda não estiver configurado):**
+   ```powershell
+   git remote add origin https://github.com/SEU_USUARIO/SEU_REPOSITORIO.git
+   ```
+   *Substitua SEU_USUARIO e SEU_REPOSITORIO pelos valores corretos*
+
+6. **Faça o push:**
+   ```powershell
+   git push -u origin master
+   ```
+   *ou se já tiver configurado:*
+   ```powershell
+   git push
+   ```
+
+7. **Acompanhe o deploy:**
+   - Acesse: https://github.com/SEU_USUARIO/SEU_REPOSITORIO/actions
+   - O GitHub Actions irá fazer o deploy automaticamente para o Google Cloud Run
+
+### Opção 2: Usar o Script PowerShell
+
+Execute o script `FAZER_DEPLOY_ALTERACOES.ps1` que foi criado:
+
 ```powershell
-.\DEPLOY_AGORA_SIMPLES.ps1
+.\FAZER_DEPLOY_ALTERACOES.ps1
 ```
 
-**Opção B: Comandos Manuais**
+O script irá:
+- Verificar se o Git está instalado
+- Verificar se há remote configurado
+- Adicionar os arquivos modificados
+- Fazer commit
+- Fazer push para o GitHub
 
-```powershell
-# 1. Aplicar migrações
-python manage.py migrate --noinput
+## O que foi alterado?
 
-# 2. Coletar arquivos estáticos
-python manage.py collectstatic --noinput --clear
+### 1. Login Automático (`gestao_rural/views.py`)
 
-# 3. Verificar sistema
-python manage.py check
-```
+**Antes:** Após criar o usuário, redirecionava para `/login/?demo=true&email=...`
 
-### 3. Verificar se tudo está OK
+**Agora:** Faz login automático do usuário e redireciona diretamente para `/demo/loading/`
 
-O sistema deve mostrar:
-- ✅ Migrações aplicadas
-- ✅ Arquivos estáticos coletados
-- ✅ Sem erros no sistema
+Mudanças:
+- Adicionado `login(request, user)` após criar/atualizar usuário
+- Alterado `redirect_url` de `reverse('login') + '?demo=true&...'` para `reverse('demo_loading')`
 
-### 4. Testar o Sistema
+### 2. Cookies no Fetch (`templates/site/landing_page.html`)
 
-**Modo Desenvolvimento (Localhost):**
-```powershell
-python manage.py runserver
-```
+Adicionado `credentials: 'same-origin'` no fetch para garantir que os cookies de sessão sejam mantidos durante a requisição AJAX.
 
-Acesse: http://localhost:8000
+## Resultado Esperado
 
-**Modo Produção:**
+Após o deploy, quando um usuário criar uma conta demo:
+1. ✅ O sistema cria/atualiza o usuário
+2. ✅ O sistema faz login automático
+3. ✅ O usuário é redirecionado diretamente para `demo_loading`
+4. ✅ O usuário não precisa fazer login manual
 
-Se você tem um servidor de produção configurado, use:
-```powershell
-# Com configurações de produção
-python manage.py runserver --settings=sistema_rural.settings_producao
-```
+## Verificação Pós-Deploy
 
-## 🔧 Scripts Disponíveis
+Após o deploy, teste:
+1. Acesse a landing page
+2. Preencha o formulário de demonstração
+3. Verifique se após criar a conta, o usuário é redirecionado diretamente para o sistema demo (sem passar pela página de login)
 
-1. **DEPLOY_AGORA_SIMPLES.ps1** - Deploy rápido e simples
-2. **DEPLOY_COMPLETO_PRODUCAO.ps1** - Deploy completo com verificações extras
+## Observações
 
-## ⚠️ Importante
+- O deploy via GitHub Actions pode levar alguns minutos
+- Verifique os logs em: https://github.com/SEU_USUARIO/SEU_REPOSITORIO/actions
+- O serviço será atualizado em: https://monpec-29862706245.us-central1.run.app
 
-- Certifique-se de estar no diretório correto (onde está o `manage.py`)
-- O sistema está configurado para usar `sistema_rural.settings` por padrão (desenvolvimento)
-- Para produção, configure as variáveis de ambiente ou use `settings_producao`
 
-## 📝 Próximos Passos
-
-Após aplicar as migrações e coletar os arquivos estáticos:
-
-1. ✅ Sistema pronto para uso em desenvolvimento
-2. ✅ Teste todas as funcionalidades
-3. ✅ Configure produção se necessário
-4. ✅ Deploy no servidor de produção (se aplicável)
-
-## 🆘 Troubleshooting
-
-**Erro: "No module named 'django'"**
-```powershell
-pip install -r requirements.txt
-```
-
-**Erro: "manage.py não encontrado"**
-- Certifique-se de estar no diretório raiz do projeto
-
-**Erro ao coletar arquivos estáticos**
-- Normal se não houver arquivos estáticos customizados
-- Verifique se a pasta `staticfiles` foi criada

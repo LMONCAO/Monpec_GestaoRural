@@ -1,0 +1,70 @@
+========================================
+✅ VERIFICAR SE CONEXÃO ESTÁ FUNCIONANDO
+========================================
+
+Execute estes comandos para verificar:
+
+========================================
+1. VERIFICAR SE CLOUD SQL ESTÁ CONECTADO:
+========================================
+
+gcloud run services describe monpec --region=us-central1 --format="value(spec.template.spec.containers[0].cloudSqlInstances)"
+
+Deve retornar: monpec-sistema-rural:us-central1:monpec-db
+
+========================================
+2. VER LOGS RECENTES:
+========================================
+
+gcloud run services logs read monpec --region=us-central1 --limit=50
+
+Procure por:
+- "✅ Configurado: Cloud SQL via Unix Socket"
+- Não deve mais aparecer erro de "127.0.0.1"
+- Verificar se migrações executaram
+
+========================================
+3. TESTAR ACESSO:
+========================================
+
+# Obter URL
+gcloud run services describe monpec --region=us-central1 --format="value(status.url)"
+
+# Testar no navegador ou curl
+curl -I https://monpec-29862706245.us-central1.run.app
+
+========================================
+4. VERIFICAR VARIÁVEIS DE AMBIENTE:
+========================================
+
+gcloud run services describe monpec --region=us-central1 --format="value(spec.template.spec.containers[0].env)"
+
+Deve mostrar:
+- CLOUD_SQL_CONNECTION_NAME=monpec-sistema-rural:us-central1:monpec-db
+- DB_NAME=sistema_rural
+- DB_USER=postgres
+- DB_PASSWORD=L6171r12@@jjms
+- SECRET_KEY=...
+- DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp
+
+========================================
+SE AINDA HOUVER ERROS:
+========================================
+
+1. Verificar se o banco "sistema_rural" existe:
+   gcloud sql databases list --instance=monpec-db
+
+2. Se não existir, criar:
+   gcloud sql databases create sistema_rural --instance=monpec-db
+
+3. Verificar se usuário "postgres" existe:
+   gcloud sql users list --instance=monpec-db
+
+========================================
+
+
+
+
+
+
+

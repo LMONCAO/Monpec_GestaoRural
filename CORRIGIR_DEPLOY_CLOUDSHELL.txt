@@ -1,0 +1,107 @@
+========================================
+PROBLEMA: requirements_producao.txt não encontrado no Cloud Shell
+========================================
+
+ERRO:
+COPY failed: file not found in build context or excluded by .dockerignore: stat requirements_producao.txt: file does not exist
+
+CAUSA:
+O arquivo requirements_producao.txt existe no repositório Git, mas pode não estar sincronizado no Cloud Shell.
+
+========================================
+SOLUÇÃO: Sincronizar arquivos no Cloud Shell
+========================================
+
+OPÇÃO 1: Fazer pull do repositório Git (se usar Git)
+
+1. No Cloud Shell, verificar se está no diretório correto:
+   cd ~/monpec-sistema-rural
+   # ou
+   cd ~/Monpec_GestaoRural
+
+2. Fazer pull para atualizar:
+   git pull origin main
+   # ou
+   git pull origin master
+
+3. Verificar se o arquivo existe:
+   ls -la requirements_producao.txt
+
+4. Se existir, tentar deploy novamente:
+   gcloud run deploy monpec --source . --region us-central1 --platform managed --allow-unauthenticated
+
+OPÇÃO 2: Fazer upload do arquivo manualmente
+
+1. No Cloud Shell, criar o arquivo se não existir:
+   touch requirements_producao.txt
+
+2. Ou fazer upload via interface web do Cloud Shell:
+   - Clique no ícone de menu (3 linhas) no canto superior direito
+   - Selecione "Upload file"
+   - Faça upload do arquivo requirements_producao.txt
+
+3. Verificar se o arquivo existe:
+   ls -la requirements_producao.txt
+
+4. Tentar deploy novamente:
+   gcloud run deploy monpec --source . --region us-central1 --platform managed --allow-unauthenticated
+
+OPÇÃO 3: Clonar repositório do zero (se usar Git)
+
+1. No Cloud Shell:
+   cd ~
+   git clone <URL_DO_SEU_REPOSITORIO>
+   cd <NOME_DO_REPOSITORIO>
+
+2. Verificar se o arquivo existe:
+   ls -la requirements_producao.txt
+
+3. Fazer deploy:
+   gcloud run deploy monpec --source . --region us-central1 --platform managed --allow-unauthenticated
+
+========================================
+VERIFICAÇÕES ANTES DO DEPLOY
+========================================
+
+Execute estes comandos no Cloud Shell para verificar:
+
+1. Verificar diretório atual:
+   pwd
+
+2. Listar arquivos importantes:
+   ls -la Dockerfile
+   ls -la requirements_producao.txt
+   ls -la entrypoint.sh
+   ls -la manage.py
+
+3. Verificar se está no diretório correto do projeto:
+   # Deve ter arquivos como:
+   # - manage.py
+   # - Dockerfile
+   # - requirements_producao.txt
+   # - entrypoint.sh
+   # - sistema_rural/
+
+========================================
+SE AINDA DER ERRO
+========================================
+
+Se o arquivo requirements_producao.txt não existir, você pode:
+
+1. Criar um arquivo temporário copiando de requirements.txt:
+   cp requirements.txt requirements_producao.txt
+
+2. Ou modificar o Dockerfile para usar requirements.txt:
+   # No Dockerfile, mudar:
+   # COPY requirements_producao.txt requirements.txt ./
+   # Para:
+   # COPY requirements.txt requirements.txt ./
+
+========================================
+
+
+
+
+
+
+

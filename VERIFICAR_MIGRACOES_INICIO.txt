@@ -1,0 +1,53 @@
+========================================
+VERIFICAR SE MIGRAÇÕES FORAM EXECUTADAS
+========================================
+
+Execute no Cloud Shell para ver os logs do início do container:
+
+gcloud run services logs read monpec --region=us-central1 --limit=500 | grep -E "🔄|migrações|migrate|Operations to perform|Running migrations|Applying|Migrações falharam"
+
+Isso vai mostrar se as migrações foram executadas e quais foram aplicadas.
+
+========================================
+SOLUÇÃO: Executar migrações manualmente
+========================================
+
+Se as migrações não foram executadas, execute:
+
+# Criar job para executar TODAS as migrações
+gcloud run jobs create monpec-migrate-all \
+  --image gcr.io/monpec-sistema-rural/monpec \
+  --region us-central1 \
+  --set-env-vars="DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp" \
+  --add-cloudsql-instances=monpec-sistema-rural:us-central1:monpec-db \
+  --command="python" \
+  --args="manage.py,migrate,--noinput,--settings=sistema_rural.settings_gcp"
+
+# Executar
+gcloud run jobs execute monpec-migrate-all --region us-central1 --wait
+
+# Ver resultado
+gcloud run jobs executions list --job=monpec-migrate-all --region us-central1
+
+# Depois carregar categorias
+gcloud run jobs update monpec-migrate-all \
+  --args="manage.py,carregar_categorias,--settings=sistema_rural.settings_gcp"
+
+gcloud run jobs execute monpec-migrate-all --region us-central1 --wait
+
+# Garantir admin
+gcloud run jobs update monpec-migrate-all \
+  --args="manage.py,garantir_admin,--settings=sistema_rural.settings_gcp"
+
+gcloud run jobs execute monpec-migrate-all --region us-central1 --wait
+
+# Limpar
+gcloud run jobs delete monpec-migrate-all --region us-central1
+
+========================================
+
+
+
+
+
+

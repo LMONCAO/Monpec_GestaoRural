@@ -2121,24 +2121,14 @@
                     </div>
                 </div>
 
-                <!-- Projetos Bancários (abre modal de compra) -->
+                <!-- Projetos Bancários -->
                 <div class="accordion-item">
                     <div class="nav-item modulo-projetos {% if 'projetos_bancarios' in request.path or 'projeto_bancario' in request.path or 'projetos-bancarios' in request.path %}active{% endif %}">
-                        <button class="accordion-button collapsed" type="button" 
-                                data-bs-toggle="collapse" data-bs-target="#submenu-projetos" 
-                                aria-expanded="false" 
-                                aria-controls="submenu-projetos"
-                                onclick="event.preventDefault(); event.stopPropagation(); abrirModalCompra();">
+                        <a href="{% url 'projeto_bancario_dashboard' propriedade.id %}" 
+                           class="nav-link {% if 'projeto_bancario' in request.path or 'projetos-bancarios' in request.path %}active{% endif %}">
                             <i class="bi bi-briefcase"></i>
-                            <span style="flex: 1; margin-left: 0.5rem;">Projetos Bancários</span>
-                            <i class="bi bi-chevron-right chevron-icon"></i>
-                        </button>
-                        <div id="submenu-projetos" class="accordion-collapse collapse" 
-                             data-bs-parent="#sidebarAccordion" style="display: none;">
-                            <div class="nav-submenu">
-                                <!-- Submenu oculto - não será usado -->
-                            </div>
-                        </div>
+                            <span style="margin-left: 0.5rem;">Projetos Bancários</span>
+                        </a>
                     </div>
                 </div>
                 
@@ -2344,7 +2334,14 @@
             }
 
             closeLinks.forEach(function (link) {
-                link.addEventListener('click', function () {
+                link.addEventListener('click', function (e) {
+                    // Não fechar sidebar se o link for para dashboard de pecuária ou outras páginas importantes
+                    const href = link.getAttribute('href');
+                    if (href && (href.includes('/pecuaria/') || href.includes('/dashboard/'))) {
+                        // Permitir navegação normal para dashboards
+                        return;
+                    }
+                    // Fechar sidebar apenas em mobile para outros links
                     if (window.innerWidth < 992) {
                         closeSidebar();
                     }

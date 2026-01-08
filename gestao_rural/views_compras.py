@@ -1950,6 +1950,31 @@ def nota_fiscal_upload(request, propriedade_id):
             )
             nota.save()
             
+            # Registrar log de auditoria para upload de XML
+            try:
+                from .security_avancado import registrar_log_auditoria, obter_ip_address
+                from .models_auditoria import LogAuditoria
+                registrar_log_auditoria(
+                    tipo_acao=LogAuditoria.TipoAcao.UPLOAD_XML_NFE,
+                    descricao=f'NF-e {nota.numero}/{nota.serie} importada via XML. Chave: {chave_acesso}',
+                    usuario=request.user,
+                    ip_address=obter_ip_address(request),
+                    user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                    nivel_severidade=LogAuditoria.NivelSeveridade.MEDIO,
+                    sucesso=True,
+                    metadata={
+                        'nota_fiscal_id': nota.id,
+                        'numero': nota.numero,
+                        'serie': nota.serie,
+                        'chave_acesso': chave_acesso,
+                        'fornecedor_id': fornecedor.id if fornecedor else None,
+                        'propriedade_id': propriedade.id,
+                        'valor_total': str(nota.valor_total),
+                    }
+                )
+            except Exception as e:
+                logger.warning(f'Erro ao registrar log de auditoria: {str(e)}')
+            
             # Processar itens
             dets = inf_nfe.findall('.//nfe:det', ns)
             itens_processados = 0
@@ -2131,14 +2156,60 @@ def sincronizar_nfe_recebidas(request, propriedade_id):
             )
             
             if not resultado['sucesso']:
-                messages.error(
-                    request,
-                    f'Erro ao consultar NFe: {resultado.get("erro", "Erro desconhecido")}'
-                )
+                erro_msg = resultado.get("erro", "Erro desconhecido")
+                messages.error(request, f'Erro ao consultar NFe: {erro_msg}')
+                
+                # Registrar log de auditoria para falha
+                try:
+                    from .security_avancado import registrar_log_auditoria, obter_ip_address
+                    from .models_auditoria import LogAuditoria
+                    registrar_log_auditoria(
+                        tipo_acao=LogAuditoria.TipoAcao.SINCRONIZAR_NFE_RECEBIDAS,
+                        descricao=f'Falha ao sincronizar NF-e recebidas para propriedade {propriedade.nome_propriedade}',
+                        usuario=request.user,
+                        ip_address=obter_ip_address(request),
+                        user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                        nivel_severidade=LogAuditoria.NivelSeveridade.MEDIO,
+                        sucesso=False,
+                        erro=erro_msg,
+                        metadata={
+                            'propriedade_id': propriedade.id,
+                            'data_inicio': data_inicio.isoformat(),
+                            'data_fim': data_fim.isoformat(),
+                            'limite': limite,
+                        }
+                    )
+                except Exception as e:
+                    logger.warning(f'Erro ao registrar log de auditoria: {str(e)}')
+                
                 return redirect('sincronizar_nfe_recebidas', propriedade_id=propriedade.id)
             
             notas_encontradas = resultado.get('notas', [])
             total_encontrado = resultado.get('total_encontrado', 0)
+            
+            # Registrar log de auditoria para sucesso
+            try:
+                from .security_avancado import registrar_log_auditoria, obter_ip_address
+                from .models_auditoria import LogAuditoria
+                registrar_log_auditoria(
+                    tipo_acao=LogAuditoria.TipoAcao.SINCRONIZAR_NFE_RECEBIDAS,
+                    descricao=f'Sincronização de NF-e recebidas concluída. {total_encontrado} notas encontradas, {len(notas_encontradas)} processadas',
+                    usuario=request.user,
+                    ip_address=obter_ip_address(request),
+                    user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                    nivel_severidade=LogAuditoria.NivelSeveridade.MEDIO,
+                    sucesso=True,
+                    metadata={
+                        'propriedade_id': propriedade.id,
+                        'data_inicio': data_inicio.isoformat(),
+                        'data_fim': data_fim.isoformat(),
+                        'limite': limite,
+                        'total_encontrado': total_encontrado,
+                        'notas_processadas': len(notas_encontradas),
+                    }
+                )
+            except Exception as e:
+                logger.warning(f'Erro ao registrar log de auditoria: {str(e)}')
             
             if not notas_encontradas:
                 messages.info(request, 'Nenhuma nota fiscal encontrada no período informado.')

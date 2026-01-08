@@ -52,21 +52,41 @@ def _is_usuario_demo(user):
     Retorna True se:
     - username está em ['demo', 'demo_monpec']
     - ou tem registro UsuarioAtivo (criado pelo botão demonstração)
+    - ou possui a propriedade "Fazenda Demonstração"
+
+    IMPORTANTE: Superusuários e staff NUNCA são considerados demo.
     """
     if not user or not user.is_authenticated:
         return False
-    
+
+    # IMPORTANTE: Superusuários e staff nunca são demo
+    if user.is_superuser or user.is_staff:
+        return False
+
     # Verificar se é usuário demo padrão
     if user.username in ['demo', 'demo_monpec']:
         return True
-    
+
     # Verificar se tem UsuarioAtivo (usuário criado pelo popup)
     try:
         from .models_auditoria import UsuarioAtivo
         UsuarioAtivo.objects.get(usuario=user)
         return True
     except:
-        return False
+        pass
+
+    # Verificar se possui a propriedade "Fazenda Demonstração"
+    try:
+        from gestao_rural.models import Propriedade
+        if Propriedade.objects.filter(
+            produtor__usuario_responsavel=user,
+            nome_propriedade='Fazenda Demonstracao'
+        ).exists():
+            return True
+    except:
+        pass
+
+    return False
 
 try:  # Compatibilidade com o módulo IATF completo (opcional)
     from .models_iatf_completo import (
@@ -99,7 +119,7 @@ def _obter_resumo_animais(sessao: CurralSessao):
         .order_by('-data_evento')
     )
 
-    # Último evento por animal (compatível com SQLite)
+    # Último evento por animal
     ultimos_eventos_por_animal = {}
     for evento in eventos:
         if evento.animal_id not in ultimos_eventos_por_animal:
@@ -405,7 +425,7 @@ def _garantir_manejos_padrao(propriedade: Propriedade):
 
 def _montar_catalogo_manejos(propriedade: Propriedade):
     """Retorna o catálogo de manejos organizado por categoria."""
-    # Retry logic para lidar com locks temporários do SQLite
+    # Retry logic para lidar com locks temporários do banco de dados
     max_retries = 5
     retry_delay = 0.1  # 100ms
     
@@ -493,9 +513,10 @@ def curral_painel(request, propriedade_id):
     O layout está DEFINITIVO - melhorias apenas em modais e programação
     """
     propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
-    
+
     # Se for usuário demo (padrão ou criado pelo botão demonstração), redirecionar para página informativa
     if _is_usuario_demo(request.user):
+        from django.shortcuts import redirect
         return redirect('curral_info_demo', propriedade_id=propriedade_id)
 
     catalogo_manejos = _montar_catalogo_manejos(propriedade)
@@ -723,6 +744,7 @@ def curral_dashboard_v3(request, propriedade_id):
     
     # Se for usuário demo (padrão ou criado pelo botão demonstração), redirecionar para página informativa
     if _is_usuario_demo(request.user):
+        from django.shortcuts import redirect
         return redirect('curral_info_demo', propriedade_id=propriedade_id)
 
     # Buscar sessão ativa
@@ -822,6 +844,7 @@ def curral_dashboard_v4(request, propriedade_id):
 
     # Se for usuário demo (padrão ou criado pelo botão demonstração), redirecionar para página informativa
     if _is_usuario_demo(request.user):
+        from django.shortcuts import redirect
         return redirect('curral_info_demo', propriedade_id=propriedade_id)
 
     # Buscar sessão ativa
@@ -4494,6 +4517,7 @@ def curral_tela_unica(request, propriedade_id):
     
     # Se for usuário demo (padrão ou criado pelo botão demonstração), redirecionar para página informativa
     if _is_usuario_demo(request.user):
+        from django.shortcuts import redirect
         return redirect('curral_info_demo', propriedade_id=propriedade_id)
     
     # Buscar dados necessários
