@@ -9,7 +9,11 @@ from .settings import *
 
 # Detectar se está rodando no Google Cloud
 IS_GAE = os.getenv('GAE_ENV') is not None
-IS_CLOUD_RUN = os.getenv('K_SERVICE') is not None
+IS_CLOUD_RUN = os.getenv('K_SERVICE') is not None or os.getenv('CLOUD_RUN_JOB') is not None
+
+# Forçar detecção do Cloud Run (temporário para debug)
+if not IS_CLOUD_RUN and os.getenv('GOOGLE_CLOUD_PROJECT'):
+    IS_CLOUD_RUN = True
 
 # Configurações de produção
 DEBUG = os.getenv('DEBUG', 'False') == 'True'

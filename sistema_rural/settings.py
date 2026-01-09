@@ -139,12 +139,11 @@ INSTALLED_APPS = [
     'gestao_rural.apps.GestaoRuralConfig',
 ]
 
-# Adicionar sslserver apenas em desenvolvimento
-if DEBUG:
-    INSTALLED_APPS.append('sslserver')
+# sslserver removido - não necessário para produção
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    # 'sistema_rural.middleware.ErrorMonitoringMiddleware',  # Monitoramento de erros e alertas - TEMPORARIAMENTE DESABILITADO
     # 'gestao_rural.middleware_security.RateLimitMiddleware',  # Rate limiting - TEMPORARIAMENTE DESABILITADO
     # 'gestao_rural.middleware_protecao_codigo.ProtecaoCodigoMiddleware',  # Proteção contra cópia - TEMPORARIAMENTE DESABILITADO
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -177,6 +176,7 @@ TEMPLATES = [
                 'gestao_rural.context_processors.demo_mode',  # Adiciona DEMO_MODE ao contexto
                 'gestao_rural.context_processors.assinatura_info',  # Adiciona informações de assinatura
                 'gestao_rural.context_processors.produtores_menu',  # Adiciona produtores para o menu lateral
+                # 'gestao_rural.utils.feature_flags.feature_flags_context_processor',  # Feature flags - TEMPORARIAMENTE DESABILITADO
             ],
         },
     },
