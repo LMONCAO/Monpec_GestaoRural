@@ -136,9 +136,12 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django.contrib.sitemaps',  # Sitemap para SEO
     'django.contrib.humanize',
-    'sslserver',  # Suporte HTTPS no desenvolvimento
     'gestao_rural.apps.GestaoRuralConfig',
 ]
+
+# Adicionar sslserver apenas em desenvolvimento
+if DEBUG:
+    INSTALLED_APPS.append('sslserver')
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
