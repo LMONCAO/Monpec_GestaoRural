@@ -2582,6 +2582,21 @@ class AnimalIndividual(models.Model):
         help_text="Status de conformidade com o Banco Nacional de Dados (BND)"
     )
 
+    data_cadastro_bnd = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name="Data de Cadastro BND",
+        help_text="Data em que o animal foi cadastrado no Banco Nacional de Dados (BND)"
+    )
+
+    numero_registro_bnd = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        verbose_name="Número do Registro BND",
+        help_text="Número do registro oficial no Banco Nacional de Dados (BND)"
+    )
+
     data_ultima_cobertura = models.DateField(
         null=True,
         blank=True,
@@ -3900,6 +3915,156 @@ from .models_manejo import (  # noqa: E402,F401
     ManejoHistorico,
     ManejoTipo,
 )
+
+class FeatureFlag(models.Model):
+    """
+    Modelo para controle de feature flags.
+    Permite ativar/desativar funcionalidades dinamicamente sem deploy.
+    """
+    class Status(models.TextChoices):
+        ACTIVE = 'active', 'Ativa'
+        INACTIVE = 'inactive', 'Inativa'
+        BETA = 'beta', 'Beta (usuários selecionados)'
+        MAINTENANCE = 'maintenance', 'Manutenção'
+
+    nome = models.CharField(
+        max_length=100,
+        unique=True,
+        verbose_name="Nome da Feature",
+        help_text="Nome único da feature (ex: nova_interface_pesagem)"
+    )
+    descricao = models.TextField(
+        blank=True,
+        verbose_name="Descrição",
+        help_text="Descrição da funcionalidade"
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.INACTIVE,
+        verbose_name="Status",
+        help_text="Status atual da feature"
+    )
+
+    # Controle de usuários (para features em beta)
+    usuarios_beta = models.ManyToManyField(
+        User,
+        blank=True,
+        verbose_name="Usuários Beta",
+        help_text="Usuários que podem acessar esta feature em modo beta"
+    )
+
+    # Controle de porcentagem (para rollout gradual)
+    porcentagem_rollout = models.PositiveIntegerField(
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        verbose_name="Porcentagem Rollout",
+        help_text="Porcentagem de usuários que terão acesso (0-100)"
+    )
+
+    # Controle de ambiente
+    apenas_producao = models.BooleanField(
+        default=False,
+        verbose_name="Apenas Produção",
+        help_text="Feature disponível apenas em produção"
+    )
+    apenas_desenvolvimento = models.BooleanField(
+        default=False,
+        verbose_name="Apenas Desenvolvimento",
+        help_text="Feature disponível apenas em desenvolvimento"
+    )
+
+    # Controle temporal
+    data_ativacao = models.DateTimeField(
+        blank=True,
+        null=True,
+        verbose_name="Data de Ativação",
+        help_text="Data/hora para ativar automaticamente"
+    )
+    data_desativacao = models.DateTimeField(
+        blank=True,
+        null=True,
+        verbose_name="Data de Desativação",
+        help_text="Data/hora para desativar automaticamente"
+    )
+
+    # Metadados
+    criado_por = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='feature_flags_criadas',
+        verbose_name="Criado por"
+    )
+    criado_em = models.DateTimeField(auto_now_add=True, verbose_name="Criado em")
+    atualizado_em = models.DateTimeField(auto_now=True, verbose_name="Atualizado em")
+
+    class Meta:
+        verbose_name = "Feature Flag"
+        verbose_name_plural = "Feature Flags"
+        ordering = ['-atualizado_em']
+
+    def __str__(self):
+        return f"{self.nome} ({self.get_status_display()})"
+
+    def is_active_for_user(self, user=None):
+        """
+        Verifica se a feature está ativa para um usuário específico.
+        """
+        from django.conf import settings
+        from datetime import datetime
+
+        # Verificar data de ativação/desativação
+        now = datetime.now()
+        if self.data_desativacao and now >= self.data_desativacao:
+            return False
+        if self.data_ativacao and now < self.data_ativacao:
+            return False
+
+        # Verificar ambiente
+        is_production = not settings.DEBUG
+        if self.apenas_producao and not is_production:
+            return False
+        if self.apenas_desenvolvimento and is_production:
+            return False
+
+        # Verificar status
+        if self.status == self.Status.INACTIVE:
+            return False
+        elif self.status == self.Status.ACTIVE:
+            return True
+        elif self.status == self.Status.BETA:
+            # Verificar se usuário está na lista beta
+            if user and user.is_authenticated:
+                return self.usuarios_beta.filter(id=user.id).exists()
+            return False
+        elif self.status == self.Status.MAINTENANCE:
+            return False
+
+        # Rollout gradual baseado em porcentagem
+        if self.porcentagem_rollout > 0:
+            if user and user.is_authenticated:
+                # Usar ID do usuário para determinar se está no rollout
+                user_rollout_value = user.id % 100
+                return user_rollout_value < self.porcentagem_rollout
+            return False
+
+        return False
+
+    @classmethod
+    def is_feature_active(cls, feature_name, user=None):
+        """
+        Método de classe para verificar se uma feature está ativa.
+        Uso: FeatureFlag.is_feature_active('nova_interface', request.user)
+        """
+        try:
+            flag = cls.objects.get(nome=feature_name)
+            return flag.is_active_for_user(user)
+        except cls.DoesNotExist:
+            # Se a flag não existe, considerar inativa
+            return False
+
 
 # Importar modelos de cadastros para garantir que sejam registrados
 try:

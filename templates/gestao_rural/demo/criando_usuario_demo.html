@@ -1,69 +1,129 @@
-{% extends 'base_modulos_unificado.html' %}
-{% load static %}
-
-{% block title %}Criando Usuário Demo - MONPEC{% endblock %}
-
-{% block content %}
-<div class="container-fluid px-4" style="padding-top: 2rem !important; padding-bottom: 2rem;">
-    <!-- Cabeçalho -->
-    <div class="d-flex justify-content-center align-items-center mb-5">
-        <div class="text-center">
-            <div class="mb-4">
-                <i class="bi bi-person-plus-fill text-primary" style="font-size: 4rem;"></i>
-            </div>
-            <h1 class="h2 mb-3 fw-bold">Criando seu Usuário de Demonstração</h1>
-            <p class="text-muted lead mb-0">
-                Estamos configurando seu ambiente de demonstração...
-            </p>
-        </div>
-    </div>
-
-    <!-- Barra de progresso -->
-    <div class="row justify-content-center mb-5">
-        <div class="col-md-8 col-lg-6">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body p-4">
-                    <div class="mb-4">
-                        <div class="progress" style="height: 8px;">
-                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-success"
-                                 role="progressbar"
-                                 style="width: 100%"
-                                 aria-valuenow="100"
-                                 aria-valuemin="0"
-                                 aria-valuemax="100">
-                            </div>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Criar Conta de Demonstração - MONPEC</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        .form-control:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-weight: 600;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        .logo-container {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .logo-text {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #667eea;
+            letter-spacing: -1px;
+        }
+        .logo-text .ponto-verde {
+            color: #28a745;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6">
+                <div class="card shadow-lg">
+                    <div class="card-header bg-white text-center py-4">
+                        <div class="logo-container">
+                            <span class="logo-text">Monpec<span class="ponto-verde">.</span></span>
                         </div>
-                    </div>
-
-                    <div class="text-center">
-                        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
-                            <span class="visually-hidden">Carregando...</span>
-                        </div>
-                        <h5 class="mb-3">Configurando dados da demonstração</h5>
-                        <p class="text-muted mb-0">
-                            Criando propriedade, animais, fornecedores e lançamentos financeiros...
+                        <h3 class="mb-0">
+                            <i class="fas fa-user-plus text-primary me-2"></i>
+                            Criar Conta de Demonstração
+                        </h3>
+                        <p class="text-muted mt-2 mb-0">
+                            Preencha seus dados para acessar a demonstração completa
                         </p>
                     </div>
-
-                    <!-- Etapas de configuração -->
-                    <div class="mt-4">
-                        <div class="d-flex align-items-center mb-2">
-                            <i class="bi bi-check-circle-fill text-success me-3"></i>
-                            <span>Criando usuário e propriedade</span>
-                        </div>
-                        <div class="d-flex align-items-center mb-2">
-                            <i class="bi bi-check-circle-fill text-success me-3"></i>
-                            <span>Configurando dados de pecuária</span>
-                        </div>
-                        <div class="d-flex align-items-center mb-2">
-                            <i class="bi bi-check-circle-fill text-success me-3"></i>
-                            <span>Preparando módulos financeiros</span>
-                        </div>
-                        <div class="d-flex align-items-center mb-2">
-                            <div class="spinner-border spinner-border-sm text-primary me-3" role="status">
-                                <span class="visually-hidden">Carregando...</span>
+                    <div class="card-body p-4">
+                        <form id="demoForm">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label for="nome_completo" class="form-label">
+                                    <i class="fas fa-user me-1"></i> Nome Completo *
+                                </label>
+                                <input type="text" class="form-control form-control-lg" id="nome_completo"
+                                       name="nome_completo" placeholder="Digite seu nome completo" required>
                             </div>
-                            <span>Finalizando configuração...</span>
+
+                            <div class="mb-3">
+                                <label for="email" class="form-label">
+                                    <i class="fas fa-envelope me-1"></i> E-mail *
+                                </label>
+                                <input type="email" class="form-control form-control-lg" id="email"
+                                       name="email" placeholder="seu@email.com" required>
+                            </div>
+
+                            <div class="mb-4">
+                                <label for="telefone" class="form-label">
+                                    <i class="fas fa-phone me-1"></i> Telefone
+                                </label>
+                                <input type="tel" class="form-control form-control-lg" id="telefone"
+                                       name="telefone" placeholder="(67) 99999-9999">
+                            </div>
+
+                            <div class="alert alert-info border-0">
+                                <div class="d-flex align-items-start">
+                                    <i class="fas fa-info-circle text-info me-3 mt-1"></i>
+                                    <div>
+                                        <h6 class="alert-heading mb-2">Sobre a Demonstração</h6>
+                                        <p class="mb-2">
+                                            Você receberá acesso completo ao sistema MONPEC com dados realistas
+                                            de uma propriedade rural para explorar todas as funcionalidades.
+                                        </p>
+                                        <ul class="mb-0 small">
+                                            <li><strong>Propriedade:</strong> Fazenda Demonstração (1.500 ha)</li>
+                                            <li><strong>Rebanho:</strong> 57 animais de corte</li>
+                                            <li><strong>Módulos:</strong> Pecuária, Financeiro, Compras, Nutrição</li>
+                                            <li><strong>Acesso:</strong> Totalmente funcional por 30 dias</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="d-grid mt-4">
+                                <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">
+                                    <i class="fas fa-rocket me-2"></i>
+                                    Criar Minha Demonstração
+                                </button>
+                            </div>
+                        </form>
+
+                        <div class="text-center mt-3">
+                            <small class="text-muted">
+                                Já tem uma conta? <a href="{% url 'login' %}" class="text-decoration-none">Fazer login</a>
+                            </small>
                         </div>
                     </div>
                 </div>
@@ -71,38 +131,68 @@
         </div>
     </div>
 
-    <!-- Informações da demonstração -->
-    <div class="row justify-content-center">
-        <div class="col-md-8 col-lg-6">
-            <div class="alert alert-info border-0 shadow-sm">
-                <div class="d-flex align-items-start">
-                    <i class="bi bi-info-circle-fill me-3 mt-1 text-info fs-5"></i>
-                    <div>
-                        <h6 class="alert-heading mb-2">Sobre a Demonstração</h6>
-                        <p class="mb-2">
-                            Esta é uma versão completa de demonstração do sistema MONPEC, com dados realistas
-                            para você explorar todas as funcionalidades.
-                        </p>
-                        <ul class="mb-0 small">
-                            <li><strong>Propriedade:</strong> Fazenda Demonstração Ltda (1.500 ha)</li>
-                            <li><strong>Rebanho:</strong> 57 animais de corte</li>
-                            <li><strong>Módulos:</strong> Pecuária, Financeiro, Compras, Vendas, Nutrição</li>
-                            <li><strong>Acesso:</strong> Totalmente funcional por 30 dias</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById('demoForm').addEventListener('submit', function(e) {
+            e.preventDefault();
 
-<!-- Script para redirecionamento automático -->
-<script>
-    // Redirecionar automaticamente para demo_loading após 3 segundos
-    setTimeout(function() {
-        window.location.href = "{% url 'demo_loading' %}";
-    }, 3000);
-</script>
+            const submitBtn = document.getElementById('submitBtn');
+            const originalText = submitBtn.innerHTML;
+
+            // Desabilitar botão e mostrar loading
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Criando demonstração...';
+
+            // Coletar dados do formulário
+            const formData = new FormData(this);
+
+            // Enviar via AJAX
+            fetch('{% url "criar_usuario_demonstracao" %}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Redirecionar para a URL especificada
+                    window.location.href = data.redirect_url;
+                } else {
+                    // Mostrar erro
+                    alert('Erro: ' + data.message);
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                alert('Erro ao criar demonstração. Tente novamente.');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            });
+        });
+
+        // Máscara para telefone
+        document.getElementById('telefone').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length <= 11) {
+                if (value.length <= 2) {
+                    value = value;
+                } else if (value.length <= 6) {
+                    value = `(${value.slice(0, 2)}) ${value.slice(2)}`;
+                } else if (value.length <= 10) {
+                    value = `(${value.slice(0, 2)}) ${value.slice(2, 6)}-${value.slice(6)}`;
+                } else {
+                    value = `(${value.slice(0, 2)}) ${value.slice(2, 7)}-${value.slice(7)}`;
+                }
+                e.target.value = value;
+            }
+        });
+    </script>
+</body>
+</html>
 
 <style>
 .card {
@@ -126,6 +216,9 @@
     border-width: 0.15em;
 }
 </style>
-{% endblock %}
+</body>
+</html>
+
+
 
 

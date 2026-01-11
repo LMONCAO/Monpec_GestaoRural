@@ -101,7 +101,7 @@ class Command(BaseCommand):
             self._criar_dados_financeiros(propriedade, ano)
 
         self.stdout.write(self.style.SUCCESS(""))
-        self.stdout.write(self.style.SUCCESS("✅ Planejamento 2026 criado com sucesso!"))
+        self.stdout.write(self.style.SUCCESS("[SUCESSO] Planejamento 2026 criado com sucesso!"))
         self.stdout.write(
             self.style.SUCCESS(
                 f"   Propriedade: {propriedade.nome_propriedade} | Ano: {ano}"
@@ -155,7 +155,7 @@ class Command(BaseCommand):
                 },
             )
 
-        self.stdout.write("   ✅ Inventário completo criado.")
+        self.stdout.write("   [OK] Inventario completo criado.")
 
     def _garantir_parametros_projecao(self, propriedade):
         """Garante parâmetros de projeção"""
@@ -182,9 +182,9 @@ class Command(BaseCommand):
             },
         )
         if created:
-            self.stdout.write(f"   ✅ Planejamento {ano} criado.")
+            self.stdout.write(f"   [OK] Planejamento {ano} criado.")
         else:
-            self.stdout.write(f"   ℹ️  Planejamento {ano} já existia, atualizando...")
+            self.stdout.write(f"   [INFO] Planejamento {ano} ja existia, atualizando...")
         return planejamento
 
     def _criar_cenarios(self, planejamento):
@@ -358,7 +358,7 @@ class Command(BaseCommand):
                 },
             )
 
-        self.stdout.write(f"   ✅ {len(atividades)} atividades planejadas criadas.")
+        self.stdout.write(f"   [OK] {len(atividades)} atividades planejadas criadas.")
 
     def _criar_metas_comerciais_completas(self, planejamento):
         """Cria metas comerciais detalhadas"""
@@ -421,7 +421,7 @@ class Command(BaseCommand):
                     },
                 )
 
-        self.stdout.write(f"   ✅ {len(metas)} metas comerciais criadas.")
+        self.stdout.write(f"   [OK] {len(metas)} metas comerciais criadas.")
 
     def _criar_metas_financeiras_completas(self, planejamento):
         """Cria metas financeiras completas"""
@@ -490,7 +490,7 @@ class Command(BaseCommand):
                 },
             )
 
-        self.stdout.write(f"   ✅ {len(metas)} metas financeiras criadas.")
+        self.stdout.write(f"   [OK] {len(metas)} metas financeiras criadas.")
 
     def _criar_indicadores_completos(self, planejamento):
         """Cria indicadores estratégicos completos"""
@@ -585,7 +585,7 @@ class Command(BaseCommand):
                 },
             )
 
-        self.stdout.write(f"   ✅ {len(indicadores)} indicadores criados.")
+        self.stdout.write(f"   [OK] {len(indicadores)} indicadores criados.")
 
     def _criar_movimentacoes_projetadas(self, propriedade, planejamento, cenario, ano):
         """Cria movimentações projetadas mensais"""
@@ -600,9 +600,10 @@ class Command(BaseCommand):
             categoria_novilha = CategoriaAnimal.objects.get(nome="Novilhas (12-24m)")
             categoria_vaca = CategoriaAnimal.objects.get(nome="Vacas de Descarte")
         except CategoriaAnimal.DoesNotExist:
-            categoria_garrote = None
-            categoria_novilha = None
-            categoria_vaca = None
+            # Usar categorias que existem
+            categoria_garrote = CategoriaAnimal.objects.filter(nome__icontains="Garrote").first()
+            categoria_novilha = CategoriaAnimal.objects.filter(nome__icontains="Novilha").first()
+            categoria_vaca = CategoriaAnimal.objects.filter(nome__icontains="Vaca").first()
 
         movimentacoes = []
         for mes in range(1, 13):
@@ -613,7 +614,7 @@ class Command(BaseCommand):
                 movimentacoes.append(
                     {
                         "tipo": "NASCIMENTO",
-                        "categoria": None,
+                        "categoria": categoria_garrote if categoria_garrote else None,
                         "quantidade": random.randint(90, 120),
                         "data": data_base,
                     }
@@ -662,7 +663,7 @@ class Command(BaseCommand):
                 ),
             )
 
-        self.stdout.write(f"   ✅ {len(movimentacoes)} movimentações projetadas criadas.")
+        self.stdout.write(f"   [OK] {len(movimentacoes)} movimentacoes projetadas criadas.")
 
     def _criar_dados_financeiros(self, propriedade, ano):
         """Cria dados financeiros"""
@@ -721,7 +722,7 @@ class Command(BaseCommand):
             },
         )
 
-        self.stdout.write("   ✅ Dados financeiros criados.")
+        self.stdout.write("   [OK] Dados financeiros criados.")
 
 
 

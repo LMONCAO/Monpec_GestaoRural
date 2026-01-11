@@ -38,9 +38,55 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS('=' * 60))
         self.stdout.write(self.style.SUCCESS('CONFIGURANDO SISTEMA MONPEC'))
         self.stdout.write(self.style.SUCCESS('=' * 60))
-        
+
         sucesso = True
-        
+
+        # 0. CRIAR SUPERUSUÁRIO ADMIN SE NECESSÁRIO
+        self.stdout.write('\n0. Verificando superusuário admin...')
+        try:
+            from django.contrib.auth.models import User
+            if not User.objects.filter(is_superuser=True).exists():
+                admin_user = User.objects.create_superuser(
+                    username='admin@monpec.com.br',
+                    email='admin@monpec.com.br',
+                    password='L6171r12@@jjms',
+                    first_name='Administrador',
+                    last_name='Sistema'
+                )
+                self.stdout.write(
+                    self.style.SUCCESS('[OK] Superusuário criado!')
+                )
+                self.stdout.write(
+                    self.style.SUCCESS('   👤 Usuário: admin@monpec.com.br')
+                )
+                self.stdout.write(
+                    self.style.SUCCESS('   🔑 Senha: L6171r12@@jjms')
+                )
+                self.stdout.write(
+                    self.style.SUCCESS('   📧 Email: admin@monpec.com.br')
+                )
+            else:
+                # Atualizar senha se o usuário já existir com credenciais antigas
+                admin_user = User.objects.filter(is_superuser=True).first()
+                if admin_user and not admin_user.check_password('L6171r12@@jjms'):
+                    admin_user.username = 'admin@monpec.com.br'
+                    admin_user.email = 'admin@monpec.com.br'
+                    admin_user.set_password('L6171r12@@jjms')
+                    admin_user.save()
+                    self.stdout.write(
+                        self.style.SUCCESS('[OK] Credenciais atualizadas!')
+                    )
+                    self.stdout.write(
+                        self.style.SUCCESS('   👤 Usuário: admin@monpec.com.br')
+                    )
+                    self.stdout.write(
+                        self.style.SUCCESS('   🔑 Senha: L6171r12@@jjms')
+                    )
+                else:
+                    self.stdout.write(self.style.SUCCESS('[OK] Superusuário já existe com credenciais corretas'))
+        except Exception as e:
+            self.stdout.write(self.style.WARNING(f'[AVISO] Erro ao criar superusuário: {e}'))
+
         # 1. Aplicar migrations
         if not options['skip_migrations']:
             self.stdout.write('\n1. Aplicando migrations...')

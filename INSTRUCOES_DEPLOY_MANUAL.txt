@@ -1,0 +1,216 @@
+# 🚀 INSTRUÇÕES PARA DEPLOY MANUAL NO GOOGLE CLOUD
+
+## 📋 PASSO A PASSO COMPLETO
+
+### 1. CONFIGURAR GOOGLE CLOUD SDK
+```bash
+# Instalar Google Cloud SDK (se não tiver)
+# Baixe em: https://cloud.google.com/sdk/docs/install
+
+# Inicializar e configurar
+gcloud init
+
+# Fazer login
+gcloud auth login
+
+# Configurar projeto
+gcloud config set project monpec-29862706245
+
+# Configurar região
+gcloud config set compute/region us-central1
+```
+
+### 2. HABILITAR APIS NECESSÁRIAS
+```bash
+# APIs essenciais para o Monpec
+gcloud services enable run.googleapis.com
+gcloud services enable containerregistry.googleapis.com
+gcloud services enable cloudbuild.googleapis.com
+gcloud services enable storage-api.googleapis.com
+gcloud services enable sqladmin.googleapis.com
+gcloud services enable monitoring.googleapis.com
+gcloud services enable logging.googleapis.com
+```
+
+### 3. CONFIGURAR DOCKER
+```bash
+# Configurar Docker para Google Container Registry
+gcloud auth configure-docker
+```
+
+### 4. CRIAR BUCKET PARA BACKUPS
+```bash
+# Criar bucket de storage
+gsutil mb -p monpec-29862706245 -c regional -l us-central1 gs://monpec-backups
+
+# Configurar permissões (opcional)
+gsutil iam ch serviceAccount:monpec-deploy@monpec-29862706245.iam.gserviceaccount.com:objectAdmin gs://monpec-backups
+```
+
+### 5. CONFIGURAR VARIÁVEIS DE AMBIENTE
+```bash
+# Criar arquivo .env.production com suas credenciais:
+DEBUG=False
+DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp
+GOOGLE_CLOUD_PROJECT=monpec-29862706245
+DB_NAME=monpec_db
+DB_USER=monpec_user
+DB_PASSWORD=sua_senha_real_aqui
+DB_HOST=/cloudsql/monpec-29862706245:us-central1:monpec-db
+MERCADOPAGO_ACCESS_TOKEN=seu_token_real_aqui
+EMAIL_HOST_USER=seu_email@gmail.com
+EMAIL_HOST_PASSWORD=sua_senha_de_app_aqui
+GS_BUCKET_NAME=monpec-backups
+SITE_URL=https://monpec.com.br
+```
+
+### 6. EXECUTAR TESTES PRÉ-DEPLOY
+```bash
+# Executar testes locais
+python manage.py test_pre_deploy --verbose
+
+# Se passar, criar backup
+python manage.py backup_completo --compress --remote
+```
+
+### 7. BUILD DA IMAGEM DOCKER
+```bash
+# Build da imagem
+docker build -t gcr.io/monpec-29862706245/monpec:latest .
+
+# Ou com tag de versão
+docker build -t gcr.io/monpec-29862706245/monpec:v1.0.0 .
+
+# Push para Google Container Registry
+docker push gcr.io/monpec-29862706245/monpec:latest
+```
+
+### 8. DEPLOY NO CLOUD RUN
+```bash
+# Deploy do serviço
+gcloud run deploy monpec \
+  --image gcr.io/monpec-29862706245/monpec:latest \
+  --platform managed \
+  --region us-central1 \
+  --allow-unauthenticated \
+  --set-env-vars "DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp" \
+  --memory 1Gi \
+  --cpu 1 \
+  --max-instances 10 \
+  --timeout 300 \
+  --concurrency 80
+```
+
+### 9. VERIFICAR DEPLOYMENT
+```bash
+# Obter URL do serviço
+gcloud run services describe monpec --region=us-central1 --format="value(status.url)"
+
+# Testar health check
+curl https://SUA_URL_AQUI/health/
+
+# Testar aplicação
+curl https://SUA_URL_AQUI/
+
+# Ver logs
+gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=monpec" --limit=10
+```
+
+### 10. CONFIGURAR BACKUP AUTOMÁTICO (OPCIONAL)
+```bash
+# Criar job do Cloud Scheduler para backup diário
+gcloud scheduler jobs create http backup-diario \
+  --schedule "0 2 * * *" \
+  --uri "https://monpec-XXXXX-uc.a.run.app/admin/backup/executar/" \
+  --http-method POST \
+  --oauth-service-account-email monpec-deploy@monpec-29862706245.iam.gserviceaccount.com
+```
+
+## 🔧 COMANDOS ÚTEIS PARA MONITORAMENTO
+
+```bash
+# Ver status do serviço
+gcloud run services describe monpec --region=us-central1
+
+# Ver logs em tempo real
+gcloud logging read "resource.type=cloud_run_revision" --filter="resource.labels.service_name=monpec" --follow
+
+# Ver métricas de uso
+gcloud run services describe monpec --region=us-central1 --format="value(status.conditions[])"
+
+# Listar revisões
+gcloud run revisions list --service=monpec --region=us-central1
+
+# Verificar uso de recursos
+gcloud run services describe monpec --region=us-central1 --format="table(name,spec.template.spec.containers[0].resources.limits)"
+```
+
+## 🚨 EM CASO DE PROBLEMAS
+
+### Rollback Rápido
+```bash
+# Ver revisões disponíveis
+gcloud run revisions list --service=monpec --region=us-central1
+
+# Fazer rollback para revisão anterior
+gcloud run services update-traffic monpec \
+  --to-revisions=LATEST=0,REVISION-1=100 \
+  --region=us-central1
+```
+
+### Logs de Debug
+```bash
+# Logs de erro específicos
+gcloud logging read "resource.type=cloud_run_revision AND severity>=ERROR" \
+  --filter="resource.labels.service_name=monpec" \
+  --limit=20
+
+# Logs de uma revisão específica
+gcloud logging read "resource.type=cloud_run_revision" \
+  --filter="resource.labels.revision_name=REVISION_NAME" \
+  --limit=10
+```
+
+### Verificação de Recursos
+```bash
+# Verificar se APIs estão habilitadas
+gcloud services list --enabled
+
+# Verificar permissões
+gcloud projects get-iam-policy monpec-29862706245
+
+# Verificar quota
+gcloud compute regions describe us-central1
+```
+
+## 📊 LINKS IMPORTANTES
+
+- **Google Cloud Console**: https://console.cloud.google.com/home/dashboard?project=monpec-29862706245
+- **Cloud Run**: https://console.cloud.google.com/run?project=monpec-29862706245
+- **Cloud Storage**: https://console.cloud.google.com/storage/browser/monpec-backups?project=monpec-29862706245
+- **Cloud Build**: https://console.cloud.google.com/cloud-build?project=monpec-29862706245
+- **Cloud SQL**: https://console.cloud.google.com/sql/instances?project=monpec-29862706245
+- **Monitoring**: https://console.cloud.google.com/monitoring?project=monpec-29862706245
+
+## ✅ CHECKLIST FINAL
+
+- [ ] Google Cloud SDK instalado e configurado
+- [ ] Autenticação realizada (`gcloud auth login`)
+- [ ] Projeto correto configurado (`monpec-29862706245`)
+- [ ] APIs necessárias habilitadas
+- [ ] Docker configurado para GCR
+- [ ] Bucket de storage criado
+- [ ] Arquivo .env.production criado com credenciais reais
+- [ ] Testes pré-deploy passando
+- [ ] Backup criado
+- [ ] Imagem Docker buildada e enviada
+- [ ] Deploy no Cloud Run realizado
+- [ ] Serviço acessível e funcionando
+- [ ] Health checks passando
+- [ ] Logs sem erros críticos
+
+---
+
+**Data**: Dezembro 2024
+**Versão**: 1.0.0
+**Projeto**: Monpec

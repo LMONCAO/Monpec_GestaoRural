@@ -28,3 +28,5 @@ echo 'PROVÁVEL CAUSA: MERCADOPAGO_ACCESS_TOKEN não configurado no Cloud Run'
 echo 'SOLUÇÃO: Configurar variável de ambiente MERCADOPAGO_ACCESS_TOKEN'
 
 
+
+

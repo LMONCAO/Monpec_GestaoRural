@@ -142,3 +142,5 @@ print('❌ 500 = ERRO INTERNO DO SERVIDOR (precisa correção urgente)')
 print('💥 ERRO = Erro de conexão ou configuração')
 
 
+
+

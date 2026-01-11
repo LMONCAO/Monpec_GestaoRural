@@ -36,6 +36,7 @@ urlpatterns = [
     path('', gestao_views.landing_page, name='landing_page'),
     
     # Curral Dashboard v3 e v4 - DEVE VIR PRIMEIRO para garantir que seja encontrado
+    path('propriedade/<int:propriedade_id>/curral/', views_curral.curral_tela_unica, name='curral_tela_unica'),
     path('propriedade/<int:propriedade_id>/curral/v4/', views_curral.curral_dashboard_v4, name='curral_dashboard_v4'),
     path('propriedade/<int:propriedade_id>/curral/v3/', views_curral.curral_dashboard_v3, name='curral_dashboard_v3'),
     
@@ -46,7 +47,10 @@ urlpatterns = [
     
     # Google Search Console Verification
     path('google40933139f3b0d469.html', gestao_views.google_search_console_verification, name='google_search_console_verification'),
-    
+
+    # Robots.txt
+    path('robots.txt', gestao_views.robots_txt, name='robots_txt'),
+
     # Sitemap (view customizada para garantir acesso público)
     path('sitemap.xml', views_sitemap.sitemap_view, name='sitemap'),
     

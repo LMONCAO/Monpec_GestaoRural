@@ -1,0 +1,118 @@
+========================================
+INSTRUÇÕES DEPLOY MONPEC - GOOGLE CLOUD
+========================================
+
+✅ PREPARAÇÃO CONCLUÍDA:
+- Backup criado: backup_deploy_20260110_193837/
+- Dados populados (1300 animais, planejamento, etc.)
+- Script de deploy criado: deploy_atualizado.sh
+
+========================================
+PASSO A PASSO PARA DEPLOY:
+========================================
+
+1. 📤 FAÇA UPLOAD DO CÓDIGO PARA O GOOGLE CLOUD
+   - Abra: https://console.cloud.google.com/cloudshell
+   - Clone ou faça upload de todo o código do projeto
+
+2. 🔧 EXECUTE O SCRIPT DE DEPLOY
+   cd /caminho/do/projeto
+   chmod +x deploy_atualizado.sh
+   bash deploy_atualizado.sh
+
+3. 🔍 VERIFIQUE A URL DO SERVIÇO
+   gcloud run services describe monpec --region=us-central1 --format="value(status.url)"
+
+========================================
+PROBLEMA DA LANDING PAGE:
+========================================
+
+Se a landing page não estiver aparecendo corretamente:
+
+A) VERIFIQUE SE ESTÁ USANDO A URL CERTA:
+   - URL correta: https://SEU_DOMINIO/
+   - NÃO use: https://SEU_DOMINIO/dashboard/
+
+B) POSSÍVEIS CAUSAS DO PROBLEMA:
+
+   1. ARQUIVOS ESTÁTICOS NÃO CARREGANDO:
+      - Verifique se os arquivos CSS/JS estão carregando
+      - Execute: python manage.py collectstatic --noinput
+
+   2. CACHE DO NAVEGADOR:
+      - Limpe o cache (Ctrl+F5)
+      - Tente em modo anônimo
+
+   3. CONFIGURAÇÃO DO GCP:
+      - Verifique se STATIC_URL está correto
+      - Verifique ALLOWED_HOSTS
+
+   4. URL RAIZ CONFLITANDO:
+      - Verifique se há conflito com outras rotas
+
+C) PARA DIAGNOSTICAR:
+   # Ver logs do Cloud Run
+   gcloud run services logs read monpec --region=us-central1 --limit=50
+
+   # Testar URL diretamente
+   curl https://sua-url-do-cloud-run/
+
+   # Verificar se Django está respondendo
+   curl https://sua-url-do-cloud-run/health/
+
+========================================
+DADOS POPULADOS NO SISTEMA:
+========================================
+
+✅ PROPRIEDADE ID 5 (Admin):
+- 1300 animais distribuídos
+- 15 funcionários
+- Planejamento 2026 completo
+- Cenários de análise
+- Dados financeiros
+
+✅ URLs de acesso:
+- Dashboard: https://sua-url/propriedade/5/pecuaria/
+- Planejamento: https://sua-url/propriedade/5/pecuaria/planejamento/
+- Projeções: https://sua-url/propriedade/5/pecuaria/projecao/
+
+========================================
+VERIFICAÇÃO FINAL:
+========================================
+
+Após o deploy, teste:
+
+1. 🌐 LANDING PAGE: https://sua-url/
+   - Deve mostrar "MONPEC - Sistema de Gestão Rural"
+
+2. 🔐 LOGIN: https://sua-url/dashboard/
+   - Use: admin / senha_do_admin
+
+3. 📊 DASHBOARD: https://sua-url/propriedade/5/pecuaria/
+   - Deve mostrar dados populados
+
+4. 📅 PLANEJAMENTO: https://sua-url/propriedade/5/pecuaria/planejamento/
+   - Cards preenchidos com valores reais
+
+========================================
+SUPORTE:
+========================================
+
+Se ainda houver problemas:
+
+1. Verifique os logs do Cloud Run
+2. Teste localmente: python manage.py runserver
+3. Compare configurações locais vs GCP
+4. Verifique se todas as migrações rodaram
+
+========================================
+BACKUP DE SEGURANÇA:
+========================================
+
+- Pasta: backup_deploy_20260110_193837/
+- Contém: db.sqlite3 + dados_backup.json
+- Use para restaurar se necessário
+
+========================================
+🎉 DEPLOY PRONTO PARA EXECUÇÃO!
+========================================

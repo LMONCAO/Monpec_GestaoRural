@@ -38,7 +38,8 @@ class CurralTelaUnica {
         this.setupAlertas();
         this.setupQuickActions();
         this.setupHistorico();
-        
+        this.setupModalTrabalho();
+
         // Inicializa IndexedDB se disponível
         if (window.offlineDB) {
             await window.offlineDB.init();
@@ -63,9 +64,340 @@ class CurralTelaUnica {
             btnCloseAnimal.addEventListener('click', () => this.fecharAnimal());
         }
 
+        // Novos botões da dashboard unificada
+        this.setupDashboardButtons();
+
         // Detecção de mudança de conexão
         window.addEventListener('online', () => this.handleOnline());
         window.addEventListener('offline', () => this.handleOffline());
+    }
+
+    // ==================== DASHBOARD UNIFICADA ====================
+    setupDashboardButtons() {
+        // Operações Rápidas
+        document.querySelectorAll('.operacao-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const tab = btn.getAttribute('data-tab');
+                this.ativarOperacao(tab);
+
+                // Remove active de todos e adiciona no clicado
+                document.querySelectorAll('.operacao-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+        });
+
+        // Gestão de Animais
+        document.querySelectorAll('.gestao-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const tab = btn.getAttribute('data-tab');
+                this.ativarOperacao(tab);
+            });
+        });
+
+        // Análises e Relatórios
+        document.querySelectorAll('.analise-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const tab = btn.getAttribute('data-tab');
+                this.ativarOperacao(tab);
+            });
+        });
+
+        // Controle de Sessão
+        const btnIniciarSessao = document.getElementById('btnIniciarSessao');
+        const btnFinalizarSessao = document.getElementById('btnFinalizarSessao');
+
+        if (btnIniciarSessao) {
+            btnIniciarSessao.addEventListener('click', () => this.iniciarSessao());
+        }
+
+        if (btnFinalizarSessao) {
+            btnFinalizarSessao.addEventListener('click', () => this.finalizarSessao());
+        }
+    }
+
+    ativarOperacao(operacao) {
+        // Mapeia operações para tabs existentes
+        const mapaOperacoes = {
+            'pesagem': 'pesagem',
+            'sanidade': 'sanidade',
+            'conferencia': 'conferencia',
+            'cadastro': 'cadastro',
+            'movimentacao': 'movimentacao',
+            'reprodutivo': 'reprodutivo',
+            'inventario': 'inventario',
+            'historico': 'historico',
+            'relatorios': 'relatorios',
+            'metricas': 'metricas'
+        };
+
+        const tab = mapaOperacoes[operacao] || operacao;
+
+        // Atualiza título e descrição da área de trabalho
+        this.atualizarAreaTrabalho(tab);
+
+        // Ativa a tab correspondente (se existir)
+        this.ativarTab(tab);
+
+        // Feedback visual
+        this.mostrarFeedbackOperacao(operacao);
+    }
+
+    atualizarAreaTrabalho(operacao) {
+        const tituloEl = document.getElementById('areaTrabalhoTitulo');
+        const descricaoEl = document.getElementById('areaTrabalhoDescricao');
+
+        const titulos = {
+            'pesagem': 'Pesagem de Animais',
+            'sanidade': 'Controle Sanitário',
+            'conferencia': 'Conferência de Lote',
+            'cadastro': 'Cadastro de Animais',
+            'movimentacao': 'Movimentação entre Lotes',
+            'reprodutivo': 'Gestão Reprodutiva',
+            'inventario': 'Inventário do Rebanho',
+            'historico': 'Histórico e Evolução',
+            'relatorios': 'Relatórios e Análises',
+            'metricas': 'Métricas de Performance'
+        };
+
+        const descricoes = {
+            'pesagem': 'Registre o peso dos animais e acompanhe o ganho de peso',
+            'sanidade': 'Vacinas, tratamentos e controle sanitário do rebanho',
+            'conferencia': 'Verifique os animais presentes no lote selecionado',
+            'cadastro': 'Cadastre novos animais no sistema MONPEC',
+            'movimentacao': 'Transfira animais entre diferentes lotes/pastagens',
+            'reprodutivo': 'IATF, diagnósticos e gestão reprodutiva',
+            'inventario': 'Controle completo do inventário pecuário',
+            'historico': 'Acompanhe a evolução e histórico dos animais',
+            'relatorios': 'Gere relatórios completos do rebanho',
+            'metricas': 'Visualize métricas e indicadores de performance'
+        };
+
+        if (tituloEl) tituloEl.textContent = titulos[operacao] || 'Operação Selecionada';
+        if (descricaoEl) descricaoEl.textContent = descricoes[operacao] || 'Selecione uma operação para continuar';
+    }
+
+    mostrarFeedbackOperacao(operacao) {
+        // Pequena animação de feedback
+        const areaTrabalho = document.getElementById('areaTrabalho');
+        if (areaTrabalho) {
+            areaTrabalho.style.animation = 'none';
+            setTimeout(() => {
+                areaTrabalho.style.animation = 'pulse 0.3s ease-in-out';
+            }, 10);
+        }
+    }
+
+    async iniciarSessao() {
+        try {
+            // Lógica para iniciar sessão
+            console.log('Iniciando sessão...');
+
+            // Atualiza interface
+            this.atualizarStatusSessao(true);
+
+            // Feedback
+            this.mostrarNotificacao('Sessão iniciada com sucesso!', 'success');
+
+        } catch (error) {
+            console.error('Erro ao iniciar sessão:', error);
+            this.mostrarNotificacao('Erro ao iniciar sessão', 'error');
+        }
+    }
+
+    async finalizarSessao() {
+        try {
+            // Lógica para finalizar sessão
+            console.log('Finalizando sessão...');
+
+            // Atualiza interface
+            this.atualizarStatusSessao(false);
+
+            // Feedback
+            this.mostrarNotificacao('Sessão finalizada com sucesso!', 'success');
+
+        } catch (error) {
+            console.error('Erro ao finalizar sessão:', error);
+            this.mostrarNotificacao('Erro ao finalizar sessão', 'error');
+        }
+    }
+
+    atualizarStatusSessao(ativa) {
+        const indicator = document.getElementById('sessaoStatusIndicator');
+        const text = document.getElementById('sessaoStatusText');
+        const btnIniciar = document.getElementById('btnIniciarSessao');
+        const btnFinalizar = document.getElementById('btnFinalizarSessao');
+
+        if (ativa) {
+            indicator?.classList.add('active');
+            if (text) text.textContent = 'Sessão ativa';
+            if (btnIniciar) btnIniciar.style.display = 'none';
+            if (btnFinalizar) {
+                btnFinalizar.style.display = 'flex';
+                btnFinalizar.disabled = false;
+            }
+        } else {
+            indicator?.classList.remove('active');
+            if (text) text.textContent = 'Sessão inativa';
+            if (btnIniciar) btnIniciar.style.display = 'flex';
+            if (btnFinalizar) {
+                btnFinalizar.style.display = 'flex';
+                btnFinalizar.disabled = true;
+            }
+        }
+    }
+
+    mostrarNotificacao(mensagem, tipo = 'info') {
+        // Implementar sistema de notificações
+        console.log(`${tipo.toUpperCase()}: ${mensagem}`);
+
+        // Por enquanto, usar alert como fallback
+        if (tipo === 'error') {
+            alert(`Erro: ${mensagem}`);
+        } else {
+            console.log(mensagem);
+        }
+    }
+
+    // ==================== MODAL CADASTRO DE TRABALHO ====================
+    abrirModalTrabalho() {
+        const modal = document.getElementById('modalCadastroTrabalho');
+        if (modal) {
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden'; // Previne scroll do body
+
+            // Focar no primeiro campo
+            setTimeout(() => {
+                const primeiroCampo = document.getElementById('tipoTrabalho');
+                if (primeiroCampo) primeiroCampo.focus();
+            }, 300);
+
+            // Definir data atual como padrão
+            const dataInput = document.getElementById('dataTrabalho');
+            if (dataInput && !dataInput.value) {
+                const hoje = new Date().toISOString().split('T')[0];
+                dataInput.value = hoje;
+            }
+        }
+    }
+
+    fecharModalTrabalho() {
+        const modal = document.getElementById('modalCadastroTrabalho');
+        if (modal) {
+            modal.style.display = 'none';
+            document.body.style.overflow = ''; // Restaura scroll do body
+        }
+    }
+
+    salvarTrabalho(event) {
+        event.preventDefault();
+
+        // Coletar dados do formulário
+        const dados = {
+            tipoTrabalho: document.getElementById('tipoTrabalho').value,
+            quantidadeEsperada: document.getElementById('quantidadeEsperada').value,
+            nomeLote: document.getElementById('nomeLote').value,
+            dataTrabalho: document.getElementById('dataTrabalho').value,
+            pastoOrigem: document.getElementById('pastoOrigem').value,
+            pastoOrigemManual: document.getElementById('pastoOrigemManual').value,
+            observacoes: document.getElementById('observacoesTrabalho').value
+        };
+
+        // Validação básica
+        if (!dados.tipoTrabalho || !dados.dataTrabalho) {
+            this.mostrarNotificacao('Preencha os campos obrigatórios!', 'error');
+            return;
+        }
+
+        // Usar pasto manual se não foi selecionado um da lista
+        if (!dados.pastoOrigem && dados.pastoOrigemManual) {
+            dados.pastoOrigem = dados.pastoOrigemManual;
+        }
+
+        console.log('Salvando trabalho:', dados);
+
+        // Simular salvamento (substituir por chamada real da API)
+        this.simularSalvamentoTrabalho(dados);
+    }
+
+    async simularSalvamentoTrabalho(dados) {
+        try {
+            // Mostrar loading
+            const btnSubmit = document.querySelector('#formCadastroTrabalho .btn-primary');
+            const textoOriginal = btnSubmit.innerHTML;
+            btnSubmit.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+            btnSubmit.disabled = true;
+
+            // Simular delay da API
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
+            // Fechar modal
+            this.fecharModalTrabalho();
+
+            // Limpar formulário
+            document.getElementById('formCadastroTrabalho').reset();
+
+            // Mostrar sucesso
+            this.mostrarNotificacao('Trabalho cadastrado com sucesso!', 'success');
+
+            // Atualizar interface se necessário
+            this.atualizarStatusSessao(true);
+
+        } catch (error) {
+            console.error('Erro ao salvar trabalho:', error);
+            this.mostrarNotificacao('Erro ao cadastrar trabalho', 'error');
+        } finally {
+            // Restaurar botão
+            const btnSubmit = document.querySelector('#formCadastroTrabalho .btn-primary');
+            if (btnSubmit) {
+                btnSubmit.innerHTML = '<i class="fas fa-play"></i> Iniciar Trabalho';
+                btnSubmit.disabled = false;
+            }
+        }
+    }
+
+    // Event listeners para o modal
+    setupModalTrabalho() {
+        // Fechar modal ao clicar no overlay
+        const modal = document.getElementById('modalCadastroTrabalho');
+        if (modal) {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    this.fecharModalTrabalho();
+                }
+            });
+        }
+
+        // Submit do formulário
+        const form = document.getElementById('formCadastroTrabalho');
+        if (form) {
+            form.addEventListener('submit', (e) => this.salvarTrabalho(e));
+        }
+
+        // Fechar com ESC
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                this.fecharModalTrabalho();
+            }
+        });
+
+        // Toggle entre select e input manual do pasto
+        const selectPasto = document.getElementById('pastoOrigem');
+        const inputPastoManual = document.getElementById('pastoOrigemManual');
+
+        if (selectPasto && inputPastoManual) {
+            selectPasto.addEventListener('change', function() {
+                inputPastoManual.style.display = this.value ? 'none' : 'block';
+            });
+
+            inputPastoManual.addEventListener('input', function() {
+                if (this.value.trim()) {
+                    selectPasto.value = '';
+                }
+            });
+        }
     }
 
     // ==================== TABS ====================

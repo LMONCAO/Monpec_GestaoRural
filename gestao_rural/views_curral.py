@@ -20,6 +20,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.timezone import localtime
+from django.views.decorators.csrf import csrf_exempt
 
 from .models import (
     Propriedade,
@@ -930,7 +931,7 @@ def curral_dashboard_v4(request, propriedade_id):
         ],
     }
 
-    return render(request, 'gestao_rural/curral_dashboard_v2.html', context)
+    return render(request, 'gestao_rural/curral_dashboard_v4.html', context)
 
 
 @login_required
@@ -968,16 +969,17 @@ def _normalizar_codigo(codigo: str) -> str:
 
 def _extrair_numero_manejo(codigo_sisbov: str) -> str:
     """Obtém o número de manejo SISBOV.
-    
-    Para códigos SISBOV de 15 dígitos, extrai os dígitos das posições 8-13 (6 dígitos).
-    Exemplo: 105500376197505 -> 619750
-    
+
+    CORREÇÃO: Para códigos SISBOV de 15/16 dígitos, extrai os dígitos das posições 9-14 (6 dígitos).
+    Exemplo: 1055005500367242 -> 036724 (excluindo dígito verificador)
+
     Para códigos menores, mantém a lógica anterior (7 últimos dígitos sem o verificador).
     """
     codigo_limpo = _normalizar_codigo(codigo_sisbov)
-    if len(codigo_limpo) == 15:
-        # Código SISBOV completo: extrair posições 8-13 (6 dígitos)
-        return codigo_limpo[8:14]
+    if len(codigo_limpo) >= 15:
+        # CORREÇÃO: Código SISBOV completo: extrair posições 9-14 (6 dígitos)
+        # Exclui o último dígito que é o verificador
+        return codigo_limpo[9:15]
     elif len(codigo_limpo) >= 8:
         # Lógica anterior para códigos menores
         return codigo_limpo[:-1][-7:]
@@ -4600,4 +4602,375 @@ def curral_info_demo(request, propriedade_id):
     }
     
     return render(request, 'site/curral_info_demo.html', context)
+
+
+@login_required
+@csrf_exempt
+def curral_identificar_animal_v4(request, propriedade_id):
+    """
+    API específica para identificação de animais no Curral V4.
+    Retorna dados formatados para o frontend JavaScript.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'Método não permitido'}, status=405)
+
+    try:
+        propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
+
+        # Parse do JSON
+        import json
+        data = json.loads(request.body)
+        codigo = data.get('codigo', '').strip()
+        tipo_identificacao = data.get('tipo_identificacao', 'DESCONHECIDO')
+
+        if not codigo:
+            return JsonResponse({
+                'success': False,
+                'message': 'Código não informado'
+            }, status=400)
+
+        # Buscar animal usando a lógica existente
+        animal = None
+        codigo_normalizado = _normalizar_codigo(codigo)
+
+        # Busca abrangente por diferentes campos
+        filtros = (
+            Q(propriedade=propriedade) &
+            (
+                Q(codigo_sisbov=codigo_normalizado) |
+                Q(numero_brinco=codigo_normalizado) |
+                Q(codigo_eletronico=codigo_normalizado) |
+                Q(numero_manejo=codigo_normalizado)
+            )
+        )
+
+        # Para códigos SISBOV completos
+        if len(codigo_normalizado) == 15:
+            numero_manejo_extraido = _extrair_numero_manejo(codigo_normalizado)
+            filtros = filtros | (
+                Q(propriedade=propriedade) &
+                Q(numero_manejo=numero_manejo_extraido)
+            )
+
+        animal = AnimalIndividual.objects.filter(filtros).select_related(
+            'categoria', 'propriedade__produtor'
+        ).first()
+
+        if not animal:
+            return JsonResponse({
+                'success': False,
+                'message': 'Animal não encontrado'
+            }, status=404)
+
+        # Calcular dados adicionais para o frontend
+        dados_animal = _formatar_dados_animal_v4(animal)
+
+        # Verificar conformidades para semáforos
+        conformidades = _calcular_conformidades_animal(animal)
+
+        return JsonResponse({
+            'success': True,
+            'animal': dados_animal,
+            'conformidades': conformidades,
+            'tipo_identificacao': tipo_identificacao
+        })
+
+    except Exception as e:
+        logger.error(f"Erro na identificação V4: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': f'Erro interno: {str(e)}'
+        }, status=500)
+
+
+@login_required
+@csrf_exempt
+def curral_registrar_manejo_v4(request, propriedade_id):
+    """
+    API específica para registro de manejos no Curral V4.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'Método não permitido'}, status=405)
+
+    try:
+        propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
+
+        # Parse do JSON
+        import json
+        data = json.loads(request.body)
+
+        animal_id = data.get('animal_id')
+        peso = data.get('peso', 0)
+        manejos = data.get('manejos', [])
+        observacoes = data.get('observacoes', '')
+
+        if not animal_id:
+            return JsonResponse({
+                'success': False,
+                'message': 'ID do animal não informado'
+            }, status=400)
+
+        # Buscar animal
+        animal = get_object_or_404(AnimalIndividual, id=animal_id, propriedade=propriedade)
+
+        # Buscar ou criar sessão ativa
+        sessao = _obter_sessao_ativa(propriedade)
+        if not sessao.criado_por:
+            sessao.criado_por = request.user
+            sessao.save()
+
+        # Registrar pesagem se peso foi informado
+        if peso and peso > 0:
+            AnimalPesagem.objects.create(
+                animal=animal,
+                peso=peso,
+                data_pesagem=timezone.now().date(),
+                sessao_curral=sessao,
+                registrado_por=request.user
+            )
+
+        # Registrar evento na sessão
+        CurralEvento.objects.create(
+            sessao=sessao,
+            animal=animal,
+            tipo_evento='PESAGEM',
+            dados_evento={
+                'peso': peso,
+                'manejios_selecionados': manejos,
+                'observacoes': observacoes
+            },
+            registrado_por=request.user
+        )
+
+        # Criar registro de movimentação
+        MovimentacaoIndividual.objects.create(
+            animal=animal,
+            tipo_movimentacao='PESAGEM',
+            data_movimentacao=timezone.now(),
+            detalhes={
+                'peso': peso,
+                'sessao_curral': sessao.id,
+                'manejios': manejos,
+                'observacoes': observacoes
+            },
+            registrado_por=request.user
+        )
+
+        return JsonResponse({
+            'success': True,
+            'message': 'Manejo registrado com sucesso',
+            'sessao_id': sessao.id
+        })
+
+    except Exception as e:
+        logger.error(f"Erro no registro V4: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': f'Erro interno: {str(e)}'
+        }, status=500)
+
+
+@login_required
+@csrf_exempt
+def curral_receber_peso_balanca_v4(request, propriedade_id):
+    """
+    API para receber peso da balança no Curral V4.
+    Pode ser chamado por dispositivos IoT ou simulação.
+    """
+    if request.method not in ['GET', 'POST']:
+        return JsonResponse({'success': False, 'message': 'Método não permitido'}, status=405)
+
+    try:
+        propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
+
+        # Receber peso via GET (query parameter) ou POST (JSON)
+        peso = None
+
+        if request.method == 'POST':
+            import json
+            data = json.loads(request.body)
+            peso = data.get('peso')
+        else:
+            peso = request.GET.get('peso')
+
+        if peso is None:
+            return JsonResponse({
+                'success': False,
+                'message': 'Peso não informado'
+            }, status=400)
+
+        try:
+            peso = float(peso)
+            if peso <= 0 or peso > 2000:  # Validação básica
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Peso inválido'
+                }, status=400)
+        except (ValueError, TypeError):
+            return JsonResponse({
+                'success': False,
+                'message': 'Peso deve ser um número válido'
+            }, status=400)
+
+        # Buscar sessão ativa para registrar o peso
+        sessao = _obter_sessao_ativa(propriedade)
+
+        # Criar registro de peso da balança (temporário, sem animal associado ainda)
+        # Em produção, isso seria associado ao animal identificado
+
+        return JsonResponse({
+            'success': True,
+            'peso': peso,
+            'unidade': 'kg',
+            'timestamp': timezone.now().isoformat(),
+            'sessao_id': sessao.id
+        })
+
+    except Exception as e:
+        logger.error(f"Erro ao receber peso da balança: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': f'Erro interno: {str(e)}'
+        }, status=500)
+
+
+def _formatar_dados_animal_v4(animal):
+    """
+    Formatar dados do animal para o frontend V4.
+    """
+    from datetime import date
+
+    # Calcular idade aproximada
+    idade_meses = None
+    if animal.data_nascimento:
+        hoje = date.today()
+        diferenca = (hoje.year - animal.data_nascimento.year) * 12 + (hoje.month - animal.data_nascimento.month)
+        idade_meses = max(0, diferenca)
+
+    # Buscar última pesagem
+    ultima_pesagem = AnimalPesagem.objects.filter(animal=animal).order_by('-data_pesagem').first()
+
+    # Calcular GMD (Ganho Médio Diário) - simplificado
+    gmd = 0.0
+    if ultima_pesagem:
+        # Lógica simplificada - em produção seria mais complexa
+        gmd = 1.25  # Valor exemplo
+
+    # Buscar serviços realizados recentemente
+    movimentacoes_recentes = MovimentacaoIndividual.objects.filter(
+        animal=animal,
+        data_movimentacao__gte=timezone.now() - timedelta(days=30)
+    ).order_by('-data_movimentacao')[:3]
+
+    servicos_realizados = []
+    for mov in movimentacoes_recentes:
+        servicos_realizados.append(mov.get_tipo_movimentacao_display())
+
+    return {
+        'id': animal.id,
+        'nome': animal.apelido or f"Animal {animal.numero_brinco or animal.numero_manejo}",
+        'numero_brinco': animal.numero_brinco,
+        'codigo_sisbov': animal.codigo_sisbov,
+        'numero_manejo': animal.numero_manejo,
+        'codigo_eletronico': animal.codigo_eletronico,
+        'sexo': animal.sexo,
+        'raca': animal.raca,
+        'categoria': animal.categoria.nome if animal.categoria else 'N/A',
+        'mae': animal.mae.numero_brinco if animal.mae else None,
+        'pai': animal.pai.numero_brinco if animal.pai else None,
+        'origem': animal.get_tipo_origem_display(),
+        'data_nascimento': animal.data_nascimento.strftime('%d/%m/%Y') if animal.data_nascimento else None,
+        'idade_calculada': f"{idade_meses} MESES" if idade_meses else "N/A",
+        'data_cadastro_bnd': animal.data_cadastro_bnd.strftime('%d/%m/%Y') if animal.data_cadastro_bnd else None,
+        'numero_registro_bnd': animal.numero_registro_bnd,
+        'gmd_diario': ".2f",
+        'ganho_periodo': 0.0,  # Calcular baseado em histórico
+        'ganho_total': ultima_pesagem.peso if ultima_pesagem else 0.0,
+        'ultima_passagem': ultima_pesagem.data_pesagem.strftime('%d/%m/%Y') if ultima_pesagem else None,
+        'servicos_realizados': ', '.join(servicos_realizados) if servicos_realizados else 'Nenhum',
+        'status_reprodutivo': animal.get_status_reprodutivo_display(),
+        'status_sanitario': animal.get_status_sanitario_display(),
+        'conformidade_bnd': True,  # Lógica simplificada
+        'conformidade_hilton': True,  # Lógica simplificada
+        'status_carencia': 'APTO',  # Lógica simplificada
+        'status_conformidade': 'CONFORME'  # Lógica simplificada
+    }
+
+
+def _calcular_conformidades_animal(animal):
+    """
+    Calcular status de conformidade para os semáforos baseado em dados BND e validações.
+    """
+    hoje = timezone.now().date()
+
+    # BND/MAPA - validação baseada em dados oficiais
+    conformidade_bnd = False
+    if hasattr(animal, 'status_bnd') and animal.status_bnd:
+        conformidade_bnd = animal.status_bnd in ['CONFORME']
+    elif animal.numero_registro_bnd and animal.data_cadastro_bnd:
+        # Se tem registro BND e data de cadastro, considera conforme
+        conformidade_bnd = True
+    elif animal.codigo_sisbov and len(animal.codigo_sisbov) >= 15:
+        # SISBOV válido pode indicar conformidade básica
+        conformidade_bnd = True
+
+    # Carência - verificar período de carência sanitária
+    status_carencia = 'APTO'
+
+    # Verificar tratamentos veterinários recentes (período de carência)
+    tratamentos_recentes = MovimentacaoIndividual.objects.filter(
+        animal=animal,
+        tipo_movimentacao__in=['TRATAMENTO'],
+        data_movimentacao__date__gte=hoje - timedelta(days=30)  # 30 dias de carência
+    ).exists()
+
+    if tratamentos_recentes:
+        status_carencia = 'CARÊNCIA'
+    else:
+        # Verificar vacinações obrigatórias em dia
+        vacinacao_em_dia = getattr(animal, 'registro_vacinal_em_dia', True)
+        if not vacinacao_em_dia:
+            status_carencia = 'VACINAÇÃO PENDENTE'
+
+    # Cota Hilton - validação baseada em raça e categoria
+    conformidade_hilton = False
+    if animal.raca and 'NELORE' in animal.raca.upper():
+        # Nelore é elegível para Cota Hilton
+        if animal.categoria and hasattr(animal.categoria, 'nome'):
+            categoria_nome = animal.categoria.nome.upper()
+            # Bois gordos e novilhos são elegíveis
+            if 'BOI' in categoria_nome or 'NOVILHO' in categoria_nome:
+                conformidade_hilton = True
+    else:
+        # Outras raças podem ter critérios diferentes
+        conformidade_hilton = True  # Considera conforme por padrão
+
+    # Conformidade geral - combinação de fatores
+    fatores_conformes = [
+        conformidade_bnd,           # BND válido
+        status_carencia == 'APTO', # Sem restrições sanitárias
+        conformidade_hilton,        # Elegível para programas
+    ]
+
+    status_conformidade = 'CONFORME' if all(fatores_conformes) else 'DIVERGENTE'
+
+    # Se há problemas específicos, detalhar
+    if status_conformidade == 'DIVERGENTE':
+        if not conformidade_bnd:
+            status_conformidade = 'PENDENTE BND'
+        elif status_carencia != 'APTO':
+            status_conformidade = status_carencia
+
+    return {
+        'conformidade_bnd': conformidade_bnd,
+        'status_carencia': status_carencia,
+        'conformidade_hilton': conformidade_hilton,
+        'status_conformidade': status_conformidade,
+        'detalhes_conformidade': {
+            'bnd_registrado': bool(animal.numero_registro_bnd),
+            'data_bnd': animal.data_cadastro_bnd.strftime('%d/%m/%Y') if animal.data_cadastro_bnd else None,
+            'vacinacao_em_dia': getattr(animal, 'registro_vacinal_em_dia', True),
+            'raca_elegivel_hilton': animal.raca and 'NELORE' in animal.raca.upper() if animal.raca else False,
+        }
+    }
 

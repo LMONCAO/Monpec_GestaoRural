@@ -1,4 +1,5 @@
 from django.apps import AppConfig
+from django.db.models.signals import post_migrate
 
 
 class GestaoRuralConfig(AppConfig):
@@ -7,6 +8,12 @@ class GestaoRuralConfig(AppConfig):
     
     def ready(self):
         """Executado quando a aplicação está pronta"""
+        # Conectar função de criação de admin ao sinal post_migrate
+        post_migrate.connect(self.create_admin_user, sender=self)
+
+        # Executar migrações pendentes na inicialização
+        self.run_pending_migrations()
+
             # Importar aqui para evitar importações circulares
         try:
             from django.db import transaction
@@ -132,4 +139,58 @@ class GestaoRuralConfig(AppConfig):
         except Exception:
             # Se der erro (tabela não existe ainda, por exemplo), ignorar
             pass
+
+    def run_pending_migrations(self):
+        """Executar migrações pendentes na inicialização"""
+        try:
+            from django.core.management import execute_from_command_line
+            from django.db import connection
+            import sys
+
+            # Verificar se estamos em produção
+            import os
+            if os.getenv('K_SERVICE') or os.getenv('GAE_ENV'):
+                print("🔄 Executando migrações pendentes...")
+
+                # Executar migrações silenciosamente
+                old_argv = sys.argv
+                try:
+                    sys.argv = ['manage.py', 'migrate', '--verbosity=0']
+                    execute_from_command_line(sys.argv)
+                    print("✅ Migrações executadas com sucesso!")
+                except Exception as e:
+                    print(f"⚠️ Erro nas migrações: {e}")
+                finally:
+                    sys.argv = old_argv
+
+        except Exception as e:
+            print(f"Erro ao executar migrações: {e}")
+
+    def create_admin_user(self, **kwargs):
+        """Cria usuário admin se não existir"""
+        try:
+            from django.contrib.auth.models import User
+
+            # Só criar se não existir nenhum superusuário
+            if not User.objects.filter(is_superuser=True).exists():
+                User.objects.create_superuser(
+                    username='admin',
+                    email='admin@monpec.com.br',
+                    password='L6171r12@@jjms',
+                    first_name='Administrador',
+                    last_name='Sistema'
+                )
+                print('🎉 Superusuário admin criado automaticamente!')
+                print('👤 Usuário: admin')
+                print('📧 Email: admin@monpec.com.br')
+                print('🔑 Senha: L6171r12@@jjms')
+            else:
+                # Mostrar TODOS os usuários existentes
+                print('=== TODOS OS USUÁRIOS EXISTENTES ===')
+                all_users = User.objects.all()
+                for user in all_users:
+                    print(f'• ID: {user.id} | Username: {user.username} | Email: {user.email} | Superuser: {user.is_superuser} | Staff: {user.is_staff}')
+                print('=== FIM DA LISTA ===')
+        except Exception as e:
+            print(f'Erro ao criar/verificar superusuário: {e}')
 

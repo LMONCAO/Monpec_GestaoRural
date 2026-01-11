@@ -1,0 +1,74 @@
+# CORREÇÃO DO DOCKERFILE PARA PRODUÇÃO
+
+# Execute estes comandos no Cloud Shell para corrigir o problema:
+
+# 1. Criar Dockerfile correto
+cat > Dockerfile << 'EOF'
+# Dockerfile para produção - Google Cloud Run
+FROM python:3.11-slim
+
+# Definir diretório de trabalho
+WORKDIR /app
+
+# Instalar dependências do sistema
+RUN apt-get update && apt-get install -y \
+    gcc \
+    postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
+
+# Instalar gunicorn
+RUN pip install gunicorn
+
+# Copiar requirements primeiro (para cache de layers)
+COPY requirements_producao.txt .
+RUN pip install --no-cache-dir -r requirements_producao.txt
+
+# Copiar código do projeto
+COPY . .
+
+# Criar diretório para arquivos estáticos
+RUN mkdir -p /app/staticfiles /app/media
+
+# Coletar arquivos estáticos
+RUN python manage.py collectstatic --noinput --clear
+
+# Criar usuário não-root
+RUN useradd --create-home --shell /bin/bash app \
+    && chown -R app:app /app
+USER app
+
+# Expor porta
+EXPOSE 8080
+
+# Comando para executar com gunicorn
+CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "2", "--threads", "4", "--timeout", "120", "sistema_rural.wsgi:application"]
+EOF
+
+# 2. Verificar se criou
+ls -la Dockerfile
+
+# 3. Build da imagem corrigida
+docker build -t gcr.io/monpec-sistema-rural/monpec:latest .
+
+# 4. Push para registry
+docker push gcr.io/monpec-sistema-rural/monpec:latest
+
+# 5. Deploy corrigido
+gcloud run deploy monpec \
+  --image gcr.io/monpec-sistema-rural/monpec:latest \
+  --platform managed \
+  --region us-central1 \
+  --allow-unauthenticated \
+  --set-env-vars "DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp" \
+  --set-env-vars "DB_NAME=monpec-db" \
+  --set-env-vars "DB_USER=postgres" \
+  --set-env-vars "DB_PASSWORD=L6171r12@@jjms" \
+  --set-env-vars "DB_HOST=/cloudsql/monpec-sistema-rural:us-central1:monpec-db" \
+  --memory 1Gi \
+  --cpu 1 \
+  --max-instances 10 \
+  --timeout 300 \
+  --concurrency 80
+
+# 6. Testar após deploy
+curl https://monpec-29862706245.us-central1.run.app/health/

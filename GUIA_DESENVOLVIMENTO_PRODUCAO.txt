@@ -1,0 +1,90 @@
+🚀 GUIA MONPEC - DESENVOLVIMENTO PARA PRODUÇÃO
+
+📋 PRÁTICAS IMPLEMENTADAS
+- PostgreSQL Local (igual produção)
+- Deploys Frequentes
+- Testes em Produção
+- Migrações Limpas
+
+🛠️ CONFIGURAÇÃO INICIAL
+
+Instalar PostgreSQL Local:
+sudo apt update
+sudo apt install postgresql postgresql-contrib
+
+Criar usuário e banco:
+sudo -u postgres psql
+CREATE USER monpec_user WITH PASSWORD 'sua_senha_local';
+CREATE DATABASE monpec_db OWNER monpec_user;
+GRANT ALL PRIVILEGES ON DATABASE monpec_db TO monpec_user;
+\q
+
+Configurar settings.py para desenvolvimento:
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'monpec_db',
+        'USER': 'monpec_user',
+        'PASSWORD': 'sua_senha_local',
+        'HOST': 'localhost',
+        'PORT': '5432',
+    }
+}
+
+🔄 WORKFLOW DE DESENVOLVIMENTO
+
+1. Sempre que modificar models:
+python manage.py makemigrations
+python manage.py migrate
+python manage.py runserver
+
+2. Deploy Frequente (após cada feature):
+gcloud builds submit --tag gcr.io/monpec-sistema-rural/monpec
+gcloud run deploy monpec --image gcr.io/monpec-sistema-rural/monpec --platform managed --region us-central1 --set-env-vars="..." --allow-unauthenticated
+
+3. Verificar se funcionou:
+curl -I https://monpec-29862706245.us-central1.run.app/
+curl https://monpec-29862706245.us-central1.run.app/ | head -10
+
+✅ VERIFICAÇÕES PRÉ-DEPLOY
+
+Antes de cada deploy:
+python manage.py migrate --dry-run
+python manage.py collectstatic --noinput
+python manage.py runserver
+
+🚨 PROBLEMAS COMUNS E SOLUÇÕES
+
+Migrações Inconsistentes:
+python manage.py migrate --fake-initial
+
+Dados Corrompidos:
+python manage.py reset_db
+python manage.py migrate
+python manage.py populate_dados
+
+Deploy Falhando:
+gcloud run services logs read monpec --region=us-central1
+gcloud container images list --repository=gcr.io/monpec-sistema-rural
+
+📊 MONITORAMENTO
+
+Após deploy, verificar:
+1. Landing page carrega
+2. Login funciona
+3. Dashboard acessível
+4. Logs sem erros
+5. Performance OK
+
+🎯 METAS PARA O FUTURO
+- PostgreSQL local configurado
+- Primeiro deploy funcionando
+- Pipeline de deploy automático
+- Testes automatizados
+- Monitoramento ativo
+
+🚀 PRÓXIMOS PASSOS
+1. Configurar PostgreSQL local
+2. Testar aplicação com PostgreSQL
+3. Fazer primeiro deploy limpo
+4. Estabelecer rotina de deploy frequente

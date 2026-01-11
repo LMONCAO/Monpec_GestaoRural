@@ -1385,6 +1385,26 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
+        /* Animação de pulso para o botão de assinatura demo */
+        .btn-assinatura-demo {
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            }
+            50% {
+                transform: scale(1.05);
+                box-shadow: 0 4px 8px rgba(40, 167, 69, 0.4);
+            }
+            100% {
+                transform: scale(1);
+                box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            }
+        }
+
         /* Status da propriedade - removido (agora está no header) */
         .nav-link-atalho:hover,
         .nav-link-atalho.active {
@@ -1916,11 +1936,10 @@
                             </div>
                         </div>
                         {% else %}
-                        <button class="accordion-button collapsed" type="button" 
-                                data-bs-toggle="collapse" data-bs-target="#submenu-nutricao" 
-                                aria-expanded="false" 
-                                aria-controls="submenu-nutricao"
-                                onclick="event.preventDefault(); event.stopPropagation(); abrirModalCompra();">
+                        <button class="accordion-button collapsed" type="button"
+                                data-bs-toggle="collapse" data-bs-target="#submenu-nutricao"
+                                aria-expanded="false"
+                                aria-controls="submenu-nutricao">
                             <i class="bi bi-bag"></i>
                             <span style="flex: 1; margin-left: 0.5rem;">Nutrição</span>
                             <i class="bi bi-chevron-right chevron-icon"></i>
@@ -2039,33 +2058,29 @@
                                    class="nav-link nav-link-submenu {% if request.resolver_match.url_name == 'operacoes_dashboard' %}active{% endif %}">
                                     <i class="bi bi-speedometer2"></i> Dashboard
                                 </a>
-                                <a href="#" 
-                                   class="nav-link nav-link-submenu nav-link-disabled" 
-                                   onclick="event.preventDefault(); abrirModalCompra(); return false;"
+                                <a href="#"
+                                   class="nav-link nav-link-submenu"
+                                   onclick="event.preventDefault(); return false;"
 >
                                     <i class="bi bi-fuel-pump"></i> Combustível
-                                    <i class="bi bi-lock-fill ms-auto text-muted" style="font-size: 0.75rem;"></i>
                                 </a>
-                                <a href="#" 
-                                   class="nav-link nav-link-submenu nav-link-disabled" 
-                                   onclick="event.preventDefault(); abrirModalCompra(); return false;"
+                                <a href="#"
+                                   class="nav-link nav-link-submenu"
+                                   onclick="event.preventDefault(); return false;"
                                    style="opacity: 0.5; cursor: not-allowed;">
                                     <i class="bi bi-tools"></i> Equipamentos
-                                    <i class="bi bi-lock-fill ms-auto text-muted" style="font-size: 0.75rem;"></i>
                                 </a>
-                                <a href="#" 
-                                   class="nav-link nav-link-submenu nav-link-disabled" 
-                                   onclick="event.preventDefault(); abrirModalCompra(); return false;"
+                                <a href="#"
+                                   class="nav-link nav-link-submenu"
+                                   onclick="event.preventDefault(); return false;"
                                    style="opacity: 0.5; cursor: not-allowed;">
                                     <i class="bi bi-wrench"></i> Manutenção
-                                    <i class="bi bi-lock-fill ms-auto text-muted" style="font-size: 0.75rem;"></i>
                                 </a>
-                                <a href="#" 
-                                   class="nav-link nav-link-submenu nav-link-disabled" 
-                                   onclick="event.preventDefault(); abrirModalCompra(); return false;"
+                                <a href="#"
+                                   class="nav-link nav-link-submenu"
+                                   onclick="event.preventDefault(); return false;"
                                    style="opacity: 0.5; cursor: not-allowed;">
                                     <i class="bi bi-people"></i> Funcionários
-                                    <i class="bi bi-lock-fill ms-auto text-muted" style="font-size: 0.75rem;"></i>
                                 </a>
                             </div>
                         </div>
@@ -2135,11 +2150,10 @@
                 <!-- Relatórios (abre modal de compra) -->
                 <div class="accordion-item">
                     <div class="nav-item modulo-relatorios {% if 'relatorios' in request.path or 'relatorio' in request.path %}active{% endif %}">
-                        <button class="accordion-button collapsed" type="button" 
-                                data-bs-toggle="collapse" data-bs-target="#submenu-relatorios" 
-                                aria-expanded="false" 
-                                aria-controls="submenu-relatorios"
-                                onclick="event.preventDefault(); event.stopPropagation(); abrirModalCompra();">
+                        <button class="accordion-button collapsed" type="button"
+                                data-bs-toggle="collapse" data-bs-target="#submenu-relatorios"
+                                aria-expanded="false"
+                                aria-controls="submenu-relatorios">
                             <i class="bi bi-file-text"></i>
                             <span style="flex: 1; margin-left: 0.5rem;">Relatórios</span>
                             <i class="bi bi-chevron-right chevron-icon"></i>

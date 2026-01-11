@@ -29,15 +29,27 @@ def criar_dados_producao_seguros():
     print("🔧 Populando dados na produção...")
 
     # 1. Verificar/Criar propriedade demo
-    propriedade, created = Propriedade.objects.get_or_create(
-        nome_propriedade='Fazenda Demonstracao',
-        defaults={
-            'area_total_ha': 1500.00,
-            'municipio': 'Campo Grande',
-            'uf': 'MS',
-            'produtor': None  # Será definido depois
-        }
-    )
+    # Primeiro, verificar se há múltiplas propriedades com o mesmo nome
+    propriedades_existentes = Propriedade.objects.filter(nome_propriedade='Fazenda Demonstracao')
+
+    if propriedades_existentes.count() > 1:
+        print(f"⚠️ Encontradas {propriedades_existentes.count()} propriedades com nome duplicado. Usando a primeira...")
+        propriedade = propriedades_existentes.first()
+        created = False
+    elif propriedades_existentes.count() == 1:
+        propriedade = propriedades_existentes.first()
+        created = False
+        print("✅ Propriedade já existe")
+    else:
+        propriedade = Propriedade.objects.create(
+            nome_propriedade='Fazenda Demonstracao',
+            area_total_ha=1500.00,
+            municipio='Campo Grande',
+            uf='MS',
+            produtor=None  # Será definido depois
+        )
+        created = True
+        print("✅ Propriedade criada")
 
     if created:
         print("✅ Propriedade criada")
@@ -258,5 +270,7 @@ def criar_dados_producao_seguros():
 
 if __name__ == '__main__':
     criar_dados_producao_seguros()
+
+
 
 

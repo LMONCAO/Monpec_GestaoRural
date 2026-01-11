@@ -1,0 +1,67 @@
+# ========================================
+# VERIFICAR ERRO NAS MIGRAÇÕES
+# ========================================
+
+# Execute estes comandos no Google Cloud Shell:
+
+# 1. Ver detalhes da execução que falhou
+gcloud run jobs executions describe migrate-final-lxq4w --region=us-central1
+
+# 2. Ver logs detalhados da execução
+gcloud run jobs executions logs read migrate-final-lxq4w --region=us-central1
+
+# 3. Verificar se o Cloud SQL está funcionando
+gcloud sql instances describe monpec-db --project=monpec-sistema-rural
+
+# 4. Testar conexão com o banco
+gcloud run jobs create test-db-connection \
+  --image gcr.io/monpec-sistema-rural/monpec:latest \
+  --region us-central1 \
+  --set-env-vars="DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,CLOUD_SQL_CONNECTION_NAME=monpec-sistema-rural:us-central1:monpec-db,DB_NAME=monpec_db,DB_USER=monpec_user,DB_PASSWORD=L6171r12@@jjms,DEBUG=False" \
+  --set-cloudsql-instances=monpec-sistema-rural:us-central1:monpec-db \
+  --command="python" \
+  --args="manage.py,dbshell,--command=SELECT 1;" \
+  --memory=2Gi \
+  --cpu=1 \
+  --max-retries=1 \
+  --task-timeout=300
+
+gcloud run jobs execute test-db-connection --region=us-central1 --wait
+
+# ========================================
+# SE O BANCO NÃO EXISTIR, CRIAR:
+# ========================================
+
+# 1. Criar instância Cloud SQL (se não existir)
+gcloud sql instances create monpec-db \
+  --database-version=POSTGRESQL_15 \
+  --tier=db-f1-micro \
+  --region=us-central1 \
+  --project=monpec-sistema-rural
+
+# 2. Criar banco de dados
+gcloud sql databases create monpec_db --instance=monpec-db --project=monpec-sistema-rural
+
+# 3. Criar usuário
+gcloud sql users create monpec_user \
+  --instance=monpec-db \
+  --password=L6171r12@@jjms \
+  --project=monpec-sistema-rural
+
+# ========================================
+# DEPOIS, TENTAR MIGRAÇÕES NOVAMENTE:
+# ========================================
+
+gcloud run jobs create migrate-final-v2 \
+  --image gcr.io/monpec-sistema-rural/monpec:latest \
+  --region us-central1 \
+  --set-env-vars="DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,CLOUD_SQL_CONNECTION_NAME=monpec-sistema-rural:us-central1:monpec-db,DB_NAME=monpec_db,DB_USER=monpec_user,DB_PASSWORD=L6171r12@@jjms,DEBUG=False" \
+  --set-cloudsql-instances=monpec-sistema-rural:us-central1:monpec-db \
+  --command="python" \
+  --args="manage.py,migrate,--noinput" \
+  --memory=2Gi \
+  --cpu=1 \
+  --max-retries=3 \
+  --task-timeout=600
+
+gcloud run jobs execute migrate-final-v2 --region=us-central1 --wait

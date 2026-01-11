@@ -1,0 +1,106 @@
+# CORREÇÃO FINAL DO PROBLEMA SSL SERVER
+
+## PROBLEMA IDENTIFICADO:
+O erro "ModuleNotFoundError: No module named 'sslserver'" ocorre porque o Django está tentando carregar o sslserver mesmo em produção.
+
+## SOLUÇÃO NO CLOUD SHELL:
+
+### PASSO 1: REMOVER REFERÊNCIA AO SSL SERVER
+```bash
+# Editar settings.py para remover sslserver
+sed -i '/sslserver/d' sistema_rural/settings.py
+
+# Verificar se foi removido
+grep -n sslserver sistema_rural/settings.py || echo "sslserver removido com sucesso"
+```
+
+### PASSO 2: CRIAR NOVO DOCKERFILE SIMPLES
+```bash
+# Remover Dockerfile antigo
+rm -f Dockerfile
+
+# Criar novo Dockerfile simples
+cat > Dockerfile << 'EOF'
+# Dockerfile simples para produção
+FROM python:3.11-slim
+
+# Definir diretório de trabalho
+WORKDIR /app
+
+# Instalar dependências do sistema
+RUN apt-get update && apt-get install -y \
+    gcc \
+    postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
+
+# Instalar gunicorn
+RUN pip install gunicorn
+
+# Copiar requirements primeiro (para cache de layers)
+COPY requirements_producao.txt .
+RUN pip install --no-cache-dir -r requirements_producao.txt
+
+# Copiar código do projeto
+COPY . .
+
+# Criar diretório para arquivos estáticos
+RUN mkdir -p /app/staticfiles /app/media
+
+# Comando para executar com gunicorn
+CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "2", "--threads", "4", "--timeout", "120", "sistema_rural.wsgi:application"]
+EOF
+
+# Verificar se criou
+cat Dockerfile
+```
+
+### PASSO 3: BUILD, PUSH E DEPLOY
+```bash
+# Build da imagem corrigida
+docker build -t gcr.io/monpec-sistema-rural/monpec:latest .
+
+# Push para registry
+docker push gcr.io/monpec-sistema-rural/monpec:latest
+
+# Deploy corrigido
+gcloud run deploy monpec \
+  --image gcr.io/monpec-sistema-rural/monpec:latest \
+  --platform managed \
+  --region us-central1 \
+  --allow-unauthenticated \
+  --set-env-vars "DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp" \
+  --set-env-vars "DB_NAME=monpec-db" \
+  --set-env-vars "DB_USER=postgres" \
+  --set-env-vars "DB_PASSWORD=L6171r12@@jjms" \
+  --set-env-vars "DB_HOST=/cloudsql/monpec-sistema-rural:us-central1:monpec-db" \
+  --memory 1Gi \
+  --cpu 1 \
+  --max-instances 10 \
+  --timeout 300 \
+  --concurrency 80
+```
+
+### PASSO 4: TESTAR
+```bash
+# Aguardar
+sleep 60
+
+# Testar health check
+curl https://monpec-29862706245.us-central1.run.app/health/
+
+# Ver logs
+gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=monpec" --limit=3
+```
+
+## RESUMO DO PROBLEMA:
+- O sslserver estava sendo referenciado no settings.py
+- Mesmo com DEBUG=False, o Django tentava carregar o módulo
+- Removendo a referência e simplificando o Dockerfile resolve o problema
+
+## RESULTADO ESPERADO:
+Após executar os comandos acima, o health check deve retornar:
+```json
+{"status": "healthy", "checks": {...}}
+```
+
+Execute os comandos na ordem acima no seu Cloud Shell! 🚀

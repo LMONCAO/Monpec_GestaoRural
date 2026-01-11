@@ -33,4 +33,5 @@ COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 # Comando para iniciar o servidor (entrypoint.sh já configura tudo)
+# Atualizado em 2026-01-10 para forçar rebuild
 CMD ["/entrypoint.sh"]

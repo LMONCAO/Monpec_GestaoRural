@@ -9,19 +9,24 @@
     <meta name="apple-mobile-web-app-title" content="MONPEC Curral">
     <meta name="theme-color" content="#2e7d32">
     <title>Tela Única Curral · {{ propriedade.nome_propriedade }}</title>
-    
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- Google Fonts - Poppins para melhor legibilidade -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
     <!-- Bootstrap 5 (apenas para alguns componentes) -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
     <!-- Chart.js para gráficos -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    
+
     {% load static %}
     {% load humanize %}
-    <link rel="stylesheet" href="{% static 'gestao_rural/css/curral_tela_unica.css' %}?v=2.2">
+    <link rel="stylesheet" href="{% static 'gestao_rural/css/curral_tela_unica.css' %}?v=3.0">
     <link rel="stylesheet" href="{% static 'gestao_rural/css/curral_animations.css' %}">
     <link rel="manifest" href="{% static 'gestao_rural/manifest.json' %}">
     <style>
@@ -234,113 +239,153 @@
     
     <!-- Alertas Inteligentes -->
     <div class="alertas-container" id="alertasContainer"></div>
-    
-    <!-- Processos Organizados por Categorias -->
-    <div class="processos-container" id="processosContainer">
-        <!-- Categoria: Operações do Dia -->
-        <div class="processo-categoria">
-            <div class="categoria-header">
-                <h3 class="categoria-title">
-                    <i class="fas fa-tasks"></i>
-                    Operações do Dia
-                </h3>
-                <p class="categoria-descricao">Processos mais utilizados no curral</p>
+
+    <!-- Dashboard Principal - Sistema Unificado -->
+    <div class="dashboard-principal">
+        <!-- Grid de Cards do Sistema -->
+        <div class="sistema-grid">
+            <!-- Card 1: Operações Rápidas -->
+            <div class="sistema-card sistema-card-primary">
+                <div class="sistema-card-header">
+                    <div class="sistema-card-icon">
+                        <i class="fas fa-zap"></i>
+                    </div>
+                    <div class="sistema-card-info">
+                        <h3>Operações Rápidas</h3>
+                        <p>Ações mais frequentes no curral</p>
+                    </div>
+                </div>
+                <div class="sistema-card-body">
+                    <div class="operacoes-grid">
+                        <button class="operacao-btn operacao-pesagem active" data-tab="pesagem">
+                            <i class="fas fa-weight"></i>
+                            <span>Pesagem</span>
+                        </button>
+                        <button class="operacao-btn operacao-sanidade" data-tab="sanidade">
+                            <i class="fas fa-syringe"></i>
+                            <span>Sanidade</span>
+                        </button>
+                        <button class="operacao-btn operacao-conferencia" data-tab="conferencia">
+                            <i class="fas fa-clipboard-check"></i>
+                            <span>Conferência</span>
+                        </button>
+                        <button class="operacao-btn operacao-cadastro" data-tab="cadastro">
+                            <i class="fas fa-plus-circle"></i>
+                            <span>Cadastro</span>
+                        </button>
+                    </div>
+                </div>
             </div>
-            <div class="processos-grid">
-                <button class="processo-card processo-card-primary active" data-tab="pesagem">
-                    <div class="processo-icon">
-                        <i class="fas fa-weight"></i>
+
+            <!-- Card 2: Gestão de Animais -->
+            <div class="sistema-card sistema-card-success">
+                <div class="sistema-card-header">
+                    <div class="sistema-card-icon">
+                        <i class="fas fa-cow"></i>
                     </div>
-                    <div class="processo-content">
-                        <h4 class="processo-title">Pesagem</h4>
-                        <p class="processo-descricao">Registrar peso do animal</p>
+                    <div class="sistema-card-info">
+                        <h3>Gestão de Animais</h3>
+                        <p>Controle completo do rebanho</p>
                     </div>
-                    <div class="processo-badge">Mais usado</div>
-                </button>
-                
-                <button class="processo-card processo-card-success" data-tab="sanidade">
-                    <div class="processo-icon">
-                        <i class="fas fa-syringe"></i>
+                </div>
+                <div class="sistema-card-body">
+                    <div class="gestao-grid">
+                        <button class="gestao-btn gestao-movimentacao" data-tab="movimentacao">
+                            <i class="fas fa-exchange-alt"></i>
+                            <span>Movimentação</span>
+                        </button>
+                        <button class="gestao-btn gestao-reprodutivo" data-tab="reprodutivo">
+                            <i class="fas fa-baby-carriage"></i>
+                            <span>Reprodutivo</span>
+                        </button>
+                        <button class="gestao-btn gestao-inventario" data-tab="inventario">
+                            <i class="fas fa-list"></i>
+                            <span>Inventário</span>
+                        </button>
                     </div>
-                    <div class="processo-content">
-                        <h4 class="processo-title">Sanidade</h4>
-                        <p class="processo-descricao">Vacinas e tratamentos</p>
+                </div>
+            </div>
+
+            <!-- Card 3: Análises e Relatórios -->
+            <div class="sistema-card sistema-card-info">
+                <div class="sistema-card-header">
+                    <div class="sistema-card-icon">
+                        <i class="fas fa-chart-line"></i>
                     </div>
-                </button>
-                
-                <button class="processo-card processo-card-info" data-tab="conferencia">
-                    <div class="processo-icon">
-                        <i class="fas fa-clipboard-check"></i>
+                    <div class="sistema-card-info">
+                        <h3>Análises & Relatórios</h3>
+                        <p>Dados e insights do rebanho</p>
                     </div>
-                    <div class="processo-content">
-                        <h4 class="processo-title">Conferência</h4>
-                        <p class="processo-descricao">Verificar animais do lote</p>
+                </div>
+                <div class="sistema-card-body">
+                    <div class="analises-grid">
+                        <button class="analise-btn analise-historico" data-tab="historico">
+                            <i class="fas fa-chart-area"></i>
+                            <span>Histórico</span>
+                        </button>
+                        <button class="analise-btn analise-relatorios" data-tab="relatorios">
+                            <i class="fas fa-file-alt"></i>
+                            <span>Relatórios</span>
+                        </button>
+                        <button class="analise-btn analise-metricas" data-tab="metricas">
+                            <i class="fas fa-tachometer-alt"></i>
+                            <span>Métricas</span>
+                        </button>
                     </div>
-                </button>
+                </div>
+            </div>
+
+            <!-- Card 4: Sessão de Trabalho -->
+            <div class="sistema-card sistema-card-warning">
+                <div class="sistema-card-header">
+                    <div class="sistema-card-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="sistema-card-info">
+                        <h3>Sessão de Trabalho</h3>
+                        <p>Controle das atividades</p>
+                    </div>
+                </div>
+                <div class="sistema-card-body">
+                    <div class="sessao-controle">
+                        <div class="sessao-status">
+                            <span class="status-indicator" id="sessaoStatusIndicator"></span>
+                            <span class="status-text" id="sessaoStatusText">Sessão inativa</span>
+                        </div>
+                        <div class="sessao-actions">
+                            <button class="sessao-btn sessao-nova" onclick="window.curralTelaUnica.abrirModalTrabalho()">
+                                <i class="fas fa-plus"></i>
+                                Nova Sessão
+                            </button>
+                            <button class="sessao-btn sessao-iniciar" id="btnIniciarSessao" style="display: none;">
+                                <i class="fas fa-play"></i>
+                                Iniciar
+                            </button>
+                            <button class="sessao-btn sessao-finalizar" id="btnFinalizarSessao" disabled style="display: none;">
+                                <i class="fas fa-stop"></i>
+                                Finalizar
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Categoria: Gestão de Animais -->
-        <div class="processo-categoria">
-            <div class="categoria-header">
-                <h3 class="categoria-title">
-                    <i class="fas fa-cow"></i>
-                    Gestão de Animais
-                </h3>
-                <p class="categoria-descricao">Cadastros e movimentações</p>
+        <!-- Área de Trabalho Dinâmica -->
+        <div class="area-trabalho" id="areaTrabalho">
+            <div class="area-trabalho-header">
+                <h2 id="areaTrabalhoTitulo">Selecione uma operação</h2>
+                <p id="areaTrabalhoDescricao">Escolha uma das opções acima para começar</p>
             </div>
-            <div class="processos-grid">
-                <button class="processo-card processo-card-secondary" data-tab="cadastro">
-                    <div class="processo-icon">
-                        <i class="fas fa-plus-circle"></i>
+            <div class="area-trabalho-content" id="areaTrabalhoContent">
+                <!-- Conteúdo dinâmico será inserido aqui -->
+                <div class="welcome-message">
+                    <div class="welcome-icon">
+                        <i class="fas fa-hand-wave"></i>
                     </div>
-                    <div class="processo-content">
-                        <h4 class="processo-title">Cadastro</h4>
-                        <p class="processo-descricao">Novo animal no sistema</p>
-                    </div>
-                </button>
-                
-                <button class="processo-card processo-card-secondary" data-tab="movimentacao">
-                    <div class="processo-icon">
-                        <i class="fas fa-exchange-alt"></i>
-                    </div>
-                    <div class="processo-content">
-                        <h4 class="processo-title">Movimentação</h4>
-                        <p class="processo-descricao">Transferir entre lotes</p>
-                    </div>
-                </button>
-                
-                <button class="processo-card processo-card-secondary" data-tab="reprodutivo">
-                    <div class="processo-icon">
-                        <i class="fas fa-baby-carriage"></i>
-                    </div>
-                    <div class="processo-content">
-                        <h4 class="processo-title">Reprodutivo</h4>
-                        <p class="processo-descricao">IATF e diagnósticos</p>
-                    </div>
-                </button>
-            </div>
-        </div>
-
-        <!-- Categoria: Consultas e Relatórios -->
-        <div class="processo-categoria">
-            <div class="categoria-header">
-                <h3 class="categoria-title">
-                    <i class="fas fa-chart-line"></i>
-                    Consultas e Relatórios
-                </h3>
-                <p class="categoria-descricao">Histórico e análises</p>
-            </div>
-            <div class="processos-grid">
-                <button class="processo-card processo-card-outline" data-tab="historico">
-                    <div class="processo-icon">
-                        <i class="fas fa-chart-area"></i>
-                    </div>
-                    <div class="processo-content">
-                        <h4 class="processo-title">Histórico</h4>
-                        <p class="processo-descricao">Evolução e gráficos</p>
-                    </div>
-                </button>
+                    <h3>Bem-vindo ao Curral Inteligente</h3>
+                    <p>O sistema de gestão pecuária mais avançado do mercado brasileiro.</p>
+                </div>
             </div>
         </div>
     </div>
@@ -968,6 +1013,121 @@
             <button class="btn-action btn-cancel" id="modalCancel">Cancelar</button>
             <button class="btn-action btn-save" id="modalConfirm">Confirmar</button>
         </div>
+    </div>
+</div>
+
+<!-- Modal Cadastro de Trabalho - Design Moderno -->
+<div id="modalCadastroTrabalho" class="modal-trabalho-overlay" style="display: none;">
+    <div class="modal-trabalho-container">
+        <div class="modal-trabalho-header">
+            <div class="modal-trabalho-icon">
+                <i class="fas fa-clipboard-list"></i>
+            </div>
+            <div class="modal-trabalho-info">
+                <h3>Novo Trabalho</h3>
+                <p>Configure os detalhes da sessão de trabalho</p>
+            </div>
+            <button class="modal-trabalho-close" onclick="fecharModalTrabalho()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <form id="formCadastroTrabalho" class="modal-trabalho-form">
+            <div class="form-grid">
+                <!-- Coluna 1 -->
+                <div class="form-section">
+                    <h4><i class="fas fa-cogs"></i> Configuração</h4>
+
+                    <div class="form-group">
+                        <label for="tipoTrabalho">
+                            <i class="fas fa-tasks"></i>
+                            Tipo de Trabalho *
+                        </label>
+                        <select id="tipoTrabalho" class="form-input" required>
+                            <option value="">Selecione...</option>
+                            {% for tipo in tipos_trabalho %}
+                            <option value="{{ tipo.valor }}">{{ tipo.rotulo }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="quantidadeEsperada">
+                            <i class="fas fa-hashtag"></i>
+                            Quantidade Esperada
+                        </label>
+                        <input type="number" id="quantidadeEsperada" class="form-input" min="1" placeholder="Ex: 50">
+                        <small class="form-hint">Número aproximado de animais/processos</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="nomeLote">
+                            <i class="fas fa-tag"></i>
+                            Nome do Lote
+                        </label>
+                        <input type="text" id="nomeLote" class="form-input" placeholder="Ex: Lote Engorda, Lote 1">
+                        <small class="form-hint">Identificação do grupo de trabalho</small>
+                    </div>
+                </div>
+
+                <!-- Coluna 2 -->
+                <div class="form-section">
+                    <h4><i class="fas fa-calendar-alt"></i> Agendamento</h4>
+
+                    <div class="form-group">
+                        <label for="dataTrabalho">
+                            <i class="fas fa-calendar"></i>
+                            Data do Trabalho *
+                        </label>
+                        <input type="date" id="dataTrabalho" class="form-input" required>
+                        <small class="form-hint">Quando o trabalho será realizado</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="pastoOrigem">
+                            <i class="fas fa-map-marker-alt"></i>
+                            Pasto de Origem
+                        </label>
+                        <select id="pastoOrigem" class="form-input">
+                            <option value="">Selecione...</option>
+                            {% for pastagem in pastagens_disponiveis %}
+                            <option value="{{ pastagem.nome }}">{{ pastagem.nome }}{% if pastagem.area_ha %} ({{ pastagem.area_ha|floatformat:2 }} ha){% endif %}</option>
+                            {% endfor %}
+                        </select>
+                        <small class="form-hint">Localização dos animais</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="pastoOrigemManual">
+                            <i class="fas fa-edit"></i>
+                            Ou digite manualmente
+                        </label>
+                        <input type="text" id="pastoOrigemManual" class="form-input" placeholder="Digite o nome do pasto">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Observações - Largura total -->
+            <div class="form-section-full">
+                <h4><i class="fas fa-sticky-note"></i> Observações</h4>
+                <div class="form-group">
+                    <textarea id="observacoesTrabalho" class="form-textarea" rows="3" placeholder="Adicione observações importantes sobre este trabalho, como condições especiais, cuidados específicos, etc."></textarea>
+                    <small class="form-hint">Informações adicionais relevantes para a equipe</small>
+                </div>
+            </div>
+
+            <!-- Ações -->
+            <div class="modal-trabalho-footer">
+                <button type="button" class="btn-trabalho btn-cancel" onclick="fecharModalTrabalho()">
+                    <i class="fas fa-times"></i>
+                    Cancelar
+                </button>
+                <button type="submit" class="btn-trabalho btn-primary">
+                    <i class="fas fa-play"></i>
+                    Iniciar Trabalho
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 

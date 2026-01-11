@@ -113,8 +113,8 @@ logger.info(f"   DB_HOST: {DB_HOST if DB_HOST else 'NÃO DEFINIDO (usando Unix S
 
 # Configurar banco de dados
 if IS_GAE or IS_CLOUD_RUN or CLOUD_SQL_CONNECTION_NAME:
-    # TEMPORARIAMENTE FORÇANDO TCP/IP por causa de problemas com socket Unix nos jobs
-    # Cloud SQL via TCP/IP (fallback para quando socket não funciona)
+    # FORÇANDO TCP/IP para Cloud Run (problemas com socket Unix)
+    logger.info("🔧 Cloud Run detectado - forçando TCP/IP")
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
@@ -131,6 +131,12 @@ if IS_GAE or IS_CLOUD_RUN or CLOUD_SQL_CONNECTION_NAME:
         }
     }
     logger.info(f"✅ Configurado: Cloud SQL via TCP/IP: {DB_HOST or '34.9.51.178'}:{DB_PORT or '5432'}")
+
+    # Garantir que não há configuração de socket Unix
+    if 'HOST' in DATABASES['default'] and DATABASES['default']['HOST']:
+        logger.info("✅ Usando conexão TCP/IP - sem socket Unix")
+    else:
+        logger.warning("⚠️ HOST não definido - pode tentar usar socket Unix")
 else:
     # Cloud SQL via IP (Compute Engine ou desenvolvimento local)
     DATABASES = {

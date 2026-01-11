@@ -1,0 +1,39 @@
+# COPIE ESTE CONTEÚDO PARA CRIAR O Dockerfile NO CLOUD SHELL
+
+# Criar Dockerfile no Cloud Shell
+cat > Dockerfile << 'EOF'
+# Dockerfile para Google Cloud Run
+FROM python:3.11-slim
+
+# Definir diretório de trabalho
+WORKDIR /app
+
+# Instalar dependências do sistema
+RUN apt-get update && apt-get install -y \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copiar requirements primeiro (para cache de layers)
+COPY requirements_producao.txt .
+RUN pip install --no-cache-dir -r requirements_producao.txt
+
+# Copiar código do projeto
+COPY . .
+
+# Criar diretório para arquivos estáticos
+RUN mkdir -p /app/staticfiles /app/media
+
+# Coletar arquivos estáticos
+RUN python manage.py collectstatic --noinput --clear
+
+# Expor porta
+EXPOSE 8080
+
+# Comando para executar
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8080"]
+EOF
+
+# Agora execute:
+# docker build -t gcr.io/monpec-sistema-rural/monpec:latest .
+# docker push gcr.io/monpec-sistema-rural/monpec:latest
+# gcloud run deploy monpec --image gcr.io/monpec-sistema-rural/monpec:latest [outras opções]

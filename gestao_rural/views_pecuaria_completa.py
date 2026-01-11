@@ -241,10 +241,10 @@ def pecuaria_completa_dashboard(request, propriedade_id):
             data_fim = date.today()
             data_inicio = data_fim - timedelta(days=periodo_dias)
         else:
-            # Padrão: Últimos 12 meses para garantir que todos os dados apareçam
+            # Padrão: Último ano (365 dias) conforme solicitado
             data_fim = date.today()
-            data_inicio = date.today() - timedelta(days=365)  # Últimos 12 meses
-            periodo_dias = (data_fim - data_inicio).days
+            data_inicio = date.today() - timedelta(days=365)  # Último ano
+            periodo_dias = 365
         
         # Filtro por módulo (padrão: todos)
         modulo_filtro = request.GET.get('modulo', '').upper()
@@ -318,11 +318,11 @@ def pecuaria_completa_dashboard(request, propriedade_id):
                 animais_com_valor = AnimalIndividual.objects.filter(
                     propriedade=propriedade,
                     status='ATIVO'
-                ).exclude(valor_estimado__isnull=True).exclude(valor_estimado=0)
+                ).exclude(valor_atual_estimado__isnull=True).exclude(valor_atual_estimado=0)
                 
                 if animais_com_valor.exists():
                     valor_medio = animais_com_valor.aggregate(
-                        avg_valor=Avg('valor_estimado')
+                        avg_valor=Avg('valor_atual_estimado')
                     )['avg_valor'] or Decimal('0')
                     valor_total_rebanho = Decimal(str(valor_medio)) * Decimal(str(total_animais_inventario))
                     logger.info(f'[PECUARIA_DASHBOARD] Calculado valor total usando AnimalIndividual: R$ {valor_total_rebanho}')
@@ -1633,23 +1633,131 @@ def dashboard_consulta_api(request, propriedade_id):
 
 def _montar_contexto_planejamento(propriedade, planejamento, cenario):
     """Monta o contexto básico para o dashboard de planejamento."""
+    from gestao_rural.models import InventarioRebanho, ParametrosProjecaoRebanho
+    from gestao_rural.views_cenarios import calcular_metricas_cenario
+    from decimal import Decimal
+    from datetime import date, timedelta
+
     context = {
         'propriedade': propriedade,
         'planejamento': planejamento,
         'cenario': cenario,
     }
-    
+
     if planejamento:
         # Adicionar dados do planejamento se existir
         try:
+            # Dados básicos do planejamento
             context.update({
                 'metas_comerciais': planejamento.metas_comerciais.all() if hasattr(planejamento, 'metas_comerciais') else [],
+                'metas_financeiras': planejamento.metas_financeiras.all() if hasattr(planejamento, 'metas_financeiras') else [],
                 'indicadores_planejados': planejamento.indicadores_planejados.all() if hasattr(planejamento, 'indicadores_planejados') else [],
                 'cenarios': planejamento.cenarios.all() if hasattr(planejamento, 'cenarios') else [],
+                'atividades_planejadas': planejamento.atividades.all() if hasattr(planejamento, 'atividades') else [],
+                'planejamento_mensal': planejamento.movimentacoes_planejadas.all() if hasattr(planejamento, 'movimentacoes_planejadas') else [],
             })
-        except Exception:
-            pass
-    
+
+            # Calcular métricas se houver cenário
+            if cenario:
+                metricas = calcular_metricas_cenario(planejamento, cenario)
+                context.update({
+                    'metricas_cenario': metricas,
+                    'total_vendas_qtd': metricas.get('quantidade_animais', 0),
+                    'financeiro_resumo': {
+                        'planejado_receitas': metricas.get('receitas_totais', 0),
+                        'realizado_receitas': 0,  # TODO: implementar cálculo realizado
+                        'planejado_custos': metricas.get('custos_totais', 0),
+                        'realizado_custos': 0,  # TODO: implementar cálculo realizado
+                        'planejado_investimentos': 0,  # TODO: implementar investimentos
+                        'realizado_resultado': 0,  # TODO: implementar resultado realizado
+                        'planejado_lucro': metricas.get('lucro', 0),
+                    }
+                })
+            else:
+                # Valores padrão quando não há cenário
+                context.update({
+                    'metricas_cenario': None,
+                    'total_vendas_qtd': 0,
+                    'financeiro_resumo': {
+                        'planejado_receitas': 0,
+                        'realizado_receitas': 0,
+                        'planejado_custos': 0,
+                        'realizado_custos': 0,
+                        'planejado_investimentos': 0,
+                        'realizado_resultado': 0,
+                        'planejado_lucro': 0,
+                    }
+                })
+
+            # Calcular indicadores para os cards
+            indicadores_planejados_meta = []
+            indicadores_planejados_enriquecidos = []
+
+            for indicador in context['indicadores_planejados']:
+                if hasattr(indicador, 'codigo') and indicador.codigo:
+                    indicadores_planejados_meta.append(indicador)
+                else:
+                    indicadores_planejados_enriquecidos.append(indicador)
+
+            context.update({
+                'indicadores_planejados_meta': indicadores_planejados_meta,
+                'indicadores_planejados_enriquecidos': indicadores_planejados_enriquecidos,
+            })
+
+        except Exception as e:
+            # Em caso de erro, definir valores padrão
+            context.update({
+                'metas_comerciais': [],
+                'metas_financeiras': [],
+                'indicadores_planejados': [],
+                'cenarios': [],
+                'atividades_planejadas': [],
+                'planejamento_mensal': [],
+                'total_vendas_qtd': 0,
+                'financeiro_resumo': {
+                    'planejado_receitas': 0,
+                    'planejado_custos': 0,
+                    'planejado_lucro': 0,
+                },
+                'indicadores_planejados_meta': [],
+                'indicadores_planejados_enriquecidos': [],
+            })
+
+    # Dados do inventário atual (sempre disponíveis)
+    try:
+        inventario_atual = InventarioRebanho.objects.filter(
+            propriedade=propriedade
+        ).order_by('-data_inventario').first()
+
+        if inventario_atual:
+            context.update({
+                'total_animais': sum(inv.quantidade for inv in InventarioRebanho.objects.filter(
+                    propriedade=propriedade, data_inventario=inventario_atual.data_inventario
+                )),
+                'inventario_data_recente': inventario_atual.data_inventario,
+            })
+        else:
+            context.update({
+                'total_animais': 0,
+                'inventario_data_recente': None,
+            })
+    except Exception:
+        context.update({
+            'total_animais': 0,
+            'inventario_data_recente': None,
+        })
+
+    # Valores padrão para métricas operacionais
+    context.update({
+        'matrizes_ativas': 0,  # TODO: calcular baseado no inventário
+        'taxa_reprodutiva': 0,  # TODO: calcular baseado em nascimentos
+        'animais_por_hectare': 0,  # TODO: calcular area/hectare
+        'investimento_planejado': 0,  # TODO: calcular investimentos
+        'vendas_planejado': 0,  # TODO: calcular vendas
+        'resultado_operacional': 0,  # TODO: calcular resultado
+        'producao_arrobas': 0,  # TODO: calcular produção
+    })
+
     return context
 
 
@@ -1742,7 +1850,14 @@ def pecuaria_planejamento_dashboard(request, propriedade_id):
         except (CenarioPlanejamento.DoesNotExist, ValueError):
             cenario = None
 
+    # Se não há cenário selecionado, usar o baseline por padrão
+    if not cenario and planejamento:
+        cenario = planejamento.cenarios.filter(is_baseline=True).first()
+
     context = _montar_contexto_planejamento(propriedade, planejamento, cenario)
+
+    # Adicionar cenário atual ao contexto
+    context['cenario_atual'] = cenario
     
     # Verificar se planejamento está desatualizado
     status_atualizacao = None

@@ -176,7 +176,6 @@ TEMPLATES = [
                 'gestao_rural.context_processors.demo_mode',  # Adiciona DEMO_MODE ao contexto
                 'gestao_rural.context_processors.assinatura_info',  # Adiciona informações de assinatura
                 'gestao_rural.context_processors.produtores_menu',  # Adiciona produtores para o menu lateral
-                # 'gestao_rural.utils.feature_flags.feature_flags_context_processor',  # Feature flags - TEMPORARIAMENTE DESABILITADO
             ],
         },
     },

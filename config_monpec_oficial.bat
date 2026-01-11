@@ -19,3 +19,5 @@ echo [CONFIG] Host: %DB_HOST%:%DB_PORT%
 echo [CONFIG] Status: PRODUÇÃO (DEBUG=False)
 
 
+
+

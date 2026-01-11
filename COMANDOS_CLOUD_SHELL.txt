@@ -1,0 +1,51 @@
+# ========================================
+# CORREÇÃO DEPLOY MONPEC
+# EXECUTE ESTES COMANDOS NO GOOGLE CLOUD SHELL
+# ========================================
+
+# 1. EXECUTAR MIGRAÇÕES
+gcloud run jobs create migrate-monpec-final \
+  --image gcr.io/monpec-sistema-rural/monpec:latest \
+  --region us-central1 \
+  --set-env-vars="DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,CLOUD_SQL_CONNECTION_NAME=monpec-sistema-rural:us-central1:monpec-db,DB_NAME=monpec_db,DB_USER=monpec_user,DB_PASSWORD=L6171r12@@jjms,DEBUG=False" \
+  --set-cloudsql-instances=monpec-sistema-rural:us-central1:monpec-db \
+  --command="python" \
+  --args="manage.py,migrate,--noinput" \
+  --memory=2Gi \
+  --cpu=1 \
+  --max-retries=3 \
+  --task-timeout=600
+
+gcloud run jobs execute migrate-monpec-final --region=us-central1 --wait
+
+# 2. POPULAR DADOS DE PRODUÇÃO
+gcloud run jobs create populate-monpec-final \
+  --image gcr.io/monpec-sistema-rural/monpec:latest \
+  --region us-central1 \
+  --set-env-vars="DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,CLOUD_SQL_CONNECTION_NAME=monpec-sistema-rural:us-central1:monpec-db,DB_NAME=monpec_db,DB_USER=monpec_user,DB_PASSWORD=L6171r12@@jjms,DEBUG=False" \
+  --set-cloudsql-instances=monpec-sistema-rural:us-central1:monpec-db \
+  --command="python" \
+  --args="popular_dados_producao.py" \
+  --memory=2Gi \
+  --cpu=1 \
+  --max-retries=3 \
+  --task-timeout=600
+
+gcloud run jobs execute populate-monpec-final --region=us-central1 --wait
+
+# 3. TESTAR SE FUNCIONOU
+curl https://monpec-29862706245.us-central1.run.app/
+
+# 4. VER LOGS SE DER ERRO
+gcloud run services logs read monpec --region=us-central1 --limit=20
+
+# ========================================
+# URLs APÓS CORREÇÃO:
+# ========================================
+#
+# Landing Page: https://monpec-29862706245.us-central1.run.app/
+# Admin: https://monpec-29862706245.us-central1.run.app/admin/
+# Dashboard: https://monpec-29862706245.us-central1.run.app/propriedade/5/pecuaria/
+# Planejamento: https://monpec-29862706245.us-central1.run.app/propriedade/5/pecuaria/planejamento/
+#
+# ========================================

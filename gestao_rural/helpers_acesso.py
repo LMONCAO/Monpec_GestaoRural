@@ -66,27 +66,22 @@ def is_usuario_assinante(user):
         return True
     
     try:
-        from django.db import connection
-        with connection.cursor() as cursor:
-            cursor.execute("""
-                SELECT id, usuario_id, produtor_id, plano_id, status,
-                       mercadopago_customer_id, mercadopago_subscription_id,
-                       gateway_pagamento, ultimo_checkout_id, current_period_end,
-                       cancelamento_agendado, metadata, data_liberacao,
-                       criado_em, atualizado_em
-                FROM gestao_rural_assinaturacliente
-                WHERE usuario_id = %s
-                LIMIT 1
-            """, [user.id])
-            row = cursor.fetchone()
-            if row:
-                from datetime import date
-                data_liberacao = row[12]
-                acesso_liberado = data_liberacao is None or data_liberacao <= date.today()
-                status = row[4]
-                if status == 'ATIVA' and acesso_liberado:
-                    return True
-    except:
+        # Usar ORM do Django ao invés de SQL puro para compatibilidade com SQLite
+        from .models import AssinaturaCliente
+        assinatura = AssinaturaCliente.objects.filter(
+            usuario=user,
+            status='ATIVA'
+        ).first()
+
+        if assinatura:
+            from datetime import date
+            data_liberacao = getattr(assinatura, 'data_liberacao', None)
+            acesso_liberado = data_liberacao is None or data_liberacao <= date.today()
+            if acesso_liberado:
+                return True
+    except Exception as e:
+        # Se a tabela não existir ou houver erro, retorna False silenciosamente
+        logger.warning(f"Erro ao verificar assinatura para usuário {user.username}: {e}")
         pass
     
     return False

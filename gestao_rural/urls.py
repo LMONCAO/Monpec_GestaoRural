@@ -187,7 +187,10 @@ urlpatterns = [
     path('propriedade/<int:propriedade_id>/curral/api/pesagem/', views_curral.curral_salvar_pesagem_api, name='curral_salvar_pesagem_api'),
     path('propriedade/<int:propriedade_id>/curral/api/pesagem/editar/', views_curral.curral_editar_pesagem_api, name='curral_editar_pesagem_api'),
     path('propriedade/<int:propriedade_id>/curral/api/manejos/registrar/', views_curral.curral_registrar_manejos_api, name='curral_registrar_manejos_api'),
-    
+    path('propriedade/<int:propriedade_id>/curral/api/identificar/v4/', views_curral.curral_identificar_animal_v4, name='curral_identificar_animal_v4'),
+    path('propriedade/<int:propriedade_id>/curral/api/registrar/v4/', views_curral.curral_registrar_manejo_v4, name='curral_registrar_manejo_v4'),
+    path('propriedade/<int:propriedade_id>/curral/api/balanca/v4/', views_curral.curral_receber_peso_balanca_v4, name='curral_receber_peso_balanca_v4'),
+
     # Módulo Nutrição
     path('propriedade/<int:propriedade_id>/nutricao/', views_nutricao.nutricao_dashboard, name='nutricao_dashboard'),
     path('propriedade/<int:propriedade_id>/nutricao/suplementacao/estoques/', views_nutricao.estoque_suplementacao_lista, name='estoque_suplementacao_lista'),

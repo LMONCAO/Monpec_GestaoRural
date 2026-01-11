@@ -1,0 +1,64 @@
+# Cloud Run service configuration
+# This file is for reference only - actual deployment uses gcloud CLI
+# Use the scripts in deploy/ folder for actual deployment
+
+# To deploy manually:
+# gcloud run deploy monpec \
+#   --image gcr.io/monpec-sistema-rural/monpec:latest \
+#   --platform managed \
+#   --region us-central1 \
+#   --allow-unauthenticated \
+#   --set-env-vars "DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp" \
+#   --set-env-vars "DEBUG=False" \
+#   --set-env-vars "CLOUD_SQL_CONNECTION_NAME=monpec-sistema-rural:us-central1:monpec-db" \
+#   --set-env-vars "DB_NAME=monpec-db" \
+#   --set-env-vars "DB_USER=postgres" \
+#   --set-env-vars "DB_PASSWORD=L6171r12@@jjms" \
+#   --set-env-vars "DB_HOST=34.9.51.178" \
+#   --set-env-vars "DB_PORT=5432" \
+#   --set-env-vars "SECRET_KEY=rfzjy1t-wda0oi+p!_4!4-n-1a60" \
+#   --set-env-vars "GOOGLE_CLOUD_PROJECT=monpec-sistema-rural" \
+#   --memory 1Gi \
+#   --cpu 1 \
+#   --max-instances 10 \
+#   --timeout 300 \
+#   --concurrency 80 \
+#   --add-cloudsql-instances monpec-sistema-rural:us-central1:monpec-db
+
+# LEGACY Knative configuration (not used - keeping for reference)
+# apiVersion: serving.knative.dev/v1
+# kind: Service
+# metadata:
+#   name: monpec
+# spec:
+#   template:
+#     spec:
+#       containers:
+#       - image: gcr.io/monpec-sistema-rural/monpec:latest
+#         ports:
+#         - containerPort: 8080
+#         env:
+#         - name: DJANGO_SETTINGS_MODULE
+#           value: "sistema_rural.settings_gcp"
+#         - name: DEBUG
+#           value: "False"
+#         - name: CLOUD_SQL_CONNECTION_NAME
+#           value: "monpec-sistema-rural:us-central1:monpec-db"
+#         - name: DB_NAME
+#           value: "monpec-db"
+#         - name: DB_USER
+#           value: "postgres"
+#         - name: DB_PASSWORD
+#           value: "L6171r12@@jjms"
+#         - name: DB_HOST
+#           value: "34.9.51.178"
+#         - name: DB_PORT
+#           value: "5432"
+#         - name: SECRET_KEY
+#           value: "rfzjy1t-wda0oi+p!_4!4-n-1a60"
+#         - name: GOOGLE_CLOUD_PROJECT
+#           value: "monpec-sistema-rural"
+#         resources:
+#           limits:
+#             memory: "1Gi"
+#             cpu: "1000m"

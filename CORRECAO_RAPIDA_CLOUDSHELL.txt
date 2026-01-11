@@ -1,0 +1,31 @@
+# CORREÇÃO RÁPIDA PARA DEPLOY - EXECUTAR NO CLOUD SHELL
+
+# 1. Configurar projeto
+gcloud config set project monpec-sistema-rural
+
+# 2. Criar job para executar migrações e correções
+gcloud run jobs create monpec-migrate-fix \
+  --image gcr.io/monpec-sistema-rural/monpec:latest \
+  --region us-central1 \
+  --set-env-vars="DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,CLOUD_SQL_CONNECTION_NAME=monpec-sistema-rural:us-central1:monpec-db,DB_NAME=monpec_db,DB_USER=monpec_user,DB_PASSWORD=L6171r12@@jjms,SECRET_KEY=django-insecure-monpec-sistema-rural-2025-producao-segura-L6171r12@@-YrJOs823th_HB2BP6Uz9A0NVvzL0Fif-t-Rfub5BXgVtE0LxXIWEPQIFqYvI8UNiZKE" \
+  --add-cloudsql-instances=monpec-sistema-rural:us-central1:monpec-db \
+  --command="bash" \
+  --args="-c,echo 'Executando migrações...' && python manage.py migrate --noinput && echo 'Criando admin...' && python manage.py shell -c \"from django.contrib.auth import get_user_model; User = get_user_model(); User.objects.filter(username='admin').exists() or User.objects.create_superuser('admin', 'admin@monpec.com.br', 'L6171r12@@')\" && echo 'Populando dados...' && python popular_dados_producao.py && echo 'Concluído!'"
+
+# 3. Executar o job
+gcloud run jobs execute monpec-migrate-fix --region us-central1 --wait
+
+# 4. Deletar job temporário
+gcloud run jobs delete monpec-migrate-fix --region us-central1 --quiet
+
+# 5. FAZER NOVO DEPLOY
+gcloud run deploy monpec \
+  --source . \
+  --platform managed \
+  --region us-central1 \
+  --allow-unauthenticated \
+  --add-cloudsql-instances=monpec-sistema-rural:us-central1:monpec-db \
+  --set-env-vars="DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,DEBUG=False,SECRET_KEY=django-insecure-monpec-sistema-rural-2025-producao-segura-L6171r12@@-YrJOs823th_HB2BP6Uz9A0NVvzL0Fif-t-Rfub5BXgVtE0LxXIWEPQIFqYvI8UNiZKE,CLOUD_SQL_CONNECTION_NAME=monpec-sistema-rural:us-central1:monpec-db,DB_NAME=monpec_db,DB_USER=monpec_user,DB_PASSWORD=L6171r12@@jjms" \
+  --memory 2Gi \
+  --cpu 2 \
+  --timeout 600

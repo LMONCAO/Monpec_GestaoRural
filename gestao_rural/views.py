@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
@@ -175,9 +176,144 @@ def google_search_console_verification(request):
     return HttpResponse(content, content_type='text/html; charset=utf-8')
 
 
+
+
 def health_check(request):
-    """Endpoint de health check para monitoramento do Google Cloud Run."""
-    return HttpResponse("OK", content_type="text/plain", status=200)
+    """
+    Endpoint de health check robusto para monitoramento do Google Cloud Run.
+    Verifica banco de dados, cache e outras dependências críticas.
+    """
+    from django.db import connection
+    from django.core.cache import cache
+    from django.conf import settings
+    import time
+    import json
+
+    health_status = {
+        'status': 'healthy',
+        'timestamp': time.time(),
+        'checks': {},
+        'version': '1.0.0'
+    }
+
+    # Verificar banco de dados
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+            result = cursor.fetchone()
+            health_status['checks']['database'] = {
+                'status': 'healthy',
+                'response_time': time.time(),
+                'details': 'Connection successful'
+            }
+    except Exception as e:
+        health_status['status'] = 'unhealthy'
+        health_status['checks']['database'] = {
+            'status': 'unhealthy',
+            'error': str(e),
+            'response_time': time.time()
+        }
+
+    # Verificar cache
+    try:
+        cache_key = f'health_check_{int(time.time())}'
+        cache.set(cache_key, 'test_value', 10)
+        retrieved_value = cache.get(cache_key)
+        if retrieved_value == 'test_value':
+            health_status['checks']['cache'] = {
+                'status': 'healthy',
+                'response_time': time.time(),
+                'details': 'Cache read/write successful'
+            }
+        else:
+            health_status['checks']['cache'] = {
+                'status': 'unhealthy',
+                'error': 'Cache read/write failed',
+                'response_time': time.time()
+            }
+    except Exception as e:
+        health_status['checks']['cache'] = {
+            'status': 'unhealthy',
+            'error': str(e),
+            'response_time': time.time()
+        }
+
+    # Verificar configurações críticas
+    try:
+        critical_settings = [
+            'SECRET_KEY',
+            'DATABASES',
+            'ALLOWED_HOSTS'
+        ]
+        missing_settings = []
+        for setting in critical_settings:
+            if hasattr(settings, setting):
+                if setting == 'SECRET_KEY' and not getattr(settings, setting):
+                    missing_settings.append(setting)
+                elif setting == 'DATABASES' and not getattr(settings, setting):
+                    missing_settings.append(setting)
+                elif setting == 'ALLOWED_HOSTS' and not getattr(settings, setting):
+                    missing_settings.append(setting)
+            else:
+                missing_settings.append(setting)
+
+        if missing_settings:
+            health_status['checks']['settings'] = {
+                'status': 'warning',
+                'details': f'Missing critical settings: {", ".join(missing_settings)}',
+                'response_time': time.time()
+            }
+        else:
+            health_status['checks']['settings'] = {
+                'status': 'healthy',
+                'details': 'All critical settings configured',
+                'response_time': time.time()
+            }
+    except Exception as e:
+        health_status['checks']['settings'] = {
+            'status': 'unhealthy',
+            'error': str(e),
+            'response_time': time.time()
+        }
+
+    # Verificar espaço em disco (se aplicável)
+    try:
+        import os
+        if hasattr(settings, 'MEDIA_ROOT') and settings.MEDIA_ROOT:
+            stat = os.statvfs(settings.MEDIA_ROOT)
+            free_space_gb = (stat.f_bavail * stat.f_frsize) / (1024**3)
+            health_status['checks']['disk_space'] = {
+                'status': 'healthy' if free_space_gb > 1 else 'warning',
+                'details': '.2f',
+                'response_time': time.time()
+            }
+    except Exception as e:
+        health_status['checks']['disk_space'] = {
+            'status': 'warning',
+            'error': f'Could not check disk space: {str(e)}',
+            'response_time': time.time()
+        }
+
+    # Determinar status geral
+    unhealthy_checks = [check for check in health_status['checks'].values()
+                       if check.get('status') == 'unhealthy']
+
+    if unhealthy_checks:
+        status_code = 503  # Service Unavailable
+        health_status['status'] = 'unhealthy'
+    else:
+        status_code = 200  # OK
+
+    # Retornar resposta JSON detalhada ou simples dependendo do parâmetro
+    if request.GET.get('format') == 'json':
+        return JsonResponse(health_status, status=status_code)
+    else:
+        # Resposta simples para compatibilidade com Google Cloud Run health checks
+        return HttpResponse(
+            health_status['status'].upper(),
+            content_type="text/plain",
+            status=status_code
+        )
 
 
 def landing_page(request):
@@ -207,35 +343,40 @@ def landing_page(request):
     return render(request, 'site/landing_page.html', context)
 
 
+@csrf_exempt
 def criar_usuario_demonstracao(request):
-    """Cria usu??rio para demonstra????o a partir do popup - VERS??O SIMPLIFICADA"""
+    """Cria usuário para demonstração a partir do popup - VERSÃO SIMPLIFICADA"""
     from django.contrib.auth.models import User
-    from .models_auditoria import UsuarioAtivo
     from django.contrib.auth import login
     from django.urls import reverse
     import urllib.parse
     import logging
-    
+
     logger = logging.getLogger(__name__)
     logger.info(f'[DEMO_CADASTRO] Iniciando - IP: {request.META.get("REMOTE_ADDR")}')
-    
+
+    # Se for GET, redirecionar para o formulário
+    if request.method == 'GET':
+        logger.info('[DEMO_CADASTRO] Redirecionando para formulário de criação de usuário')
+        return redirect('criando_usuario_demo')
+
     if request.method != 'POST':
-        return JsonResponse({'success': False, 'message': 'M??todo n??o permitido'}, status=405)
-    
+        return JsonResponse({'success': False, 'message': 'Método não permitido'}, status=405)
+
     try:
         nome_completo = request.POST.get('nome_completo', '').strip()
         email = request.POST.get('email', '').strip().lower()
         telefone = request.POST.get('telefone', '').strip()
-        
+
         logger.info(f'[DEMO_CADASTRO] Dados recebidos: nome={nome_completo[:50]}, email={email}')
-        
-        # Valida????o
+
+        # Validação
         if not nome_completo or not email:
             return JsonResponse({
                 'success': False,
-                'message': 'Por favor, preencha todos os campos obrigat??rios.'
+                'message': 'Por favor, preencha todos os campos obrigatórios.'
             }, status=400)
-        
+
         # Validar formato de email
         from django.core.validators import validate_email
         from django.core.exceptions import ValidationError
@@ -244,15 +385,15 @@ def criar_usuario_demonstracao(request):
         except ValidationError:
             return JsonResponse({
                 'success': False,
-                'message': 'Por favor, informe um e-mail v??lido.'
+                'message': 'Por favor, informe um e-mail válido.'
             }, status=400)
-            
-        # 1. Verificar se usu??rio existe (case-insensitive)
-        # Adicionar tratamento de erro para problemas de conex??o com banco
+
+        # 1. Verificar se usuário existe (case-insensitive)
+        # Adicionar tratamento de erro para problemas de conexão com banco
         try:
             user = User.objects.filter(email__iexact=email).first()
         except Exception as db_error:
-            logger.error(f'[DEMO_CADASTRO] Erro de conex??o com banco de dados: {type(db_error).__name__}: {db_error}', exc_info=True)
+            logger.error(f'[DEMO_CADASTRO] Erro de conexão com banco de dados: {type(db_error).__name__}: {db_error}', exc_info=True)
             return JsonResponse({
                 'success': False,
                 'message': 'Erro ao conectar com o banco de dados. Por favor, tente novamente em alguns instantes.'
@@ -299,19 +440,9 @@ def criar_usuario_demonstracao(request):
         
         # 2. UsuarioAtivo removido - tabela não existe no banco atual
         
-        # 3. ??? NOVO: Criar propriedade com dados automaticamente
-        from .views_demo_setup import _criar_dados_demo_completos
-        propriedade_criada = False
-        try:
-            propriedade = _criar_dados_demo_completos(user, nome_completo, email, telefone)
-            if propriedade:
-                propriedade_criada = True
-                logger.info(f'[DEMO_CADASTRO] Propriedade demo criada: {propriedade.nome_propriedade} (ID: {propriedade.id})')
-            else:
-                logger.warning(f'[DEMO_CADASTRO] Função _criar_dados_demo_completos retornou None')
-        except Exception as e:
-            logger.error(f'[DEMO_CADASTRO] Erro ao criar dados demo: {e}', exc_info=True)
-            # Continuar mesmo se falhar - usuário será redirecionado para demo_setup que criará os dados
+        # 3. NÃO criar dados aqui - deixar para o demo_setup fazer isso
+        # Isso evita deadlock no banco de dados
+        logger.info(f'[DEMO_CADASTRO] Usuário criado. Dados serão criados pelo demo_setup.')
         
         # 4. Fazer login automático
         try:
@@ -327,7 +458,7 @@ def criar_usuario_demonstracao(request):
         return JsonResponse({
             'success': True,
             'message': mensagem,
-            'redirect_url': reverse('criando_usuario_demo')
+            'redirect_url': demo_loading_url
         })
         
     except Exception as e:
@@ -338,11 +469,9 @@ def criar_usuario_demonstracao(request):
         }, status=500)
 
 
-@login_required
 def criando_usuario_demo(request):
     """
-    Página intermediária mostrando criação do usuário demo
-    Redireciona automaticamente para demo_loading
+    Página de formulário para criação de usuário de demonstração
     """
     return render(request, 'gestao_rural/demo/criando_usuario_demo.html')
 
@@ -5067,4 +5196,28 @@ def salvar_preferencias_modulos(request, propriedade_id):
         return JsonResponse({
             'erro': f'Erro ao salvar preferências: {str(e)}'
         }, status=500)
+
+
+def robots_txt(request):
+    """
+    View para servir o arquivo robots.txt
+    Permite indexação de páginas públicas mas bloqueia áreas administrativas
+    """
+    content = """User-agent: *
+Allow: /
+Allow: /dashboard/
+Allow: /demo/
+Disallow: /admin/
+Disallow: /api/
+Disallow: /static/
+Disallow: /media/
+Disallow: /login/
+Disallow: /logout/
+Disallow: /recuperar-senha/
+Disallow: /alterar-senha/
+
+# Sitemap
+Sitemap: https://monpec.com.br/sitemap.xml
+"""
+    return HttpResponse(content, content_type='text/plain')
 

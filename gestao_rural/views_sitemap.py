@@ -34,6 +34,7 @@ def sitemap_view(request):
     
     sitemaps = {
         'static': StaticViewSitemap,
+        'public': PublicContentSitemap,
     }
     
     return django_sitemap(request, sitemaps)
