@@ -59,37 +59,35 @@ def animais_offline_view(request):
         })
 
 
-class AnimaisOfflineAPI(View):
+class AnimaisOfflineAPIBasico(View):
     """
-    API para fornecer dados de animais em formato JSON para cache offline
+    API para dados BÁSICOS de animais - OTIMIZADO PARA CACHE LEVE
+    Retorna apenas informações essenciais para reduzir volume de dados
     """
 
     @method_decorator(login_required)
     def get(self, request):
-        """Retorna dados de animais para cache offline"""
+        """Retorna dados básicos de animais para cache offline leve"""
         try:
             propriedade = get_propriedade_atual(request)
 
-            # Buscar animais com dados essenciais
+            # Buscar APENAS dados essenciais (muito leve)
             animais = AnimalIndividual.objects.filter(
-                propriedade=propriedade
+                propriedade=propriedade,
+                status='ATIVO'  # Só animais ativos para reduzir volume
             ).select_related('categoria').values(
-                'id', 'numero_brinco', 'categoria__nome', 'sexo', 'raca',
-                'peso_atual_kg', 'data_nascimento', 'status', 'observacoes'
-            )[:1000]  # Limitar para performance
+                'id', 'numero_brinco', 'categoria__nome', 'sexo', 'raca', 'status'
+            ).order_by('numero_brinco')[:5000]  # Até 5000 animais básicos
 
-            # Converter para lista e formatar datas
+            # Converter para lista otimizada
             animais_list = []
             for animal in animais:
                 animal_dict = dict(animal)
-                # Formatar data
-                if animal_dict['data_nascimento']:
-                    animal_dict['data_nascimento'] = animal_dict['data_nascimento'].strftime('%d/%m/%Y')
-
-                # Renomear campos para consistência
+                # Renomear para consistência
                 animal_dict['categoria'] = animal_dict.pop('categoria__nome')
-                animal_dict['peso_atual'] = animal_dict.pop('peso_atual_kg')
 
+                # REMOVER dados pesados que não são essenciais para busca offline
+                # peso_atual_kg, data_nascimento, observacoes são removidos para reduzir tamanho
                 animais_list.append(animal_dict)
 
             response_data = {
@@ -97,27 +95,141 @@ class AnimaisOfflineAPI(View):
                 'data': {
                     'animais': animais_list,
                     'total': len(animais_list),
+                    'tipo_cache': 'basico',  # Indica tipo de cache
                     'propriedade': {
                         'id': propriedade.id,
                         'nome': propriedade.nome_propriedade
                     }
                 },
                 'cached_at': request.GET.get('timestamp', 'now'),
-                'cache_valid_for': '24h'  # Cache válido por 24 horas
+                'cache_valid_for': '24h',
+                'tamanho_estimado_kb': len(str(animais_list)) / 1024  # Debug do tamanho
             }
 
             response = JsonResponse(response_data)
-            # Headers para cache do navegador
+            # Headers otimizados para cache offline
             response['Cache-Control'] = 'public, max-age=86400'  # 24 horas
             response['X-Offline-Capable'] = 'true'
+            response['X-Cache-Type'] = 'basico'
+            response['X-Compressed-Capable'] = 'true'
 
             return response
 
         except Exception as e:
             return JsonResponse({
                 'success': False,
-                'error': f'Erro ao buscar animais: {str(e)}',
+                'error': f'Erro ao buscar animais básicos: {str(e)}',
                 'data': []
+            }, status=500)
+
+
+class AnimaisOfflineAPIDetalhes(View):
+    """
+    API para dados DETALHADOS de animais - CARREGADO SOB DEMANDA
+    Retorna informações completas apenas quando solicitado
+    """
+
+    @method_decorator(login_required)
+    def get(self, request, animal_id=None):
+        """Retorna dados detalhados de um animal específico"""
+        try:
+            propriedade = get_propriedade_atual(request)
+
+            if animal_id:
+                # Buscar animal específico com TODOS os detalhes
+                animal = AnimalIndividual.objects.filter(
+                    propriedade=propriedade,
+                    id=animal_id
+                ).select_related('categoria').first()
+
+                if not animal:
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'Animal não encontrado'
+                    }, status=404)
+
+                # Dados completos do animal
+                animal_data = {
+                    'id': animal.id,
+                    'numero_brinco': animal.numero_brinco,
+                    'categoria': animal.categoria.nome if animal.categoria else 'N/A',
+                    'sexo': animal.sexo,
+                    'raca': animal.raca,
+                    'peso_atual': str(animal.peso_atual_kg) if animal.peso_atual_kg else 'N/A',
+                    'data_nascimento': animal.data_nascimento.strftime('%d/%m/%Y') if animal.data_nascimento else 'N/A',
+                    'data_aquisicao': animal.data_aquisicao.strftime('%d/%m/%Y') if animal.data_aquisicao else 'N/A',
+                    'status': animal.status,
+                    'observacoes': animal.observacoes or '',
+                    # Dados adicionais que podem ser pesados
+                    'lote': animal.lote or '',
+                    'localizacao': animal.localizacao or ''
+                }
+
+                response_data = {
+                    'success': True,
+                    'data': {
+                        'animal': animal_data,
+                        'tipo_cache': 'detalhes'
+                    },
+                    'cached_at': request.GET.get('timestamp', 'now'),
+                    'cache_valid_for': '6h'  # Cache detalhado válido por menos tempo
+                }
+            else:
+                # Buscar múltiplos animais detalhados (limitado para performance)
+                animal_ids = request.GET.get('ids', '').split(',')
+                if not animal_ids or animal_ids[0] == '':
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'IDs de animais não fornecidos'
+                    }, status=400)
+
+                # Limitar a 50 animais por vez para não sobrecarregar
+                animal_ids = animal_ids[:50]
+
+                animais = AnimalIndividual.objects.filter(
+                    propriedade=propriedade,
+                    id__in=animal_ids
+                ).select_related('categoria')
+
+                animais_list = []
+                for animal in animais:
+                    animais_list.append({
+                        'id': animal.id,
+                        'numero_brinco': animal.numero_brinco,
+                        'categoria': animal.categoria.nome if animal.categoria else 'N/A',
+                        'sexo': animal.sexo,
+                        'raca': animal.raca,
+                        'peso_atual': str(animal.peso_atual_kg) if animal.peso_atual_kg else 'N/A',
+                        'data_nascimento': animal.data_nascimento.strftime('%d/%m/%Y') if animal.data_nascimento else 'N/A',
+                        'status': animal.status,
+                        'observacoes': animal.observacoes or ''
+                    })
+
+                response_data = {
+                    'success': True,
+                    'data': {
+                        'animais': animais_list,
+                        'total': len(animais_list),
+                        'tipo_cache': 'detalhes'
+                    },
+                    'cached_at': request.GET.get('timestamp', 'now'),
+                    'cache_valid_for': '6h'
+                }
+
+            response = JsonResponse(response_data)
+            # Headers para cache detalhado
+            response['Cache-Control'] = 'public, max-age=21600'  # 6 horas
+            response['X-Offline-Capable'] = 'true'
+            response['X-Cache-Type'] = 'detalhes'
+            response['X-Compressed-Capable'] = 'true'
+
+            return response
+
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': f'Erro ao buscar detalhes: {str(e)}',
+                'data': {}
             }, status=500)
 
 
@@ -167,4 +279,4 @@ def sync_animais_offline(request):
 
 
 # Cache da API por 1 hora para melhorar performance
-animais_offline_api_cached = cache_page(3600)(AnimaisOfflineAPI.as_view())
+animais_offline_api_cached = cache_page(3600)(AnimaisOfflineAPIBasico.as_view())

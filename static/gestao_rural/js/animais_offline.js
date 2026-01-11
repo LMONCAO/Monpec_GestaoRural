@@ -1,12 +1,30 @@
-// JavaScript para funcionalidade offline de animais
-// Gerencia busca, filtros e visualização de dados cacheados
+// JavaScript para funcionalidade offline de animais - VERSÃO OTIMIZADA
+// Cache inteligente: dados básicos sempre disponíveis, detalhes sob demanda
+
+// Configurações de cache otimizado
+const CACHE_CONFIG = {
+    MAX_ANIMAIS_CACHE: 5000,        // Até 5000 animais básicos em cache
+    CACHE_DURATION: 24 * 60 * 60 * 1000, // 24 horas
+    DETALHES_CACHE_DURATION: 6 * 60 * 60 * 1000, // 6 horas para detalhes
+    AUTO_LOAD_DETALHES: false,      // Não carregar detalhes automaticamente
+    COMPRESSION_ENABLED: true       // Usar compressão quando disponível
+};
+
+// Cache local em memória para performance
+let animaisBasicosCache = [];
+let animaisDetalhesCache = new Map(); // Cache de detalhes por animal_id
+let cacheMetadata = {
+    lastLoad: null,
+    totalAnimais: 0,
+    tamanhoEstimado: 0
+};
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 Animais Offline - Inicializando...');
+    console.log('🚀 Animais Offline Otimizado - Inicializando...');
 
     // Verificar se estamos offline
     if (!navigator.onLine) {
-        mostrarNotificacao('Modo offline ativado', 'warning');
+        mostrarNotificacao('Modo offline ativado - usando cache otimizado', 'warning');
     }
 
     // Inicializar aplicação
@@ -15,10 +33,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Configurar event listeners
     configurarEventListeners();
 
-    // Carregar dados iniciais
-    carregarDadosIniciais();
+    // Carregar dados básicos primeiro (leve)
+    carregarDadosBasicos();
 
-    console.log('✅ Animais Offline - Inicializado com sucesso!');
+    console.log('✅ Animais Offline Otimizado - Inicializado com sucesso!');
 });
 
 // Inicializar aplicação
@@ -57,15 +75,168 @@ function configurarEventListeners() {
     });
 }
 
-// Carregar dados iniciais
-function carregarDadosIniciais() {
-    if (!animaisData || animaisData.length === 0) {
-        mostrarMensagemVazia('Nenhum animal encontrado no cache offline.');
-        return;
-    }
+// Carregar dados básicos otimizados (sempre disponível offline)
+async function carregarDadosBasicos() {
+    try {
+        console.log('📊 Carregando dados básicos otimizados...');
 
-    console.log(`📊 Carregados ${animaisData.length} animais do cache`);
-    mostrarNotificacao(`${animaisData.length} animais carregados do cache offline`, 'info');
+        // Tentar carregar da API online primeiro
+        if (navigator.onLine) {
+            await carregarDaAPI();
+        } else {
+            // Se offline, tentar usar dados do service worker cache
+            await carregarDoCacheLocal();
+        }
+
+        // Atualizar interface
+        atualizarInterfaceComDados();
+
+    } catch (error) {
+        console.error('❌ Erro ao carregar dados básicos:', error);
+        mostrarMensagemVazia('Erro ao carregar dados. Verifique sua conexão.');
+    }
+}
+
+// Carregar dados da API online
+async function carregarDaAPI() {
+    try {
+        const response = await fetch('/api/animais/offline/basico/', {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+
+            if (data.success && data.data.animais) {
+                animaisBasicosCache = data.data.animais;
+                cacheMetadata = {
+                    lastLoad: new Date().toISOString(),
+                    totalAnimais: data.data.total,
+                    tamanhoEstimado: data.data.tamanho_estimado_kb || 0,
+                    tipo: 'basico'
+                };
+
+                // Salvar no localStorage para uso offline futuro
+                salvarCacheLocalStorage();
+
+                console.log(`✅ Carregados ${animaisBasicosCache.length} animais básicos (${cacheMetadata.tamanhoEstimado.toFixed(1)}KB)`);
+                mostrarNotificacao(`${animaisBasicosCache.length} animais básicos carregados`, 'success');
+            } else {
+                throw new Error(data.error || 'Erro na resposta da API');
+            }
+        } else {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+    } catch (error) {
+        console.error('❌ Erro ao carregar da API:', error);
+        // Fallback para cache local
+        await carregarDoCacheLocal();
+    }
+}
+
+// Carregar dados do cache local (localStorage)
+async function carregarDoCacheLocal() {
+    try {
+        const cacheLocal = localStorage.getItem('monpec_animais_basicos_cache');
+
+        if (cacheLocal) {
+            const parsedCache = JSON.parse(cacheLocal);
+
+            // Verificar se cache não está muito velho
+            const cacheAge = Date.now() - new Date(parsedCache.metadata.lastLoad).getTime();
+
+            if (cacheAge < CACHE_CONFIG.CACHE_DURATION) {
+                animaisBasicosCache = parsedCache.animais;
+                cacheMetadata = parsedCache.metadata;
+
+                console.log(`📱 Carregados ${animaisBasicosCache.length} animais do cache local (${cacheAge / 1000 / 60}min atrás)`);
+                mostrarNotificacao(`${animaisBasicosCache.length} animais carregados do cache local`, 'info');
+                return;
+            } else {
+                console.log('⏰ Cache local expirado, será atualizado quando online');
+            }
+        }
+
+        if (animaisBasicosCache.length === 0) {
+            mostrarMensagemVazia('Nenhum dado disponível offline. Conecte-se à internet para carregar.');
+        }
+
+    } catch (error) {
+        console.error('❌ Erro ao carregar cache local:', error);
+        mostrarMensagemVazia('Erro ao carregar dados offline.');
+    }
+}
+
+// Salvar cache no localStorage
+function salvarCacheLocalStorage() {
+    try {
+        const cacheData = {
+            animais: animaisBasicosCache,
+            metadata: cacheMetadata
+        };
+
+        localStorage.setItem('monpec_animais_basicos_cache', JSON.stringify(cacheData));
+        console.log('💾 Cache salvo no localStorage');
+    } catch (error) {
+        console.error('❌ Erro ao salvar cache:', error);
+        // Se localStorage estiver cheio, tentar limpar outros dados
+        if (error.name === 'QuotaExceededError') {
+            console.warn('⚠️ localStorage cheio, limpando dados antigos...');
+            limparCacheLocalStorage();
+        }
+    }
+}
+
+// Limpar cache antigo do localStorage
+function limparCacheLocalStorage() {
+    try {
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('monpec_') && key !== 'monpec_animais_basicos_cache') {
+                keysToRemove.push(key);
+            }
+        }
+
+        keysToRemove.forEach(key => localStorage.removeItem(key));
+        console.log(`🗑️ Removidos ${keysToRemove.length} itens antigos do cache`);
+    } catch (error) {
+        console.error('❌ Erro ao limpar cache:', error);
+    }
+}
+
+// Atualizar interface com dados carregados
+function atualizarInterfaceComDados() {
+    // Esconder loading
+    document.getElementById('loading-spinner').style.display = 'none';
+    document.getElementById('results-container').style.display = 'block';
+
+    // Popular filtros
+    popularFiltrosCategoria();
+
+    // Renderizar tabela
+    renderizarTabela();
+
+    // Atualizar estatísticas
+    atualizarEstatisticasCache();
+}
+
+// Atualizar estatísticas do cache
+function atualizarEstatisticasCache() {
+    const statsElement = document.getElementById('cache-stats');
+    if (statsElement && cacheMetadata.totalAnimais > 0) {
+        statsElement.innerHTML = `
+            <small class="text-muted">
+                <i class="fas fa-database me-1"></i>
+                ${cacheMetadata.totalAnimais} animais
+                (${cacheMetadata.tamanhoEstimado.toFixed(1)}KB)
+                ${navigator.onLine ? '• Online' : '• Offline'}
+            </small>
+        `;
+    }
 }
 
 // Popular filtros de categoria
@@ -175,15 +346,96 @@ function criarLinhaAnimal(animal) {
     return tr;
 }
 
-// Ver detalhes do animal
-function verDetalhesAnimal(animalId) {
-    const animal = animaisData.find(a => a.id === animalId);
-    if (!animal) {
+// Ver detalhes do animal - CARREGAMENTO SOB DEMANDA
+async function verDetalhesAnimal(animalId) {
+    const animalBasico = animaisBasicosCache.find(a => a.id === animalId);
+    if (!animalBasico) {
         mostrarNotificacao('Animal não encontrado', 'error');
         return;
     }
 
     const modal = new bootstrap.Modal(document.getElementById('animalModal'));
+    const detailsContainer = document.getElementById('animal-details');
+
+    // Mostrar loading enquanto carrega detalhes
+    detailsContainer.innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Carregando...</span>
+            </div>
+            <p class="mt-2">Carregando detalhes do animal...</p>
+        </div>
+    `;
+
+    modal.show();
+
+    try {
+        // Verificar se já temos detalhes em cache
+        let animalDetalhado = animaisDetalhesCache.get(animalId);
+
+        if (!animalDetalhado) {
+            // Carregar detalhes sob demanda
+            animalDetalhado = await carregarDetalhesAnimal(animalId);
+        }
+
+        // Renderizar detalhes completos
+        renderizarDetalhesAnimal(animalDetalhado, animalBasico);
+
+    } catch (error) {
+        console.error('❌ Erro ao carregar detalhes:', error);
+
+        // Mostrar detalhes básicos se falhar carregamento detalhado
+        renderizarDetalhesBasicos(animalBasico);
+    }
+}
+
+// Carregar detalhes do animal sob demanda
+async function carregarDetalhesAnimal(animalId) {
+    try {
+        const response = await fetch(`/api/animais/offline/detalhes/${animalId}/`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+
+            if (data.success && data.data.animal) {
+                // Salvar no cache detalhado
+                animaisDetalhesCache.set(animalId, data.data.animal);
+
+                // Limitar cache detalhado para não crescer demais
+                if (animaisDetalhesCache.size > 100) {
+                    // Remover entrada mais antiga (simples FIFO)
+                    const firstKey = animaisDetalhesCache.keys().next().value;
+                    animaisDetalhesCache.delete(firstKey);
+                }
+
+                console.log(`📋 Detalhes carregados para animal ${animalId}`);
+                return data.data.animal;
+            } else {
+                throw new Error(data.error || 'Erro na resposta da API');
+            }
+        } else if (response.status === 503) {
+            // Offline - tentar usar dados básicos apenas
+            throw new Error('offline');
+        } else {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+    } catch (error) {
+        if (error.message === 'offline') {
+            console.log('🌐 Offline: mostrando apenas dados básicos');
+            throw new Error('offline');
+        }
+        console.error('❌ Erro ao carregar detalhes:', error);
+        throw error;
+    }
+}
+
+// Renderizar detalhes completos do animal
+function renderizarDetalhesAnimal(animalDetalhado, animalBasico) {
     const detailsContainer = document.getElementById('animal-details');
 
     detailsContainer.innerHTML = `
@@ -199,23 +451,33 @@ function verDetalhesAnimal(animalId) {
                     <div class="card-body">
                         <dl class="row">
                             <dt class="col-sm-5">Brinco:</dt>
-                            <dd class="col-sm-7"><strong>${animal.numero_brinco}</strong></dd>
+                            <dd class="col-sm-7"><strong>${animalDetalhado.numero_brinco}</strong></dd>
 
                             <dt class="col-sm-5">Categoria:</dt>
-                            <dd class="col-sm-7">${animal.categoria}</dd>
+                            <dd class="col-sm-7">${animalDetalhado.categoria}</dd>
 
                             <dt class="col-sm-5">Sexo:</dt>
-                            <dd class="col-sm-7">${animal.sexo === 'F' ? 'Fêmea' : 'Macho'}</dd>
+                            <dd class="col-sm-7">${animalDetalhado.sexo === 'F' ? 'Fêmea' : 'Macho'}</dd>
 
                             <dt class="col-sm-5">Raça:</dt>
-                            <dd class="col-sm-7">${animal.raca || 'N/A'}</dd>
+                            <dd class="col-sm-7">${animalDetalhado.raca || 'N/A'}</dd>
 
                             <dt class="col-sm-5">Status:</dt>
                             <dd class="col-sm-7">
-                                <span class="badge ${animal.status === 'ATIVO' ? 'bg-success' : 'bg-secondary'}">
-                                    ${animal.status}
+                                <span class="badge ${animalDetalhado.status === 'ATIVO' ? 'bg-success' : 'bg-secondary'}">
+                                    ${animalDetalhado.status}
                                 </span>
                             </dd>
+
+                            ${animalDetalhado.lote ? `
+                                <dt class="col-sm-5">Lote:</dt>
+                                <dd class="col-sm-7">${animalDetalhado.lote}</dd>
+                            ` : ''}
+
+                            ${animalDetalhado.localizacao ? `
+                                <dt class="col-sm-5">Localização:</dt>
+                                <dd class="col-sm-7">${animalDetalhado.localizacao}</dd>
+                            ` : ''}
                         </dl>
                     </div>
                 </div>
@@ -234,18 +496,23 @@ function verDetalhesAnimal(animalId) {
                             <dt class="col-sm-5">Peso Atual:</dt>
                             <dd class="col-sm-7">
                                 <strong class="text-success">
-                                    ${animal.peso_atual || 'N/A'} kg
+                                    ${animalDetalhado.peso_atual || 'N/A'} kg
                                 </strong>
                             </dd>
 
                             <dt class="col-sm-5">Nascimento:</dt>
-                            <dd class="col-sm-7">${animal.data_nascimento}</dd>
+                            <dd class="col-sm-7">${animalDetalhado.data_nascimento}</dd>
+
+                            ${animalDetalhado.data_aquisicao ? `
+                                <dt class="col-sm-5">Aquisição:</dt>
+                                <dd class="col-sm-7">${animalDetalhado.data_aquisicao}</dd>
+                            ` : ''}
                         </dl>
 
-                        ${animal.observacoes ? `
+                        ${animalDetalhado.observacoes ? `
                             <div class="mt-3">
                                 <h6><i class="fas fa-sticky-note me-2"></i>Observações:</h6>
-                                <p class="text-muted small">${animal.observacoes}</p>
+                                <p class="text-muted small">${animalDetalhado.observacoes}</p>
                             </div>
                         ` : ''}
                     </div>
@@ -253,14 +520,86 @@ function verDetalhesAnimal(animalId) {
             </div>
         </div>
 
-        <div class="alert alert-info mt-3">
-            <i class="fas fa-info-circle me-2"></i>
-            <strong>Modo Offline:</strong> Estes dados foram carregados do cache local.
-            Para dados atualizados, conecte-se à internet.
+        <div class="alert alert-success mt-3">
+            <i class="fas fa-check-circle me-2"></i>
+            <strong>Dados Completos:</strong> Informações detalhadas carregadas com sucesso.
         </div>
     `;
+}
 
-    modal.show();
+// Renderizar detalhes básicos quando offline
+function renderizarDetalhesBasicos(animalBasico) {
+    const detailsContainer = document.getElementById('animal-details');
+
+    detailsContainer.innerHTML = `
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="fas fa-id-card me-2"></i>
+                            Identificação (Dados Básicos)
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <dl class="row">
+                            <dt class="col-sm-5">Brinco:</dt>
+                            <dd class="col-sm-7"><strong>${animalBasico.numero_brinco}</strong></dd>
+
+                            <dt class="col-sm-5">Categoria:</dt>
+                            <dd class="col-sm-7">${animalBasico.categoria}</dd>
+
+                            <dt class="col-sm-5">Sexo:</dt>
+                            <dd class="col-sm-7">${animalBasico.sexo === 'F' ? 'Fêmea' : 'Macho'}</dd>
+
+                            <dt class="col-sm-5">Raça:</dt>
+                            <dd class="col-sm-7">${animalBasico.raca || 'N/A'}</dd>
+
+                            <dt class="col-sm-5">Status:</dt>
+                            <dd class="col-sm-7">
+                                <span class="badge ${animalBasico.status === 'ATIVO' ? 'bg-success' : 'bg-secondary'}">
+                                    ${animalBasico.status}
+                                </span>
+                            </dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Status Offline
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Dados Limitados:</strong> Informações detalhadas
+                            (peso, nascimento, observações) não estão disponíveis offline.
+                        </div>
+
+                        <div class="mt-3">
+                            <h6>Para ver dados completos:</h6>
+                            <ul class="small">
+                                <li>Conecte-se à internet</li>
+                                <li>Atualize a página</li>
+                                <li>Clique novamente no animal</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="alert alert-info mt-3">
+            <i class="fas fa-wifi-slash me-2"></i>
+            <strong>Modo Offline:</strong> Mostrando apenas dados básicos do cache.
+            Conecte-se para ver informações completas.
+        </div>
+    `;
 }
 
 // Limpar filtros

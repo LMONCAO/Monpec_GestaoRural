@@ -32,6 +32,7 @@ from . import views_planejamento_ia
 from . import views_admin
 from . import views_configuracoes
 from . import views_documentos
+from . import views_animais_offline
 
 urlpatterns = [
     # Debug removido - não utilizado em produção
@@ -58,7 +59,13 @@ urlpatterns = [
     path('pre-lancamento/', views_assinaturas.pre_lancamento, name='pre_lancamento'),
     # Removido: webhook do Stripe - usando apenas Mercado Pago
     path('assinaturas/webhook/mercadopago/', views_assinaturas.mercadopago_webhook, name='mercadopago_webhook'),
-    
+
+    # Funcionalidades Offline (PWA) - OTIMIZADO
+    path('animais/offline/', views_animais_offline.animais_offline_view, name='animais_offline'),
+    path('api/animais/offline/basico/', views_animais_offline.AnimaisOfflineAPIBasico.as_view(), name='animais_offline_api_basico'),
+    path('api/animais/offline/detalhes/<int:animal_id>/', views_animais_offline.AnimaisOfflineAPIDetalhes.as_view(), name='animais_offline_api_detalhes'),
+    path('api/animais/offline/detalhes/', views_animais_offline.AnimaisOfflineAPIDetalhes.as_view(), name='animais_offline_api_detalhes_multi'),
+
     # Gestão de usuários do tenant
     path('usuarios/', views_usuarios_tenant.tenant_usuarios_dashboard, name='tenant_usuarios_dashboard'),
     path('usuarios/<int:usuario_id>/<str:acao>/', views_usuarios_tenant.tenant_usuario_toggle, name='tenant_usuario_toggle'),
