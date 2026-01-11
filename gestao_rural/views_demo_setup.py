@@ -50,8 +50,8 @@ def demo_setup(request):
                 is_demo_user = True
                 logger.info(f'Usuário demo (formulário) detectado: {request.user.username}')
             else:
-            logger.info(f'Usuário {request.user.username} não é demo')
-            pass
+                logger.info(f'Usuário {request.user.username} não é demo')
+                pass
     
     if not is_demo_user:
         logger.warning(f'Usuário não demo tentou acessar demo_setup: {request.user.username}')
@@ -176,39 +176,39 @@ def demo_setup(request):
                     logger.info(f'Propriedade criada: {propriedade.nome_propriedade} (ID: {propriedade.id})')
                 else:
                     logger.info(f'Propriedade já existia: {propriedade.nome_propriedade} (ID: {propriedade.id})')
-            
-        # 3. Usar comando dedicado para popular dados completos (1300 animais + módulos)
-        logger.info(f'Executando comando popular_fazenda_grande_demo para propriedade {propriedade.id}')
 
-        try:
-            from django.core.management import call_command
-            import sys
-            import io
-            
-            # Configurar encoding UTF-8 para stdout/stderr para evitar erros com emojis no Windows
-            if sys.platform == 'win32':
-                sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
-                sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
-            
-            # Executar comando para popular dados completos
-            call_command('popular_fazenda_grande_demo', propriedade_id=propriedade.id, force=True, verbosity=1)
-            logger.info(f'Dados completos populados com sucesso para propriedade {propriedade.id}!')
+            # 3. Usar comando dedicado para popular dados completos (1300 animais + módulos)
+            logger.info(f'Executando comando popular_fazenda_grande_demo para propriedade {propriedade.id}')
 
-        except Exception as e:
-            logger.error(f'ERRO ao executar popular_fazenda_grande_demo: {e}', exc_info=True)
-            # Não falhar completamente - pelo menos temos os dados básicos
-            messages.warning(request, f'Dados básicos criados. Alguns módulos podem precisar de configuração adicional: {str(e)[:100]}')
+            try:
+                from django.core.management import call_command
+                import sys
+                import io
 
-        # Garantir que propriedade foi criada corretamente
-        if not propriedade:
-            logger.error('Erro: Propriedade não foi criada após todo o processo')
-            messages.error(request, 'Erro ao criar propriedade. Por favor, tente novamente.')
-            return redirect('dashboard')
+                # Configurar encoding UTF-8 para stdout/stderr para evitar erros com emojis no Windows
+                if sys.platform == 'win32':
+                    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+                    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
-        # Redirecionar diretamente para a propriedade
-        logger.info(f'REDIRECIONANDO DIRETAMENTE PARA PROPRIEDADE {propriedade.id} - {propriedade.nome_propriedade}')
-        messages.success(request, 'Demonstração configurada com sucesso!')
-        return redirect('propriedade_modulos', propriedade_id=propriedade.id)
+                # Executar comando para popular dados completos
+                call_command('popular_fazenda_grande_demo', propriedade_id=propriedade.id, force=True, verbosity=1)
+                logger.info(f'Dados completos populados com sucesso para propriedade {propriedade.id}!')
+
+            except Exception as e:
+                logger.error(f'ERRO ao executar popular_fazenda_grande_demo: {e}', exc_info=True)
+                # Não falhar completamente - pelo menos temos os dados básicos
+                messages.warning(request, f'Dados básicos criados. Alguns módulos podem precisar de configuração adicional: {str(e)[:100]}')
+
+            # Garantir que propriedade foi criada corretamente
+            if not propriedade:
+                logger.error('Erro: Propriedade não foi criada após todo o processo')
+                messages.error(request, 'Erro ao criar propriedade. Por favor, tente novamente.')
+                return redirect('dashboard')
+
+            # Redirecionar diretamente para a propriedade
+            logger.info(f'REDIRECIONANDO DIRETAMENTE PARA PROPRIEDADE {propriedade.id} - {propriedade.nome_propriedade}')
+            messages.success(request, 'Demonstração configurada com sucesso!')
+            return redirect('propriedade_modulos', propriedade_id=propriedade.id)
             
     except Exception as e:
         logger.error(f'Erro ao configurar demonstração: {e}', exc_info=True)
