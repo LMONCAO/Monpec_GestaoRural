@@ -46,25 +46,64 @@ def is_usuario_demo(user):
         return False
 
 
+def get_propriedade_atual(request):
+    """
+    Obtém a propriedade atual baseada na requisição.
+    Primeiro tenta obter da sessão, depois da primeira propriedade do usuário.
+    """
+    if not request.user or not request.user.is_authenticated:
+        return None
+
+    try:
+        from .models import Propriedade
+
+        # Tentar obter da sessão
+        propriedade_id = request.session.get('propriedade_atual_id')
+        if propriedade_id:
+            try:
+                propriedade = Propriedade.objects.get(
+                    id=propriedade_id,
+                    produtor__usuario_responsavel=request.user
+                )
+                return propriedade
+            except Propriedade.DoesNotExist:
+                pass
+
+        # Se não encontrou na sessão, pegar a primeira propriedade do usuário
+        propriedade = Propriedade.objects.filter(
+            produtor__usuario_responsavel=request.user
+        ).first()
+
+        # Salvar na sessão para próximos acessos
+        if propriedade:
+            request.session['propriedade_atual_id'] = propriedade.id
+
+        return propriedade
+
+    except Exception as e:
+        # Em caso de erro, retornar None silenciosamente
+        return None
+
+
 def is_usuario_assinante(user):
     """
     Verifica se o usuário é assinante (superusuário ou tem assinatura ativa).
     Retorna True se:
     - É superusuário ou staff
     - Tem assinatura ativa com acesso liberado
-    
+
     IMPORTANTE: Usuários demo NUNCA são assinantes, mesmo que tenham assinatura no banco.
     """
     if not user or not user.is_authenticated:
         return False
-    
+
     # IMPORTANTE: Verificar se é demo PRIMEIRO - usuários demo nunca são assinantes
     if is_usuario_demo(user):
         return False
-    
+
     if user.is_superuser or user.is_staff:
         return True
-    
+
     try:
         # Usar ORM do Django ao invés de SQL puro para compatibilidade com SQLite
         from .models import AssinaturaCliente
@@ -83,7 +122,7 @@ def is_usuario_assinante(user):
         # Se a tabela não existir ou houver erro, retorna False silenciosamente
         logger.warning(f"Erro ao verificar assinatura para usuário {user.username}: {e}")
         pass
-    
+
     return False
 
 

@@ -27,11 +27,15 @@ from gestao_rural import views_password_reset
 from gestao_rural import views_static
 from gestao_rural import views_media
 from gestao_rural import views_diagnostico_imagens
+from gestao_rural import views_animais_offline
 
 urlpatterns = [
     # Health check endpoint (deve vir primeiro para ser encontrado rapidamente)
     path('health/', gestao_views.health_check, name='health_check'),
-    
+
+    # Página offline para PWA
+    path('offline/', gestao_views.offline_page, name='offline'),
+
     # LANDING PAGE COM VÍDEO - DEVE VIR PRIMEIRO (página inicial)
     path('', gestao_views.landing_page, name='landing_page'),
     

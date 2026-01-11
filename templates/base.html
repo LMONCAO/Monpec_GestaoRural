@@ -9,7 +9,11 @@
     
     <!-- Google Search Console Verification -->
     <meta name="google-site-verification" content="google40933139f3b0d469.html" />
-    
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="{% static 'site/manifest.json' %}">
+    <meta name="theme-color" content="#2d6a4f">
+
     <!-- Google Analytics -->
     {% if google_analytics_id %}
     <!-- Google tag (gtag.js) -->
@@ -192,7 +196,45 @@
     
     <!-- Watermark para Rastreamento -->
     {% watermark_codigo %}
-    
+
+    <!-- PWA Service Worker -->
+    <script>
+        // Registrar Service Worker para PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('{% static "gestao_rural/js/sw.js" %}', { scope: '/' })
+                    .then(function(registration) {
+                        console.log('✅ Service Worker registrado com sucesso:', registration.scope);
+
+                        // Verificar por updates do Service Worker
+                        registration.addEventListener('updatefound', function() {
+                            const newWorker = registration.installing;
+                            if (newWorker) {
+                                newWorker.addEventListener('statechange', function() {
+                                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                        // Nova versão disponível
+                                        if (confirm('Nova versão do Monpec disponível! Deseja atualizar?')) {
+                                            newWorker.postMessage({ type: 'SKIP_WAITING' });
+                                            window.location.reload();
+                                        }
+                                    }
+                                });
+                            }
+                        });
+                    })
+                    .catch(function(error) {
+                        console.log('❌ Erro ao registrar Service Worker:', error);
+                    });
+            });
+
+            // Escutar mudanças no Service Worker
+            navigator.serviceWorker.addEventListener('controllerchange', function() {
+                console.log('🔄 Service Worker atualizado, recarregando página...');
+                window.location.reload();
+            });
+        }
+    </script>
+
     {% block extra_js %}{% endblock %}
 </body>
 </html>
