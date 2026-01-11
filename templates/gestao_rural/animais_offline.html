@@ -1,0 +1,193 @@
+{% extends "base_modulos_unificado.html" %}
+{% load static %}
+
+{% block title %}Animais Offline - {{ propriedade.nome_propriedade }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">
+                        <i class="fas fa-horse text-success me-2"></i>
+                        Consulta de Animais Offline
+                    </h2>
+                    <p class="text-muted mb-0">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Visualizando {{ total_animais }} animais em cache offline
+                    </p>
+                </div>
+                <div class="text-end">
+                    <span class="badge bg-warning mb-2">
+                        <i class="fas fa-wifi-slash me-1"></i>
+                        MODO OFFLINE
+                    </span>
+                    <br>
+                    <small class="text-muted">Dados atualizados automaticamente quando online</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros e Busca -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label for="search-input" class="form-label">
+                                <i class="fas fa-search me-1"></i>
+                                Buscar Animal
+                            </label>
+                            <input type="text" class="form-control" id="search-input"
+                                   placeholder="Digite o número do brinco...">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="categoria-filter" class="form-label">
+                                <i class="fas fa-filter me-1"></i>
+                                Categoria
+                            </label>
+                            <select class="form-select" id="categoria-filter">
+                                <option value="">Todas as categorias</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="sexo-filter" class="form-label">
+                                <i class="fas fa-venus-mars me-1"></i>
+                                Sexo
+                            </label>
+                            <select class="form-select" id="sexo-filter">
+                                <option value="">Todos</option>
+                                <option value="F">Fêmea</option>
+                                <option value="M">Macho</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">&nbsp;</label>
+                            <div class="d-grid">
+                                <button class="btn btn-outline-primary" onclick="limparFiltros()">
+                                    <i class="fas fa-eraser me-1"></i>
+                                    Limpar Filtros
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resultados -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list me-2"></i>
+                        Animais Encontrados
+                        <span class="badge bg-primary ms-2" id="resultado-count">0</span>
+                    </h5>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-secondary" onclick="exportToCSV()">
+                            <i class="fas fa-download me-1"></i>
+                            CSV
+                        </button>
+                        <button class="btn btn-outline-secondary" onclick="exportToJSON()">
+                            <i class="fas fa-download me-1"></i>
+                            JSON
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Loading -->
+                    <div id="loading-spinner" class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Carregando...</span>
+                        </div>
+                        <p class="mt-2 text-muted">Carregando animais do cache offline...</p>
+                    </div>
+
+                    <!-- Tabela de Resultados -->
+                    <div id="results-container" class="table-responsive" style="display: none;">
+                        <table class="table table-hover table-striped" id="animais-table">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th><i class="fas fa-hashtag me-1"></i>Brinco</th>
+                                    <th><i class="fas fa-tag me-1"></i>Categoria</th>
+                                    <th><i class="fas fa-venus-mars me-1"></i>Sexo</th>
+                                    <th><i class="fas fa-seedling me-1"></i>Raça</th>
+                                    <th><i class="fas fa-weight me-1"></i>Peso (kg)</th>
+                                    <th><i class="fas fa-birthday-cake me-1"></i>Nascimento</th>
+                                    <th><i class="fas fa-info-circle me-1"></i>Status</th>
+                                    <th><i class="fas fa-eye me-1"></i>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="animais-tbody">
+                                <!-- Dados serão inseridos via JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Mensagem quando não há resultados -->
+                    <div id="no-results" class="text-center py-5" style="display: none;">
+                        <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">Nenhum animal encontrado</h5>
+                        <p class="text-muted">Tente ajustar os filtros de busca.</p>
+                        <button class="btn btn-outline-primary" onclick="limparFiltros()">
+                            Limpar Filtros
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Detalhes do Animal -->
+    <div class="modal fade" id="animalModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-horse me-2"></i>
+                        Detalhes do Animal
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="animal-details">
+                        <!-- Conteúdo será inserido via JavaScript -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        Fechar
+                    </button>
+                    <div class="text-muted small">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Dados em cache offline
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Dados dos animais (injetados do servidor) -->
+<script>
+    const animaisData = {{ animais_json|safe }};
+    let filteredAnimais = [...animaisData];
+    let currentFilters = {
+        search: '',
+        categoria: '',
+        sexo: ''
+    };
+</script>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'gestao_rural/js/animais_offline.js' %}"></script>
+{% endblock %}
