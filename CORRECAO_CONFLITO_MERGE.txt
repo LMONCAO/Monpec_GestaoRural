@@ -1,0 +1,85 @@
+🚨 **PROBLEMA DE CONFLITO NO MERGE - SOLUÇÃO DEFINITIVA**
+
+================================================================================
+
+❌ **ERRO ATUAL:**
+```
+error: The following untracked working tree files would be overwritten by merge:
+        .flake8
+        .pylintrc
+        FINAL_RESET_MONPEC.sh
+        [... muitos arquivos ...]
+Aborting
+```
+
+**Causa:** Arquivos locais não rastreados conflitam com arquivos do repositório.
+
+================================================================================
+
+✅ **SOLUÇÃO DEFINITIVA:**
+
+### **Execute estes comandos no Cloud Shell:**
+
+```bash
+# 1. Verificar status atual
+pwd
+ls -la
+
+# 2. FAZER BACKUP (opcional, mas recomendado)
+mkdir -p backup_local
+cp -r . backup_local/  # Copia tudo para backup
+
+# 3. LIMPAR ARQUIVOS NÃO RASTREADOS
+git clean -fd  # Remove arquivos não rastreados
+git reset --hard HEAD  # Reseta mudanças locais
+
+# 4. ATUALIZAR REPOSITÓRIO
+git pull origin master
+
+# 5. VERIFICAR SE FUNCIONOU
+ls -la deploy-final.sh
+chmod +x deploy-final.sh
+./deploy-final.sh
+```
+
+================================================================================
+
+⚠️ **IMPORTANTE:**
+- O comando `git clean -fd` **remove arquivos não rastreados permanentemente**
+- Use `mkdir backup_local && cp -r . backup_local/` se quiser preservar arquivos locais
+- Após o backup, pode executar sem medo
+
+================================================================================
+
+🎯 **APÓS A CORREÇÃO:**
+
+```bash
+# Deve funcionar agora:
+chmod +x deploy-final.sh
+./deploy-final.sh
+```
+
+================================================================================
+
+📋 **RESUMO DOS COMANDOS:**
+
+```bash
+# Backup (opcional)
+mkdir backup_local
+cp -r . backup_local/
+
+# Limpeza e atualização
+git clean -fd
+git reset --hard HEAD
+git pull origin master
+
+# Deploy
+chmod +x deploy-final.sh
+./deploy-final.sh
+```
+
+================================================================================
+
+🚀 **TEMPO TOTAL:** 2-3 minutos
+
+**🎉 Resultado:** Sistema MONPEC pronto para deploy!
