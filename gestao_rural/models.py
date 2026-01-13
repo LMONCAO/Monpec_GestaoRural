@@ -52,13 +52,31 @@ class ProdutorRural(models.Model):
         help_text="Data de validade do certificado digital"
     )
     certificado_tipo = models.CharField(
-        max_length=10,
-        choices=[('A1', 'A1 - Arquivo'), ('A3', 'A3 - Token/Cartão')],
+        max_length=20,
+        choices=[
+            ('A1', 'A1 - Arquivo'),
+            ('A3', 'A3 - Token/Cartão'),
+            ('WINDOWS_STORE', 'Windows Certificate Store')
+        ],
         default='A1',
         blank=True,
         null=True,
         verbose_name="Tipo de Certificado",
-        help_text="A1: arquivo .p12/.pfx | A3: token/cartão físico (não suportado ainda)"
+        help_text="A1: arquivo .p12/.pfx | A3: token/cartão físico | WINDOWS_STORE: certificado instalado no Windows"
+    )
+    certificado_thumbprint = models.CharField(
+        max_length=40,
+        blank=True,
+        null=True,
+        verbose_name="Thumbprint do Certificado",
+        help_text="Thumbprint do certificado no Windows Certificate Store (para certificados instalados)"
+    )
+    certificado_emissor = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        verbose_name="Emissor do Certificado",
+        help_text="Autoridade certificadora que emitiu o certificado"
     )
     
     data_cadastro = models.DateTimeField(auto_now_add=True, verbose_name="Data de Cadastro")
@@ -75,11 +93,19 @@ class ProdutorRural(models.Model):
     
     def tem_certificado_valido(self):
         """Verifica se o produtor tem certificado digital válido"""
-        if not self.certificado_digital:
-            return False
-        if self.certificado_valido_ate and self.certificado_valido_ate < date.today():
-            return False
-        return True
+        # Verificar certificado de arquivo (A1)
+        if self.certificado_tipo in ['A1', 'A3'] and self.certificado_digital:
+            if self.certificado_valido_ate and self.certificado_valido_ate < date.today():
+                return False
+            return True
+
+        # Verificar certificado do Windows Store
+        if self.certificado_tipo == 'WINDOWS_STORE' and self.certificado_thumbprint:
+            if self.certificado_valido_ate and self.certificado_valido_ate < date.today():
+                return False
+            return True
+
+        return False
     
     def __str__(self):
         return self.nome
@@ -3869,6 +3895,191 @@ class PrecoCEPEA(models.Model):
     
     def __str__(self):
         return f"{self.get_tipo_categoria_display()} - {self.uf} ({self.ano}): R$ {self.preco_medio}"
+
+
+class PrecoIMEA(models.Model):
+    """Modelo para armazenar preços IMEA (Instituto Mato-grossense de Economia Agropecuária)"""
+
+    TIPO_CATEGORIA_CHOICES = [
+        ('BEZERRO', 'Bezerro (0-12 meses)'),
+        ('BEZERRA', 'Bezerra (0-12 meses)'),
+        ('GARROTE', 'Garrote (12-24 meses)'),
+        ('NOVILHA', 'Novilha (12-24 meses)'),
+        ('BOI', 'Boi (24-36 meses)'),
+        ('BOI_MAGRO', 'Boi Magro (24-36 meses)'),
+        ('VACA_INVERNAR', 'Vaca para Invernada'),
+        ('VACA_DESCARTE', 'Vaca Descarte (>36 meses)'),
+        ('TOURO', 'Touro (>36 meses)'),
+        ('NOVA', 'Novilha para Reprodução'),
+    ]
+
+    uf = models.CharField(max_length=2, verbose_name="UF", db_index=True,
+                         choices=[('MT', 'Mato Grosso'), ('MS', 'Mato Grosso do Sul')])
+    ano = models.PositiveIntegerField(verbose_name="Ano", db_index=True)
+    mes = models.PositiveIntegerField(verbose_name="Mês", db_index=True,
+                                     choices=[(i, f'{i:02d}') for i in range(1, 13)])
+    tipo_categoria = models.CharField(
+        max_length=20,
+        choices=TIPO_CATEGORIA_CHOICES,
+        verbose_name="Tipo de Categoria",
+        db_index=True
+    )
+    preco_medio = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        verbose_name="Preço Médio (R$/cabeça)",
+        validators=[MinValueValidator(Decimal('0.01'))]
+    )
+    preco_minimo = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        verbose_name="Preço Mínimo (R$/cabeça)",
+        blank=True,
+        null=True
+    )
+    preco_maximo = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        verbose_name="Preço Máximo (R$/cabeça)",
+        blank=True,
+        null=True
+    )
+    volume_negociado = models.PositiveIntegerField(
+        verbose_name="Volume Negociado (cabeças)",
+        blank=True,
+        null=True
+    )
+    fonte = models.CharField(
+        max_length=50,
+        verbose_name="Fonte dos Dados",
+        default="IMEA",
+        help_text="Fonte dos dados (IMEA, IMEA_PROJETADO, etc.)"
+    )
+    criado_em = models.DateTimeField(auto_now_add=True, verbose_name="Criado em")
+    data_atualizacao = models.DateTimeField(
+        auto_now=True,
+        verbose_name="Data de Atualização"
+    )
+    observacoes = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Observações"
+    )
+
+    class Meta:
+        verbose_name = "Preço IMEA"
+        verbose_name_plural = "Preços IMEA"
+        unique_together = [['uf', 'ano', 'mes', 'tipo_categoria']]
+        ordering = ['-ano', '-mes', 'uf', 'tipo_categoria']
+        indexes = [
+            models.Index(fields=['uf', 'ano', 'mes']),
+            models.Index(fields=['tipo_categoria', 'ano', 'mes']),
+        ]
+
+    def __str__(self):
+        return f"IMEA {self.get_tipo_categoria_display()} - {self.uf} ({self.ano}/{self.mes:02d}): R$ {self.preco_medio}"
+
+
+class PrecoScot(models.Model):
+    """Modelo para armazenar preços Scot Consultoria"""
+
+    TIPO_CATEGORIA_CHOICES = [
+        ('BEZERRO', 'Bezerro (0-12 meses)'),
+        ('BEZERRA', 'Bezerra (0-12 meses)'),
+        ('GARROTE', 'Garrote (12-24 meses)'),
+        ('NOVILHA', 'Novilha (12-24 meses)'),
+        ('BOI', 'Boi (24-36 meses)'),
+        ('BOI_MAGRO', 'Boi Magro (24-36 meses)'),
+        ('VACA_INVERNAR', 'Vaca para Invernada'),
+        ('VACA_DESCARTE', 'Vaca Descarte (>36 meses)'),
+        ('TOURO', 'Touro (>36 meses)'),
+        ('NOVA', 'Novilha para Reprodução'),
+    ]
+
+    TIPO_PRECO_CHOICES = [
+        ('SPOT', 'Preço Spot'),
+        ('MEDIA_SEMANA', 'Média da Semana'),
+        ('MEDIA_MES', 'Média do Mês'),
+        ('PROJECAO', 'Projeção'),
+    ]
+
+    uf = models.CharField(max_length=2, verbose_name="UF", db_index=True)
+    ano = models.PositiveIntegerField(verbose_name="Ano", db_index=True)
+    mes = models.PositiveIntegerField(verbose_name="Mês", db_index=True,
+                                     choices=[(i, f'{i:02d}') for i in range(1, 13)])
+    semana = models.PositiveIntegerField(
+        verbose_name="Semana do Ano",
+        blank=True,
+        null=True,
+        help_text="Semana do ano (1-52)"
+    )
+    tipo_categoria = models.CharField(
+        max_length=20,
+        choices=TIPO_CATEGORIA_CHOICES,
+        verbose_name="Tipo de Categoria",
+        db_index=True
+    )
+    tipo_preco = models.CharField(
+        max_length=15,
+        choices=TIPO_PRECO_CHOICES,
+        verbose_name="Tipo de Preço",
+        default="MEDIA_SEMANA"
+    )
+    preco_arroba = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        verbose_name="Preço por Arroba (R$/@)",
+        validators=[MinValueValidator(Decimal('0.01'))]
+    )
+    preco_cabeca = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        verbose_name="Preço por Cabeça (R$/cabeça)",
+        blank=True,
+        null=True
+    )
+    peso_medio = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        verbose_name="Peso Médio (kg)",
+        blank=True,
+        null=True
+    )
+    volume_negociado = models.PositiveIntegerField(
+        verbose_name="Volume Negociado (cabeças)",
+        blank=True,
+        null=True
+    )
+    fonte = models.CharField(
+        max_length=50,
+        verbose_name="Fonte dos Dados",
+        default="SCOT",
+        help_text="Fonte dos dados (SCOT, SCOT_PROJETADO, etc.)"
+    )
+    criado_em = models.DateTimeField(auto_now_add=True, verbose_name="Criado em")
+    data_atualizacao = models.DateTimeField(
+        auto_now=True,
+        verbose_name="Data de Atualização"
+    )
+    observacoes = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Observações"
+    )
+
+    class Meta:
+        verbose_name = "Preço Scot Consultoria"
+        verbose_name_plural = "Preços Scot Consultoria"
+        unique_together = [['uf', 'ano', 'mes', 'semana', 'tipo_categoria', 'tipo_preco']]
+        ordering = ['-ano', '-mes', '-semana', 'uf', 'tipo_categoria']
+        indexes = [
+            models.Index(fields=['uf', 'ano', 'mes']),
+            models.Index(fields=['tipo_categoria', 'ano', 'mes']),
+        ]
+
+    def __str__(self):
+        semana_str = f" (Sem.{self.semana})" if self.semana else ""
+        return f"Scot {self.get_tipo_categoria_display()} - {self.uf} ({self.ano}/{self.mes:02d}{semana_str}): R$ {self.preco_arroba}/@"
 
 
 class PreferenciaModulosUsuario(models.Model):

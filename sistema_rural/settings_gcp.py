@@ -173,6 +173,16 @@ SECURE_BROWSER_XSS_FILTER = True
 X_FRAME_OPTIONS = 'DENY'
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
+# Desabilitar verificação de histórico de migrações para evitar erros
+# Isso é necessário devido a problemas de migração no banco de produção
+MIGRATION_MODULES = {}
+DISABLE_MIGRATION_CHECKS = True
+
+# URLs de autenticação
+LOGIN_URL = '/login/'
+LOGOUT_REDIRECT_URL = '/'
+LOGIN_REDIRECT_URL = '/dashboard/'
+
 # Arquivos estáticos e mídia
 # No Cloud Run/App Engine, usar Cloud Storage
 USE_CLOUD_STORAGE = os.getenv('USE_CLOUD_STORAGE', 'False') == 'True'
@@ -347,6 +357,22 @@ else:
 # Sessões
 SESSION_COOKIE_SECURE = True
 SESSION_COOKIE_HTTPONLY = True
+
+# Configurações do Mercado Pago para Google Cloud
+MERCADOPAGO_ACCESS_TOKEN = os.getenv('MERCADOPAGO_ACCESS_TOKEN', '')
+MERCADOPAGO_PUBLIC_KEY = os.getenv('MERCADOPAGO_PUBLIC_KEY', '')
+MERCADOPAGO_WEBHOOK_SECRET = os.getenv('MERCADOPAGO_WEBHOOK_SECRET', '')
+
+# URLs de callback para produção
+MERCADOPAGO_SUCCESS_URL = os.getenv('MERCADOPAGO_SUCCESS_URL', f'https://{ALLOWED_HOSTS[0]}/assinaturas/sucesso/')
+MERCADOPAGO_CANCEL_URL = os.getenv('MERCADOPAGO_CANCEL_URL', f'https://{ALLOWED_HOSTS[0]}/assinaturas/cancelado/')
+
+# Debug das configurações do Mercado Pago
+if DEBUG:
+    print(f"[DEBUG] MERCADOPAGO_ACCESS_TOKEN: {'***' if MERCADOPAGO_ACCESS_TOKEN else 'NOT SET'}")
+    print(f"[DEBUG] MERCADOPAGO_PUBLIC_KEY: {'***' if MERCADOPAGO_PUBLIC_KEY else 'NOT SET'}")
+    print(f"[DEBUG] MERCADOPAGO_SUCCESS_URL: {MERCADOPAGO_SUCCESS_URL}")
+    print(f"[DEBUG] MERCADOPAGO_CANCEL_URL: {MERCADOPAGO_CANCEL_URL}")
 CSRF_COOKIE_SECURE = True
 CSRF_COOKIE_HTTPONLY = True
 

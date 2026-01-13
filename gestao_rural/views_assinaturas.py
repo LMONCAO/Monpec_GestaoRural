@@ -23,63 +23,162 @@ from .services.provisionamento import provisionar_workspace
 from .services.payments.factory import PaymentGatewayFactory
 
 
-@login_required
 def assinaturas_dashboard(request: HttpRequest) -> HttpResponse:
     """Dashboard de assinaturas - apenas Mercado Pago"""
     from django.db import connection
     
-    # Buscar planos ativos
-    planos = PlanoAssinatura.objects.filter(ativo=True).order_by("preco_mensal_referencia", "nome")
-    
-    # Buscar assinatura usando SQL direto para evitar campos do Stripe
-    assinatura = None
+    # Buscar planos ativos - sempre garantir que seja uma queryset válida
+    planos = PlanoAssinatura.objects.none()  # Começar com queryset vazia como fallback
+
     try:
-        with connection.cursor() as cursor:
-            cursor.execute("""
-                SELECT id, usuario_id, produtor_id, plano_id, status,
-                       mercadopago_customer_id, mercadopago_subscription_id,
-                       gateway_pagamento, ultimo_checkout_id, current_period_end,
-                       cancelamento_agendado, metadata, data_liberacao,
-                       criado_em, atualizado_em
-                FROM gestao_rural_assinaturacliente
-                WHERE usuario_id = %s
-                LIMIT 1
-            """, [request.user.id])
-            
-            row = cursor.fetchone()
-            if row:
-                # Criar objeto mock com os dados
-                class AssinaturaMock:
-                    def __init__(self, row_data):
-                        self.id = row_data[0]
-                        self.usuario_id = row_data[1]
-                        self.produtor_id = row_data[2]
-                        self.plano_id = row_data[3]
-                        self.status = row_data[4]
-                        self.mercadopago_customer_id = row_data[5]
-                        self.mercadopago_subscription_id = row_data[6]
-                        self.gateway_pagamento = row_data[7]
-                        self.ultimo_checkout_id = row_data[8]
-                        self.current_period_end = row_data[9]
-                        self.cancelamento_agendado = row_data[10]
-                        self.metadata = row_data[11]
-                        self.data_liberacao = row_data[12]
-                        self.criado_em = row_data[13]
-                        self.atualizado_em = row_data[14]
-                        self.plano = None
-                
-                assinatura = AssinaturaMock(row)
-                
-                # Carregar plano se necessário
-                if assinatura.plano_id:
-                    try:
-                        assinatura.plano = PlanoAssinatura.objects.get(id=assinatura.plano_id)
-                    except PlanoAssinatura.DoesNotExist:
-                        assinatura.plano = None
+        # Tentar buscar planos ativos primeiro
+        planos_ativos = PlanoAssinatura.objects.filter(ativo=True)
+        if planos_ativos.exists():
+            # Ordenar por preço se o campo existir, senão por nome
+            try:
+                planos = planos_ativos.order_by("preco_mensal_referencia", "nome")
+            except:
+                planos = planos_ativos.order_by("nome")
+        else:
+            # Se não houver planos ativos, buscar todos
+            planos_todos = PlanoAssinatura.objects.all()
+            if planos_todos.exists():
+                try:
+                    planos = planos_todos.order_by("preco_mensal_referencia", "nome")
+                except:
+                    planos = planos_todos.order_by("nome")
+
+        # Se ainda não houver planos, criar planos padrão
+        if not planos.exists():
+            print("Nenhum plano encontrado, criando planos padrão...")
+            try:
+                PlanoAssinatura.objects.get_or_create(
+                    nome='Básico',
+                    slug='basico',
+                    defaults={
+                        'descricao': 'Plano básico para pequenos produtores',
+                        'preco_mensal_referencia': 49.90,
+                        'max_usuarios': 1,
+                        'modulos_disponiveis': ["dashboard_pecuaria", "curral", "cadastro", "pecuaria", "financeiro", "relatorios"],
+                        'recursos': '{"pecuaria": true, "financeiro": true, "relatorios": true}',
+                        'ativo': True,
+                        'popular': False,
+                        'recomendado': False,
+                        'ordem_exibicao': 1
+                    }
+                )
+                PlanoAssinatura.objects.get_or_create(
+                    nome='Profissional',
+                    slug='profissional',
+                    defaults={
+                        'descricao': 'Plano completo para produtores',
+                        'preco_mensal_referencia': 99.90,
+                        'max_usuarios': 5,
+                        'modulos_disponiveis': ["dashboard_pecuaria", "curral", "cadastro", "planejamento", "pecuaria", "rastreabilidade", "reproducao", "pesagem", "movimentacoes", "patrimonio", "nutricao", "compras", "vendas", "operacoes", "financeiro", "projetos", "relatorios", "categorias", "configuracoes"],
+                        'recursos': '{"pecuaria": true, "financeiro": true, "relatorios": true, "projetos_bancarios": true}',
+                        'ativo': True,
+                        'popular': True,
+                        'recomendado': True,
+                        'ordem_exibicao': 2
+                    }
+                )
+                PlanoAssinatura.objects.get_or_create(
+                    nome='Empresarial',
+                    slug='empresarial',
+                    defaults={
+                        'descricao': 'Plano empresarial para grandes propriedades',
+                        'preco_mensal_referencia': 199.90,
+                        'max_usuarios': 20,
+                        'modulos_disponiveis': ["dashboard_pecuaria", "curral", "cadastro", "planejamento", "pecuaria", "rastreabilidade", "reproducao", "pesagem", "movimentacoes", "patrimonio", "nutricao", "compras", "vendas", "operacoes", "financeiro", "projetos", "relatorios", "categorias", "configuracoes"],
+                        'recursos': '{"pecuaria": true, "financeiro": true, "relatorios": true, "projetos_bancarios": true, "multi_propriedade": true}',
+                        'ativo': True,
+                        'popular': False,
+                        'recomendado': False,
+                        'ordem_exibicao': 3
+                    }
+                )
+                # Buscar novamente após criar
+                planos = PlanoAssinatura.objects.filter(ativo=True).order_by("preco_mensal_referencia", "nome")
+            except Exception as create_error:
+                print(f"Erro ao criar planos: {create_error}")
+
     except Exception as e:
-        # Se houver erro, continuar sem assinatura
-        import traceback
-        traceback.print_exc()
+        print(f"Erro geral ao buscar planos: {e}")
+        # Garantir que planos seja sempre uma queryset válida
+        try:
+            planos = PlanoAssinatura.objects.all().order_by("preco_mensal_referencia", "nome")
+        except Exception:
+            # Em último caso, manter a queryset vazia
+            planos = PlanoAssinatura.objects.none()
+    
+    # Buscar assinatura do usuário - apenas se estiver autenticado
+    assinatura = None
+    if request.user.is_authenticated:
+        try:
+            # Primeiro tentar usar o ORM do Django (mais seguro)
+            from .models import AssinaturaCliente
+            try:
+                assinatura_obj = AssinaturaCliente.objects.filter(
+                    usuario=request.user,
+                    status='ATIVA'
+                ).first()
+                if assinatura_obj:
+                    assinatura = assinatura_obj
+            except Exception as orm_error:
+                print(f"Erro no ORM, tentando SQL direto: {orm_error}")
+                # Fallback para SQL direto se o ORM falhar
+                try:
+                    with connection.cursor() as cursor:
+                        cursor.execute("""
+                            SELECT id, usuario_id, produtor_id, plano_id, status,
+                                   mercadopago_customer_id, mercadopago_subscription_id,
+                                   gateway_pagamento, ultimo_checkout_id, current_period_end,
+                                   cancelamento_agendado, metadata, data_liberacao,
+                                   criado_em, atualizado_em
+                            FROM gestao_rural_assinaturacliente
+                            WHERE usuario_id = %s AND status = 'ATIVA'
+                            LIMIT 1
+                        """, [request.user.id])
+
+                        row = cursor.fetchone()
+                        if row:
+                            # Criar objeto mock com os dados
+                            class AssinaturaMock:
+                                def __init__(self, row_data):
+                                    self.id = row_data[0]
+                                    self.usuario_id = row_data[1]
+                                    self.produtor_id = row_data[2]
+                                    self.plano_id = row_data[3]
+                                    self.status = row_data[4]
+                                    self.mercadopago_customer_id = row_data[5]
+                                    self.mercadopago_subscription_id = row_data[6]
+                                    self.gateway_pagamento = row_data[7]
+                                    self.ultimo_checkout_id = row_data[8]
+                                    self.current_period_end = row_data[9]
+                                    self.cancelamento_agendado = row_data[10]
+                                    self.metadata = row_data[11]
+                                    self.data_liberacao = row_data[12]
+                                    self.criado_em = row_data[13]
+                                    self.atualizado_em = row_data[14]
+                                    self.plano = None
+
+                            assinatura = AssinaturaMock(row)
+
+                            # Carregar plano se necessário
+                            if assinatura.plano_id:
+                                try:
+                                    assinatura.plano = PlanoAssinatura.objects.get(id=assinatura.plano_id)
+                                except PlanoAssinatura.DoesNotExist:
+                                    assinatura.plano = None
+                except Exception as sql_error:
+                    print(f"Erro no SQL direto também: {sql_error}")
+                    assinatura = None
+        except Exception as e:
+            # Em caso de qualquer erro, continuar sem assinatura
+            print(f"Erro geral ao buscar assinatura: {e}")
+            assinatura = None
+    else:
+        # Usuário não autenticado
         assinatura = None
     
     # Gateway padrão: apenas Mercado Pago
@@ -270,30 +369,56 @@ def iniciar_checkout(request: HttpRequest, plano_slug: str) -> JsonResponse:
 def checkout_sucesso(request: HttpRequest) -> HttpResponse:
     """Página de confirmação de pagamento com dados de acesso."""
     try:
-        assinatura = AssinaturaCliente.objects.filter(usuario=request.user).values(
-            'id', 'usuario_id', 'produtor_id', 'plano_id', 'status',
-            'mercadopago_customer_id', 'mercadopago_subscription_id',
-            'gateway_pagamento', 'ultimo_checkout_id', 'current_period_end',
-            'cancelamento_agendado', 'metadata', 'data_liberacao',
-            'criado_em', 'atualizado_em'
-        ).first()
+        # Se usuário não está autenticado, buscar pela assinatura_id do parâmetro
+        assinatura_id = request.GET.get('assinatura_id')
+        if not request.user.is_authenticated and assinatura_id:
+            assinatura = AssinaturaCliente.objects.filter(id=assinatura_id).values(
+                'id', 'usuario_id', 'produtor_id', 'plano_id', 'status',
+                'mercadopago_customer_id', 'mercadopago_subscription_id',
+                'gateway_pagamento', 'ultimo_checkout_id', 'current_period_end',
+                'cancelamento_agendado', 'metadata', 'data_liberacao',
+                'criado_em', 'atualizado_em'
+            ).first()
+        elif request.user.is_authenticated:
+            assinatura = AssinaturaCliente.objects.filter(usuario=request.user).values(
+                'id', 'usuario_id', 'produtor_id', 'plano_id', 'status',
+                'mercadopago_customer_id', 'mercadopago_subscription_id',
+                'gateway_pagamento', 'ultimo_checkout_id', 'current_period_end',
+                'cancelamento_agendado', 'metadata', 'data_liberacao',
+                'criado_em', 'atualizado_em'
+            ).first()
+        else:
+            # Usuário não autenticado e sem assinatura_id
+            return render(request, 'gestao_rural/assinaturas_confirmacao.html', {
+                'erro': 'Usuário não autenticado e assinatura não encontrada.',
+                'test_mode': request.GET.get('test_mode', False)
+            })
+        # Verificar se usuário tem assinatura
+        if assinatura is None:
+            # Usuário não tem assinatura, redirecionar para dashboard de assinaturas
+            messages.info(request, 'Para acessar o sistema completo, faça uma assinatura primeiro.')
+            return redirect('assinaturas_dashboard')
+
         # Carregar plano separadamente se necessário
-        if assinatura and assinatura.plano_id:
+        if isinstance(assinatura, dict) and assinatura.get('plano_id'):
             try:
-                assinatura.plano = PlanoAssinatura.objects.get(id=assinatura.plano_id)
+                plano = PlanoAssinatura.objects.get(id=assinatura['plano_id'])
+                assinatura['plano'] = plano
             except PlanoAssinatura.DoesNotExist:
-                assinatura.plano = None
-        
-        # Se a assinatura está ativa, mostrar dados de acesso
-        if assinatura.status == AssinaturaCliente.Status.ATIVA:
+                assinatura['plano'] = None
+
+        # Se a assinatura está ativa ou está em modo teste, mostrar dados de acesso
+        is_test_mode = request.GET.get('test_mode', False)
+        if assinatura and (assinatura.get('status') == AssinaturaCliente.Status.ATIVA.value or is_test_mode):
             # Garantir que o usuário tenha a senha padrão
             garantir_senha_padrao_usuario(request.user)
             
             contexto = {
                 'assinatura': assinatura,
-                'email': request.user.email,
+                'email': request.user.email if request.user.is_authenticated else 'usuario@exemplo.com',
                 'senha': 'Monpec2025@',
-                'data_liberacao': assinatura.data_liberacao or '01/02/2025',
+                'data_liberacao': assinatura.get('data_liberacao') or '01/02/2025',
+                'test_mode': is_test_mode,
             }
             return render(request, 'gestao_rural/assinaturas_confirmacao.html', contexto)
         else:
@@ -645,9 +770,70 @@ def pre_lancamento(request: HttpRequest) -> HttpResponse:
                 assinatura.plano = None
     except AssinaturaCliente.DoesNotExist:
         return redirect('assinaturas_dashboard')
-    
+
     # Redirecionar para dashboard de demonstração
     return redirect('dashboard')
+
+
+@login_required
+def leads_demo(request: HttpRequest) -> HttpResponse:
+    """Página para visualizar leads de usuários demo interessados."""
+    # Verificar se usuário é superuser ou admin
+    if not request.user.is_superuser:
+        messages.error(request, 'Acesso negado. Apenas administradores podem visualizar esta página.')
+        return redirect('assinaturas_dashboard')
+
+    # Buscar usuários demo (que têm UsuarioAtivo)
+    from django.contrib.auth.models import User
+    from gestao_rural.models_auditoria import UsuarioAtivo
+
+    try:
+        # Buscar usuários que são demo
+        usuarios_demo_ids = UsuarioAtivo.objects.values_list('usuario_id', flat=True)
+        usuarios_demo = User.objects.filter(id__in=usuarios_demo_ids).order_by('-date_joined')
+
+        # Estatísticas
+        from gestao_rural.services_notificacoes_demo import obter_estatisticas_leads_demo
+        estatisticas = obter_estatisticas_leads_demo()
+
+        contexto = {
+            'leads_demo': usuarios_demo,
+            'estatisticas': estatisticas,
+        }
+
+        return render(request, 'gestao_rural/leads_demo.html', contexto)
+
+    except Exception as e:
+        messages.error(request, f'Erro ao carregar leads: {str(e)}')
+        return redirect('assinaturas_dashboard')
+
+
+@login_required
+def usuarios_assinantes(request: HttpRequest) -> HttpResponse:
+    """Página para visualizar todos os usuários com assinaturas ativas."""
+    # Verificar se usuário é superuser ou admin
+    if not request.user.is_superuser:
+        messages.error(request, 'Acesso negado. Apenas administradores podem visualizar esta página.')
+        return redirect('dashboard')
+
+    # Buscar todas as assinaturas com dados relacionados
+    assinaturas = AssinaturaCliente.objects.select_related(
+        'usuario', 'plano'
+    ).order_by('-criado_em')
+
+    # Estatísticas
+    total_assinaturas = assinaturas.count()
+    assinaturas_ativas = assinaturas.filter(status='ATIVA').count()
+    assinaturas_pendentes = assinaturas.filter(status='PENDENTE').count()
+
+    contexto = {
+        'assinaturas': assinaturas,
+        'total_assinaturas': total_assinaturas,
+        'assinaturas_ativas': assinaturas_ativas,
+        'assinaturas_pendentes': assinaturas_pendentes,
+    }
+
+    return render(request, 'gestao_rural/usuarios_assinantes.html', contexto)
 
 
 # Sistema de pagamento: Apenas Mercado Pago

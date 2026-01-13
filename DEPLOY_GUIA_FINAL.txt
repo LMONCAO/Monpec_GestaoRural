@@ -1,0 +1,151 @@
+🚀 GUIA COMPLETO DE DEPLOY - MONPEC PARA GOOGLE CLOUD
+
+================================================================================
+
+📋 PRÉ-REQUISITOS
+================
+
+1. Conta Google Cloud Platform
+   - Acesse: https://console.cloud.google.com/
+   - Projeto: monpec-sistema-rural
+
+2. Google Cloud SDK instalado
+   curl https://sdk.cloud.google.com | bash
+   exec -l $SHELL
+   gcloud init
+
+3. Autenticação
+   gcloud auth login
+   gcloud config set project monpec-sistema-rural
+
+================================================================================
+
+🗄️ CONFIGURAR BANCO DE DADOS (Cloud SQL)
+=========================================
+
+1. Criar Instância PostgreSQL
+   gcloud sql instances create monpec-db \
+       --database-version=POSTGRES_14 \
+       --tier=db-f1-micro \
+       --region=us-central1 \
+       --root-password=L6171r12@@jjms \
+       --storage-size=10GB \
+       --storage-type=SSD
+
+2. Criar Database e Usuário
+   gcloud sql connect monpec-db --user=postgres --quiet
+
+   # Dentro do PostgreSQL:
+   CREATE DATABASE monpec_db;
+   CREATE USER monpec_user WITH PASSWORD 'L6171r12@@jjms';
+   GRANT ALL PRIVILEGES ON DATABASE monpec_db TO monpec_user;
+   ALTER USER monpec_user CREATEDB;
+   \q
+
+================================================================================
+
+🚀 DEPLOY AUTOMATIZADO (MÉTODO MAIS FÁCIL)
+===========================================
+
+1. Upload do Código (Cloud Shell)
+   git clone https://github.com/seu-usuario/monpec.git
+   cd monpec
+
+2. Executar Deploy Automático
+   chmod +x deploy-final.sh
+   ./deploy-final.sh
+
+3. Executar Migrações
+   # Criar job de migração
+   gcloud run jobs create migrate-monpec \
+       --image gcr.io/monpec-sistema-rural/monpec:latest \
+       --region us-central1 \
+       --set-env-vars "DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp" \
+       --set-env-vars "DB_NAME=monpec_db" \
+       --set-env-vars "DB_USER=monpec_user" \
+       --set-env-vars "DB_PASSWORD=L6171r12@@jjms" \
+       --set-env-vars "DB_HOST=34.9.51.178" \
+       --set-env-vars "CLOUD_SQL_CONNECTION_NAME=monpec-sistema-rural:us-central1:monpec-db" \
+       --set-cloudsql-instances monpec-sistema-rural:us-central1:monpec-db \
+       --command python \
+       --args manage.py,migrate,--noinput \
+       --memory 2Gi \
+       --cpu 1 \
+       --max-retries 3 \
+       --task-timeout 600
+
+   # Executar migrações
+   gcloud run jobs execute migrate-monpec --region=us-central1 --wait
+
+================================================================================
+
+🧪 VERIFICAÇÃO PÓS-DEPLOY
+==========================
+
+1. Obter URL do Serviço
+   SERVICE_URL=$(gcloud run services describe monpec --region=us-central1 --format="value(status.url)")
+   echo "Sistema disponível em: $SERVICE_URL"
+
+2. Testar Funcionamento
+   curl -I $SERVICE_URL                    # Homepage
+   curl -I $SERVICE_URL/assinaturas/       # Página de planos
+   curl -I $SERVICE_URL/dashboard/         # Dashboard (deve redirecionar)
+
+3. Verificar Logs
+   gcloud run services logs read monpec --region=us-central1 --follow
+
+================================================================================
+
+🔍 DIAGNÓSTICO DE ERROS 500
+============================
+
+PROBLEMAS COMUNS:
+
+❌ "Connection refused" (Banco)
+   # Verificar IP do Cloud SQL
+   gcloud sql instances describe monpec-db --format="value(ipAddresses)"
+
+   # Testar conexão
+   gcloud sql connect monpec-db --user=monpec_user
+
+❌ "Migration failed"
+   # Executar migrações novamente
+   gcloud run jobs execute migrate-monpec --region=us-central1 --wait
+
+❌ "Static files not found"
+   # Verificar se arquivos estáticos foram coletados
+   python manage.py collectstatic --noinput --settings=sistema_rural.settings_gcp
+
+================================================================================
+
+📊 CONFIGURAÇÕES IMPORTANTES
+=============================
+
+Mercado Pago (Produção)
+   gcloud run services update monpec --region=us-central1 \
+       --set-env-vars "MERCADOPAGO_ACCESS_TOKEN=APP_USR-..." \
+       --set-env-vars "MERCADOPAGO_PUBLIC_KEY=APP_USR-..." \
+       --set-env-vars "MERCADOPAGO_SUCCESS_URL=$SERVICE_URL/assinaturas/sucesso/" \
+       --set-env-vars "MERCADOPAGO_CANCEL_URL=$SERVICE_URL/assinaturas/cancelado/"
+
+Email (Gmail)
+   gcloud run services update monpec --region=us-central1 \
+       --set-env-vars "EMAIL_HOST_PASSWORD=sua_app_password"
+
+================================================================================
+
+✅ CHECKLIST FINAL
+==================
+
+□ Projeto GCP configurado
+□ Cloud SQL PostgreSQL criado
+□ Deploy no Cloud Run concluído
+□ Migrações aplicadas com sucesso
+□ Serviço acessível (sem erro 500)
+□ Páginas principais funcionando
+□ Sistema de assinaturas operacional
+□ Mercado Pago configurado
+□ Email funcionando
+□ Domínio personalizado (opcional)
+
+🎉 SISTEMA MONPEC IMPLANTADO COM SUCESSO NO GOOGLE CLOUD!
