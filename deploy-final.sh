@@ -18,11 +18,12 @@ echo "========================================"
 echo ""
 
 # Configurações
-PROJECT_ID="monpec-sistema-rural"
+PROJECT_ID="monpec-sistema-rural"  # ID do projeto
+PROJECT_NUMBER="29862706245"       # Número do projeto
 SERVICE_NAME="monpec"
 REGION="us-central1"
 IMAGE_NAME="gcr.io/${PROJECT_ID}/${SERVICE_NAME}"
-CONNECTION_NAME="monpec-sistema-rural:us-central1:monpec-db"
+CONNECTION_NAME="${PROJECT_ID}:us-central1:monpec-db"
 SECRET_KEY="rfzjy1t-wda0oi+p!_4!4-n-1a60"
 DB_PASSWORD="L6171r12@@jjms"
 DB_USER="postgres"  # Usando postgres como informado
