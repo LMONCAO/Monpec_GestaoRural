@@ -25,6 +25,7 @@ IMAGE_NAME="gcr.io/${PROJECT_ID}/${SERVICE_NAME}"
 CONNECTION_NAME="monpec-sistema-rural:us-central1:monpec-db"
 SECRET_KEY="rfzjy1t-wda0oi+p!_4!4-n-1a60"
 DB_PASSWORD="L6171r12@@jjms"
+DB_USER="postgres"  # Usando postgres como informado
 
 # 1. Configurar projeto
 echo -e "${BLUE}📋${NC} Configurando projeto GCP..."
@@ -60,7 +61,7 @@ gcloud run deploy "$SERVICE_NAME" \
     --set-env-vars "SECRET_KEY=$SECRET_KEY" \
     --set-env-vars "GOOGLE_CLOUD_PROJECT=$PROJECT_ID" \
     --set-env-vars "DB_NAME=monpec_db" \
-    --set-env-vars "DB_USER=monpec_user" \
+    --set-env-vars "DB_USER=$DB_USER" \
     --set-env-vars "DB_PASSWORD=$DB_PASSWORD" \
     --set-env-vars "DB_HOST=34.9.51.178" \
     --set-env-vars "DB_PORT=5432" \
@@ -102,7 +103,51 @@ else
 fi
 echo ""
 
-# 5. Instruções finais
+# 5. Executar migrações
+echo -e "${BLUE}🗃️${NC} Executando migrações..."
+echo "   Isso pode levar alguns minutos..."
+echo ""
+
+# Criar job de migração
+gcloud run jobs create migrate-monpec \
+    --image "${IMAGE_NAME}:latest" \
+    --region="$REGION" \
+    --set-env-vars "DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp" \
+    --set-env-vars "DB_NAME=monpec_db" \
+    --set-env-vars "DB_USER=$DB_USER" \
+    --set-env-vars "DB_PASSWORD=$DB_PASSWORD" \
+    --set-env-vars "DB_HOST=34.9.51.178" \
+    --set-env-vars "DB_PORT=5432" \
+    --set-env-vars "CLOUD_SQL_CONNECTION_NAME=$CONNECTION_NAME" \
+    --set-cloudsql-instances="$CONNECTION_NAME" \
+    --command="python" \
+    --args="manage.py,migrate,--noinput" \
+    --memory=2Gi \
+    --cpu=1 \
+    --max-retries=3 \
+    --task-timeout=600 \
+    --quiet
+
+if [ $? -eq 0 ]; then
+    echo -e "${GREEN}✅${NC} Job de migração criado com sucesso!"
+
+    # Executar migrações
+    echo -e "${BLUE}▶${NC} Executando migrações..."
+    gcloud run jobs execute migrate-monpec --region="$REGION" --wait --quiet
+
+    if [ $? -eq 0 ]; then
+        echo -e "${GREEN}✅${NC} Migrações aplicadas com sucesso!"
+    else
+        echo -e "${YELLOW}⚠️${NC} Migrações podem ter falhado. Verifique os logs:"
+        echo "   gcloud run jobs executions list --job=migrate-monpec --region=$REGION"
+    fi
+else
+    echo -e "${YELLOW}⚠️${NC} Não foi possível criar job de migração"
+fi
+
+echo ""
+
+# 6. Instruções finais
 echo "========================================"
 echo -e "${GREEN}🎉 DEPLOY CONCLUÍDO COM SUCESSO!${NC}"
 echo "========================================"
