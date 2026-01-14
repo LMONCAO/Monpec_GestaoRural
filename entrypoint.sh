@@ -96,6 +96,25 @@ try:
                 print('✅ Coluna certificado_thumbprint adicionada')
             else:
                 print('✅ Coluna certificado_thumbprint já existe')
+
+            # Verificar coluna certificado_emissor
+            cursor.execute(\"SELECT COUNT(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='gestao_rural_produtorrural' AND column_name='certificado_emissor'\")
+            if cursor.fetchone()[0] == 0:
+                print('Adicionando coluna certificado_emissor...')
+                cursor.execute('ALTER TABLE gestao_rural_produtorrural ADD COLUMN certificado_emissor VARCHAR(255)')
+                print('✅ Coluna certificado_emissor adicionada')
+            else:
+                print('✅ Coluna certificado_emissor já existe')
+
+            # Verificar coluna certificado_data_validade
+            cursor.execute(\"SELECT COUNT(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='gestao_rural_produtorrural' AND column_name='certificado_data_validade'\")
+            if cursor.fetchone()[0] == 0:
+                print('Adicionando coluna certificado_data_validade...')
+                cursor.execute('ALTER TABLE gestao_rural_produtorrural ADD COLUMN certificado_data_validade DATE')
+                print('✅ Coluna certificado_data_validade adicionada')
+            else:
+                print('✅ Coluna certificado_data_validade já existe')
+
         else:
             print('Tabela produtorrural não existe - será criada pelas migrações')
 except Exception as e:
