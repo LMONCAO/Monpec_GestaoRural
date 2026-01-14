@@ -162,8 +162,12 @@ def main():
                     print(f"❌ {table} - FALTANDO")
         except Exception as e:
             print(f"⚠️ Erro ao verificar {table}: {e}")
+            if is_ci:
+                print("⚠️ Em CI/CD, continuando mesmo com erro...")
 
     print(f"📊 Tabelas críticas encontradas: {existing_tables}/{len(critical_tables)}")
+    if is_ci and existing_tables == 0:
+        print("⚠️ Ambiente CI/CD - tabelas serão criadas no deploy")
 
     # 6. Criar dados básicos se necessário
     print("\n6. 🌱 CRIANDO DADOS BÁSICOS...")
@@ -204,6 +208,8 @@ def main():
 
         except Exception as e:
             print(f"⚠️ Erro ao criar dados básicos: {e}")
+            if is_ci:
+                print("⚠️ Ambiente CI/CD - dados serão criados no primeiro acesso")
 
     # 7. Teste final
     print("\n7. 🧪 TESTE FINAL DO SISTEMA...")
