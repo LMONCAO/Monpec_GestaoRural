@@ -137,22 +137,22 @@ jobs:
 
     - name: 🚀 Deploy para Cloud Run
       run: |
-        gcloud run deploy ${{ env.SERVICE_NAME }} \\
-          --image gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \\
-          --platform managed \\
-          --region ${{ env.GCP_REGION }} \\
-          --allow-unauthenticated \\
-          --port 8080 \\
-          --memory 2Gi \\
-          --cpu 1 \\
-          --max-instances 10 \\
-          --min-instances 1 \\
-          --set-env-vars="DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp_deploy" \\
-          --set-env-vars="SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}" \\
-          --set-env-vars="MERCADOPAGO_ACCESS_TOKEN=${{ secrets.MERCADOPAGO_ACCESS_TOKEN }}" \\
-          --set-env-vars="EMAIL_HOST_PASSWORD=${{ secrets.EMAIL_HOST_PASSWORD }}" \\
-          --set-env-vars="CONSULTOR_TELEFONE=${{ secrets.CONSULTOR_TELEFONE }}" \\
-          --set-secrets="GOOGLE_CREDENTIALS_JSON=monpec-gcp-credentials:latest" \\
+        gcloud run deploy ${{ env.SERVICE_NAME }} \
+          --image gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
+          --platform managed \
+          --region ${{ env.GCP_REGION }} \
+          --allow-unauthenticated \
+          --port 8080 \
+          --memory 2Gi \
+          --cpu 1 \
+          --max-instances 10 \
+          --min-instances 1 \
+          --set-env-vars="DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp_deploy" \
+          --set-env-vars="SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}" \
+          --set-env-vars="MERCADOPAGO_ACCESS_TOKEN=${{ secrets.MERCADOPAGO_ACCESS_TOKEN }}" \
+          --set-env-vars="EMAIL_HOST_PASSWORD=${{ secrets.EMAIL_HOST_PASSWORD }}" \
+          --set-env-vars="CONSULTOR_TELEFONE=${{ secrets.CONSULTOR_TELEFONE }}" \
+          --set-secrets="GOOGLE_CREDENTIALS_JSON=monpec-gcp-credentials:latest" \
           --add-cloudsql-instances ${{ env.GCP_PROJECT_ID }}:${{ env.GCP_REGION }}:monpec-db
 
     - name: 📍 Obter URL do serviço
