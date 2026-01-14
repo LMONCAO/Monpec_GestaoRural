@@ -57,27 +57,13 @@ except OperationalError as e:
     sleep 2
 done
 
-# Aplicar migrações
+# Aplicar migrações (simplificado)
 echo "📋 Aplicando migrações..."
-python3 manage.py migrate --run-syncdb --settings="$DJANGO_SETTINGS_MODULE" || {
-    echo "⚠️ Migrações falharam, tentando continuar..."
-}
+python3 manage.py migrate --run-syncdb --settings="$DJANGO_SETTINGS_MODULE" 2>/dev/null && echo "✅ Migrações OK" || echo "⚠️ Migrações falharam"
 
-# Coletar estáticos (opcional)
+# Coletar estáticos (mínimo)
 echo "📦 Coletando estáticos..."
 python3 manage.py collectstatic --noinput --settings="$DJANGO_SETTINGS_MODULE" 2>/dev/null || echo "⚠️ Collectstatic falhou"
-
-# Criar admin (opcional)
-echo "👨‍💼 Verificando admin..."
-python3 manage.py shell --settings="$DJANGO_SETTINGS_MODULE" -c "
-from django.contrib.auth import get_user_model
-User = get_user_model()
-if not User.objects.filter(username='admin').exists():
-    User.objects.create_superuser('admin', 'admin@monpec.com.br', 'admin123')
-    print('✅ Admin criado')
-else:
-    print('✅ Admin existe')
-" 2>/dev/null || echo "⚠️ Admin falhou"
 
 # Iniciar Django
 echo "🚀 Iniciando Django na porta $PORT..."

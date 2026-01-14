@@ -25,7 +25,10 @@ if not IS_CLOUD_RUN and os.getenv('GOOGLE_CLOUD_PROJECT'):
 # =============================================================================
 
 DEBUG = False  # Sempre False em produção
-SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-gcp-production-key-2025')
+
+# SECRET_KEY garantida para produção
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-production-key-monpec-2025-final-fixed')
+print(f"DEBUG: SECRET_KEY configurada: {SECRET_KEY[:20]}...")  # Log para confirmar
 
 # ALLOWED_HOSTS otimizado para GCP
 ALLOWED_HOSTS = [
