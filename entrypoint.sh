@@ -126,6 +126,48 @@ except Exception as e:
     traceback.print_exc()
 " || echo "❌ Falha crítica na correção de schema"
 
+# TESTE FINAL: Django consegue carregar URLs?
+echo "🧪 TESTANDO SE DJANGO CARREGA URLs..."
+python3 -c "
+import os
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', '$DJANGO_SETTINGS_MODULE')
+import django
+django.setup()
+
+try:
+    from django.urls import reverse
+    from django.conf import settings
+    print('✅ Django URLs OK')
+    print(f'📍 DEBUG: {settings.DEBUG}')
+    print(f'🗄️ DATABASE: {settings.DATABASES[\"default\"][\"ENGINE\"]}')
+
+    # Tentar resolver algumas URLs importantes
+    try:
+        login_url = reverse('login')
+        print(f'✅ URL login: {login_url}')
+    except:
+        print('⚠️ URL login não encontrada')
+
+    try:
+        landing_url = reverse('landing_page')
+        print(f'✅ URL landing: {landing_url}')
+    except:
+        print('⚠️ URL landing não encontrada')
+
+    # Verificar se consegue importar as views
+    try:
+        from gestao_rural import views
+        print('✅ Views principais OK')
+    except Exception as e:
+        print(f'⚠️ Erro nas views: {e}')
+
+except Exception as e:
+    print(f'❌ ERRO ao carregar URLs: {e}')
+    import traceback
+    traceback.print_exc()
+    exit(1)
+"
+
 # Coletar estáticos (mínimo)
 echo "📦 Coletando estáticos..."
 python3 manage.py collectstatic --noinput --settings="$DJANGO_SETTINGS_MODULE" 2>/dev/null || echo "⚠️ Collectstatic falhou"
