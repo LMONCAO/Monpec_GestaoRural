@@ -564,6 +564,11 @@ Equipe MONPEC - Gestão Rural Inteligente
             logger.error("Erro ao enviar email de convite para %s (convite ID: %s): %s",
                         convite.email_destinatario, convite.id, str(e))
             raise
+    except Exception as e:
+        logger.error("Erro ao enviar convite de cotação para %s (convite ID: %s): %s",
+                     convite.email_destinatario, convite.id, str(e))
+        return False
+
 def verificar_renovacoes_pendentes() -> dict:
     """
     Verifica assinaturas que precisam de renovação e envia lembretes.
