@@ -70,23 +70,41 @@ if IS_CI_CD:
         }
     }
 else:
-    # Configuração PostgreSQL para produção
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.getenv('DB_NAME', 'monpec-db'),
-            'USER': os.getenv('DB_USER', 'postgres'),
-            'PASSWORD': os.getenv('DB_PASSWORD', 'L6171r12@@jjms'),
-            'HOST': os.getenv('DB_HOST', '/cloudsql/monpec-sistema-rural:us-central1:monpec-db'),
-            'PORT': os.getenv('DB_PORT', '5432'),
-            'OPTIONS': {
-                # Configurações para Cloud SQL
-                'sslmode': 'require' if IS_CLOUD_RUN else 'prefer',
-            },
-            'CONN_MAX_AGE': 60,
-            'ATOMIC_REQUESTS': True,
+    # Configuração PostgreSQL para produção no Cloud Run
+    if IS_CLOUD_RUN:
+        # Cloud Run usa socket Unix para Cloud SQL
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.postgresql',
+                'NAME': 'monpec-db',
+                'USER': 'postgres',
+                'PASSWORD': 'L6171r12@@jjms',
+                'HOST': '/cloudsql/monpec-sistema-rural:us-central1:monpec-db',
+                'PORT': '',  # Vazio para socket Unix
+                'OPTIONS': {
+                    'sslmode': 'disable',  # Cloud SQL gerencia SSL
+                },
+                'CONN_MAX_AGE': 60,
+                'ATOMIC_REQUESTS': True,
+            }
         }
-    }
+    else:
+        # Configuração para desenvolvimento local (se necessário)
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.postgresql',
+                'NAME': os.getenv('DB_NAME', 'monpec-db'),
+                'USER': os.getenv('DB_USER', 'postgres'),
+                'PASSWORD': os.getenv('DB_PASSWORD', 'L6171r12@@jjms'),
+                'HOST': os.getenv('DB_HOST', 'localhost'),
+                'PORT': os.getenv('DB_PORT', '5432'),
+                'OPTIONS': {
+                    'sslmode': 'prefer',
+                },
+                'CONN_MAX_AGE': 60,
+                'ATOMIC_REQUESTS': True,
+            }
+        }
 
 # =============================================================================
 # ARQUIVOS ESTÁTICOS E MÍDIA - GOOGLE CLOUD STORAGE

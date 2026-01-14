@@ -1,69 +1,91 @@
 #!/bin/bash
 
-# LOG INICIAL PARA CONFIRMAR EXECUÇÃO
-echo "=========================================="
-echo "🚀 ENTRYPOINT.SH INICIADO!"
-echo "=========================================="
-date
-whoami
-pwd
-ls -la /app/
-echo "=========================================="
-
-# Entrypoint MONPEC - versão de debug para resolver Service Unavailable
+# VERSÃO FINAL: Django com Cloud SQL
 export PORT=${PORT:-8080}
 
-echo "🚀 MONPEC Cloud Run - DEBUG MODE"
+echo "🚀 MONPEC Cloud Run - VERSÃO FINAL"
 echo "📍 Porta: $PORT"
-echo "📊 DJANGO_SETTINGS_MODULE: $DJANGO_SETTINGS_MODULE"
+echo "⏰ Hora: $(date)"
 
-# Configuração
+# Configurações Django
 export DJANGO_SETTINGS_MODULE="${DJANGO_SETTINGS_MODULE:-sistema_rural.settings_gcp_deploy}"
 
-# Testes detalhados
-echo "🐍 Testando Python..."
-python3 --version
+# Verificações básicas
+echo "🐍 Verificando Python..."
+python3 -c "print('✅ Python OK')" || exit 1
 
-echo "📦 Testando Django..."
-python3 -c "import django; print('Django version:', django.get_version())"
+echo "📦 Verificando Django..."
+python3 -c "import django; print('✅ Django OK')" || exit 1
 
-echo "⚙️ Testando settings..."
-python3 -c "
+echo "🐴 Verificando Gunicorn..."
+python3 -c "import gunicorn; print('✅ Gunicorn OK')" || exit 1
+
+# Aguardar Cloud SQL ficar disponível (máximo 60 segundos)
+echo "⏳ Aguardando Cloud SQL..."
+for i in {1..60}; do
+    if python3 -c "
 import os
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', '$DJANGO_SETTINGS_MODULE')
 import django
+from django.conf import settings
 django.setup()
-print('✅ Django setup OK')
-print('📊 Installed apps:', len(django.apps.apps.get_app_configs()))
-"
 
-echo "🗄️ Testando banco de dados..."
-python3 -c "
-import os
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', '$DJANGO_SETTINGS_MODULE')
-import django
-django.setup()
-from django.db import connection
+from django.db import connections
+from django.db.utils import OperationalError
+
 try:
-    with connection.cursor() as cursor:
-        cursor.execute('SELECT 1 as test')
-        result = cursor.fetchone()
-        print('✅ Banco OK, teste SELECT:', result)
-except Exception as e:
-    print('❌ ERRO BANCO:', str(e))
-    import traceback
-    traceback.print_exc()
-"
+    conn = connections['default']
+    conn.ensure_connection()
+    print('✅ Banco OK')
+    exit(0)
+except OperationalError as e:
+    print(f'⏳ Aguardando banco... {e}')
+    exit(1)
+"; then
+        echo "✅ Cloud SQL conectado!"
+        break
+    fi
 
-echo "📋 Executando migrações..."
-python3 manage.py showmigrations --settings="$DJANGO_SETTINGS_MODULE" | head -10
+    if [ $i -eq 60 ]; then
+        echo "❌ Timeout: Cloud SQL não disponível após 60 segundos"
+        echo "📋 Verificando variáveis de ambiente..."
+        env | grep -E "(DATABASE|DB_|DJANGO)" || echo "⚠️ Nenhuma variável DB encontrada"
+        exit 1
+    fi
 
-echo "🚀 Iniciando Gunicorn..."
+    echo "⏳ Tentativa $i/60 - Aguardando 2 segundos..."
+    sleep 2
+done
+
+# Aplicar migrações
+echo "📋 Aplicando migrações..."
+python3 manage.py migrate --run-syncdb --settings="$DJANGO_SETTINGS_MODULE" || {
+    echo "⚠️ Migrações falharam, tentando continuar..."
+}
+
+# Coletar estáticos (opcional)
+echo "📦 Coletando estáticos..."
+python3 manage.py collectstatic --noinput --settings="$DJANGO_SETTINGS_MODULE" 2>/dev/null || echo "⚠️ Collectstatic falhou"
+
+# Criar admin (opcional)
+echo "👨‍💼 Verificando admin..."
+python3 manage.py shell --settings="$DJANGO_SETTINGS_MODULE" -c "
+from django.contrib.auth import get_user_model
+User = get_user_model()
+if not User.objects.filter(username='admin').exists():
+    User.objects.create_superuser('admin', 'admin@monpec.com.br', 'admin123')
+    print('✅ Admin criado')
+else:
+    print('✅ Admin existe')
+" 2>/dev/null || echo "⚠️ Admin falhou"
+
+# Iniciar Django
+echo "🚀 Iniciando Django na porta $PORT..."
 exec gunicorn sistema_rural.wsgi:application \
     --bind 0.0.0.0:$PORT \
     --workers 1 \
-    --threads 1 \
-    --timeout 60 \
-    --log-level debug \
+    --threads 2 \
+    --timeout 120 \
     --access-logfile - \
-    --error-logfile -
+    --error-logfile - \
+    --log-level info
