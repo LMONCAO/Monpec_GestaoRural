@@ -1,5 +1,15 @@
 #!/bin/bash
 
+# LOG INICIAL PARA CONFIRMAR EXECUÇÃO
+echo "=========================================="
+echo "🚀 ENTRYPOINT.SH INICIADO!"
+echo "=========================================="
+date
+whoami
+pwd
+ls -la /app/
+echo "=========================================="
+
 # Entrypoint MONPEC - versão de debug para resolver Service Unavailable
 export PORT=${PORT:-8080}
 
