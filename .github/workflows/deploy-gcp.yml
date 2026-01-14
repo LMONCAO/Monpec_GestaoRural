@@ -77,37 +77,45 @@ jobs:
       with:
         credentials_json: ${{ secrets.GCP_SA_KEY }}
 
-    - name: 🏗️ Configurar Docker e verificar permissões
+    - name: 🏗️ Configurar Docker
       run: |
         gcloud auth configure-docker --quiet
-        gcloud services enable containerregistry.googleapis.com --quiet
-        gcloud services enable artifactregistry.googleapis.com --quiet
         gcloud auth list
         echo "🔍 Verificando projeto atual..."
         gcloud config get-value project
-        echo "🔍 Testando acesso ao Container Registry..."
-        gcloud container images list --repository=gcr.io/${{ env.GCP_PROJECT_ID }} || echo "⚠️ Acesso limitado ao GCR"
 
     - name: 🐳 Build da imagem
       run: |
         docker build -f Dockerfile.gcp -t gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ github.sha }} .
         docker build -f Dockerfile.gcp -t gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.SERVICE_NAME }}:latest .
 
-    - name: 📤 Push da imagem (com fallback)
+    - name: 📤 Push da imagem (com diagnóstico)
       run: |
         echo "🔄 Tentando push da imagem Docker..."
         if docker push gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ github.sha }}; then
           echo "✅ Push SHA tag: OK"
           docker push gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.SERVICE_NAME }}:latest || echo "⚠️ Latest tag falhou, mas SHA foi enviado"
         else
-          echo "❌ ERRO: Service Account precisa da permissão 'Artifact Registry Writer'"
-          echo "🔧 SOLUÇÃO: No GCP IAM, adicione o papel 'Artifact Registry Writer' à Service Account"
-          echo "📧 Ou use uma conta com mais permissões no secret GCP_SA_KEY"
+          echo "❌ ERRO CRÍTICO: Service Account SEM permissões suficientes!"
           echo ""
-          echo "📋 PERMISSÕES NECESSÁRIAS:"
-          echo "- artifactregistry.repositories.uploadArtifacts"
-          echo "- storage.objects.create"
-          echo "- storage.objects.get"
+          echo "🔴 CAUSA: Service Account 'github-actions-deploy@monpec-sistema-rural.iam.gserviceaccount.com'"
+          echo "🔴 PROBLEMA: Não consegue habilitar APIs nem fazer upload para GCR"
+          echo ""
+          echo "🟢 SOLUÇÃO 1 (RECOMENDADA): Usar conta Owner/Admin"
+          echo "   1. Vá ao GCP IAM: https://console.cloud.google.com/iam-admin/iam"
+          echo "   2. Projeto: monpec-sistema-rural"
+          echo "   3. Encontre: github-actions-deploy@..."
+          echo "   4. ALTERAR PAPEL PARA: 'Editor' ou 'Owner'"
+          echo "   5. Salvar e aguardar 2-3 minutos"
+          echo ""
+          echo "🟡 SOLUÇÃO 2: Criar nova Service Account"
+          echo "   1. GCP IAM > Service Accounts > Criar"
+          echo "   2. Nome: github-deploy-admin"
+          echo "   3. Papel: Editor (ou Owner)"
+          echo "   4. Criar chave JSON"
+          echo "   5. Atualizar secret GCP_SA_KEY no GitHub"
+          echo ""
+          echo "📞 CONTATO: (67) 99968-8561 | l.moncaosilva@gmail.com"
           exit 1
         fi
 
