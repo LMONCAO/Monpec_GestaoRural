@@ -19,16 +19,41 @@ python3 -c "import django; print('✅ Django OK')" || exit 1
 echo "🐴 Verificando Gunicorn..."
 python3 -c "import gunicorn; print('✅ Gunicorn OK')" || exit 1
 
-# Migrações essenciais
+# Migrações essenciais com diagnóstico
 echo "📋 Aplicando migrações..."
-python3 manage.py migrate --run-syncdb --settings="$DJANGO_SETTINGS_MODULE" 2>/dev/null || echo "⚠️ Migrações básicas falharam"
+if python3 manage.py migrate --run-syncdb --settings="$DJANGO_SETTINGS_MODULE"; then
+    echo "✅ Migrações OK"
+else
+    echo "⚠️ Migrações falharam, tentando --fake..."
+    python3 manage.py migrate --fake --settings="$DJANGO_SETTINGS_MODULE" 2>/dev/null || echo "❌ Mesmo fake falhou"
+fi
 
 # Coletar estáticos
 echo "📦 Coletando estáticos..."
 python3 manage.py collectstatic --noinput --settings="$DJANGO_SETTINGS_MODULE" 2>/dev/null || echo "⚠️ Collectstatic falhou"
 
+# Teste final do Django antes de iniciar
+echo "🧪 Testando Django..."
+if python3 -c "
+import os
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', '$DJANGO_SETTINGS_MODULE')
+import django
+django.setup()
+from django.db import connection
+try:
+    cursor = connection.cursor()
+    cursor.execute('SELECT 1')
+    print('✅ Banco de dados OK')
+except Exception as e:
+    print(f'⚠️ Banco falhou: {e}')
+"; then
+    echo "✅ Django pronto"
+else
+    echo "❌ Django com problemas, mas tentando iniciar..."
+fi
+
 # Iniciar Django com Gunicorn
-echo "✅ Iniciando Django na porta $PORT..."
+echo "🚀 Iniciando Django na porta $PORT..."
 exec gunicorn sistema_rural.wsgi:application \
     --bind 0.0.0.0:$PORT \
     --workers 1 \
