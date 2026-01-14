@@ -137,6 +137,10 @@ jobs:
 
     - name: 🚀 Deploy para Cloud Run
       run: |
+        echo "🗑️ Removendo serviço existente (se houver)..."
+        gcloud run services delete ${{ env.SERVICE_NAME }} --region=${{ env.GCP_REGION }} --quiet || echo "⚠️ Serviço não existia ou já foi removido"
+
+        echo "🚀 Fazendo deploy limpo..."
         gcloud run deploy ${{ env.SERVICE_NAME }} \
           --image gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \
           --platform managed \
