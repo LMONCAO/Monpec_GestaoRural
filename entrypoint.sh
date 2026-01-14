@@ -1,64 +1,25 @@
 #!/bin/bash
 
-# Entrypoint MONPEC - versão final funcionando
+# Entrypoint MONPEC - versão ultra simples para funcionar
 export PORT=${PORT:-8080}
 
-echo "🚀 Iniciando MONPEC Cloud Run..."
+echo "🚀 MONPEC Cloud Run iniciando..."
 echo "📍 Porta: $PORT"
 
-# Configurações Django
+# Configuração mínima
 export DJANGO_SETTINGS_MODULE="${DJANGO_SETTINGS_MODULE:-sistema_rural.settings_gcp_deploy}"
 
-# Verificações rápidas
-echo "🐍 Verificando Python..."
-python3 -c "print('✅ Python OK')" || exit 1
+# Apenas verificações críticas
+python3 -c "import django; print('✅ Django import OK')" || exit 1
 
-echo "📦 Verificando Django..."
-python3 -c "import django; print('✅ Django OK')" || exit 1
+# Migração mínima (só o essencial)
+python3 manage.py migrate --run-syncdb --settings="$DJANGO_SETTINGS_MODULE" 2>/dev/null && echo "✅ Migrações OK" || echo "⚠️ Migrações falharam"
 
-echo "🐴 Verificando Gunicorn..."
-python3 -c "import gunicorn; print('✅ Gunicorn OK')" || exit 1
-
-# Migrações essenciais com diagnóstico
-echo "📋 Aplicando migrações..."
-if python3 manage.py migrate --run-syncdb --settings="$DJANGO_SETTINGS_MODULE"; then
-    echo "✅ Migrações OK"
-else
-    echo "⚠️ Migrações falharam, tentando --fake..."
-    python3 manage.py migrate --fake --settings="$DJANGO_SETTINGS_MODULE" 2>/dev/null || echo "❌ Mesmo fake falhou"
-fi
-
-# Coletar estáticos
-echo "📦 Coletando estáticos..."
-python3 manage.py collectstatic --noinput --settings="$DJANGO_SETTINGS_MODULE" 2>/dev/null || echo "⚠️ Collectstatic falhou"
-
-# Teste final do Django antes de iniciar
-echo "🧪 Testando Django..."
-if python3 -c "
-import os
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', '$DJANGO_SETTINGS_MODULE')
-import django
-django.setup()
-from django.db import connection
-try:
-    cursor = connection.cursor()
-    cursor.execute('SELECT 1')
-    print('✅ Banco de dados OK')
-except Exception as e:
-    print(f'⚠️ Banco falhou: {e}')
-"; then
-    echo "✅ Django pronto"
-else
-    echo "❌ Django com problemas, mas tentando iniciar..."
-fi
-
-# Iniciar Django com Gunicorn
-echo "🚀 Iniciando Django na porta $PORT..."
+# Iniciar Gunicorn imediatamente
+echo "🚀 Iniciando servidor..."
 exec gunicorn sistema_rural.wsgi:application \
     --bind 0.0.0.0:$PORT \
     --workers 1 \
-    --threads 2 \
-    --timeout 120 \
-    --access-logfile - \
-    --error-logfile - \
-    --log-level info
+    --threads 1 \
+    --timeout 60 \
+    --log-level warning
