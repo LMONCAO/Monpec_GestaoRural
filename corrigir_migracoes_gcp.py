@@ -33,7 +33,7 @@ def main():
 
     # 2. Criar banco se não existir
     print("\n2. 🏗️ CRIANDO BANCO SE NECESSÁRIO...")
-    db_name = connection.settings_dict.get('NAME', 'monpec_production')
+    db_name = connection.settings_dict.get('NAME', 'monpec-db')
     try:
         # Conectar ao banco postgres para criar o banco se necessário
         from django.db import connections

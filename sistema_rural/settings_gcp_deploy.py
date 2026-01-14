@@ -61,9 +61,9 @@ if IS_CLOUD_RUN:
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DB_NAME', 'monpec_production'),
+        'NAME': os.getenv('DB_NAME', 'monpec-db'),
         'USER': os.getenv('DB_USER', 'postgres'),
-        'PASSWORD': os.getenv('DB_PASSWORD', ''),
+        'PASSWORD': os.getenv('DB_PASSWORD', 'L6171r12@@jjms'),
         'HOST': os.getenv('DB_HOST', '/cloudsql/monpec-sistema-rural:us-central1:monpec-db'),
         'PORT': os.getenv('DB_PORT', '5432'),
         'OPTIONS': {
