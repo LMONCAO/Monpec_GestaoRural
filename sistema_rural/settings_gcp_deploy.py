@@ -58,22 +58,35 @@ if IS_CLOUD_RUN:
 # BANCO DE DADOS - POSTGRESQL OBRIGATÓRIO
 # =============================================================================
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DB_NAME', 'monpec-db'),
-        'USER': os.getenv('DB_USER', 'postgres'),
-        'PASSWORD': os.getenv('DB_PASSWORD', 'L6171r12@@jjms'),
-        'HOST': os.getenv('DB_HOST', '/cloudsql/monpec-sistema-rural:us-central1:monpec-db'),
-        'PORT': os.getenv('DB_PORT', '5432'),
-        'OPTIONS': {
-            # Configurações para Cloud SQL
-            'sslmode': 'require' if IS_CLOUD_RUN else 'prefer',
-        },
-        'CONN_MAX_AGE': 60,
-        'ATOMIC_REQUESTS': True,
+# Verificar se estamos em ambiente de CI/CD (GitHub Actions)
+IS_CI_CD = os.getenv('CI') == 'true' or os.getenv('GITHUB_ACTIONS') == 'true'
+
+if IS_CI_CD:
+    # Usar SQLite para testes no CI/CD (não requer servidor PostgreSQL)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': ':memory:',  # Banco em memória para testes
+        }
     }
-}
+else:
+    # Configuração PostgreSQL para produção
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv('DB_NAME', 'monpec-db'),
+            'USER': os.getenv('DB_USER', 'postgres'),
+            'PASSWORD': os.getenv('DB_PASSWORD', 'L6171r12@@jjms'),
+            'HOST': os.getenv('DB_HOST', '/cloudsql/monpec-sistema-rural:us-central1:monpec-db'),
+            'PORT': os.getenv('DB_PORT', '5432'),
+            'OPTIONS': {
+                # Configurações para Cloud SQL
+                'sslmode': 'require' if IS_CLOUD_RUN else 'prefer',
+            },
+            'CONN_MAX_AGE': 60,
+            'ATOMIC_REQUESTS': True,
+        }
+    }
 
 # =============================================================================
 # ARQUIVOS ESTÁTICOS E MÍDIA - GOOGLE CLOUD STORAGE
