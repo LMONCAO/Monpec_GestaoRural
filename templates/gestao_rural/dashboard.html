@@ -134,9 +134,15 @@
                             <div class="text-center">
                                 <h5 class="mb-3">Ações Disponíveis Agora</h5>
                                 <div class="d-flex flex-column flex-sm-row gap-3 justify-content-center">
-                                    <a href="{% url 'demo_loading' %}" class="btn btn-primary btn-lg px-4">
-                                        <i class="bi bi-play-circle me-2"></i>
-                                        Explorar Versão Demo
+                                    {% if propriedade_prioritaria %}
+                                    <a href="{% url 'propriedade_modulos' propriedade_prioritaria.id %}" class="btn btn-success btn-lg px-4" id="btn-ir-propriedade">
+                                        <i class="bi bi-building-check me-2"></i>
+                                        Acessar Minha Propriedade
+                                    </a>
+                                    {% endif %}
+                                    <a href="#" class="btn btn-primary btn-lg px-4" onclick="mostrarPropriedades()">
+                                        <i class="bi bi-grid me-2"></i>
+                                        Ver Todas as Propriedades
                                     </a>
                                     <a href="mailto:suporte@monpec.com.br" class="btn btn-outline-primary btn-lg px-4">
                                         <i class="bi bi-envelope me-2"></i>
@@ -146,6 +152,14 @@
                                 <p class="text-muted mt-3 mb-0">
                                     <small>Estamos aqui para ajudar você a aproveitar ao máximo o MONPEC!</small>
                                 </p>
+                                {% if propriedade_prioritaria %}
+                                <div class="mt-3">
+                                    <small class="text-muted">
+                                        <i class="bi bi-clock me-1"></i>
+                                        Você será redirecionado automaticamente em <span id="countdown">10</span> segundos...
+                                    </small>
+                                </div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -155,6 +169,10 @@
     </div>
     {% else %}
     <!-- Dashboard Normal para outros usuários -->
+    {% endif %}
+
+    <!-- Seção de Propriedades (visível para todos, mas inicialmente oculta para assinantes) -->
+    <div class="propriedades-section-modern" {% if IS_ASSINANTE %}style="display: none;" id="propriedades-section"{% endif %}>
     <div class="text-center mb-5" style="margin-top: 2rem;">
         <h1 class="display-5 fw-bold text-primary mb-2">Monpec Monitor da Pecuária</h1>
         <div class="mb-3">
@@ -1899,6 +1917,43 @@
             // Função simples para mostrar demonstração
             alert('Em breve você poderá ver uma demonstração completa do sistema MONPEC!');
         }
+
+        function mostrarPropriedades() {
+            // Mostrar a seção de propriedades para assinantes
+            const propriedadesSection = document.getElementById('propriedades-section');
+            if (propriedadesSection) {
+                propriedadesSection.style.display = 'block';
+                propriedadesSection.scrollIntoView({ behavior: 'smooth' });
+            } else {
+                // Fallback: recarregar página para mostrar todas as propriedades
+                location.reload();
+            }
+        }
+
+        // Countdown para redirecionamento automático
+        {% if propriedade_prioritaria %}
+        let countdown = 10;
+        const countdownElement = document.getElementById('countdown');
+
+        function updateCountdown() {
+            if (countdownElement) {
+                countdownElement.textContent = countdown;
+                countdown--;
+
+                if (countdown < 0) {
+                    // Redirecionar automaticamente
+                    window.location.href = "{% url 'propriedade_modulos' propriedade_prioritaria.id %}";
+                } else {
+                    setTimeout(updateCountdown, 1000);
+                }
+            }
+        }
+
+        // Iniciar countdown quando a página carregar
+        document.addEventListener('DOMContentLoaded', function() {
+            updateCountdown();
+        });
+        {% endif %}
     </script>
     {% endif %}
 

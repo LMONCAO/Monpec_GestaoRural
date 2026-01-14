@@ -1278,18 +1278,42 @@ def dashboard(request):
                 'page_obj': None,
             })
         
-        # ✅ REDIRECIONAR AUTOMATICAMENTE: Se houver propriedades, redirecionar para a primeira propriedade
-        # Buscar propriedade prioritária ou primeira propriedade (usar queryset original antes das anotações)
-        propriedade_prioritaria = dados.get('propriedade_prioritaria')
-        if propriedade_prioritaria:
-            logger.info(f'[DASHBOARD] Redirecionando para módulos da propriedade {propriedade_prioritaria.id}')
-            return redirect('propriedade_modulos', propriedade_id=propriedade_prioritaria.id)
+        # ✅ VERIFICAR SE É ASSINANTE: Mostrar dashboard especial para assinantes primeiro
+        from .helpers_acesso import is_usuario_assinante
+        is_assinante = is_usuario_assinante(request.user)
+
+        if is_assinante and dados['total_propriedades'] > 0:
+            # Assinantes veem o dashboard especial primeiro
+            logger.info(f'[DASHBOARD] Assinante {request.user.username} com {dados["total_propriedades"]} propriedades - mostrando dashboard especial')
+
+            # Adicionar propriedade prioritária ao contexto
+            propriedade_prioritaria = dados.get('propriedade_prioritaria')
+            if not propriedade_prioritaria and dados['total_propriedades'] > 0:
+                propriedade_prioritaria = dados['propriedades'].first() if hasattr(dados['propriedades'], 'first') else (dados['propriedades'][0] if dados['propriedades'] else None)
+
+            context = {
+                'propriedades': page_obj,
+                'total_propriedades': dados['total_propriedades'],
+                'total_animais': total_animais,
+                'busca': busca,
+                'ordenar_por': ordenar_por,
+                'direcao': direcao,
+                'page_obj': page_obj,
+                'propriedade_prioritaria': propriedade_prioritaria,
+            }
+            return render(request, 'gestao_rural/dashboard.html', context)
         elif dados['total_propriedades'] > 0:
-            # Se não houver propriedade prioritária, usar a primeira propriedade do queryset original
-            primeira_propriedade = dados['propriedades'].first() if hasattr(dados['propriedades'], 'first') else (dados['propriedades'][0] if dados['propriedades'] else None)
-            if primeira_propriedade:
-                logger.info(f'[DASHBOARD] Redirecionando para módulos da primeira propriedade {primeira_propriedade.id}')
-                return redirect('propriedade_modulos', propriedade_id=primeira_propriedade.id)
+            # Usuários normais: redirecionar automaticamente para primeira propriedade
+            propriedade_prioritaria = dados.get('propriedade_prioritaria')
+            if propriedade_prioritaria:
+                logger.info(f'[DASHBOARD] Redirecionando para módulos da propriedade {propriedade_prioritaria.id}')
+                return redirect('propriedade_modulos', propriedade_id=propriedade_prioritaria.id)
+            else:
+                # Se não houver propriedade prioritária, usar a primeira propriedade do queryset original
+                primeira_propriedade = dados['propriedades'].first() if hasattr(dados['propriedades'], 'first') else (dados['propriedades'][0] if dados['propriedades'] else None)
+                if primeira_propriedade:
+                    logger.info(f'[DASHBOARD] Redirecionando para módulos da primeira propriedade {primeira_propriedade.id}')
+                    return redirect('propriedade_modulos', propriedade_id=primeira_propriedade.id)
         
         # Renderizar dashboard com lista de propriedades (fallback - não deve chegar aqui)
         context = {
