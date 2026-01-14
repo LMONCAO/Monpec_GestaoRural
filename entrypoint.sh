@@ -1,25 +1,59 @@
 #!/bin/bash
 
-# Entrypoint MONPEC - versão ultra simples para funcionar
+# Entrypoint MONPEC - versão de debug para resolver Service Unavailable
 export PORT=${PORT:-8080}
 
-echo "🚀 MONPEC Cloud Run iniciando..."
+echo "🚀 MONPEC Cloud Run - DEBUG MODE"
 echo "📍 Porta: $PORT"
+echo "📊 DJANGO_SETTINGS_MODULE: $DJANGO_SETTINGS_MODULE"
 
-# Configuração mínima
+# Configuração
 export DJANGO_SETTINGS_MODULE="${DJANGO_SETTINGS_MODULE:-sistema_rural.settings_gcp_deploy}"
 
-# Apenas verificações críticas
-python3 -c "import django; print('✅ Django import OK')" || exit 1
+# Testes detalhados
+echo "🐍 Testando Python..."
+python3 --version
 
-# Migração mínima (só o essencial)
-python3 manage.py migrate --run-syncdb --settings="$DJANGO_SETTINGS_MODULE" 2>/dev/null && echo "✅ Migrações OK" || echo "⚠️ Migrações falharam"
+echo "📦 Testando Django..."
+python3 -c "import django; print('Django version:', django.get_version())"
 
-# Iniciar Gunicorn imediatamente
-echo "🚀 Iniciando servidor..."
+echo "⚙️ Testando settings..."
+python3 -c "
+import os
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', '$DJANGO_SETTINGS_MODULE')
+import django
+django.setup()
+print('✅ Django setup OK')
+print('📊 Installed apps:', len(django.apps.apps.get_app_configs()))
+"
+
+echo "🗄️ Testando banco de dados..."
+python3 -c "
+import os
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', '$DJANGO_SETTINGS_MODULE')
+import django
+django.setup()
+from django.db import connection
+try:
+    with connection.cursor() as cursor:
+        cursor.execute('SELECT 1 as test')
+        result = cursor.fetchone()
+        print('✅ Banco OK, teste SELECT:', result)
+except Exception as e:
+    print('❌ ERRO BANCO:', str(e))
+    import traceback
+    traceback.print_exc()
+"
+
+echo "📋 Executando migrações..."
+python3 manage.py showmigrations --settings="$DJANGO_SETTINGS_MODULE" | head -10
+
+echo "🚀 Iniciando Gunicorn..."
 exec gunicorn sistema_rural.wsgi:application \
     --bind 0.0.0.0:$PORT \
     --workers 1 \
     --threads 1 \
     --timeout 60 \
-    --log-level warning
+    --log-level debug \
+    --access-logfile - \
+    --error-logfile -
