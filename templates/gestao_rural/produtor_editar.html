@@ -103,23 +103,37 @@
                         </h6>
                     </div>
                     <div class="card-body">
-                        <div class="alert alert-info">
-                            <i class="bi bi-info-circle me-2"></i>
-                            <strong>Configuração do Certificado Digital:</strong><br>
-                            Para emitir NF-e diretamente com a SEFAZ-MS, você pode:<br>
-                            <strong>1.</strong> Fazer upload de um arquivo .p12/.pfx (certificado A1)<br>
-                            <strong>2.</strong> Usar um certificado já instalado no Windows (detecção automática)<br>
-                            O certificado deve estar no nome do CNPJ que emitirá as notas fiscais.
+                        <div class="alert alert-info border-0 bg-info bg-opacity-10">
+                            <div class="d-flex align-items-start">
+                                <i class="bi bi-info-circle-fill text-info fs-4 me-3 mt-1"></i>
+                                <div>
+                                    <h6 class="mb-2 text-info">Como configurar seu certificado digital</h6>
+                                    <p class="mb-2">Para emitir NF-e diretamente com a SEFAZ-MS, escolha uma das opções:</p>
+                                    <ul class="mb-0 small">
+                                        <li><strong>Upload:</strong> Envie arquivo .p12/.pfx do certificado A1</li>
+                                        <li><strong>Detecção:</strong> Use certificado já instalado no Windows</li>
+                                    </ul>
+                                    <p class="mb-0 mt-2 small text-muted">
+                                        <i class="bi bi-shield-check me-1"></i>
+                                        O certificado deve estar no nome do CNPJ que emitirá as notas
+                                    </p>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Detecção de Certificados Instalados -->
-                        <div class="mb-3">
-                            <button type="button" class="btn btn-outline-primary" id="btn-detectar-certificados"
+                        <div class="mb-4 p-3 bg-light rounded">
+                            <h6 class="mb-3 text-primary">
+                                <i class="bi bi-windows me-2"></i>Certificados Instalados no Windows
+                            </h6>
+                            <button type="button" class="btn btn-primary btn-lg w-100" id="btn-detectar-certificados"
                                     onclick="detectarCertificadosInstalados()">
-                                <i class="bi bi-search me-2"></i>Detectar Certificados Instalados no Windows
+                                <i class="bi bi-search me-3 fs-5"></i>
+                                <span class="fw-bold">Detectar Certificados Instalados no Windows</span>
                             </button>
-                            <small class="form-text text-muted">
-                                Clique para buscar certificados digitais já instalados no seu computador
+                            <small class="form-text text-muted d-block mt-2">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Busca automaticamente certificados digitais A1 já instalados no seu computador Windows
                             </small>
                         </div>
 
@@ -152,91 +166,113 @@
                         </div>
                         {% endif %}
                         
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.certificado_digital.id_for_label }}" class="form-label">
-                                    <i class="bi bi-file-earmark-lock me-1"></i>{{ form.certificado_digital.label }}
-                                </label>
-                                <div class="certificado-upload-area" id="certificado-upload-area" 
-                                     style="border: 2px dashed #dee2e6; border-radius: 8px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.3s; position: relative;"
-                                     ondrop="handleDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
-                                    <div id="certificado-upload-content">
-                                        <i class="bi bi-cloud-upload" style="font-size: 2rem; color: #6c757d;"></i>
-                                        <p class="mt-2 mb-0 text-muted">
-                                            <strong>Clique aqui</strong> ou arraste o arquivo .p12 ou .pfx
-                                        </p>
-                                        <small class="text-muted">Arquivo do certificado digital A1</small>
+                        <!-- Grupo: Upload de Arquivo -->
+                        <div class="border rounded p-3 mb-4 bg-light">
+                            <h6 class="mb-3 text-primary">
+                                <i class="bi bi-upload me-2"></i>Opção 1: Upload de Arquivo (.p12/.pfx)
+                            </h6>
+
+                            <div class="row">
+                                <div class="col-md-8 mb-3">
+                                    <label for="{{ form.certificado_digital.id_for_label }}" class="form-label fw-bold">
+                                        <i class="bi bi-file-earmark-lock me-1"></i>{{ form.certificado_digital.label }}
+                                    </label>
+                                    <div class="certificado-upload-area" id="certificado-upload-area"
+                                         style="border: 2px dashed #007bff; border-radius: 12px; padding: 25px; text-align: center; cursor: pointer; transition: all 0.3s; background: #f8f9ff; position: relative;"
+                                         ondrop="handleDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+                                        <div id="certificado-upload-content">
+                                            <i class="bi bi-cloud-upload text-primary" style="font-size: 2.5rem;"></i>
+                                            <p class="mt-2 mb-1 text-primary fw-bold">
+                                                Clique aqui ou arraste o arquivo
+                                            </p>
+                                            <small class="text-muted">Arquivo .p12 ou .pfx do certificado A1</small>
+                                        </div>
+                                        <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;" onclick="document.getElementById('id_certificado_digital').click()">
+                                            {{ form.certificado_digital }}
+                                        </div>
                                     </div>
-                                    <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;" onclick="document.getElementById('id_certificado_digital').click()">
-                                        {{ form.certificado_digital }}
+                                    <div id="certificado-info" class="mt-2" style="display: none;">
+                                        <div class="alert alert-success mb-2 py-2">
+                                            <i class="bi bi-check-circle-fill me-1"></i>
+                                            <span id="certificado-nome-arquivo"></span>
+                                        </div>
                                     </div>
-                                </div>
-                                <div id="certificado-info" class="mt-2" style="display: none;">
-                                    <div class="alert alert-info mb-2">
-                                        <i class="bi bi-info-circle me-1"></i>
-                                        <span id="certificado-nome-arquivo"></span>
+                                    {% if form.certificado_digital.errors %}
+                                        <div class="text-danger small">{{ form.certificado_digital.errors }}</div>
+                                    {% endif %}
+                                    {% if produtor.certificado_digital %}
+                                    <div class="mt-2">
+                                        <a href="{{ produtor.certificado_digital.url }}" class="btn btn-sm btn-outline-secondary" target="_blank">
+                                            <i class="bi bi-download me-1"></i>Ver certificado atual
+                                        </a>
                                     </div>
+                                    {% endif %}
                                 </div>
-                                {% if form.certificado_digital.errors %}
-                                    <div class="text-danger small">{{ form.certificado_digital.errors }}</div>
-                                {% endif %}
-                                <small class="form-text text-muted">
-                                    Envie o arquivo .p12 ou .pfx do seu certificado digital A1.
-                                    Se um arquivo já estiver configurado, enviar um novo o substituirá.
-                                </small>
-                                {% if produtor.certificado_digital %}
-                                <div class="mt-2">
-                                    <a href="{{ produtor.certificado_digital.url }}" class="btn btn-sm btn-outline-secondary" target="_blank">
-                                        <i class="bi bi-download me-1"></i>Ver certificado atual
-                                    </a>
+                                <div class="col-md-4 mb-3">
+                                    <label for="{{ form.certificado_tipo.id_for_label }}" class="form-label fw-bold">
+                                        <i class="bi bi-tag me-1"></i>{{ form.certificado_tipo.label }}
+                                    </label>
+                                    <div class="form-control border-0 bg-white p-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="certificado_tipo" value="A1" id="tipo_a1" checked>
+                                            <label class="form-check-label fw-bold" for="tipo_a1">
+                                                <i class="bi bi-file-earmark-lock text-primary me-1"></i>A1 - Arquivo
+                                            </label>
+                                        </div>
+                                        <small class="text-muted d-block mt-1">Arquivo .p12/.pfx</small>
+                                    </div>
+                                    {% if form.certificado_tipo.errors %}
+                                        <div class="text-danger small">{{ form.certificado_tipo.errors }}</div>
+                                    {% endif %}
                                 </div>
-                                {% endif %}
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.certificado_tipo.id_for_label }}" class="form-label">
-                                    {{ form.certificado_tipo.label }}
-                                </label>
-                                {{ form.certificado_tipo }}
-                                {% if form.certificado_tipo.errors %}
-                                    <div class="text-danger small">{{ form.certificado_tipo.errors }}</div>
-                                {% endif %}
-                                <small class="form-text text-muted">
-                                    Tipo A1: arquivo .p12/.pfx | Tipo A3: token/cartão (não suportado ainda)
-                                </small>
                             </div>
                         </div>
                         
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.senha_certificado.id_for_label }}" class="form-label">
-                                    <i class="bi bi-key me-1"></i>{{ form.senha_certificado.label }}
-                                </label>
-                                <div class="input-group">
-                                    {{ form.senha_certificado }}
-                                    <button type="button" class="btn btn-outline-secondary" id="btn-validar-certificado-upload" 
-                                            onclick="validarCertificadoUpload()" disabled>
-                                        <i class="bi bi-check-circle me-1"></i>Validar
-                                    </button>
+                        <!-- Grupo: Configuração e Validação -->
+                        <div class="border rounded p-3 mb-4">
+                            <h6 class="mb-3 text-primary">
+                                <i class="bi bi-gear me-2"></i>Configuração e Validação
+                            </h6>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ form.senha_certificado.id_for_label }}" class="form-label fw-bold">
+                                        <i class="bi bi-key me-1"></i>{{ form.senha_certificado.label }}
+                                    </label>
+                                    <div class="input-group">
+                                        {{ form.senha_certificado }}
+                                        <button type="button" class="btn btn-success" id="btn-validar-certificado-upload"
+                                                onclick="validarCertificadoUpload()" disabled>
+                                            <i class="bi bi-check-circle me-1"></i>Validar Certificado
+                                        </button>
+                                    </div>
+                                    {% if form.senha_certificado.errors %}
+                                        <div class="text-danger small">{{ form.senha_certificado.errors }}</div>
+                                    {% endif %}
+                                    <small class="form-text text-muted">
+                                        <i class="bi bi-info-circle me-1"></i>
+                                        Digite a senha e clique em "Validar" para verificar o certificado e preencher dados automaticamente
+                                    </small>
+                                    <div id="certificado-validacao-upload" class="mt-3"></div>
                                 </div>
-                                {% if form.senha_certificado.errors %}
-                                    <div class="text-danger small">{{ form.senha_certificado.errors }}</div>
-                                {% endif %}
-                                <small class="form-text text-muted">
-                                    Senha do certificado digital. Clique em "Validar" para verificar e preencher dados automaticamente.
-                                </small>
-                                <div id="certificado-validacao-upload" class="mt-2"></div>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ form.certificado_valido_ate.id_for_label }}" class="form-label">
-                                    {{ form.certificado_valido_ate.label }}
-                                </label>
-                                {{ form.certificado_valido_ate }}
-                                {% if form.certificado_valido_ate.errors %}
-                                    <div class="text-danger small">{{ form.certificado_valido_ate.errors }}</div>
-                                {% endif %}
-                                <small class="form-text text-muted">
-                                    Data de validade do certificado (útil para alertas de renovação)
-                                </small>
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ form.certificado_valido_ate.id_for_label }}" class="form-label fw-bold">
+                                        <i class="bi bi-calendar-event me-1"></i>{{ form.certificado_valido_ate.label }}
+                                    </label>
+                                    <div class="input-group">
+                                        {{ form.certificado_valido_ate }}
+                                        <span class="input-group-text bg-light">
+                                            <i class="bi bi-calendar text-muted"></i>
+                                        </span>
+                                    </div>
+                                    {% if form.certificado_valido_ate.errors %}
+                                        <div class="text-danger small">{{ form.certificado_valido_ate.errors }}</div>
+                                    {% endif %}
+                                    <small class="form-text text-muted">
+                                        <i class="bi bi-magic me-1 text-primary"></i>
+                                        <strong>Preenchimento automático:</strong> Data extraída do certificado quando validado
+                                    </small>
+                                </div>
                             </div>
                         </div>
                         
@@ -403,6 +439,24 @@ function validarCertificadoUpload() {
                 const inputValidade = document.getElementById('id_certificado_valido_ate');
                 if (inputValidade) {
                     inputValidade.value = data.validade_ate_iso;
+                    inputValidade.readOnly = true;
+                    inputValidade.style.backgroundColor = '#f8f9fa';
+                    inputValidade.style.borderColor = '#28a745';
+
+                    // Adicionar indicador visual
+                    const indicador = document.createElement('small');
+                    indicador.className = 'text-success fw-bold ms-2';
+                    indicador.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i>Preenchido automaticamente';
+                    indicador.id = 'validade-auto-preenchida';
+
+                    // Remover indicador anterior se existir
+                    const indicadorAnterior = document.getElementById('validade-auto-preenchida');
+                    if (indicadorAnterior) {
+                        indicadorAnterior.remove();
+                    }
+
+                    // Adicionar após o input
+                    inputValidade.parentNode.appendChild(indicador);
                 }
             }
             
@@ -511,7 +565,7 @@ function detectarCertificadosInstalados() {
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Detectando...';
     resultadoDiv.style.display = 'none';
 
-    fetch('/gestao-rural/certificado/detectar-instalados/', {
+    fetch('/certificado/detectar-instalados/', {
         method: 'GET',
         headers: {
             'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
@@ -589,7 +643,7 @@ function configurarCertificadoWindows(thumbprint, produtorId) {
     const formData = new FormData();
     formData.append('thumbprint', thumbprint);
 
-    fetch(`/gestao-rural/produtor/${produtorId}/configurar-certificado-windows/`, {
+    fetch(`/produtor/${produtorId}/configurar-certificado-windows/`, {
         method: 'POST',
         headers: {
             'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
