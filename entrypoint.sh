@@ -78,48 +78,53 @@ else
     fi
 fi
 
-# Verificar e corrigir schema do banco se necessário
-echo "🔧 Verificando schema do banco..."
-python3 manage.py shell --settings="$DJANGO_SETTINGS_MODULE" -c "
+# CORREÇÃO FORÇADA DO SCHEMA - Executar sempre
+echo "🔧 CORREÇÃO FORÇADA: Adicionando colunas faltantes..."
+python3 -c "
+import os
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', '$DJANGO_SETTINGS_MODULE')
+import django
+django.setup()
 from django.db import connection
+
 try:
     with connection.cursor() as cursor:
-        # Verificar se a tabela produtorrural existe
-        cursor.execute(\"SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public' AND table_name='gestao_rural_produtorrural'\")
-        if cursor.fetchone()[0] > 0:
-            print('Tabela produtorrural existe')
-            # Verificar se a coluna certificado_thumbprint existe
-            cursor.execute(\"SELECT COUNT(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='gestao_rural_produtorrural' AND column_name='certificado_thumbprint'\")
-            if cursor.fetchone()[0] == 0:
-                print('Adicionando coluna certificado_thumbprint...')
-                cursor.execute('ALTER TABLE gestao_rural_produtorrural ADD COLUMN certificado_thumbprint VARCHAR(255)')
-                print('✅ Coluna certificado_thumbprint adicionada')
-            else:
-                print('✅ Coluna certificado_thumbprint já existe')
+        print('🔍 Verificando e corrigindo schema...')
 
-            # Verificar coluna certificado_emissor
-            cursor.execute(\"SELECT COUNT(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='gestao_rural_produtorrural' AND column_name='certificado_emissor'\")
-            if cursor.fetchone()[0] == 0:
-                print('Adicionando coluna certificado_emissor...')
-                cursor.execute('ALTER TABLE gestao_rural_produtorrural ADD COLUMN certificado_emissor VARCHAR(255)')
-                print('✅ Coluna certificado_emissor adicionada')
-            else:
-                print('✅ Coluna certificado_emissor já existe')
+        # Forçar adição das colunas faltantes
+        colunas_para_adicionar = [
+            ('certificado_thumbprint', 'VARCHAR(255)'),
+            ('certificado_emissor', 'VARCHAR(255)'),
+            ('certificado_data_validade', 'DATE'),
+        ]
 
-            # Verificar coluna certificado_data_validade
-            cursor.execute(\"SELECT COUNT(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='gestao_rural_produtorrural' AND column_name='certificado_data_validade'\")
-            if cursor.fetchone()[0] == 0:
-                print('Adicionando coluna certificado_data_validade...')
-                cursor.execute('ALTER TABLE gestao_rural_produtorrural ADD COLUMN certificado_data_validade DATE')
-                print('✅ Coluna certificado_data_validade adicionada')
-            else:
-                print('✅ Coluna certificado_data_validade já existe')
+        for coluna, tipo in colunas_para_adicionar:
+            try:
+                # Verificar se a coluna existe
+                cursor.execute(f\"\"\"
+                    SELECT COUNT(*) FROM information_schema.columns
+                    WHERE table_schema='public'
+                    AND table_name='gestao_rural_produtorrural'
+                    AND column_name='{coluna}'
+                \"\"\")
+                existe = cursor.fetchone()[0] > 0
 
-        else:
-            print('Tabela produtorrural não existe - será criada pelas migrações')
+                if not existe:
+                    print(f'➕ Adicionando coluna {coluna}...')
+                    cursor.execute(f'ALTER TABLE gestao_rural_produtorrural ADD COLUMN {coluna} {tipo}')
+                    print(f'✅ Coluna {coluna} adicionada com sucesso!')
+                else:
+                    print(f'✅ Coluna {coluna} já existe')
+            except Exception as e:
+                print(f'⚠️ Erro ao verificar/adicionar {coluna}: {e}')
+
+        print('🎯 Correção de schema concluída!')
+
 except Exception as e:
-    print(f'Erro na verificação do schema: {e}')
-" 2>/dev/null || echo "⚠️ Verificação de schema falhou"
+    print(f'❌ ERRO GERAL na correção de schema: {e}')
+    import traceback
+    traceback.print_exc()
+" || echo "❌ Falha crítica na correção de schema"
 
 # Coletar estáticos (mínimo)
 echo "📦 Coletando estáticos..."
