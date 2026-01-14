@@ -207,7 +207,7 @@ MERCADOPAGO_PUBLIC_KEY = os.getenv('MERCADOPAGO_PUBLIC_KEY', '')
 
 # Consultor
 CONSULTOR_EMAIL = os.getenv('CONSULTOR_EMAIL', 'l.moncaosilva@gmail.com')
-CONSULTOR_TELEFONE = os.getenv('CONSULTOR_TELEFONE', '')
+CONSULTOR_TELEFONE = os.getenv('CONSULTOR_TELEFONE', '67999688561')  # WhatsApp configurado
 
 # =============================================================================
 # MIDDLEWARE OTIMIZADO PARA GCP
