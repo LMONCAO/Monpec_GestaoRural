@@ -77,18 +77,39 @@ jobs:
       with:
         credentials_json: ${{ secrets.GCP_SA_KEY }}
 
-    - name: 🏗️ Configurar Docker
-      run: gcloud auth configure-docker --quiet
+    - name: 🏗️ Configurar Docker e verificar permissões
+      run: |
+        gcloud auth configure-docker --quiet
+        gcloud services enable containerregistry.googleapis.com --quiet
+        gcloud services enable artifactregistry.googleapis.com --quiet
+        gcloud auth list
+        echo "🔍 Verificando projeto atual..."
+        gcloud config get-value project
+        echo "🔍 Testando acesso ao Container Registry..."
+        gcloud container images list --repository=gcr.io/${{ env.GCP_PROJECT_ID }} || echo "⚠️ Acesso limitado ao GCR"
 
     - name: 🐳 Build da imagem
       run: |
         docker build -f Dockerfile.gcp -t gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ github.sha }} .
         docker build -f Dockerfile.gcp -t gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.SERVICE_NAME }}:latest .
 
-    - name: 📤 Push da imagem
+    - name: 📤 Push da imagem (com fallback)
       run: |
-        docker push gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
-        docker push gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.SERVICE_NAME }}:latest
+        echo "🔄 Tentando push da imagem Docker..."
+        if docker push gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ github.sha }}; then
+          echo "✅ Push SHA tag: OK"
+          docker push gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.SERVICE_NAME }}:latest || echo "⚠️ Latest tag falhou, mas SHA foi enviado"
+        else
+          echo "❌ ERRO: Service Account precisa da permissão 'Artifact Registry Writer'"
+          echo "🔧 SOLUÇÃO: No GCP IAM, adicione o papel 'Artifact Registry Writer' à Service Account"
+          echo "📧 Ou use uma conta com mais permissões no secret GCP_SA_KEY"
+          echo ""
+          echo "📋 PERMISSÕES NECESSÁRIAS:"
+          echo "- artifactregistry.repositories.uploadArtifacts"
+          echo "- storage.objects.create"
+          echo "- storage.objects.get"
+          exit 1
+        fi
 
   # Job 3: Deploy para Cloud Run
   deploy-cloud-run:
