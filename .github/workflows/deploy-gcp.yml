@@ -26,7 +26,6 @@ env:
   GCP_PROJECT_ID: monpec-sistema-rural
   GCP_REGION: us-central1
   SERVICE_NAME: monpec-app
-  IMAGE_NAME: gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.SERVICE_NAME }}
 
 jobs:
   # Job 1: Testes e validações
@@ -83,13 +82,13 @@ jobs:
 
     - name: 🐳 Build da imagem
       run: |
-        docker build -f Dockerfile.gcp -t ${{ env.IMAGE_NAME }}:${{ github.sha }} .
-        docker build -f Dockerfile.gcp -t ${{ env.IMAGE_NAME }}:latest .
+        docker build -f Dockerfile.gcp -t gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ github.sha }} .
+        docker build -f Dockerfile.gcp -t gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.SERVICE_NAME }}:latest .
 
     - name: 📤 Push da imagem
       run: |
-        docker push ${{ env.IMAGE_NAME }}:${{ github.sha }}
-        docker push ${{ env.IMAGE_NAME }}:latest
+        docker push gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
+        docker push gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.SERVICE_NAME }}:latest
 
   # Job 3: Deploy para Cloud Run
   deploy-cloud-run:
@@ -110,7 +109,7 @@ jobs:
     - name: 🚀 Deploy para Cloud Run
       run: |
         gcloud run deploy ${{ env.SERVICE_NAME }} \\
-          --image ${{ env.IMAGE_NAME }}:${{ github.sha }} \\
+          --image gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ github.sha }} \\
           --platform managed \\
           --region ${{ env.GCP_REGION }} \\
           --allow-unauthenticated \\
