@@ -17,11 +17,6 @@ RUN pip install --no-cache-dir -r requirements_gcp.txt
 # Copiar código do projeto
 COPY . .
 
-# ✅ EXECUTAR collectstatic ANTES de finalizar a imagem
-# Isso garante que todos os arquivos estáticos estejam em STATIC_ROOT
-# Usar --noinput para não pedir confirmação
-RUN DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp_deploy python manage.py collectstatic --noinput || echo "⚠️ collectstatic falhou, mas continuando..."
-
 # Expor porta (Cloud Run usa a variável PORT)
 EXPOSE 8080
 
@@ -29,5 +24,5 @@ EXPOSE 8080
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# Comando para iniciar o servidor (entrypoint.sh já configura tudo)
+# Comando para iniciar o servidor
 CMD ["/entrypoint.sh"]
