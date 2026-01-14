@@ -46,13 +46,18 @@ def _is_usuario_demo(user):
     if user.username in ['demo', 'demo_monpec']:
         return True
     
-    # Verificar se tem UsuarioAtivo (usuário criado pelo popup)
+    # Verificar se tem UsuarioAtivo (usuário criado pelo popup ou formulário)
     try:
         from .models_auditoria import UsuarioAtivo
         UsuarioAtivo.objects.get(usuario=user)
         return True
     except:
-        return False
+        # Verificar se é usuário criado via formulário de demonstração
+        try:
+            UsuarioAtivo.objects.get(email=user.email)
+            return True
+        except:
+            return False
 
 
 from .decorators import obter_propriedade_com_permissao
@@ -1764,18 +1769,32 @@ def _montar_contexto_planejamento(propriedade, planejamento, cenario):
 @login_required
 def pecuaria_planejamento_dashboard(request, propriedade_id):
     """Dashboard estratégico do planejamento pecuário (projeções, finanças e desempenho)."""
-    propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
+    try:
+        propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
+    except Exception as e:
+        logger.error(f"Erro ao obter propriedade {propriedade_id}: {e}")
+        raise
     
     # Se for usuário demo, criar planejamento automaticamente se não existir
-    if _is_usuario_demo(request.user):
+    is_demo = _is_usuario_demo(request.user)
+    logger.info(f"Verificando se usuário {request.user.username} é demo: {is_demo}")
+
+    if is_demo:
+        logger.info(f"Usuário demo detectado: {request.user.username}")
         ano_atual = timezone.now().year
-        planejamento_existente = PlanejamentoAnual.objects.filter(
-            propriedade=propriedade,
-            ano=ano_atual
-        ).first()
-        
+        try:
+            planejamento_existente = PlanejamentoAnual.objects.filter(
+                propriedade=propriedade,
+                ano=ano_atual
+            ).first()
+            logger.info(f"Planejamento existente para {ano_atual}: {planejamento_existente is not None}")
+        except Exception as e:
+            logger.error(f"Erro ao buscar planejamento existente: {e}")
+            planejamento_existente = None
+
         if not planejamento_existente:
             try:
+                logger.info("Tentando criar planejamento automático...")
                 from gestao_rural.services.planejamento_helper import criar_planejamento_automatico
                 planejamento_existente = criar_planejamento_automatico(propriedade, ano_atual)
                 logger.info(f'✅ Planejamento criado automaticamente para usuário demo: {request.user.username}')
@@ -1854,7 +1873,33 @@ def pecuaria_planejamento_dashboard(request, propriedade_id):
     if not cenario and planejamento:
         cenario = planejamento.cenarios.filter(is_baseline=True).first()
 
-    context = _montar_contexto_planejamento(propriedade, planejamento, cenario)
+    try:
+        context = _montar_contexto_planejamento(propriedade, planejamento, cenario)
+    except Exception as e:
+        logger.error(f"Erro ao montar contexto de planejamento: {e}", exc_info=True)
+        # Contexto básico em caso de erro
+        context = {
+            'propriedade': propriedade,
+            'planejamento': planejamento,
+            'cenario': cenario,
+            'metas_comerciais': [],
+            'metas_financeiras': [],
+            'indicadores_planejados': [],
+            'cenarios': [],
+            'atividades_planejadas': [],
+            'planejamento_mensal': [],
+            'metricas_cenario': None,
+            'total_vendas_qtd': 0,
+            'financeiro_resumo': {
+                'planejado_receitas': 0,
+                'realizado_receitas': 0,
+                'planejado_custos': 0,
+                'realizado_custos': 0,
+                'planejado_investimentos': 0,
+                'realizado_resultado': 0,
+                'planejado_lucro': 0,
+            }
+        }
 
     # Adicionar cenário atual ao contexto
     context['cenario_atual'] = cenario

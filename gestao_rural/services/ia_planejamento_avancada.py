@@ -26,6 +26,18 @@ from gestao_rural.models import (
     MetaFinanceiraPlanejada,
     CenarioPlanejamento,
 )
+from .ml_price_prediction import MLPricePredictionService
+from .ml_natalidade_mortalidade import MLNatalidadeMortalidadeService
+from .big_data_analytics import BigDataAnalyticsService
+from ..apis_integracao.api_imea import IMEAService
+from ..apis_integracao.api_scot_consultoria import ScotConsultoriaService
+
+# Importar módulos de Machine Learning
+from .ml_models import (
+    PrevisaoPrecosML,
+    AnaliseCorrelacaoAnomalias,
+    PrevisaoNatalidadeMortalidadeML,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +56,23 @@ class IAPlanejamentoAvancada:
         self.ano_atual = timezone.now().year
         self.dados_aprendizado = {}
         self.insights_mercado = {}
+
+        # Inicializar serviços avançados
+        self.ml_price_service = MLPricePredictionService()
+        self.ml_natalidade_service = MLNatalidadeMortalidadeService()
+        self.big_data_service = BigDataAnalyticsService()
+        self.imea_service = IMEAService()
+        self.scot_service = ScotConsultoriaService()
+
+        # Inicializar módulos de Machine Learning
+        try:
+            self.ml_previsao_precos = PrevisaoPrecosML(propriedade)
+            self.ml_analise_correlacao = AnaliseCorrelacaoAnomalias(propriedade)
+            self.ml_previsao_reprodutiva = PrevisaoNatalidadeMortalidadeML(propriedade)
+            self.ml_disponivel = True
+        except Exception as e:
+            logger.warning(f'Erro ao inicializar módulos ML: {e}')
+            self.ml_disponivel = False
         
     def analisar_planejamento_com_ia(
         self, 
@@ -69,19 +98,33 @@ class IAPlanejamentoAvancada:
             dados_mercado = {}
             if incluir_pesquisa_web:
                 dados_mercado = self._pesquisar_informacoes_mercado()
-            
-            # 5. Gerar recomendações inteligentes
+
+            # 5. Análises com Machine Learning (se disponível)
+            analises_ml = {}
+            if self.ml_disponivel:
+                try:
+                    analises_ml = self._executar_analises_ml(
+                        dados_historicos,
+                        analise_inventario
+                    )
+                except Exception as e:
+                    logger.warning(f'Erro nas análises ML: {e}')
+                    analises_ml = {'erro_ml': str(e)}
+
+            # 6. Gerar recomendações inteligentes
             recomendacoes = self._gerar_recomendacoes_inteligentes(
                 dados_historicos,
                 analise_inventario,
                 analise_planejamento,
-                dados_mercado
+                dados_mercado,
+                analises_ml
             )
-            
-            # 6. Calcular projeções otimizadas
+
+            # 7. Calcular projeções otimizadas
             projecoes = self._calcular_projecoes_otimizadas(
                 dados_historicos,
-                analise_inventario
+                analise_inventario,
+                analises_ml
             )
             
             return {
@@ -90,12 +133,14 @@ class IAPlanejamentoAvancada:
                 'analise_inventario': analise_inventario,
                 'analise_planejamento': analise_planejamento,
                 'dados_mercado': dados_mercado,
+                'analises_ml': analises_ml,
                 'recomendacoes': recomendacoes,
                 'projecoes': projecoes,
                 'insights': self._gerar_insights_gerais(
                     dados_historicos,
                     analise_inventario,
-                    dados_mercado
+                    dados_mercado,
+                    analises_ml
                 ),
                 'timestamp': timezone.now().isoformat(),
             }
@@ -583,3 +628,321 @@ class IAPlanejamentoAvancada:
         taxa = total_mortes / total_animais if total_animais > 0 else 0.03
         return min(taxa, 0.10)  # Máximo 10%
 
+    def _executar_analises_ml(
+        self,
+        dados_historicos: Dict[str, Any],
+        analise_inventario: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Executa todas as análises de Machine Learning
+        """
+        analises_ml = {}
+
+        try:
+            # 1. Previsão de preços com ML
+            previsao_precos = self.ml_previsao_precos.prever_preco_futuro(
+                uf=self.propriedade.uf or 'MT',  # Default MT se não definido
+                tipo_categoria='BOI',  # Categoria principal
+                meses_a_frente=6
+            )
+            analises_ml['previsao_precos_ml'] = previsao_precos
+
+        except Exception as e:
+            logger.warning(f'Erro na previsão de preços ML: {e}')
+            analises_ml['previsao_precos_ml'] = {'erro': str(e)}
+
+        try:
+            # 2. Análise de correlações
+            correlacoes = self.ml_analise_correlacao.analisar_correlacoes_producao()
+            analises_ml['correlacoes'] = correlacoes
+
+        except Exception as e:
+            logger.warning(f'Erro na análise de correlações: {e}')
+            analises_ml['correlacoes'] = {'erro': str(e)}
+
+        try:
+            # 3. Detecção de anomalias
+            anomalias = self.ml_analise_correlacao.detectar_anomalias('producao')
+            analises_ml['anomalias_producao'] = anomalias
+
+        except Exception as e:
+            logger.warning(f'Erro na detecção de anomalias: {e}')
+            analises_ml['anomalias_producao'] = {'erro': str(e)}
+
+        try:
+            # 4. Previsão de natalidade
+            previsao_natalidade = self.ml_previsao_reprodutiva.prever_natalidade_futura(6)
+            analises_ml['previsao_natalidade'] = previsao_natalidade
+
+        except Exception as e:
+            logger.warning(f'Erro na previsão de natalidade: {e}')
+            analises_ml['previsao_natalidade'] = {'erro': str(e)}
+
+        try:
+            # 5. Previsão de mortalidade
+            previsao_mortalidade = self.ml_previsao_reprodutiva.prever_mortalidade_futura(6)
+            analises_ml['previsao_mortalidade'] = previsao_mortalidade
+
+        except Exception as e:
+            logger.warning(f'Erro na previsão de mortalidade: {e}')
+            analises_ml['previsao_mortalidade'] = {'erro': str(e)}
+
+        return analises_ml
+
+    def _gerar_recomendacoes_inteligentes(
+        self,
+        dados_historicos: Dict[str, Any],
+        analise_inventario: Dict[str, Any],
+        analise_planejamento: Dict[str, Any],
+        dados_mercado: Dict[str, Any],
+        analises_ml: Dict[str, Any] = None
+    ) -> List[str]:
+        """
+        Gera recomendações inteligentes incluindo análises ML
+        """
+        recomendacoes = []
+
+        # Recomendações base (existentes)
+        recomendacoes.extend(self._gerar_recomendacoes_base(
+            dados_historicos, analise_inventario, analise_planejamento, dados_mercado
+        ))
+
+        # Recomendações baseadas em ML (se disponíveis)
+        if analises_ml and self.ml_disponivel:
+            recomendacoes.extend(self._gerar_recomendacoes_ml(analises_ml))
+
+        return recomendacoes
+
+    def _gerar_recomendacoes_ml(self, analises_ml: Dict[str, Any]) -> List[str]:
+        """
+        Gera recomendações baseadas nas análises de Machine Learning
+        """
+        recomendacoes = []
+
+        # Recomendações baseadas em previsões de preços
+        if 'previsao_precos_ml' in analises_ml and 'previsoes' in analises_ml['previsao_precos_ml']:
+            previsoes = analises_ml['previsao_precos_ml']['previsoes']
+            if previsoes:
+                ultima_previsao = previsoes[-1]
+                preco_atual = float(dados_historicos.get('precos_medios', {}).get('BOI', 0))
+
+                if ultima_previsao.get('preco_previsto', 0) > preco_atual * 1.1:
+                    recomendacoes.append(
+                        "ML indica tendência de alta de preços. Considere adiar vendas para maximizar receita."
+                    )
+                elif ultima_previsao.get('preco_previsto', 0) < preco_atual * 0.9:
+                    recomendacoes.append(
+                        "ML projeta queda de preços. Avalie antecipar vendas para evitar perdas."
+                    )
+
+        # Recomendações baseadas em anomalias
+        if 'anomalias_producao' in analises_ml and 'anomalias_detectadas' in analises_ml['anomalias_producao']:
+            anomalias = analises_ml['anomalias_producao']['anomalias_detectadas']
+            if len(anomalias) > 2:
+                recomendacoes.append(
+                    f"ML detectou {len(anomalias)} anomalias na produção. Revise processos de manejo."
+                )
+
+        # Recomendações baseadas em natalidade
+        if 'previsao_natalidade' in analises_ml and 'previsoes' in analises_ml['previsao_natalidade']:
+            natalidade = analises_ml['previsao_natalidade']['previsoes']
+            if natalidade:
+                taxa_media = sum(p.get('taxa_natalidade_prevista', 0) for p in natalidade) / len(natalidade)
+                if taxa_media < 0.7:
+                    recomendacoes.append(
+                        f"ML projeta taxa de natalidade baixa ({taxa_media:.1%}). Considere investir em reprodução."
+                    )
+
+        # Recomendações baseadas em mortalidade
+        if 'previsao_mortalidade' in analises_ml and 'previsoes' in analises_ml['previsao_mortalidade']:
+            mortalidade = analises_ml['previsao_mortalidade']['previsoes']
+            if mortalidade:
+                taxa_media = sum(p.get('taxa_mortalidade_prevista', 0) for p in mortalidade) / len(mortalidade)
+                if taxa_media > 0.05:
+                    recomendacoes.append(
+                        f"ML indica risco alto de mortalidade ({taxa_media:.1%}). Priorize saúde animal."
+                    )
+
+        # Recomendações baseadas em correlações
+        if 'correlacoes' in analises_ml and 'correlacoes_fortes' in analises_ml['correlacoes']:
+            correlacoes = analises_ml['correlacoes']['correlacoes_fortes']
+            for correlacao in correlacoes[:2]:  # Top 2 correlações
+                var1 = correlacao.get('variavel_1', '')
+                var2 = correlacao.get('variavel_2', '')
+                coef = correlacao.get('correlacao', 0)
+
+                if 'precipitacao' in var1.lower() and coef > 0.5:
+                    recomendacoes.append(
+                        "Correlação forte entre precipitação e produtividade. Monitore condições climáticas."
+                    )
+
+        return recomendacoes
+
+    def _calcular_projecoes_otimizadas(
+        self,
+        dados_historicos: Dict[str, Any],
+        analise_inventario: Dict[str, Any],
+        analises_ml: Dict[str, Any] = None
+    ) -> Dict[str, Any]:
+        """
+        Calcula projeções otimizadas incluindo ML
+        """
+        projecoes_base = self._calcular_projecoes_base(dados_historicos, analise_inventario)
+
+        # Enriquecer com ML se disponível
+        if analises_ml and self.ml_disponivel:
+            projecoes_ml = self._integrar_projecoes_ml(projecoes_base, analises_ml)
+            projecoes_base.update(projecoes_ml)
+
+        return projecoes_base
+
+    def _integrar_projecoes_ml(
+        self,
+        projecoes_base: Dict[str, Any],
+        analises_ml: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Integra projeções de ML nas projeções base
+        """
+        projecoes_ml = {}
+
+        # Natalidade ML
+        if 'previsao_natalidade' in analises_ml and 'previsoes' in analises_ml['previsao_natalidade']:
+            natalidade_ml = analises_ml['previsao_natalidade']['previsoes']
+            projecoes_ml['natalidade_ml'] = natalidade_ml
+
+        # Mortalidade ML
+        if 'previsao_mortalidade' in analises_ml and 'previsoes' in analises_ml['previsao_mortalidade']:
+            mortalidade_ml = analises_ml['previsao_mortalidade']['previsoes']
+            projecoes_ml['mortalidade_ml'] = mortalidade_ml
+
+        # Preços ML
+        if 'previsao_precos_ml' in analises_ml and 'previsoes' in analises_ml['previsao_precos_ml']:
+            precos_ml = analises_ml['previsao_precos_ml']['previsoes']
+            projecoes_ml['precos_ml'] = precos_ml
+
+        return projecoes_ml
+
+    def _gerar_insights_gerais(
+        self,
+        dados_historicos: Dict[str, Any],
+        analise_inventario: Dict[str, Any],
+        dados_mercado: Dict[str, Any],
+        analises_ml: Dict[str, Any] = None
+    ) -> List[str]:
+        """
+        Gera insights gerais incluindo ML
+        """
+        insights = []
+
+        # Insights base
+        insights.extend(self._gerar_insights_base(
+            dados_historicos, analise_inventario, dados_mercado
+        ))
+
+        # Insights de ML
+        if analises_ml and self.ml_disponivel:
+            insights.extend(self._gerar_insights_ml(analises_ml))
+
+        return insights
+
+    def _gerar_insights_ml(self, analises_ml: Dict[str, Any]) -> List[str]:
+        """
+        Gera insights baseados em análises de ML
+        """
+        insights = []
+
+        if 'correlacoes' in analises_ml and 'insights_principais' in analises_ml['correlacoes']:
+            insights_ml = analises_ml['correlacoes']['insights_principais']
+            insights.extend(insights_ml[:3])  # Top 3 insights
+
+        if 'anomalias_producao' in analises_ml and 'insights' in analises_ml['anomalias_producao']:
+            insights_anomalias = analises_ml['anomalias_producao']['insights']
+            insights.extend(insights_anomalias[:2])  # Top 2 insights
+
+        # Insight sobre disponibilidade de ML
+        if self.ml_disponivel:
+            insights.append("Machine Learning integrado: previsões mais precisas disponíveis")
+        else:
+            insights.append("Machine Learning não disponível: usando métodos tradicionais")
+
+        return insights
+
+    # ========================================
+    # MÉTODOS AVANÇADOS COM ML E APIs EXTERNAS
+    # ========================================
+
+    def _gerar_previsoes_ml(self) -> Dict[str, Any]:
+        """
+        Gera previsões usando Machine Learning avançado
+        """
+        previsoes = {
+            'precos': {},
+            'natalidade': {},
+            'mortalidade': {},
+            'disponivel': False
+        }
+
+        try:
+            # 1. Previsões de preços para diferentes categorias
+            categorias_preco = ['BOI', 'BEZERRO', 'BEZERRA', 'GARROTE', 'NOVILHA']
+
+            for categoria in categorias_preco:
+                try:
+                    # Mapear categoria para formato da API
+                    categoria_mapeada = categoria.lower()
+                    if categoria == 'BOI':
+                        categoria_mapeada = 'boi_gordo'
+                    elif categoria == 'BEZERRO':
+                        categoria_mapeada = 'bezerro'
+                    elif categoria == 'BEZERRA':
+                        categoria_mapeada = 'bezerra'
+                    elif categoria == 'GARROTE':
+                        categoria_mapeada = 'novilho'
+                    elif categoria == 'NOVILHA':
+                        categoria_mapeada = 'novilha'
+
+                    # Previsão com ML
+                    previsao_ml = self.ml_price_service.prever_precos_futuros(
+                        uf='MT',  # Focar em Mato Grosso
+                        categoria=categoria,
+                        meses_a_frente=6,
+                        metodo='ensemble'
+                    )
+
+                    if previsao_ml.get('sucesso'):
+                        previsoes['precos'][categoria] = previsao_ml
+
+                except Exception as e:
+                    logger.warning(f'Erro na previsão ML para {categoria}: {e}')
+
+            # 2. Previsões de natalidade
+            try:
+                natalidade_ml = self.ml_natalidade_service.prever_taxa_natalidade(
+                    self.propriedade.id,
+                    'Multípara',  # Categoria mais comum
+                    periodo_meses=12
+                )
+                if natalidade_ml.get('sucesso'):
+                    previsoes['natalidade'] = natalidade_ml
+            except Exception as e:
+                logger.warning(f'Erro na previsão de natalidade ML: {e}')
+
+            # 3. Previsões de mortalidade
+            try:
+                mortalidade_ml = self.ml_natalidade_service.prever_taxa_mortalidade(
+                    self.propriedade.id,
+                    'Bezerros (0-12m)',  # Categoria crítica
+                    periodo_meses=12
+                )
+                if mortalidade_ml.get('sucesso'):
+                    previsoes['mortalidade'] = mortalidade_ml
+            except Exception as e:
+                logger.warning(f'Erro na previsão de mortalidade ML: {e}')
+
+            previsoes['disponivel'] = True
+
+        except Exception as e:
+            logger.error(f'Erro geral nas previsões ML: {e}')
+
+        return previsoes

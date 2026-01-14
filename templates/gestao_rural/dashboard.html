@@ -1,215 +1,248 @@
 {% extends 'base_moderno.html' %}
 
-{% block title %}Minhas Fazendas - Monpec Agro{% endblock %}
+{% block title %}Dashboard - Monpec Agro{% endblock %}
 
 {% block content_authenticated %}
-<div class="fade-in-up dashboard-container">
-    <!-- Cabeçalho da Página -->
-    <div class="page-header-section mb-5">
-        <div class="d-flex flex-wrap gap-3 justify-content-between align-items-center">
-            <div>
-                <h1 class="page-title-main">Minhas Fazendas</h1>
-                <p class="page-subtitle-main">Selecione a fazenda para trabalhar</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Cards de Estatísticas -->
-    <div class="row g-4 stats-grid mb-5">
-        <div class="col-xxl-4 col-lg-6 col-md-6">
-            <div class="stat-card stat-card-green">
-                <div class="stat-card-header">
-                    <div class="stat-icon-wrapper green">
-                        <i class="bi bi-building-fill"></i>
-                    </div>
-                    <div class="stat-card-content">
-                        <div class="stat-label">Total de Fazendas</div>
-                        <div class="stat-value">{{ total_propriedades|default:0 }}</div>
-                        <div class="stat-description">Propriedades rurais cadastradas</div>
-                    </div>
-                </div>
-                <div class="stat-card-footer">
-                    <i class="bi bi-arrow-up-right"></i>
-                    <span>Ativas no sistema</span>
+<div class="container-fluid">
+    {% if IS_ASSINANTE %}
+    <!-- Página Especial para Assinantes Ativos -->
+    <div class="min-vh-100 bg-light">
+        <!-- Header -->
+        <div class="bg-primary text-white py-4">
+            <div class="container">
+                <div class="text-center">
+                    <h1 class="display-4 fw-bold mb-2">🎉 Parabéns! Você é nosso Assinante</h1>
+                    <p class="lead mb-0">Bem-vindo ao MONPEC - Sistema de Gestão Agropecuária</p>
                 </div>
             </div>
         </div>
 
-        <div class="col-xxl-4 col-lg-6 col-md-6">
-            <div class="stat-card stat-card-orange">
-                <div class="stat-card-header">
-                    <div class="stat-icon-wrapper orange">
-                        <i class="bi bi-heart-pulse-fill"></i>
-                    </div>
-                    <div class="stat-card-content">
-                        <div class="stat-label">Total de Animais</div>
-                        <div class="stat-value">{{ total_animais|default:0 }}</div>
-                        <div class="stat-description">Animais no rebanho</div>
-                    </div>
-                </div>
-                <div class="stat-card-footer">
-                    <i class="bi bi-arrow-up-right"></i>
-                    <span>Rastreáveis</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xxl-4 col-lg-6 col-md-6">
-            <div class="stat-card stat-card-blue">
-                <div class="stat-card-header">
-                    <div class="stat-icon-wrapper blue">
-                        <i class="bi bi-grid-3x3-gap-fill"></i>
-                    </div>
-                    <div class="stat-card-content">
-                        <div class="stat-label">Nesta Página</div>
-                        <div class="stat-value">{{ propriedades|length }}</div>
-                        <div class="stat-description">Fazendas exibidas</div>
-                    </div>
-                </div>
-                <div class="stat-card-footer">
-                    <i class="bi bi-arrow-up-right"></i>
-                    <span>Visualizando</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Barra de Busca e Filtros -->
-    <div class="search-filter-section mb-4">
-        <div class="search-filter-card">
-            <form method="GET" class="search-form">
-                <div class="row g-3">
-                    <div class="col-lg-6 col-md-12">
-                        <div class="search-input-wrapper">
-                            <i class="bi bi-search search-icon"></i>
-                            <input type="text" 
-                                   class="search-input" 
-                                   name="busca" 
-                                   value="{{ busca }}" 
-                                   placeholder="Buscar por nome da fazenda, município, estado ou produtor...">
-                            {% if busca %}
-                            <a href="{% url 'dashboard' %}" class="clear-search" title="Limpar busca">
-                                <i class="bi bi-x-circle-fill"></i>
-                            </a>
-                            {% endif %}
+        <!-- Status da Assinatura -->
+        <div class="container my-5">
+            <div class="row justify-content-center">
+                <div class="col-lg-8">
+                    <div class="card border-success shadow-lg">
+                        <div class="card-header bg-success text-white text-center py-3">
+                            <h4 class="mb-0">
+                                <i class="bi bi-check-circle-fill me-2"></i>
+                                Assinatura Ativa Confirmada
+                            </h4>
                         </div>
-                    </div>
-                    <div class="col-lg-3 col-md-6">
-                        <select name="ordenar" class="filter-select">
-                            <option value="nome_propriedade" {% if ordenar_por == 'nome_propriedade' %}selected{% endif %}>Ordenar por Nome</option>
-                            <option value="municipio" {% if ordenar_por == 'municipio' %}selected{% endif %}>Ordenar por Município</option>
-                            <option value="uf" {% if ordenar_por == 'uf' %}selected{% endif %}>Ordenar por Estado</option>
-                            <option value="animais" {% if ordenar_por == 'animais' %}selected{% endif %}>Ordenar por Animais</option>
-                        </select>
-                    </div>
-                    <div class="col-lg-2 col-md-3">
-                        <select name="direcao" class="filter-select">
-                            <option value="asc" {% if direcao == 'asc' %}selected{% endif %}>Crescente</option>
-                            <option value="desc" {% if direcao == 'desc' %}selected{% endif %}>Decrescente</option>
-                        </select>
-                    </div>
-                    <div class="col-lg-1 col-md-3">
-                        <button type="submit" class="btn-search">
-                            <i class="bi bi-search"></i>
-                        </button>
-                    </div>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Resultados da Busca -->
-    {% if busca %}
-    <div class="alert-search-results mb-4">
-        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-            <div class="d-flex align-items-center gap-2">
-                <i class="bi bi-info-circle-fill"></i>
-                <div>
-                    <strong>Resultados da busca:</strong> 
-                    {{ total_propriedades }} fazenda(s) encontrada(s) para "<strong>{{ busca }}</strong>"
-                </div>
-            </div>
-            <a href="{% url 'dashboard' %}" class="btn-clear-search">
-                <i class="bi bi-x-circle-fill"></i>
-                Limpar Busca
-            </a>
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- Grid de Propriedades -->
-    {% if propriedades %}
-    <div class="propriedades-grid mb-4">
-        <div class="row g-4">
-            {% for propriedade in propriedades %}
-            <div class="col-xl-4 col-lg-6 col-md-6">
-                <a href="{% url 'propriedade_modulos' propriedade.id %}" class="propriedade-card-link">
-                    <div class="propriedade-card">
-                        <div class="propriedade-card-header">
-                            <div class="propriedade-icon">
-                                <i class="bi bi-building"></i>
+                        <div class="card-body p-4">
+                            <!-- Saudação Personalizada -->
+                            <div class="text-center mb-4">
+                                <h3 class="text-primary mb-2">Olá, {{ user.first_name|default:user.username }}!</h3>
+                                <p class="text-muted">Sua assinatura está ativa e seu acesso está sendo preparado.</p>
                             </div>
-                            <div class="propriedade-title-section">
-                                <h3 class="propriedade-name">{{ propriedade.nome_propriedade }}</h3>
-                                <p class="propriedade-produtor">
-                                    <i class="bi bi-person-fill"></i>
-                                    {{ propriedade.produtor.nome }}
+
+                            <!-- Informações da Assinatura -->
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6">
+                                    <div class="card bg-light border-0">
+                                        <div class="card-body text-center">
+                                            <div class="bg-success bg-opacity-10 rounded-circle p-3 mx-auto mb-3" style="width: 60px; height: 60px;">
+                                                <i class="bi bi-calendar-check text-success fs-4"></i>
+                                            </div>
+                                            <h6 class="card-title">Data de Ativação</h6>
+                                            <p class="text-success fw-bold mb-0 fs-5">01/02/2026</p>
+                                            <small class="text-muted">Sistema liberado automaticamente</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card bg-light border-0">
+                                        <div class="card-body text-center">
+                                            <div class="bg-primary bg-opacity-10 rounded-circle p-3 mx-auto mb-3" style="width: 60px; height: 60px;">
+                                                <i class="bi bi-star-fill text-primary fs-4"></i>
+                                            </div>
+                                            <h6 class="card-title">Status</h6>
+                                            <p class="text-primary fw-bold mb-0 fs-5">Assinante Premium</p>
+                                            <small class="text-muted">Acesso completo ao sistema</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Mensagem Importante -->
+                            <div class="alert alert-info border-0 shadow-sm mb-4">
+                                <h5 class="alert-heading">
+                                    <i class="bi bi-info-circle-fill me-2"></i>
+                                    Sistema em Preparação
+                                </h5>
+                                <p class="mb-2">
+                                    Estamos finalizando os últimos ajustes para garantir a melhor experiência possível.
+                                    Seu acesso completo será liberado automaticamente a partir de <strong>01 de fevereiro de 2026</strong>.
+                                </p>
+                                <hr>
+                                <p class="mb-0">
+                                    <strong>Enquanto isso, você pode:</strong>
+                                </p>
+                                <ul class="mb-0 mt-2">
+                                    <li>Explorar nossa versão demo para conhecer as funcionalidades</li>
+                                    <li>Entrar em contato conosco para tirar dúvidas</li>
+                                    <li>Acompanhar as atualizações do sistema</li>
+                                </ul>
+                            </div>
+
+                            <!-- O que o MONPEC Oferece -->
+                            <div class="card bg-primary bg-opacity-10 border-0 mb-4">
+                                <div class="card-header bg-primary text-white">
+                                    <h5 class="mb-0">
+                                        <i class="bi bi-tools me-2"></i>
+                                        O que você terá acesso no MONPEC
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <div class="d-flex align-items-start mb-3">
+                                                <i class="bi bi-check-circle-fill text-success me-3 fs-5 mt-1"></i>
+                                                <div>
+                                                    <h6 class="text-primary mb-1">🐄 Gestão Pecuária</h6>
+                                                    <small>Controle completo do rebanho, reprodução e manejo</small>
+                                                </div>
+                                            </div>
+                                            <div class="d-flex align-items-start mb-3">
+                                                <i class="bi bi-check-circle-fill text-success me-3 fs-5 mt-1"></i>
+                                                <div>
+                                                    <h6 class="text-primary mb-1">💰 Controle Financeiro</h6>
+                                                    <small>Receitas, despesas e relatórios gerenciais</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="d-flex align-items-start mb-3">
+                                                <i class="bi bi-check-circle-fill text-success me-3 fs-5 mt-1"></i>
+                                                <div>
+                                                    <h6 class="text-primary mb-1">📊 Dashboards</h6>
+                                                    <small>Análises visuais e indicadores em tempo real</small>
+                                                </div>
+                                            </div>
+                                            <div class="d-flex align-items-start mb-3">
+                                                <i class="bi bi-check-circle-fill text-success me-3 fs-5 mt-1"></i>
+                                                <div>
+                                                    <h6 class="text-primary mb-1">🤝 Suporte Especializado</h6>
+                                                    <small>Consultoria e treinamentos personalizados</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Ações Disponíveis -->
+                            <div class="text-center">
+                                <h5 class="mb-3">Ações Disponíveis Agora</h5>
+                                <div class="d-flex flex-column flex-sm-row gap-3 justify-content-center">
+                                    <a href="{% url 'demo_loading' %}" class="btn btn-primary btn-lg px-4">
+                                        <i class="bi bi-play-circle me-2"></i>
+                                        Explorar Versão Demo
+                                    </a>
+                                    <a href="mailto:suporte@monpec.com.br" class="btn btn-outline-primary btn-lg px-4">
+                                        <i class="bi bi-envelope me-2"></i>
+                                        Falar com Suporte
+                                    </a>
+                                </div>
+                                <p class="text-muted mt-3 mb-0">
+                                    <small>Estamos aqui para ajudar você a aproveitar ao máximo o MONPEC!</small>
                                 </p>
                             </div>
                         </div>
-                        
-                        <div class="propriedade-card-body">
-                            <div class="propriedade-info-row">
-                                <div class="info-item">
-                                    <i class="bi bi-geo-alt-fill"></i>
-                                    <span>{{ propriedade.municipio }}, {{ propriedade.uf }}</span>
-                                </div>
-                            </div>
-                            
-                            <div class="propriedade-stats">
-                                <div class="stat-item">
-                                    <div class="stat-icon stat-icon-area">
-                                        <i class="bi bi-rulers"></i>
-                                    </div>
-                                    <div class="stat-content">
-                                        <div class="stat-value-small">{{ propriedade.area_total_ha|floatformat:2|default:"0,00" }}</div>
-                                        <div class="stat-label-small">hectares</div>
-                                    </div>
-                                </div>
-                                
-                                <div class="stat-item">
-                                    <div class="stat-icon stat-icon-animals">
-                                        <i class="bi bi-heart-pulse-fill"></i>
-                                    </div>
-                                    <div class="stat-content">
-                                        <div class="stat-value-small">{{ propriedade.total_animais|default:0 }}</div>
-                                        <div class="stat-label-small">animais</div>
-                                    </div>
-                                </div>
-                                
-                                <div class="stat-item">
-                                    <div class="stat-icon stat-icon-cycle">
-                                        <i class="bi bi-arrow-repeat"></i>
-                                    </div>
-                                    <div class="stat-content">
-                                        <div class="stat-value-small">{{ propriedade.get_ciclos_pecuarios_display|default:"—" }}</div>
-                                        <div class="stat-label-small">ciclo</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="propriedade-card-footer">
-                            <span class="btn-access-card">
-                                Acessar Módulos
-                                <i class="bi bi-arrow-right"></i>
-                            </span>
-                        </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <!-- Dashboard Normal para outros usuários -->
+    <div class="text-center mb-5" style="margin-top: 2rem;">
+        <h1 class="display-5 fw-bold text-primary mb-2">Monpec Monitor da Pecuária</h1>
+        <div class="mb-3">
+            <h5 class="text-dark">Olá, {{ user.first_name|default:user.username }}!</h5>
+            <p class="text-muted mb-2">Sistema de Gestão Agropecuária</p>
+            {% if IS_DEMO_USER %}
+                <div class="alert alert-info py-2 px-3" style="display: inline-block; border-radius: 20px;">
+                    <small class="fw-bold"><i class="bi bi-info-circle-fill me-1"></i>Usuário Demo</small>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    {% if propriedades %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h3 class="mb-1">Suas Fazendas</h3>
+                    <p class="text-muted mb-0">Clique em qualquer fazenda para acessar os módulos</p>
+                </div>
+                <a href="#" class="btn btn-outline-primary">
+                    <i class="bi bi-plus-circle me-1"></i>Adicionar Fazenda
                 </a>
             </div>
-            {% endfor %}
         </div>
+    </div>
+
+    <div class="row g-3">
+                {% for propriedade in propriedades %}
+                <div class="col-xl-4 col-lg-6 col-md-6">
+                    <div class="card border-0 shadow-sm h-100 propriedade-card-link" onclick="window.location.href='{% url 'propriedade_modulos' propriedade.id %}'" style="cursor: pointer;">
+                        <div class="card-body p-4">
+                            <div class="d-flex align-items-start gap-3 mb-3">
+                                <div class="bg-primary bg-opacity-10 rounded-circle p-2" style="width: 48px; height: 48px;">
+                                    <i class="bi bi-building text-primary fs-5"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h5 class="card-title mb-1">{{ propriedade.nome_propriedade }}</h5>
+                                    <p class="text-muted small mb-2">{{ propriedade.produtor.nome }}</p>
+                                    <div class="d-flex gap-2 mb-2">
+                                        <small class="badge bg-success">Ativa</small>
+                                        {% if propriedade.municipio and propriedade.uf %}
+                                        <small class="badge bg-light text-dark">{{ propriedade.municipio }}, {{ propriedade.uf }}</small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <i class="bi bi-chevron-right text-muted"></i>
+                            </div>
+
+                            <!-- Estatísticas -->
+                            <div class="row g-2 text-center">
+                                <div class="col-6">
+                                    <div class="p-2 bg-light rounded">
+                                        <div class="fw-bold text-primary">{{ propriedade.area_total_ha|floatformat:1|default:"0" }}</div>
+                                        <small class="text-muted">hectares</small>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="p-2 bg-light rounded">
+                                        <div class="fw-bold text-success">{{ propriedade.total_animais|default:0 }}</div>
+                                        <small class="text-muted">animais</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                                    <i class="bi bi-heart-pulse-fill"></i>
+                                </div>
+                                <div class="stat-info-modern">
+                                    <div class="stat-value-modern">{{ propriedade.total_animais|default:0 }}</div>
+                                    <div class="stat-label-modern">animais</div>
+                                </div>
+                            </div>
+
+                            <div class="stat-item-modern">
+                                <div class="stat-icon-modern stat-cycle">
+                                    <i class="bi bi-arrow-repeat"></i>
+                                </div>
+                                <div class="stat-info-modern">
+                                    <div class="stat-value-modern">{{ propriedade.get_ciclos_pecuarios_display|default:"—" }}</div>
+                                    <div class="stat-label-modern">ciclo</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
     </div>
 
     <!-- Paginação -->
@@ -266,35 +299,950 @@
     {% endif %}
 
     {% else %}
-    <!-- Estado Vazio -->
-    <div class="empty-state-section">
-        <div class="empty-state-card">
-            <div class="empty-icon-wrapper">
-                <i class="bi bi-building"></i>
+    <!-- Comece Agora -->
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center p-5">
+                    <div class="mb-4">
+                        <h3 class="mb-3">Bem-vindo ao MONPEC!</h3>
+                        <p class="text-muted mb-4">
+                            Você ainda não possui fazendas cadastradas no sistema.<br>
+                            Comece agora mesmo a gerenciar sua propriedade rural.
+                        </p>
+                    </div>
+
+                    <div class="d-flex flex-column flex-sm-row gap-3 justify-content-center">
+                        <a href="{% url 'propriedade_nova_geral' %}" class="btn btn-primary btn-lg px-4">
+                            <i class="bi bi-plus-circle me-2"></i>Adicionar Primeira Fazenda
+                        </a>
+                        <a href="#" class="btn btn-outline-primary btn-lg px-4" onclick="mostrarDemonstracao()">
+                            <i class="bi bi-play-circle me-2"></i>Ver Demonstração
+                        </a>
+                    </div>
+
+                    <div class="mt-4 pt-4 border-top">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-headset text-primary me-3 fs-4"></i>
+                                    <div class="text-start">
+                                        <h6 class="mb-1">Precisa de Ajuda?</h6>
+                                        <small class="text-muted">Entre em contato com nosso consultor</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-calendar-event text-primary me-3 fs-4"></i>
+                                    <div class="text-start">
+                                        <h6 class="mb-1">Agende uma Demonstração</h6>
+                                        <small class="text-muted">Conheça todas as funcionalidades</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <h3 class="empty-title">
-                {% if busca %}
-                    Nenhuma fazenda encontrada
-                {% else %}
-                    Nenhuma fazenda cadastrada
-                {% endif %}
-            </h3>
-            <p class="empty-description">
-                {% if busca %}
-                    Não encontramos resultados para sua busca. Tente ajustar os termos ou 
-                    <a href="{% url 'dashboard' %}">limpar os filtros</a>.
-                {% else %}
-                    Você ainda não possui fazendas cadastradas. Entre em contato com o administrador para cadastrar suas propriedades.
-                {% endif %}
-            </p>
         </div>
     </div>
     {% endif %}
 </div>
 
 <style>
-/* Importar fonte Inter */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+/* Dashboard profissional */
+.propriedade-card-link:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+    transition: all 0.2s ease;
+}
+
+.propriedade-card-link {
+    transition: all 0.2s ease;
+}
+    flex-wrap: wrap;
+}
+
+.badge-modern {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 25px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.badge-premium {
+    background: linear-gradient(135deg, #ffd700, #ffb347);
+    color: #000;
+    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+}
+
+.badge-active {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    color: white;
+    box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+}
+
+/* ===== STATS OVERVIEW ===== */
+.stats-overview-section {
+    margin-bottom: 3rem;
+}
+
+.stats-header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.stats-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #2d3748;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+}
+
+.stats-subtitle {
+    color: #718096;
+    font-size: 1rem;
+    margin: 0;
+}
+
+/* ===== MODERN STAT CARDS ===== */
+.stats-grid {
+    margin-bottom: 2rem;
+}
+
+.stat-card-modern {
+    position: relative;
+    background: white;
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    cursor: pointer;
+}
+
+.stat-card-modern:hover {
+    transform: translateY(-10px) scale(1.02);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+}
+
+.stat-card-glow {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #667eea, #764ba2, #f093fb);
+    background-size: 200% 100%;
+    animation: gradientShift 3s ease-in-out infinite;
+}
+
+.stat-card-farm .stat-card-glow {
+    background: linear-gradient(90deg, #667eea, #764ba2);
+}
+
+.stat-card-animals .stat-card-glow {
+    background: linear-gradient(90deg, #f093fb, #f5576c);
+}
+
+.stat-card-active .stat-card-glow {
+    background: linear-gradient(90deg, #4facfe, #00f2fe);
+}
+
+.stat-card-content-modern {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.stat-icon-modern {
+    width: 70px;
+    height: 70px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    flex-shrink: 0;
+}
+
+.stat-card-farm .stat-icon-modern {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+}
+
+.stat-card-animals .stat-icon-modern {
+    background: linear-gradient(135deg, #f093fb, #f5576c);
+    color: white;
+    box-shadow: 0 8px 25px rgba(240, 147, 251, 0.3);
+}
+
+.stat-card-active .stat-icon-modern {
+    background: linear-gradient(135deg, #4facfe, #00f2fe);
+    color: white;
+    box-shadow: 0 8px 25px rgba(79, 172, 254, 0.3);
+}
+
+.stat-info-modern {
+    flex: 1;
+}
+
+.stat-value-modern {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: #2d3748;
+    line-height: 1;
+    margin-bottom: 0.25rem;
+}
+
+.stat-label-modern {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #4a5568;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.stat-desc-modern {
+    font-size: 0.85rem;
+    color: #718096;
+    margin-top: 0.25rem;
+}
+
+.stat-trend-modern {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.trend-up {
+    background: linear-gradient(135deg, #48bb78, #38a169);
+    color: white;
+}
+
+.trend-neutral {
+    background: linear-gradient(135deg, #718096, #4a5568);
+    color: white;
+}
+
+.stat-card-pattern {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 150px;
+    height: 150px;
+    opacity: 0.05;
+    background: radial-gradient(circle, currentColor 1px, transparent 1px);
+    background-size: 20px 20px;
+    border-radius: 0 20px 0 50px;
+}
+
+/* ===== SEARCH & FILTER MODERN ===== */
+.search-filter-section-modern {
+    margin-bottom: 3rem;
+}
+
+.search-filter-card-modern {
+    background: white;
+    border-radius: 20px;
+    padding: 2.5rem;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+.search-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.search-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #2d3748;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+}
+
+.search-subtitle {
+    color: #718096;
+    margin: 0;
+    font-size: 0.95rem;
+}
+
+.search-form-modern {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.search-input-group {
+    width: 100%;
+}
+
+.search-input-wrapper-modern {
+    position: relative;
+    width: 100%;
+}
+
+.search-icon-modern {
+    position: absolute;
+    left: 1.25rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #a0aec0;
+    font-size: 1.25rem;
+    z-index: 2;
+}
+
+.search-input-modern {
+    width: 100%;
+    padding: 1rem 1rem 1rem 3rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 15px;
+    font-size: 1rem;
+    background: #f8fafc;
+    transition: all 0.3s ease;
+    outline: none;
+}
+
+.search-input-modern:focus {
+    border-color: #667eea;
+    background: white;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.clear-search-modern {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #a0aec0;
+    text-decoration: none;
+    font-size: 1.25rem;
+    transition: color 0.2s ease;
+}
+
+.clear-search-modern:hover {
+    color: #e53e3e;
+}
+
+.filter-controls {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    align-items: end;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-width: 200px;
+    flex: 1;
+}
+
+.filter-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #4a5568;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.filter-select-modern {
+    padding: 0.875rem 1rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    background: white;
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+    outline: none;
+    cursor: pointer;
+}
+
+.filter-select-modern:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.filter-select-modern:hover {
+    border-color: #cbd5e0;
+}
+
+.btn-search-modern {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem 2rem;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    min-width: 140px;
+    justify-content: center;
+}
+
+.btn-search-modern:hover {
+    background: linear-gradient(135deg, #5a67d8, #6c5b7b);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+}
+
+/* ===== PROPRIEDADES MODERN ===== */
+.propriedades-section-modern {
+    margin-bottom: 3rem;
+}
+
+.propriedades-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.propriedades-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #2d3748;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+}
+
+.propriedades-subtitle {
+    color: #718096;
+    margin: 0;
+    font-size: 0.95rem;
+}
+
+.propriedades-grid-modern {
+    margin-bottom: 2rem;
+}
+
+.propriedade-item {
+    animation: fadeInUp 0.8s ease-out forwards;
+    opacity: 0;
+}
+
+.propriedade-card-modern {
+    position: relative;
+    background: white;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    height: 100%;
+    cursor: pointer;
+}
+
+.propriedade-card-modern:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.15);
+}
+
+.propriedade-card-glow {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #667eea, #764ba2, #f093fb);
+    background-size: 200% 100%;
+    animation: gradientShift 3s ease-in-out infinite;
+}
+
+.propriedade-card-header-modern {
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.propriedade-icon-modern {
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.propriedade-info-modern {
+    flex: 1;
+}
+
+.propriedade-name-modern {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #2d3748;
+    margin-bottom: 0.25rem;
+    line-height: 1.3;
+}
+
+.propriedade-produtor-modern {
+    font-size: 0.85rem;
+    color: #718096;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.propriedade-status {
+    flex-shrink: 0;
+}
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-active {
+    background: linear-gradient(135deg, #48bb78, #38a169);
+    color: white;
+}
+
+.propriedade-location-modern {
+    padding: 1rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.9rem;
+    color: #4a5568;
+    border-bottom: 1px solid #f1f5f9;
+    background: #f8fafc;
+}
+
+.propriedade-stats-modern {
+    padding: 1.5rem;
+    display: flex;
+    gap: 1.5rem;
+    justify-content: space-around;
+}
+
+.stat-item-modern {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex: 1;
+}
+
+.stat-icon-modern {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.stat-area {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+}
+
+.stat-animals {
+    background: linear-gradient(135deg, #f093fb, #f5576c);
+    color: white;
+}
+
+.stat-cycle {
+    background: linear-gradient(135deg, #4facfe, #00f2fe);
+    color: white;
+}
+
+.stat-info-modern {
+    flex: 1;
+}
+
+.stat-value-modern {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #2d3748;
+    line-height: 1;
+}
+
+.stat-label-modern {
+    font-size: 0.75rem;
+    color: #718096;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+.propriedade-action-modern {
+    padding: 1.5rem;
+    border-top: 1px solid #f1f5f9;
+}
+
+.btn-access-modern {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 1rem 1.5rem;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    text-decoration: none;
+    border-radius: 12px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border: none;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-access-modern::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+}
+
+.btn-access-modern:hover::before {
+    left: 100%;
+}
+
+.btn-access-modern:hover {
+    background: linear-gradient(135deg, #5a67d8, #6c5b7b);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+}
+
+.btn-text {
+    flex: 1;
+    text-align: left;
+}
+
+.btn-icon {
+    transition: transform 0.3s ease;
+}
+
+.btn-access-modern:hover .btn-icon {
+    transform: translateX(4px);
+}
+
+.propriedade-hover-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(102, 126, 234, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    color: white;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.propriedade-card-modern:hover .propriedade-hover-overlay {
+    opacity: 1;
+}
+
+.hover-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    text-align: center;
+}
+
+/* ===== EMPTY STATE MODERN ===== */
+.empty-state-section-modern {
+    margin-top: 3rem;
+}
+
+.empty-state-card-modern {
+    background: white;
+    border-radius: 20px;
+    padding: 4rem 2rem;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    text-align: center;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.empty-animation-wrapper {
+    position: relative;
+    margin-bottom: 2rem;
+}
+
+.empty-icon-modern {
+    width: 100px;
+    height: 100px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 2.5rem;
+    margin: 0 auto 2rem;
+    position: relative;
+    z-index: 2;
+    box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
+}
+
+.empty-particles {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 150px;
+    height: 150px;
+}
+
+.particle {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: #667eea;
+    border-radius: 50%;
+    animation: particleFloat 6s ease-in-out infinite;
+}
+
+.particle-1 {
+    top: 10%;
+    left: 20%;
+    animation-delay: 0s;
+}
+
+.particle-2 {
+    top: 60%;
+    right: 15%;
+    animation-delay: 2s;
+}
+
+.particle-3 {
+    bottom: 20%;
+    left: 70%;
+    animation-delay: 4s;
+}
+
+@keyframes particleFloat {
+    0%, 100% {
+        transform: translateY(0) scale(1);
+        opacity: 0.7;
+    }
+    50% {
+        transform: translateY(-20px) scale(1.2);
+        opacity: 1;
+    }
+}
+
+.empty-content-modern {
+    margin-bottom: 2rem;
+}
+
+.empty-title-modern {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #2d3748;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+}
+
+.empty-description-modern {
+    color: #718096;
+    font-size: 1rem;
+    line-height: 1.6;
+    margin: 0;
+}
+
+.empty-link {
+    color: #667eea;
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.2s ease;
+}
+
+.empty-link:hover {
+    color: #5a67d8;
+    text-decoration: underline;
+}
+
+.empty-actions-modern {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-top: 2rem;
+}
+
+.action-card {
+    background: #f8fafc;
+    border-radius: 15px;
+    padding: 1.5rem;
+    border: 1px solid #e2e8f0;
+    transition: all 0.3s ease;
+}
+
+.action-card:hover {
+    background: #f1f5f9;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.action-icon {
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+}
+
+.action-content h4 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #2d3748;
+    margin-bottom: 0.5rem;
+}
+
+.action-content p {
+    color: #718096;
+    font-size: 0.9rem;
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* ===== ANIMATIONS ===== */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.animate-fadeInUp {
+    animation: fadeInUp 0.8s ease-out forwards;
+    opacity: 0;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+    .hero-title {
+        font-size: 2rem;
+    }
+
+    .hero-subtitle {
+        font-size: 1rem;
+    }
+
+    .hero-badges {
+        justify-content: center;
+    }
+
+    .badge-modern {
+        font-size: 0.75rem;
+        padding: 0.4rem 0.8rem;
+    }
+
+    .stats-title {
+        font-size: 1.5rem;
+    }
+
+    .stat-card-content-modern {
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+    }
+
+    .stat-value-modern {
+        font-size: 2rem;
+    }
+
+    .filter-controls {
+        flex-direction: column;
+    }
+
+    .filter-group {
+        min-width: auto;
+        width: 100%;
+    }
+
+    .propriedade-stats-modern {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .propriedade-card-header-modern {
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+    }
+
+    .empty-actions-modern {
+        grid-template-columns: 1fr;
+    }
+}
 
 /* Reset e configurações globais */
 .dashboard-container {
@@ -943,5 +1891,15 @@
         padding: 1.25rem;
     }
 }
-</style>
+
+    </style>
+
+    <script>
+        function mostrarDemonstracao() {
+            // Função simples para mostrar demonstração
+            alert('Em breve você poderá ver uma demonstração completa do sistema MONPEC!');
+        }
+    </script>
+    {% endif %}
+
 {% endblock content_authenticated %}

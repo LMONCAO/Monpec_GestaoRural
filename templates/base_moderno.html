@@ -865,22 +865,23 @@
         <div class="container">
             <div class="header-content">
                 <div class="logo">
-                    <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMTkiIGZpbGw9InVybCgjZ3JhZGllbnQpIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMSIvPgo8ZGVmcz4KPGxpbmVhckdyYWRpZW50IGlkPSJncmFkaWVudCIgeDE9IjAiIHkxPSIwIiB4Mj0iMCIgeTI9IjQwIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CjxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiMxZTQwNzciLz4KPHN0b3Agb2Zmc2V0PSI1MCUiIHN0b3AtY29sb3I9IiMyNTYzZWIiLz4KPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjMTZhMzQ5Ii8+CjwvbGluZWFyR3JhZGllbnQ+CjwvZGVmcz4KPCEtLSBMZXRyYSBNIGNvbSBjaXJjdWl0byAtLT4KPHBhdGggZD0iTTEyIDEwSDE2VjE0SDEyVjEwWiIgZmlsbD0id2hpdGUiLz4KPHBhdGggZD0iTTEyIDEySDE2VjE2SDEyVjEyWiIgZmlsbD0id2hpdGUiLz4KPHBhdGggZD0iTTEyIDE0SDE2VjE4SDEyVjE0WiIgZmlsbD0id2hpdGUiLz4KPCEtLSBMZXRyYSBQIGNvbSBjYWJlY2EgcGVjdWFyaWEgLS0+CjxwYXRoIGQ9Ik0xOCAxMEwyMiAxMEwyMiAxNkwyMCAxOEwxOCAxNlYxMFoiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xOSAxMkwyMSAxMkwyMSAxNEwxOSAxNFYxMloiIGZpbGw9IiNmZmZmZmYiLz4KPCEtLSBUZXh0byBNT05QRUMgLS0+Cjx0ZXh0IHg9IjIwIiB5PSIyNCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjUiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TU9OUEVDPC90ZXh0Pgo8IS0tIFJhbW8gZGUgdHJpZ28gLS0+CjxwYXRoIGQ9Ik0xOCAzMEwyMiAzMEwyMiAzMkwyMCAzNEwxOCAzMloiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xOSAzMUwyMSAzMUwyMSAzM0wxOSAzM1YzMVoiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo=" alt="Logo Monpec Agro" style="border: none;">
-                    <h1 class="logo-text">Monpec Agro</h1>
+                    <h1 class="logo-text">Monpec</h1>
                 </div>
                 {% if user.is_authenticated %}
                 <div class="header-nav">
-                    <nav class="nav nav-pills">
-                        <a href="{% url 'dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
-                            <i class="bi bi-speedometer2 me-1"></i> Dashboard
-                        </a>
-                        <a href="{% url 'produtor_novo' %}" class="nav-link">
-                            <i class="bi bi-person-plus me-1"></i> Novo Produtor
-                        </a>
-                        <a href="{% url 'categorias_lista' %}" class="nav-link">
-                            <i class="bi bi-tags me-1"></i> Categorias
-                        </a>
-                    </nav>
+                    {% if IS_DEMO_USER %}
+                    <div class="d-flex gap-3">
+                        <button type="button" class="btn btn-success btn-lg px-4 py-2 fw-bold shadow-sm" onclick="window.location.href='{% url 'demo_loading' %}'" style="font-size: 1.1rem; border-radius: 8px;">
+                            <i class="bi bi-play-circle-fill me-2 fs-5"></i> Acessar Sistema Demo
+                        </button>
+                    </div>
+                    {% elif IS_ASSINANTE %}
+                    <div class="d-flex gap-3">
+                        <button type="button" class="btn btn-primary btn-lg px-4 py-2 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#modalSistemaAtivo" style="font-size: 1.1rem; border-radius: 8px;">
+                            <i class="bi bi-star-fill me-2 fs-5"></i> Acessar Sistema
+                        </button>
+                    </div>
+                    {% endif %}
                 </div>
                 <div class="user-info">
                     <div class="user-avatar">
@@ -920,5 +921,135 @@
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     {% block extra_js %}{% endblock %}
+
+    <!-- Modal Sistema Ativo -->
+    <div class="modal fade" id="modalSistemaAtivo" tabindex="-1" aria-labelledby="modalSistemaAtivoLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="modalSistemaAtivoLabel">
+                        <i class="bi bi-star-fill me-2"></i>Parabéns! Seu Sistema MONPEC Está Ativo
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <!-- Status da Assinatura -->
+                    <div class="alert alert-success mb-4">
+                        <h6 class="alert-heading mb-2">
+                            <i class="bi bi-check-circle-fill me-2"></i>Assinatura Ativa
+                        </h6>
+                        <p class="mb-1">Você adquiriu nossa licença promocional e terá uma economia significativa!</p>
+                        <small class="text-muted">Sistema disponível a partir do dia 01/02/2026</small>
+                    </div>
+
+                    <!-- Informações da Licença -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <div class="card border-primary">
+                                <div class="card-body text-center">
+                                    <div class="bg-primary bg-opacity-10 rounded-circle p-3 mx-auto mb-2" style="width: 60px; height: 60px;">
+                                        <i class="bi bi-calendar-check text-primary fs-4"></i>
+                                    </div>
+                                    <h6 class="card-title">Data de Ativação</h6>
+                                    <p class="text-primary fw-bold mb-0">01/02/2026</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card border-success">
+                                <div class="card-body text-center">
+                                    <div class="bg-success bg-opacity-10 rounded-circle p-3 mx-auto mb-2" style="width: 60px; height: 60px;">
+                                        <i class="bi bi-cash text-success fs-4"></i>
+                                    </div>
+                                    <h6 class="card-title">Economia na Licença</h6>
+                                    <p class="text-success fw-bold mb-0">Licença Promocional</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Agradecimento -->
+                    <div class="text-center mb-4">
+                        <h5 class="text-primary mb-3">Agradecemos sua confiança!</h5>
+                        <p class="mb-3">
+                            Enquanto aguarda a ativação completa do sistema, você pode continuar explorando nossa versão demo
+                            para conhecer todas as funcionalidades disponíveis.
+                        </p>
+                    </div>
+
+                    <!-- Sobre o Sistema -->
+                    <div class="card bg-light mb-4">
+                        <div class="card-header">
+                            <h6 class="mb-0">
+                                <i class="bi bi-info-circle me-2"></i>O que o MONPEC atende
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <h6 class="text-primary">🐄 Pecuária</h6>
+                                    <ul class="list-unstyled small mb-3">
+                                        <li>• Controle de rebanho</li>
+                                        <li>• Reprodução e manejo</li>
+                                        <li>• Pesagem e avaliação</li>
+                                        <li>• Rastreabilidade completa</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6 class="text-primary">💰 Financeiro</h6>
+                                    <ul class="list-unstyled small mb-3">
+                                        <li>• Controle de custos</li>
+                                        <li>• Receitas e despesas</li>
+                                        <li>• Relatórios gerenciais</li>
+                                        <li>• Planejamento financeiro</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6 class="text-primary">📊 Gestão</h6>
+                                    <ul class="list-unstyled small mb-0">
+                                        <li>• Gestão de propriedades</li>
+                                        <li>• Controle operacional</li>
+                                        <li>• Relatórios completos</li>
+                                        <li>• Dashboard interativo</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6 class="text-primary">🤝 Suporte</h6>
+                                    <ul class="list-unstyled small mb-0">
+                                        <li>• Consultoria especializada</li>
+                                        <li>• Treinamento da equipe</li>
+                                        <li>• Suporte técnico</li>
+                                        <li>• Atualizações constantes</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contato -->
+                    <div class="text-center">
+                        <h6 class="mb-3">Precisa de ajuda?</h6>
+                        <div class="d-flex justify-content-center gap-2">
+                            <a href="mailto:suporte@monpec.com.br" class="btn btn-outline-primary btn-sm">
+                                <i class="bi bi-envelope me-1"></i>Email
+                            </a>
+                            <a href="https://wa.me/5567999999999" class="btn btn-success btn-sm">
+                                <i class="bi bi-whatsapp me-1"></i>WhatsApp
+                            </a>
+                        </div>
+                        <small class="text-muted mt-2 d-block">
+                            Estamos aqui para ajudar você a aproveitar ao máximo o MONPEC!
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                    <a href="{% url 'demo_loading' %}" class="btn btn-primary">
+                        <i class="bi bi-play-circle me-1"></i>Explorar Versão Demo
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

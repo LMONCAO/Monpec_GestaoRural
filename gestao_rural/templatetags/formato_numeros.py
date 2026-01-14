@@ -38,3 +38,10 @@ def formato_decimal(numero):
     except (ValueError, TypeError):
         return str(numero)
 
+@register.filter
+def mul(value, arg):
+    """Multiplica o valor pelo argumento fornecido"""
+    try:
+        return float(value) * float(arg)
+    except (ValueError, TypeError):
+        return 0

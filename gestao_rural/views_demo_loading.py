@@ -25,16 +25,31 @@ def demo_loading(request):
     if request.user.is_superuser or request.user.is_staff:
         is_demo_user = False
     elif request.user.is_authenticated:
+        logger.info(f'[DEMO_LOADING] Verificando usuário: {request.user.username} (email: {request.user.email})')
+
         if request.user.username in ['demo', 'demo_monpec']:
             is_demo_user = True
+            logger.info(f'[DEMO_LOADING] Usuário demo padrão identificado: {request.user.username}')
         else:
-            # UsuarioAtivo não existe no banco atual
-            # Verificar se é usuário criado recentemente (lógica simplificada)
+            # Verificar se tem UsuarioAtivo (usuário criado pelo popup ou formulário)
             try:
-                # Usuários demo têm username que começa com email
-                if '@' in request.user.username:
+                from .models_auditoria import UsuarioAtivo
+                usuario_ativo = UsuarioAtivo.objects.get(usuario=request.user)
+                is_demo_user = True
+                logger.info(f'[DEMO_LOADING] Usuário demo identificado via UsuarioAtivo.usuario: {request.user.username} (ID: {usuario_ativo.id})')
+            except UsuarioAtivo.DoesNotExist:
+                logger.info(f'[DEMO_LOADING] UsuarioAtivo não encontrado por usuario para: {request.user.username}')
+                # Verificar se é usuário criado via formulário de demonstração
+                try:
+                    usuario_ativo = UsuarioAtivo.objects.get(email=request.user.email)
                     is_demo_user = True
-            except:
+                    logger.info(f'[DEMO_LOADING] Usuário demo identificado via UsuarioAtivo.email: {request.user.username} ({request.user.email}) (ID: {usuario_ativo.id})')
+                except UsuarioAtivo.DoesNotExist:
+                    logger.info(f'[DEMO_LOADING] UsuarioAtivo não encontrado por email para: {request.user.username} ({request.user.email})')
+                    logger.info(f'[DEMO_LOADING] Usuário não identificado como demo: {request.user.username}')
+                    pass
+            except Exception as e:
+                logger.error(f'[DEMO_LOADING] Erro ao verificar UsuarioAtivo: {e}')
                 pass
     else:
         # Usuário não logado - tentar encontrar usuário demo recém-criado

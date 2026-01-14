@@ -1,0 +1,223 @@
+================================================================================
+                    🔐 MUDANÇA DE SENHA DO ADMIN - MONPEC
+================================================================================
+
+PROBLEMA: A senha atual "admin123" é muito vulnerável e insegura.
+
+SOLUÇÃO: Execute os comandos abaixo no GOOGLE CLOUD SHELL para alterar a senha.
+
+================================================================================
+                    🚀 PASSOS PARA EXECUTAR
+================================================================================
+
+1. ACESSE O GOOGLE CLOUD SHELL:
+   • Vá para: https://console.cloud.google.com/
+   • Clique no ícone do Cloud Shell (terminal) no topo direito
+   • Aguarde o terminal carregar
+
+2. COPIE E COLE TODO O SCRIPT ABAIXO NO CLOUD SHELL:
+
+================================================================================
+                    📋 SCRIPT PARA EXECUTAR
+================================================================================
+
+#!/bin/bash
+# Script para mudar senha do admin no Google Cloud
+# Execute no Google Cloud Shell
+
+set -e
+
+echo "🔐 MUDANÇA DE SENHA DO ADMIN - MONPEC"
+echo "======================================"
+
+# Configurações
+PROJECT_ID="monpec-sistema-rural"
+REGION="us-central1"
+SERVICE_NAME="monpec"
+CONNECTION_NAME="$PROJECT_ID:$REGION:monpec-db"
+
+# SENHA CONFIGURADA: L6171r12@@monpec (depois será mudada para L6171r12@@js)
+NOVA_SENHA="L6171r12@@monpec"
+
+echo "📝 Senha configurada: $NOVA_SENHA"
+echo "✅ Senha validada!"
+echo ""
+
+# Configurar projeto
+echo "🔧 Configurando projeto..."
+gcloud config set project $PROJECT_ID --quiet
+
+# Executar mudança de senha
+echo "🔄 Executando mudança de senha..."
+
+gcloud run jobs create change-admin-password \
+  --image gcr.io/$PROJECT_ID/$SERVICE_NAME \
+  --region $REGION \
+  --command python \
+  --args -c,"
+import os, django
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'sistema_rural.settings_gcp')
+django.setup()
+from django.contrib.auth.models import User
+
+print('🔐 Alterando senha do admin...')
+admin_user = User.objects.filter(username='admin').first()
+if admin_user:
+    admin_user.set_password('$NOVA_SENHA')
+    admin_user.save()
+    print('✅ Senha alterada com sucesso!')
+    print('👤 Usuário: admin')
+    print('📧 Email: admin@monpec.com.br')
+else:
+    print('❌ Usuário admin não encontrado!')
+" \
+  --set-env-vars "DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,DB_NAME=monpec_db,DB_USER=monpec_user,DB_PASSWORD=L6171r12@@jjms,CLOUD_SQL_CONNECTION_NAME=$CONNECTION_NAME" \
+  --set-cloudsql-instances $CONNECTION_NAME \
+  --max-retries 1 \
+  --task-timeout 300 \
+  --memory 512Mi \
+  --cpu 1 \
+  --quiet
+
+# Executar job
+echo "⏱️  Executando..."
+gcloud run jobs execute change-admin-password --region $REGION --wait
+
+# Limpar job
+gcloud run jobs delete change-admin-password --region $REGION --quiet 2>&1 || true
+
+echo ""
+echo "🎉 SENHA ALTERADA COM SUCESSO!"
+echo "================================"
+echo ""
+echo "🌐 URLs de acesso:"
+echo "   • https://monpec.com.br/login/"
+echo "   • https://monpec-29862706245.us-central1.run.app/login/"
+echo ""
+echo "👤 Credenciais:"
+echo "   Usuário: admin"
+echo "   Email: admin@monpec.com.br"
+echo "   Senha: L6171r12@@monpec"
+echo ""
+echo "📝 PRÓXIMO PASSO:"
+echo "   Execute novamente este script alterando a linha:"
+echo "   NOVA_SENHA=\"L6171r12@@monpec\""
+echo "   Para:"
+echo "   NOVA_SENHA=\"L6171r12@@js\""
+echo ""
+echo "⚠️ IMPORTANTE:"
+echo "   • Anote sua senha atual: L6171r12@@monpec"
+echo "   • A senha antiga (admin123) não funciona mais!"
+echo ""
+echo "✅ Processo concluído!"
+
+================================================================================
+                    📝 EXEMPLO DE SENHA SEGURA
+================================================================================
+
+Algumas sugestões de senhas fortes:
+
+✅ Boas opções:
+   • Monpec@2025!Admin
+   • SistemaRural@2025#
+   • Pecuaria@Admin2025!
+   • L6171r12@@Admin
+   • AdminMonpec@2025$
+
+❌ Evite estas:
+   • admin123 (muito simples)
+   • 12345678 (sequencial)
+   • password (comum)
+   • monpec (relacionada ao sistema)
+
+================================================================================
+                    🔍 COMO VERIFICAR SE FUNCIONOU
+================================================================================
+
+Após executar o script:
+
+1. Acesse: https://monpec.com.br/login/
+2. Use as credenciais:
+   • Usuário: admin
+   • Senha: [sua nova senha]
+3. Deve fazer login normalmente
+
+Se ainda der erro, pode ser necessário executar primeiro a correção do erro 500.
+
+================================================================================
+                    🚨 EM CASO DE PROBLEMAS
+================================================================================
+
+Se o script falhar:
+
+1. Verifique se você está no Google Cloud Shell correto
+2. Certifique-se de que o projeto "monpec-sistema-rural" está selecionado
+3. Execute: gcloud config get-value project (deve retornar "monpec-sistema-rural")
+
+4. Se ainda não funcionar, execute primeiro a correção do erro 500 mencionada anteriormente
+
+================================================================================
+                    🔄 SCRIPT PARA SEGUNDA SENHA (L6171r12@@js)
+================================================================================
+
+Quando quiser mudar para a senha final, use este script:
+
+#!/bin/bash
+# Script para mudar senha do admin para L6171r12@@js
+set -e
+
+echo "🔐 MUDANÇA PARA SENHA FINAL - MONPEC"
+
+PROJECT_ID="monpec-sistema-rural"
+REGION="us-central1"
+SERVICE_NAME="monpec"
+CONNECTION_NAME="$PROJECT_ID:$REGION:monpec-db"
+
+# SENHA FINAL: L6171r12@@js
+NOVA_SENHA="L6171r12@@js"
+
+echo "📝 Senha final configurada: $NOVA_SENHA"
+echo "✅ Senha validada!"
+
+gcloud config set project $PROJECT_ID --quiet
+echo "🔄 Executando mudança de senha..."
+
+gcloud run jobs create change-admin-password-final \
+  --image gcr.io/$PROJECT_ID/$SERVICE_NAME \
+  --region $REGION \
+  --command python \
+  --args -c,"
+import os, django
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'sistema_rural.settings_gcp')
+django.setup()
+from django.contrib.auth.models import User
+
+print('🔐 Alterando para senha final...')
+admin_user = User.objects.filter(username='admin').first()
+if admin_user:
+    admin_user.set_password('$NOVA_SENHA')
+    admin_user.save()
+    print('✅ Senha final definida!')
+else:
+    print('❌ Usuário admin não encontrado!')
+" \
+  --set-env-vars "DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,DB_NAME=monpec_db,DB_USER=monpec_user,DB_PASSWORD=L6171r12@@jjms,CLOUD_SQL_CONNECTION_NAME=$CONNECTION_NAME" \
+  --set-cloudsql-instances $CONNECTION_NAME \
+  --max-retries 1 \
+  --task-timeout 300 \
+  --memory 512Mi \
+  --cpu 1 --quiet
+
+gcloud run jobs execute change-admin-password-final --region $REGION --wait
+gcloud run jobs delete change-admin-password-final --region $REGION --quiet 2>&1 || true
+
+echo ""
+echo "🎉 SENHA FINAL DEFINIDA!"
+echo "👤 Usuário: admin"
+echo "📧 Email: admin@monpec.com.br"
+echo "🔑 Senha: L6171r12@@js"
+echo "🌐 https://monpec.com.br/login/"
+
+================================================================================
+                    ✅ PRONTO PARA USAR!
+================================================================================

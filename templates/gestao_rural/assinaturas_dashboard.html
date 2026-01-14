@@ -591,7 +591,7 @@
             <div class="header-actions">
                 <div class="user-info">
                     <i class="bi bi-person-circle"></i>
-                    <span>Olá, {{ user.first_name|default:user.username }}!</span>
+                    <span>Olá, {{ user.first_name|default:user.username|default:"Visitante" }}!</span>
                 </div>
                 <a href="{% url 'logout' %}" class="btn btn-outline-secondary btn-sm">
                     <i class="bi bi-box-arrow-right me-1"></i> Sair
@@ -645,11 +645,11 @@
                             <i class="bi bi-check-circle"></i> Você já possui uma assinatura ativa
                         </button>
                     {% else %}
-                        {% if planos and planos.first.slug %}
+                        {% if planos %}
                             <button
                                 type="button"
                                 class="btn btn-assinar iniciar-checkout"
-                                data-plano="{{ planos.first.slug }}"
+                                data-plano="profissional"
                                 style="background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%); border: none; cursor: pointer;"
                             >
                                 <i class="bi bi-gift-fill"></i> Aproveitar Oferta Agora
@@ -818,7 +818,7 @@
                         <div class="mb-3">
                             <label for="nome_pagamento" class="form-label">Nome Completo <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" id="nome_pagamento" name="nome" required 
-                                   value="{{ user.get_full_name|default:user.username }}" 
+                                   value="{{ user.get_full_name|default:user.username|default:'' }}" 
                                    placeholder="Digite seu nome completo">
                         </div>
                         <div class="mb-3">
@@ -1081,7 +1081,7 @@
                             const emailField = document.getElementById('email_pagamento');
                             
                             if (nomeField && !nomeField.value.trim()) {
-                                nomeField.value = '{{ user.get_full_name|default:user.username }}';
+                                nomeField.value = '{{ user.get_full_name|default:user.username|default:"" }}';
                             }
                             if (emailField && !emailField.value.trim()) {
                                 emailField.value = '{{ user.email|default:"" }}';

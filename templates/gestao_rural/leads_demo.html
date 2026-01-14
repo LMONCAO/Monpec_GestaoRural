@@ -1,0 +1,347 @@
+{% extends 'base_modulos_unificado.html' %}
+{% load static %}
+
+{% block title %}Leads Demo - MONPEC{% endblock %}
+
+{% block content_authenticated %}
+<div class="fade-in-up dashboard-container">
+    <!-- Cabeçalho da Página -->
+    <div class="page-header-section mb-5">
+        <div class="d-flex flex-wrap gap-3 justify-content-between align-items-center">
+            <div>
+                <h1 class="page-title-main">
+                    <i class="bi bi-person-plus-fill"></i> Leads de Demonstração
+                </h1>
+                <p class="page-subtitle-main">Usuários que demonstraram interesse no sistema</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{% url 'assinaturas_dashboard' %}" class="btn btn-outline-primary">
+                    <i class="bi bi-arrow-left"></i> Voltar ao Dashboard
+                </a>
+                <button onclick="exportarLeads()" class="btn btn-success">
+                    <i class="bi bi-download"></i> Exportar Leads
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cards de Estatísticas -->
+    <div class="row g-4 stats-grid mb-5">
+        <div class="col-xxl-4 col-lg-6 col-md-6">
+            <div class="stat-card stat-card-success">
+                <div class="stat-card-header">
+                    <div class="stat-icon-wrapper success">
+                        <i class="bi bi-person-plus-fill"></i>
+                    </div>
+                    <div class="stat-card-content">
+                        <div class="stat-label">Total de Leads</div>
+                        <div class="stat-value">{{ estatisticas.total_leads }}</div>
+                        <div class="stat-description">Usuários interessados</div>
+                    </div>
+                </div>
+                <div class="stat-card-footer">
+                    <i class="bi bi-graph-up"></i>
+                    <span>Total acumulado</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xxl-4 col-lg-6 col-md-6">
+            <div class="stat-card stat-card-info">
+                <div class="stat-card-header">
+                    <div class="stat-icon-wrapper info">
+                        <i class="bi bi-calendar-event-fill"></i>
+                    </div>
+                    <div class="stat-card-content">
+                        <div class="stat-label">Leads Recentes</div>
+                        <div class="stat-value">{{ estatisticas.leads_recentes }}</div>
+                        <div class="stat-description">Últimos 30 dias</div>
+                    </div>
+                </div>
+                <div class="stat-card-footer">
+                    <i class="bi bi-clock"></i>
+                    <span>Mês atual</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xxl-4 col-lg-6 col-md-6">
+            <div class="stat-card stat-card-warning">
+                <div class="stat-card-header">
+                    <div class="stat-icon-wrapper warning">
+                        <i class="bi bi-archive-fill"></i>
+                    </div>
+                    <div class="stat-card-content">
+                        <div class="stat-label">Leads Antigos</div>
+                        <div class="stat-value">{{ estatisticas.leads_antigos }}</div>
+                        <div class="stat-description">Mais de 30 dias</div>
+                    </div>
+                </div>
+                <div class="stat-card-footer">
+                    <i class="bi bi-folder"></i>
+                    <span>Histórico</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabela de Leads -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">
+                <i class="bi bi-list-ul"></i> Lista de Leads Demo
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            {% if leads_demo %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="border-0">Usuário</th>
+                                <th class="border-0">Email</th>
+                                <th class="border-0">Data Cadastro</th>
+                                <th class="border-0">Status</th>
+                                <th class="border-0">Último Login</th>
+                                <th class="border-0">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for lead in leads_demo %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-circle me-3">
+                                            <i class="bi bi-person-fill"></i>
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold">{{ lead.username }}</div>
+                                            <small class="text-muted">ID: {{ lead.id }}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <a href="mailto:{{ lead.email }}" class="text-decoration-none">
+                                        {{ lead.email }}
+                                    </a>
+                                </td>
+                                <td>
+                                    <div>
+                                        <div>{{ lead.date_joined|date:"d/m/Y" }}</div>
+                                        <small class="text-muted">{{ lead.date_joined|date:"H:i" }}</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if lead.is_active %}
+                                        <span class="badge bg-success">
+                                            <i class="bi bi-check-circle-fill"></i> Ativo
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">
+                                            <i class="bi bi-pause-circle-fill"></i> Inativo
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if lead.last_login %}
+                                        <div>
+                                            <div>{{ lead.last_login|date:"d/m/Y" }}</div>
+                                            <small class="text-muted">{{ lead.last_login|date:"H:i" }}</small>
+                                        </div>
+                                    {% else %}
+                                        <span class="text-muted">Nunca logou</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <a href="mailto:{{ lead.email }}"
+                                           class="btn btn-sm btn-success"
+                                           title="Enviar email">
+                                            <i class="bi bi-envelope-fill"></i>
+                                        </a>
+                                        <button class="btn btn-sm btn-info"
+                                                title="Ver detalhes"
+                                                onclick="verDetalhesLead({{ lead.id }}, '{{ lead.username }}', '{{ lead.email }}')">
+                                            <i class="bi bi-eye-fill"></i>
+                                        </button>
+                                        {% if lead.is_active %}
+                                            <button class="btn btn-sm btn-warning"
+                                                    title="Marcar como contatado"
+                                                    onclick="marcarComoContatado({{ lead.id }})">
+                                                <i class="bi bi-check-circle-fill"></i>
+                                            </button>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <!-- Estado Vazio -->
+                <div class="text-center py-5">
+                    <div class="empty-state-icon mb-3">
+                        <i class="bi bi-person-plus display-4 text-muted"></i>
+                    </div>
+                    <h5 class="text-muted">Nenhum lead encontrado</h5>
+                    <p class="text-muted">Ainda não há usuários que se cadastraram para demonstração.</p>
+                    <div class="mt-3">
+                        <small class="text-muted">
+                            Leads aparecerão aqui automaticamente quando usuários se cadastrarem via popup de demonstração.
+                        </small>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Detalhes do Lead -->
+<div class="modal fade" id="detalhesLeadModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Detalhes do Lead</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="leadDetails">
+                    <!-- Conteúdo será preenchido via JavaScript -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                <a id="btnEnviarEmail" href="#" class="btn btn-success" target="_blank">
+                    <i class="bi bi-envelope-fill"></i> Enviar Email
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Função para ver detalhes do lead
+function verDetalhesLead(userId, username, email) {
+    const detalhes = `
+        <div class="text-center mb-3">
+            <div class="avatar-circle mx-auto mb-3" style="width: 60px; height: 60px; font-size: 1.5rem;">
+                <i class="bi bi-person-fill"></i>
+            </div>
+        </div>
+        <div class="mb-3">
+            <strong>Nome de Usuário:</strong> ${username}
+        </div>
+        <div class="mb-3">
+            <strong>Email:</strong> ${email}
+        </div>
+        <div class="mb-3">
+            <strong>ID do Usuário:</strong> ${userId}
+        </div>
+        <div class="alert alert-info">
+            <small>Este usuário demonstrou interesse no sistema MONPEC através do cadastro de demonstração.</small>
+        </div>
+    `;
+
+    document.getElementById('leadDetails').innerHTML = detalhes;
+    document.getElementById('btnEnviarEmail').href = `mailto:${email}?subject=Interesse no MONPEC&body=Olá!%0A%0AConheci o sistema MONPEC através da demonstração e gostaria de mais informações.%0A%0AAtenciosamente`;
+
+    const modal = new bootstrap.Modal(document.getElementById('detalhesLeadModal'));
+    modal.show();
+}
+
+// Função para marcar como contatado
+function marcarComoContatado(userId) {
+    if (confirm('Marcar este lead como contatado?')) {
+        // Aqui você pode implementar uma chamada AJAX para marcar como contatado
+        alert('Funcionalidade será implementada em breve!');
+    }
+}
+
+// Função para exportar leads
+function exportarLeads() {
+    // Criar CSV dos leads
+    let csvContent = 'Nome de Usuário,Email,Data Cadastro,Status\n';
+
+    {% for lead in leads_demo %}
+    csvContent += '{{ lead.username }},{{ lead.email }},{{ lead.date_joined|date:"d/m/Y H:i" }},{% if lead.is_active %}Ativo{% else %}Inativo{% endif %}\n';
+    {% endfor %}
+
+    // Download do CSV
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'leads_demo_monpec.csv';
+    link.click();
+}
+</script>
+
+<style>
+/* Avatar Circle */
+.avatar-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #28a745, #20c997);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.1rem;
+}
+
+/* Table Styles */
+.table th {
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #4a5568;
+    border-bottom: 2px solid #e2e8f0;
+    padding: 1rem;
+}
+
+.table td {
+    vertical-align: middle;
+    padding: 1rem;
+}
+
+/* Badge Styles */
+.badge {
+    font-size: 0.75rem;
+    padding: 0.375rem 0.75rem;
+}
+
+/* Empty State */
+.empty-state-icon {
+    opacity: 0.5;
+}
+
+/* Modal Styles */
+.modal-content {
+    border-radius: 15px;
+    border: none;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
+
+.modal-body {
+    text-align: left;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .table-responsive {
+        font-size: 0.875rem;
+    }
+
+    .btn-group {
+        flex-direction: column;
+    }
+
+    .btn-group .btn {
+        margin-bottom: 0.25rem;
+    }
+}
+</style>
+
+{% endblock content_authenticated %}

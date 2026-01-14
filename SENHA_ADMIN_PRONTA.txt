@@ -1,0 +1,135 @@
+================================================================================
+                    🔑 SENHA ADMIN CONFIGURADA - MONPEC
+================================================================================
+
+✅ SUA SENHA ATUAL: admin123 (ainda funciona, mas é insegura)
+
+🎯 OBJETIVO: Mudar para L6171r12@@monpec e depois para L6171r12@@js
+
+================================================================================
+                    🚀 PASSO 1: Execute este script no Google Cloud Shell
+================================================================================
+
+COPIE E COLE TODO ESTE SCRIPT ABAIXO:
+
+#!/bin/bash
+# Script para mudar senha do admin para L6171r12@@monpec
+set -e
+
+echo "🔐 MUDANÇA DE SENHA DO ADMIN - MONPEC"
+
+PROJECT_ID="monpec-sistema-rural"
+REGION="us-central1"
+SERVICE_NAME="monpec"
+CONNECTION_NAME="$PROJECT_ID:$REGION:monpec-db"
+
+NOVA_SENHA="L6171r12@@monpec"
+
+echo "📝 Senha configurada: $NOVA_SENHA"
+
+gcloud config set project $PROJECT_ID --quiet
+echo "🔄 Executando mudança de senha..."
+
+gcloud run jobs create change-admin-password \
+  --image gcr.io/$PROJECT_ID/$SERVICE_NAME \
+  --region $REGION \
+  --command python \
+  --args -c,"
+import os, django
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'sistema_rural.settings_gcp')
+django.setup()
+from django.contrib.auth.models import User
+
+print('🔐 Alterando senha do admin...')
+admin_user = User.objects.filter(username='admin').first()
+if admin_user:
+    admin_user.set_password('$NOVA_SENHA')
+    admin_user.save()
+    print('✅ Senha alterada com sucesso!')
+else:
+    print('❌ Usuário admin não encontrado!')
+" \
+  --set-env-vars "DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,DB_NAME=monpec_db,DB_USER=monpec_user,DB_PASSWORD=L6171r12@@jjms,CLOUD_SQL_CONNECTION_NAME=$CONNECTION_NAME" \
+  --set-cloudsql-instances $CONNECTION_NAME \
+  --max-retries 1 \
+  --task-timeout 300 \
+  --memory 512Mi \
+  --cpu 1 --quiet
+
+gcloud run jobs execute change-admin-password --region $REGION --wait
+gcloud run jobs delete change-admin-password --region $REGION --quiet 2>&1 || true
+
+echo ""
+echo "🎉 SENHA ALTERADA!"
+echo "👤 admin / L6171r12@@monpec"
+echo "🌐 https://monpec.com.br/login/"
+
+================================================================================
+                    🚀 PASSO 2: Execute este script para a senha final
+================================================================================
+
+APÓS O PRIMEIRO SCRIPT FUNCIONAR, execute este para definir L6171r12@@js:
+
+#!/bin/bash
+# Script para mudar senha do admin para L6171r12@@js (FINAL)
+set -e
+
+echo "🔐 SENHA FINAL - MONPEC"
+
+PROJECT_ID="monpec-sistema-rural"
+REGION="us-central1"
+SERVICE_NAME="monpec"
+CONNECTION_NAME="$PROJECT_ID:$REGION:monpec-db"
+
+NOVA_SENHA="L6171r12@@js"
+
+echo "📝 Senha final: $NOVA_SENHA"
+
+gcloud config set project $PROJECT_ID --quiet
+echo "🔄 Definindo senha final..."
+
+gcloud run jobs create change-admin-password-final \
+  --image gcr.io/$PROJECT_ID/$SERVICE_NAME \
+  --region $REGION \
+  --command python \
+  --args -c,"
+import os, django
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'sistema_rural.settings_gcp')
+django.setup()
+from django.contrib.auth.models import User
+
+print('🔐 Definindo senha final...')
+admin_user = User.objects.filter(username='admin').first()
+if admin_user:
+    admin_user.set_password('$NOVA_SENHA')
+    admin_user.save()
+    print('✅ Senha final definida!')
+else:
+    print('❌ Usuário admin não encontrado!')
+" \
+  --set-env-vars "DJANGO_SETTINGS_MODULE=sistema_rural.settings_gcp,DB_NAME=monpec_db,DB_USER=monpec_user,DB_PASSWORD=L6171r12@@jjms,CLOUD_SQL_CONNECTION_NAME=$CONNECTION_NAME" \
+  --set-cloudsql-instances $CONNECTION_NAME \
+  --max-retries 1 \
+  --task-timeout 300 \
+  --memory 512Mi \
+  --cpu 1 --quiet
+
+gcloud run jobs execute change-admin-password-final --region $REGION --wait
+gcloud run jobs delete change-admin-password-final --region $REGION --quiet 2>&1 || true
+
+echo ""
+echo "🎉 SENHA FINAL PRONTA!"
+echo "👤 admin / L6171r12@@js"
+echo "🌐 https://monpec.com.br/login/"
+
+================================================================================
+                    📋 RESUMO DAS SENHAS
+================================================================================
+
+1️⃣ ATUAL:     admin123 (funciona, mas insegura)
+2️⃣ INTERM.:   L6171r12@@monpec (execute primeiro script)
+3️⃣ FINAL:     L6171r12@@js (execute segundo script)
+
+================================================================================
+                    🎯 PRONTO! COPIE E COLE OS SCRIPTS ACIMA
+================================================================================

@@ -417,7 +417,7 @@ def checkout_sucesso(request: HttpRequest) -> HttpResponse:
                 'assinatura': assinatura,
                 'email': request.user.email if request.user.is_authenticated else 'usuario@exemplo.com',
                 'senha': 'Monpec2025@',
-                'data_liberacao': assinatura.get('data_liberacao') or '01/02/2025',
+                'data_liberacao': assinatura.get('data_liberacao') or '01/02/2026',
                 'test_mode': is_test_mode,
             }
             return render(request, 'gestao_rural/assinaturas_confirmacao.html', contexto)
@@ -500,7 +500,7 @@ def mercadopago_webhook(request: HttpRequest) -> HttpResponse:
             # Definir data de liberação como 01/02/2025 se não estiver definida
             if not assinatura.data_liberacao:
                 from datetime import date
-                assinatura.data_liberacao = date(2025, 2, 1)  # 01/02/2025
+                assinatura.data_liberacao = date(2026, 2, 1)  # 01/02/2026
                 assinatura.save(update_fields=['data_liberacao', 'atualizado_em'])
             
             # Garantir que o usuário tenha a senha padrão definida
@@ -518,6 +518,17 @@ def mercadopago_webhook(request: HttpRequest) -> HttpResponse:
                 if not assinatura.metadata:
                     assinatura.metadata = {}
                 assinatura.metadata['email_enviado'] = True
+
+                # Notificar consultor sobre nova assinatura
+                try:
+                    from .services.notificacoes import notificar_consultor_nova_assinatura
+                    notificar_consultor_nova_assinatura(assinatura)
+                    assinatura.metadata['consultor_notificado'] = True
+                except Exception as e:
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.warning(f"Falha ao notificar consultor sobre nova assinatura {assinatura.id}: {e}")
+
                 assinatura.save(update_fields=['metadata', 'atualizado_em'])
     
     return HttpResponse(status=200)
@@ -614,7 +625,7 @@ Olá {usuario.get_full_name() or usuario.username},
 Sua assinatura foi confirmada com sucesso!
 
 ASSINATURA DE PRÉ-LANÇAMENTO
-O sistema MONPEC estará disponível a partir de 01/02/2025.
+O sistema MONPEC estará disponível a partir de 01/02/2026.
 
 SUAS CREDENCIAIS DE ACESSO:
 Email: {email_usuario}
@@ -622,7 +633,7 @@ Senha: Monpec2025@
 
 IMPORTANTE:
 - Este é um sistema de pré-lançamento
-- O acesso será liberado em 01/02/2025
+- O acesso será liberado em 01/02/2026
 - Um de nossos consultores entrará em contato em breve para orientá-lo sobre o sistema
 - Guarde estas credenciais com segurança
 
@@ -821,16 +832,62 @@ def usuarios_assinantes(request: HttpRequest) -> HttpResponse:
         'usuario', 'plano'
     ).order_by('-criado_em')
 
-    # Estatísticas
+    # Estatísticas avançadas
     total_assinaturas = assinaturas.count()
     assinaturas_ativas = assinaturas.filter(status='ATIVA').count()
     assinaturas_pendentes = assinaturas.filter(status='PENDENTE').count()
+    assinaturas_canceladas = assinaturas.filter(status='CANCELADA').count()
+
+    # Receita total
+    from django.db.models import Sum
+    receita_total = 0
+    for assinatura in assinaturas.filter(status='ATIVA'):
+        if assinatura.plano and assinatura.plano.preco_mensal_referencia:
+            receita_total += float(assinatura.plano.preco_mensal_referencia)
+
+    # Taxa de conversão
+    taxa_conversao = 0
+    if total_assinaturas > 0:
+        taxa_conversao = (assinaturas_ativas / total_assinaturas) * 100
+
+    # Receita média por assinatura ativa
+    receita_media = 0
+    if assinaturas_ativas > 0:
+        receita_media = receita_total / assinaturas_ativas
+
+    # Assinaturas por plano
+    planos_stats = {}
+    for assinatura in assinaturas.filter(status='ATIVA'):
+        plano_nome = assinatura.plano.nome if assinatura.plano else 'Sem Plano'
+        if plano_nome not in planos_stats:
+            planos_stats[plano_nome] = {'count': 0, 'receita': 0}
+        planos_stats[plano_nome]['count'] += 1
+        if assinatura.plano and assinatura.plano.preco_mensal_referencia:
+            planos_stats[plano_nome]['receita'] += float(assinatura.plano.preco_mensal_referencia)
+
+    # Dados para gráficos (últimos 7 dias)
+    from datetime import timedelta, datetime
+    hoje = datetime.now().date()
+    ultimos_7_dias = []
+    for i in range(7):
+        dia = hoje - timedelta(days=i)
+        count = assinaturas.filter(criado_em__date=dia).count()
+        ultimos_7_dias.append({
+            'data': dia.strftime('%d/%m'),
+            'count': count
+        })
 
     contexto = {
         'assinaturas': assinaturas,
         'total_assinaturas': total_assinaturas,
         'assinaturas_ativas': assinaturas_ativas,
         'assinaturas_pendentes': assinaturas_pendentes,
+        'assinaturas_canceladas': assinaturas_canceladas,
+        'receita_total': receita_total,
+        'taxa_conversao': round(taxa_conversao, 1),
+        'receita_media': round(receita_media, 2),
+        'planos_stats': planos_stats,
+        'ultimos_7_dias': ultimos_7_dias,
     }
 
     return render(request, 'gestao_rural/usuarios_assinantes.html', contexto)

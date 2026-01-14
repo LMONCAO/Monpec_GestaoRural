@@ -9,20 +9,29 @@ logger = logging.getLogger(__name__)
 
 def tabela_existe(nome_tabela):
     """
-    Verifica se uma tabela existe no banco de dados PostgreSQL.
+    Verifica se uma tabela existe no banco de dados (PostgreSQL ou SQLite).
     Retorna True se existe, False caso contrário.
     """
     try:
         with connection.cursor() as cursor:
-            # Sistema usa apenas PostgreSQL
-            cursor.execute("""
-                SELECT EXISTS (
-                    SELECT FROM information_schema.tables 
-                    WHERE table_schema = 'public' 
-                    AND table_name = %s
-                );
-            """, [nome_tabela])
-            
+            if connection.vendor == 'postgresql':
+                # PostgreSQL
+                cursor.execute("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables
+                        WHERE table_schema = 'public'
+                        AND table_name = %s
+                    );
+                """, [nome_tabela])
+            else:
+                # SQLite
+                cursor.execute("""
+                    SELECT COUNT(*)
+                    FROM sqlite_master
+                    WHERE type='table'
+                    AND name = %s
+                """, [nome_tabela])
+
             result = cursor.fetchone()
             return result[0] if result else False
     except (ProgrammingError, OperationalError) as e:

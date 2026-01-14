@@ -24,6 +24,7 @@ from gestao_rural import views as gestao_views
 from gestao_rural import views_curral
 from gestao_rural import views_sitemap
 from gestao_rural import views_password_reset
+from gestao_rural import views_assinaturas
 from gestao_rural import views_static
 from gestao_rural import views_media
 from gestao_rural import views_diagnostico_imagens
@@ -33,8 +34,8 @@ urlpatterns = [
     # Health check endpoint (deve vir primeiro para ser encontrado rapidamente)
     path('health/', gestao_views.health_check, name='health_check'),
 
-    # Página offline para PWA
-    path('offline/', gestao_views.offline_page, name='offline'),
+    # Página offline para PWA - TEMPORARIAMENTE DESABILITADA
+    # path('offline/', gestao_views.offline_page, name='offline'),
 
     # LANDING PAGE COM VÍDEO - DEVE VIR PRIMEIRO (página inicial)
     path('', gestao_views.landing_page, name='landing_page'),
@@ -46,7 +47,10 @@ urlpatterns = [
     
     # Logout deve vir antes do admin para garantir que use nossa view personalizada
     path('logout/', gestao_views.logout_view, name='logout'),
+
+    path('admin/leads-demo/', views_assinaturas.leads_demo, name='leads_demo'),
     path('admin/', admin.site.urls),
+
     path('contato/', gestao_views.contato_submit, name='contato_submit'),
     
     # Google Search Console Verification
@@ -85,9 +89,12 @@ urlpatterns = [
     # Rota para servir arquivos media (fotos, uploads) em produção
     path('media/<path:path>', views_media.serve_media, name='serve_media'),
     
+    # Página de usuários assinantes (URL única para evitar conflitos)
+    path('sistema-admin/usuarios-assinantes/', views_assinaturas.usuarios_assinantes, name='usuarios_assinantes'),
+
     # Diagnóstico de imagens (útil para debug)
     path('diagnostico-imagens/', views_diagnostico_imagens.diagnostico_imagens, name='diagnostico_imagens'),
-    
+
     path('', include('gestao_rural.urls')),
 ]
 

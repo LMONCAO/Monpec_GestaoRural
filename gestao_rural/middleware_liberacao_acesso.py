@@ -63,62 +63,23 @@ class LiberacaoAcessoMiddleware(MiddlewareMixin):
                 return None  # Continuar normalmente, mas acesso_liberado será False
             return None
         
-        # Verificar se é admin ou assinante - se for, liberar acesso completo
-        # (Só chega aqui se NÃO for demo, então is_usuario_assinante pode ser chamado)
-        if is_usuario_assinante(request.user):
-            # Admin ou assinante com acesso liberado - permitir acesso completo
-            try:
-                # Usar SQL direto para evitar campos do Stripe
-                from django.db import connection
-                with connection.cursor() as cursor:
-                    cursor.execute("""
-                        SELECT id, usuario_id, produtor_id, plano_id, status,
-                               mercadopago_customer_id, mercadopago_subscription_id,
-                               gateway_pagamento, ultimo_checkout_id, current_period_end,
-                               cancelamento_agendado, metadata, data_liberacao,
-                               criado_em, atualizado_em
-                        FROM gestao_rural_assinaturacliente
-                        WHERE usuario_id = %s
-                        LIMIT 1
-                    """, [request.user.id])
-                    row = cursor.fetchone()
-                    if row:
-                        class AssinaturaMock:
-                            def __init__(self, row_data):
-                                self.id = row_data[0]
-                                self.usuario_id = row_data[1]
-                                self.produtor_id = row_data[2]
-                                self.plano_id = row_data[3]
-                                self.status = row_data[4]
-                                self.mercadopago_customer_id = row_data[5]
-                                self.mercadopago_subscription_id = row_data[6]
-                                self.gateway_pagamento = row_data[7]
-                                self.ultimo_checkout_id = row_data[8]
-                                self.current_period_end = row_data[9]
-                                self.cancelamento_agendado = row_data[10]
-                                self.metadata = row_data[11]
-                                self.data_liberacao = row_data[12]
-                                self.criado_em = row_data[13]
-                                self.atualizado_em = row_data[14]
-                                self.plano = None
-                                # Propriedades necessárias
-                                self.acesso_liberado = True
-                        assinatura = AssinaturaMock(row)
-                        # Carregar plano se necessário
-                        if assinatura.plano_id:
-                            try:
-                                from .models import PlanoAssinatura
-                                assinatura.plano = PlanoAssinatura.objects.get(id=assinatura.plano_id)
-                            except:
-                                pass
-                        request.assinatura = assinatura
-                    else:
-                        request.assinatura = None
-                request.acesso_liberado = True
-            except:
-                request.assinatura = None
-                request.acesso_liberado = True  # Admin sempre tem acesso
+        # Verificar se é admin - só admin tem acesso completo ao sistema
+        if request.user.is_superuser or request.user.is_staff:
+            # Admin tem acesso completo
+            request.assinatura = None
+            request.acesso_liberado = True
             return None  # Permitir acesso completo
+
+        # Verificar se é assinante ativo - redirecionar para área do assinante
+        if is_usuario_assinante(request.user):
+            # Usuário ativo - redirecionar para área do assinante
+            if request.path not in ['/area-assinante/', '/logout/', '/static/', '/media/']:
+                messages.info(request, 'Bem-vindo! Você está sendo direcionado para sua área personalizada.')
+                return redirect('area_assinante')
+            # Se já estiver na área do assinante, permitir acesso
+            request.assinatura = None
+            request.acesso_liberado = True
+            return None
         
         # Verificar se o usuário tem assinatura (mas não é assinante ativo)
         try:

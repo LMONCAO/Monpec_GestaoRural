@@ -50,6 +50,7 @@ urlpatterns = [
     
     # Dashboard principal
     path('dashboard/', views.dashboard, name='dashboard'),
+    path('area-assinante/', views.area_assinante, name='area_assinante'),
 
     # Assinaturas e Pagamentos
     path('assinaturas/', views_assinaturas.assinaturas_dashboard, name='assinaturas_dashboard'),
@@ -278,7 +279,9 @@ urlpatterns = [
     # Validação de certificado digital
     path('produtor/<int:produtor_id>/validar-certificado/', views_vendas.validar_certificado_digital_produtor, name='validar_certificado_digital_produtor'),
     path('certificado/validar-upload/', views_vendas.validar_certificado_upload, name='validar_certificado_upload'),
-    
+    path('certificado/detectar-instalados/', views_vendas.detectar_certificados_instalados, name='detectar_certificados_instalados'),
+    path('produtor/<int:produtor_id>/configurar-certificado-windows/', views_vendas.configurar_certificado_windows, name='configurar_certificado_windows'),
+
     # URLs AJAX para NFe
     path('ajax/buscar-produtos/', views_compras.buscar_produtos_ajax, name='ajax_buscar_produtos'),
     path('ajax/consultar-ncm/', views_compras.consultar_ncm_ajax, name='ajax_consultar_ncm'),

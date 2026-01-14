@@ -5,6 +5,7 @@ Cria produtor, propriedade e dados realistas automaticamente
 """
 
 from django.shortcuts import render, redirect
+from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db import transaction
@@ -42,15 +43,16 @@ def demo_setup(request):
         try:
             UsuarioAtivo.objects.get(usuario=request.user)
             is_demo_user = True
-            logger.info(f'Usuário demo (popup) detectado: {request.user.username}')
+            logger.info(f'Usuário demo (UsuarioAtivo) detectado: {request.user.username}')
         except:
             # Verificar se é usuário criado via formulário de demonstração
-            # Usuários demo têm username que contém '@' (baseado no email)
-            if '@' in request.user.username and request.user.username != 'admin':
+            # Usuários demo têm registro na tabela UsuarioAtivo com o email
+            try:
+                UsuarioAtivo.objects.get(email=request.user.email)
                 is_demo_user = True
-                logger.info(f'Usuário demo (formulário) detectado: {request.user.username}')
-            else:
-                logger.info(f'Usuário {request.user.username} não é demo')
+                logger.info(f'Usuário demo (formulário) detectado via email: {request.user.username} ({request.user.email})')
+            except:
+                logger.info(f'Usuário {request.user.username} não é demo (sem UsuarioAtivo)')
                 pass
     
     if not is_demo_user:
@@ -58,157 +60,55 @@ def demo_setup(request):
         messages.error(request, 'Esta página é apenas para usuários de demonstração.')
         return redirect('dashboard')
     
-    # Verificar se já tem produtor e propriedade
-    produtor = ProdutorRural.objects.filter(usuario_responsavel=request.user).first()
-    propriedade = None
+    # PARA USUÁRIOS DEMO: Sempre usar a propriedade compartilhada "Fazenda Demonstracao"
+    # Primeiro verificar se a propriedade demo compartilhada já existe
+    logger.info(f'[DEMO_SETUP] Verificando propriedade demo compartilhada para usuário: {request.user.username}')
+    logger.info(f'[DEMO_SETUP] Usuário identificado como demo: {is_demo_user}')
 
-    if produtor:
-        # Primeiro tentar encontrar "Fazenda Demonstracao"
-        propriedade = Propriedade.objects.filter(
-            produtor=produtor,
-            nome_propriedade='Fazenda Demonstracao'
-        ).first()
+    propriedade = Propriedade.objects.filter(
+        nome_propriedade='Fazenda Demonstracao'
+    ).first()
 
-        # Se não encontrou, tentar padrão antigo "Monpec1"
-        if not propriedade:
-            propriedade = Propriedade.objects.filter(
-                produtor=produtor,
-                nome_propriedade__iregex=r'^Monpec\d+$'
-            ).order_by('nome_propriedade').first()
-        
-        if propriedade:
-            # Já está configurado, redirecionar para a propriedade
-            logger.info(f'[DEMO_SETUP] Demonstração já configurada. Redirecionando para propriedade {propriedade.id} ({propriedade.nome_propriedade})')
-            messages.success(request, 'Demonstração já configurada! Redirecionando...')
-            propriedade_url = f'/propriedade/{propriedade.id}/modulos/'
-            logger.info(f'[DEMO_SETUP] URL de redirecionamento: {propriedade_url}')
-            return redirect('propriedade_modulos', propriedade_id=propriedade.id)
-    
+    logger.info(f'[DEMO_SETUP] Propriedade "Fazenda Demonstracao" encontrada: {propriedade is not None}')
+
+    if propriedade:
+        # Propriedade demo compartilhada já existe, redirecionar diretamente
+        logger.info(f'[DEMO_SETUP] Usando propriedade demo compartilhada {propriedade.id} ({propriedade.nome_propriedade})')
+        logger.info(f'[DEMO_SETUP] Propriedade pertence ao produtor: {propriedade.produtor.nome if propriedade.produtor else "SEM PRODUTOR"}')
+        messages.success(request, 'Demonstração configurada! Redirecionando...')
+        # Forçar redirecionamento para versão demo
+        propriedade_url = reverse('propriedade_modulos', kwargs={'propriedade_id': propriedade.id})
+        demo_url = f"{propriedade_url}?demo=true"
+        logger.info(f'[DEMO_SETUP] Redirecionando para versão demo: {demo_url}')
+        return redirect(demo_url)
+
     # Se chegou aqui, precisa criar tudo automaticamente
+    logger.info(f'[DEMO_SETUP] Propriedade compartilhada não encontrada, chamando _criar_dados_demo_completos...')
     # Primeiro verificar se deve mostrar a página de configuração ou criar os dados
     if not request.GET.get('create', False):
         # Mostrar a página de configuração primeiro
         logger.info(f'Mostrando página de configuração da demonstração para {request.user.username}')
         return render(request, 'gestao_rural/demo_setup.html')
 
-    # Criar os dados automaticamente
+    # Criar os dados automaticamente usando a função compartilhada
     logger.info(f'Iniciando criação automática de dados para demonstração...')
     try:
-        # 1. Criar ou obter produtor (transação separada)
-            if not produtor:
-                # Obter dados do UsuarioAtivo se disponível
-                nome_completo = request.user.get_full_name() or request.user.username
-                email = request.user.email or f'{request.user.username}@demo.com'
-                telefone = ''
-                
-                try:
-                    usuario_ativo = UsuarioAtivo.objects.get(usuario=request.user)
-                    nome_completo = usuario_ativo.nome_completo
-                    email = usuario_ativo.email
-                    telefone = usuario_ativo.telefone or ''
-                except:
-                    pass
-                
-                # Criar produtor com identificador único "demonstração" no CPF/CNPJ
-                # Usar CPF único por usuário para evitar conflito de unique constraint
-                cpf_demo = f'DEMO-{request.user.id:06d}'  # Formato: DEMO-000001, DEMO-000002, etc.
-                
-            with transaction.atomic():
-                produtor, created = ProdutorRural.objects.get_or_create(
-                    usuario_responsavel=request.user,
-                    defaults={
-                        'nome': nome_completo or 'Produtor Demo',
-                        'cpf_cnpj': cpf_demo,
-                        'email': email,
-                        'telefone': telefone,
-                        'endereco': 'Campo Grande, MS',
-                        'anos_experiencia': 10
-                    }
-                )
-                if created:
-                    logger.info(f'Produtor criado: {produtor.nome} (CPF: {cpf_demo})')
-                else:
-                    logger.info(f'Produtor já existia: {produtor.nome} (CPF: {produtor.cpf_cnpj})')
-            
-        # 2. Criar propriedade básica se não existir
-            if not propriedade:
-                # Verificar se já existe propriedade com nome "Monpec" para este produtor
-                propriedades_existentes = Propriedade.objects.filter(
-                    produtor=produtor,
-                    nome_propriedade__iregex=r'^Monpec\d+$'
-                ).order_by('nome_propriedade')
-                
-                # Determinar o próximo número disponível para este produtor
-                if propriedades_existentes.exists():
-                    # Encontrar o maior número usado
-                    import re
-                    numeros_usados = []
-                    for prop in propriedades_existentes:
-                        match = re.search(r'Monpec(\d+)', prop.nome_propriedade, re.IGNORECASE)
-                        if match:
-                            numeros_usados.append(int(match.group(1)))
-                    
-                    if numeros_usados:
-                        proximo_numero = max(numeros_usados) + 1
-                    else:
-                        proximo_numero = 2
-                    
-                    nome_propriedade = f'Monpec{proximo_numero}'
-                    logger.info(f'Propriedade Monpec1 já existe para este produtor. Usando {nome_propriedade}')
-                else:
-                    nome_propriedade = 'Monpec1'
-                
-            with transaction.atomic():
-                propriedade, created = Propriedade.objects.get_or_create(
-                    produtor=produtor,
-                    nome_propriedade=nome_propriedade,
-                    defaults={
-                        'municipio': 'Campo Grande',
-                        'uf': 'MS',
-                        'area_total_ha': Decimal('5000.00'),
-                        'tipo_operacao': 'PECUARIA',
-                        'tipo_ciclo_pecuario': ['CICLO_COMPLETO'],
-                        'tipo_propriedade': 'PROPRIA',
-                        'valor_hectare_proprio': Decimal('12000.00'),
-                    }
-                )
-                if created:
-                    logger.info(f'Propriedade criada: {propriedade.nome_propriedade} (ID: {propriedade.id})')
-                else:
-                    logger.info(f'Propriedade já existia: {propriedade.nome_propriedade} (ID: {propriedade.id})')
+        propriedade = _criar_dados_demo_completos(request.user)
 
-            # 3. Usar comando dedicado para popular dados completos (1300 animais + módulos)
-            logger.info(f'Executando comando popular_fazenda_grande_demo para propriedade {propriedade.id}')
+        # Verificar se a propriedade foi criada corretamente
+        if not propriedade:
+            logger.error('Erro: Propriedade não foi criada após chamar _criar_dados_demo_completos')
+            messages.error(request, 'Erro ao criar propriedade. Por favor, tente novamente.')
+            return redirect('dashboard')
 
-            try:
-                from django.core.management import call_command
-                import sys
-                import io
-
-                # Configurar encoding UTF-8 para stdout/stderr para evitar erros com emojis no Windows
-                if sys.platform == 'win32':
-                    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
-                    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
-
-                # Executar comando para popular dados completos
-                call_command('popular_fazenda_grande_demo', propriedade_id=propriedade.id, force=True, verbosity=1)
-                logger.info(f'Dados completos populados com sucesso para propriedade {propriedade.id}!')
-
-            except Exception as e:
-                logger.error(f'ERRO ao executar popular_fazenda_grande_demo: {e}', exc_info=True)
-                # Não falhar completamente - pelo menos temos os dados básicos
-                messages.warning(request, f'Dados básicos criados. Alguns módulos podem precisar de configuração adicional: {str(e)[:100]}')
-
-            # Garantir que propriedade foi criada corretamente
-            if not propriedade:
-                logger.error('Erro: Propriedade não foi criada após todo o processo')
-                messages.error(request, 'Erro ao criar propriedade. Por favor, tente novamente.')
-                return redirect('dashboard')
-
-            # Redirecionar diretamente para a propriedade
-            logger.info(f'REDIRECIONANDO DIRETAMENTE PARA PROPRIEDADE {propriedade.id} - {propriedade.nome_propriedade}')
-            messages.success(request, 'Demonstração configurada com sucesso!')
-            return redirect('propriedade_modulos', propriedade_id=propriedade.id)
+        # Redirecionar diretamente para a propriedade demo
+        logger.info(f'REDIRECIONANDO PARA PROPRIEDADE DEMO {propriedade.id} - {propriedade.nome_propriedade}')
+        messages.success(request, 'Demonstração configurada com sucesso!')
+        # Forçar redirecionamento para versão demo
+        propriedade_url = reverse('propriedade_modulos', kwargs={'propriedade_id': propriedade.id})
+        demo_url = f"{propriedade_url}?demo=true"
+        logger.info(f'[DEMO_SETUP] Redirecionando para versão demo: {demo_url}')
+        return redirect(demo_url)
             
     except Exception as e:
         logger.error(f'Erro ao configurar demonstração: {e}', exc_info=True)
@@ -237,27 +137,42 @@ def _criar_dados_demo_completos(user, nome_completo, email, telefone):
     logger.info(f'[_criar_dados_demo] Iniciando para usuário: {user.username}')
     
     try:
+        logger.info(f'[_criar_dados_demo] Iniciando transação para criar dados demo para: {user.username}')
+
         with transaction.atomic():
-            # 1. Criar ou obter produtor
-            cpf_demo = f'DEMO-{user.id:06d}'
+            # 1. Verificar se já existe propriedade demo compartilhada
+            propriedade = Propriedade.objects.filter(
+                nome_propriedade='Fazenda Demonstracao'
+            ).first()
+
+            logger.info(f'[_criar_dados_demo] Verificação inicial - Propriedade "Fazenda Demonstracao" existe: {propriedade is not None}')
+
+            if propriedade:
+                logger.info(f'[_criar_dados_demo] Propriedade demo compartilhada já existe: {propriedade.id}')
+                logger.info(f'[_criar_dados_demo] Propriedade pertence ao produtor: {propriedade.produtor.nome if propriedade.produtor else "SEM PRODUTOR"}')
+                return propriedade
+
+            # 2. Criar produtor demo compartilhado
+            cpf_demo = 'DEMO-COMPARTILHADO'
             produtor, created = ProdutorRural.objects.get_or_create(
-                usuario_responsavel=user,
+                cpf_cnpj=cpf_demo,
                 defaults={
                     'nome': 'Fazenda Demonstracao Ltda',
-                    'cpf_cnpj': cpf_demo,
-                    'email': email,
-                    'telefone': telefone or '',
+                    'email': 'demo@monpec.com.br',
+                    'telefone': '(67) 99999-9999',
                     'endereco': 'Rodovia BR-060, Km 45',
                     'anos_experiencia': 15
                 }
             )
-            logger.info(f'[_criar_dados_demo] Produtor: {produtor.nome} (ID: {produtor.id})')
-            
-            # 2. Criar propriedade Fazenda Demonstração
+            logger.info(f'[_criar_dados_demo] Produtor compartilhado: {produtor.nome} (ID: {produtor.id})')
+
+            # 3. Criar propriedade Fazenda Demonstração compartilhada
+            logger.info(f'[_criar_dados_demo] Criando propriedade "Fazenda Demonstracao" para produtor: {produtor.nome}')
+
             propriedade, created = Propriedade.objects.get_or_create(
-                produtor=produtor,
                 nome_propriedade='Fazenda Demonstracao',
                 defaults={
+                    'produtor': produtor,
                     'municipio': 'Campo Grande',
                     'uf': 'MS',
                     'area_total_ha': Decimal('1500.00'),
@@ -269,6 +184,8 @@ def _criar_dados_demo_completos(user, nome_completo, email, telefone):
                     'valor_hectare_proprio': Decimal('12000.00'),
                 }
             )
+
+            logger.info(f'[_criar_dados_demo] Propriedade criada: {propriedade.nome_propriedade} (ID: {propriedade.id}, Criada: {created})')
             logger.info(f'[_criar_dados_demo] Propriedade: {propriedade.nome_propriedade} (ID: {propriedade.id})')
             
             # 3. Criar categorias de animais (se não existirem)

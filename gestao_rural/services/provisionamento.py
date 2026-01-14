@@ -42,6 +42,93 @@ def _registrar_database(alias: str, nome_banco: str) -> None:
     connections.databases[alias] = settings.DATABASES[alias]
 
 
+def _provisionar_workspace_postgres(assinatura: AssinaturaCliente) -> ProvisionamentoResultado:
+    """Provisiona workspace usando PostgreSQL (produção)."""
+    workspace = _obter_ou_criar_workspace(assinatura)
+    if workspace.status == TenantWorkspace.Status.ATIVO:
+        return ProvisionamentoResultado(
+            workspace=workspace,
+            sucesso=True,
+            mensagem="Workspace já está ativo."
+        )
+
+    workspace.status = TenantWorkspace.Status.PROVISIONANDO
+    workspace.save(update_fields=['status', 'atualizado_em'])
+
+    nome_banco = workspace.caminho_banco  # Agora é o nome do banco PostgreSQL
+
+    try:
+        # Criar banco PostgreSQL se não existir
+        # Nota: Precisa usar conexão ao banco 'postgres' para criar novos bancos
+        from django.db import connection
+        import psycopg2
+
+        # Conectar ao banco 'postgres' para criar novos bancos
+        default_db = settings.DATABASES['default']
+        conn_admin = psycopg2.connect(
+            host=default_db.get('HOST', 'localhost'),
+            port=default_db.get('PORT', '5432'),
+            database='postgres',  # Conectar ao banco padrão para criar novos
+            user=default_db.get('USER', ''),
+            password=default_db.get('PASSWORD', '')
+        )
+        conn_admin.autocommit = True  # Necessário para CREATE DATABASE
+
+        try:
+            with conn_admin.cursor() as cursor:
+                cursor.execute("SELECT 1 FROM pg_database WHERE datname = %s", [nome_banco])
+                if not cursor.fetchone():
+                    # Criar banco de dados
+                    cursor.execute(f'CREATE DATABASE "{nome_banco}"')
+                    logger.info(f"Banco de dados PostgreSQL '{nome_banco}' criado para tenant {workspace.alias}")
+        finally:
+            conn_admin.close()
+
+        # Registrar conexão do banco
+        _registrar_database(workspace.alias, nome_banco)
+
+        # Aplicar migrations no banco do tenant
+        call_command(
+            'migrate',
+            database=workspace.alias,
+            interactive=False,
+            run_syncdb=True,
+            verbosity=0,
+        )
+
+        workspace.status = TenantWorkspace.Status.ATIVO
+        workspace.provisionado_em = timezone.now()
+        workspace.save(update_fields=['status', 'provisionado_em', 'atualizado_em'])
+        mensagem = "Banco provisionado com sucesso."
+        logger.info("Workspace %s provisionado para assinatura %s", workspace.alias, assinatura.pk)
+        return ProvisionamentoResultado(workspace=workspace, sucesso=True, mensagem=mensagem)
+    except Exception as exc:  # pragma: no cover - log de erro
+        mensagem = f"Falha ao provisionar workspace: {str(exc)}"
+        workspace.status = TenantWorkspace.Status.ERRO
+        workspace.ultimo_erro = mensagem
+        workspace.save(update_fields=['status', 'ultimo_erro', 'atualizado_em'])
+        logger.exception("Falha ao provisionar workspace %s para assinatura %s: %s",
+                        workspace.alias, assinatura.pk, mensagem)
+        return ProvisionamentoResultado(workspace=workspace, sucesso=False, mensagem=mensagem)
+
+
+def _provisionar_workspace_sqlite(assinatura: AssinaturaCliente) -> ProvisionamentoResultado:
+    """Provisiona workspace usando SQLite (desenvolvimento)."""
+    workspace = _obter_ou_criar_workspace(assinatura)
+
+    # Em desenvolvimento com SQLite, apenas marcar como ativo sem criar banco físico
+    if workspace.status != TenantWorkspace.Status.ATIVO:
+        workspace.status = TenantWorkspace.Status.ATIVO
+        workspace.provisionado_em = timezone.now()
+        workspace.save(update_fields=['status', 'provisionado_em', 'atualizado_em'])
+
+    mensagem = "Workspace provisionado com sucesso (SQLite - desenvolvimento)."
+    logger.info("Workspace %s provisionado para assinatura %s (modo desenvolvimento)",
+               workspace.alias, assinatura.pk)
+
+    return ProvisionamentoResultado(workspace=workspace, sucesso=True, mensagem=mensagem)
+
+
 def _obter_ou_criar_workspace(assinatura: AssinaturaCliente) -> TenantWorkspace:
     """Obtém ou cria um workspace para o tenant usando PostgreSQL."""
     alias = assinatura.alias_tenant
@@ -64,68 +151,20 @@ def _obter_ou_criar_workspace(assinatura: AssinaturaCliente) -> TenantWorkspace:
     return workspace
 
 
+
+
 def provisionar_workspace(assinatura: AssinaturaCliente) -> ProvisionamentoResultado:
-    workspace = _obter_ou_criar_workspace(assinatura)
+    """
+    Provisiona workspace para uma assinatura.
+    Suporta tanto PostgreSQL (produção) quanto SQLite (desenvolvimento).
+    """
+    # Verificar se estamos em modo de desenvolvimento (SQLite)
+    is_sqlite = settings.DATABASES['default']['ENGINE'] == 'django.db.backends.sqlite3'
 
-    if workspace.status == TenantWorkspace.Status.ATIVO:
-        return ProvisionamentoResultado(workspace=workspace, sucesso=True, mensagem="Workspace já provisionado.")
-
-    workspace.status = TenantWorkspace.Status.PROVISIONANDO
-    workspace.ultimo_erro = ""
-    workspace.save(update_fields=['status', 'ultimo_erro', 'atualizado_em'])
-
-    nome_banco = workspace.caminho_banco  # Agora é o nome do banco PostgreSQL
-
-    try:
-        # Criar banco PostgreSQL se não existir
-        # Nota: Precisa usar conexão ao banco 'postgres' para criar novos bancos
-        from django.db import connection
-        import psycopg2
-        
-        # Conectar ao banco 'postgres' para criar novos bancos
-        default_db = settings.DATABASES['default']
-        conn_admin = psycopg2.connect(
-            host=default_db.get('HOST', 'localhost'),
-            port=default_db.get('PORT', '5432'),
-            database='postgres',  # Conectar ao banco padrão para criar novos
-            user=default_db.get('USER', ''),
-            password=default_db.get('PASSWORD', '')
-        )
-        conn_admin.autocommit = True  # Necessário para CREATE DATABASE
-        
-        try:
-            with conn_admin.cursor() as cursor:
-                cursor.execute("SELECT 1 FROM pg_database WHERE datname = %s", [nome_banco])
-                if not cursor.fetchone():
-                    # Criar banco de dados
-                    cursor.execute(f'CREATE DATABASE "{nome_banco}"')
-                    logger.info(f"Banco de dados PostgreSQL '{nome_banco}' criado para tenant {workspace.alias}")
-        finally:
-            conn_admin.close()
-        
-        # Registrar conexão do banco
-        _registrar_database(workspace.alias, nome_banco)
-
-        # Aplicar migrations no banco do tenant
-        call_command(
-            'migrate',
-            database=workspace.alias,
-            interactive=False,
-            run_syncdb=True,
-            verbosity=0,
-        )
-
-        workspace.status = TenantWorkspace.Status.ATIVO
-        workspace.provisionado_em = timezone.now()
-        workspace.save(update_fields=['status', 'provisionado_em', 'atualizado_em'])
-        mensagem = "Banco provisionado com sucesso."
-        logger.info("Workspace %s provisionado para assinatura %s", workspace.alias, assinatura.pk)
-        return ProvisionamentoResultado(workspace=workspace, sucesso=True, mensagem=mensagem)
-    except Exception as exc:  # pragma: no cover - log de erro
-        mensagem = f"Falha ao provisionar workspace: {exc}"
-        logger.exception(mensagem)
-        workspace.marcar_erro(mensagem)
-        return ProvisionamentoResultado(workspace=workspace, sucesso=False, mensagem=mensagem)
+    if is_sqlite:
+        return _provisionar_workspace_sqlite(assinatura)
+    else:
+        return _provisionar_workspace_postgres(assinatura)
 
 
 def registrar_workspaces_existentes() -> None:

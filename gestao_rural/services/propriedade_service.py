@@ -62,12 +62,35 @@ class PropriedadeService:
                 ).order_by('produtor__nome', 'nome_propriedade')
         
         # Usuário normal: apenas propriedades dos seus produtores
-        return Propriedade.objects.filter(
+        propriedades_usuario = Propriedade.objects.filter(
             produtor__usuario_responsavel=user
-        ).select_related(
+        )
+
+        # Verificar se é usuário demo (tem UsuarioAtivo)
+        try:
+            from ..models_auditoria import UsuarioAtivo
+            UsuarioAtivo.objects.get(usuario=user)
+            # Usuário demo: incluir também a propriedade compartilhada "Fazenda Demonstracao"
+            propriedade_compartilhada = Propriedade.objects.filter(
+                nome_propriedade='Fazenda Demonstracao'
+            )
+            propriedades_usuario = propriedades_usuario.union(propriedade_compartilhada)
+            # Para union(), não podemos usar select_related, então retornamos sem ele
+            return propriedades_usuario.only(
+                'id', 'nome_propriedade', 'produtor_id', 'municipio',
+                'uf', 'area_total_ha', 'tipo_operacao', 'data_cadastro'
+            ).order_by('nome_propriedade')
+        except UsuarioAtivo.DoesNotExist:
+            # Não é usuário demo, continuar normalmente
+            pass
+        except ImportError:
+            # Tabela UsuarioAtivo não existe ainda
+            pass
+
+        return propriedades_usuario.select_related(
             'produtor', 'produtor__usuario_responsavel'
         ).only(
-            'id', 'nome_propriedade', 'produtor_id', 'municipio', 
+            'id', 'nome_propriedade', 'produtor_id', 'municipio',
             'uf', 'area_total_ha', 'tipo_operacao', 'data_cadastro',
             'produtor__nome', 'produtor__usuario_responsavel_id'
         ).order_by('produtor__nome', 'nome_propriedade')

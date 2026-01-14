@@ -106,8 +106,28 @@
                         <div class="alert alert-info">
                             <i class="bi bi-info-circle me-2"></i>
                             <strong>Configuração do Certificado Digital:</strong><br>
-                            Para emitir NF-e diretamente com a SEFAZ, é necessário configurar um certificado digital tipo A1 (arquivo .p12 ou .pfx).
+                            Para emitir NF-e diretamente com a SEFAZ-MS, você pode:<br>
+                            <strong>1.</strong> Fazer upload de um arquivo .p12/.pfx (certificado A1)<br>
+                            <strong>2.</strong> Usar um certificado já instalado no Windows (detecção automática)<br>
                             O certificado deve estar no nome do CNPJ que emitirá as notas fiscais.
+                        </div>
+
+                        <!-- Detecção de Certificados Instalados -->
+                        <div class="mb-3">
+                            <button type="button" class="btn btn-outline-primary" id="btn-detectar-certificados"
+                                    onclick="detectarCertificadosInstalados()">
+                                <i class="bi bi-search me-2"></i>Detectar Certificados Instalados no Windows
+                            </button>
+                            <small class="form-text text-muted">
+                                Clique para buscar certificados digitais já instalados no seu computador
+                            </small>
+                        </div>
+
+                        <div id="certificados-detectados" style="display: none;">
+                            <div class="alert alert-info">
+                                <h6><i class="bi bi-shield-check me-2"></i>Certificados Encontrados:</h6>
+                                <div id="lista-certificados"></div>
+                            </div>
                         </div>
                         
                         {% if produtor.certificado_digital %}
@@ -478,6 +498,119 @@ function validarCertificado() {
                 <strong>Erro:</strong> ${error.message}
             </div>
         `;
+    });
+}
+
+// Detectar certificados instalados no Windows
+function detectarCertificadosInstalados() {
+    const btn = document.getElementById('btn-detectar-certificados');
+    const resultadoDiv = document.getElementById('certificados-detectados');
+    const listaDiv = document.getElementById('lista-certificados');
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Detectando...';
+    resultadoDiv.style.display = 'none';
+
+    fetch('/gestao-rural/certificado/detectar-instalados/', {
+        method: 'GET',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-search me-2"></i>Detectar Certificados Instalados no Windows';
+
+        if (data.sucesso && data.certificados && data.certificados.length > 0) {
+            let html = '<div class="row">';
+            data.certificados.forEach(cert => {
+                html += `
+                    <div class="col-md-6 mb-3">
+                        <div class="card border-primary">
+                            <div class="card-body">
+                                <h6 class="card-title">
+                                    <i class="bi bi-shield-check text-success me-2"></i>
+                                    ${cert.razao_social || 'Certificado'}
+                                </h6>
+                                <p class="card-text small mb-2">
+                                    <strong>CNPJ:</strong> ${cert.cnpj || 'Não identificado'}<br>
+                                    <strong>Validade:</strong> ${cert.validade_ate || 'N/A'}<br>
+                                    <strong>Emissor:</strong> ${cert.emissor || 'N/A'}
+                                </p>
+                                <button type="button" class="btn btn-sm btn-success"
+                                        onclick="configurarCertificadoWindows('${cert.thumbprint}', ${produtor.id})">
+                                    <i class="bi bi-check-circle me-1"></i>Usar Este Certificado
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            listaDiv.innerHTML = html;
+            resultadoDiv.style.display = 'block';
+        } else {
+            listaDiv.innerHTML = `
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <strong>Nenhum certificado encontrado</strong><br>
+                    Não foram encontrados certificados digitais válidos instalados no Windows, ou esta funcionalidade não está disponível neste sistema operacional.
+                </div>
+            `;
+            resultadoDiv.style.display = 'block';
+        }
+    })
+    .catch(error => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-search me-2"></i>Detectar Certificados Instalados no Windows';
+
+        listaDiv.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="bi bi-x-circle me-2"></i>
+                <strong>Erro:</strong> ${error.message}
+            </div>
+        `;
+        resultadoDiv.style.display = 'block';
+    });
+}
+
+// Configurar certificado do Windows para o produtor
+function configurarCertificadoWindows(thumbprint, produtorId) {
+    if (!confirm('Tem certeza que deseja configurar este certificado para emissão de NF-e? Isso irá substituir qualquer configuração anterior.')) {
+        return;
+    }
+
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Configurando...';
+
+    const formData = new FormData();
+    formData.append('thumbprint', thumbprint);
+
+    fetch(`/gestao-rural/produtor/${produtorId}/configurar-certificado-windows/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.sucesso) {
+            // Recarregar a página para mostrar as mudanças
+            location.reload();
+        } else {
+            alert('Erro ao configurar certificado: ' + (data.erro || 'Erro desconhecido'));
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    })
+    .catch(error => {
+        alert('Erro: ' + error.message);
+        btn.disabled = false;
+        btn.innerHTML = originalText;
     });
 }
 </script>

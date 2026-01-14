@@ -2072,3 +2072,156 @@ def validar_certificado_upload(request):
             'sucesso': False,
             'erro': f'Erro ao processar certificado: {str(e)}'
         }, status=500)
+
+
+@login_required
+def detectar_certificados_instalados(request):
+    """
+    Detecta certificados digitais instalados no Windows Certificate Store
+    """
+    from django.http import JsonResponse
+    from .services_nfe import detectar_certificados_instalados
+
+    try:
+        certificados = detectar_certificados_instalados()
+
+        return JsonResponse({
+            'sucesso': True,
+            'certificados': certificados,
+            'total': len(certificados)
+        })
+
+    except Exception as e:
+        logger.error(f"Erro ao detectar certificados instalados: {str(e)}")
+        return JsonResponse({
+            'sucesso': False,
+            'erro': f'Erro ao detectar certificados: {str(e)}'
+        }, status=500)
+
+
+@login_required
+def configurar_certificado_windows(request, produtor_id):
+    """
+    Configura um certificado do Windows Certificate Store para um produtor
+    """
+    from django.http import JsonResponse
+    from .models import ProdutorRural
+    from .services_nfe import configurar_certificado_windows
+
+    try:
+        produtor = get_object_or_404(ProdutorRural, id=produtor_id)
+
+        # Verificar permissões
+        if not request.user.is_superuser and produtor.usuario_responsavel != request.user:
+            return JsonResponse({'erro': 'Sem permissão para configurar certificado'}, status=403)
+
+        thumbprint = request.POST.get('thumbprint')
+        if not thumbprint:
+            return JsonResponse({'sucesso': False, 'erro': 'Thumbprint do certificado não informado'}, status=400)
+
+        # Configurar certificado
+        resultado = configurar_certificado_windows(thumbprint)
+
+        if resultado['sucesso']:
+            # Atualizar dados do produtor com informações do certificado
+            produtor.certificado_thumbprint = thumbprint
+            produtor.certificado_tipo = 'WINDOWS_STORE'
+            produtor.certificado_valido_ate = resultado['validade_ate']
+            produtor.certificado_emissor = resultado['emissor']
+            produtor.save(update_fields=[
+                'certificado_thumbprint',
+                'certificado_tipo',
+                'certificado_valido_ate',
+                'certificado_emissor'
+            ])
+
+            # Configurar SEFAZ-MS automaticamente
+            from django.conf import settings
+            sefaz_config = getattr(settings, 'NFE_SEFAZ', {})
+            if not sefaz_config.get('USAR_DIRETO'):
+                # Ativar uso direto da SEFAZ
+                sefaz_config['USAR_DIRETO'] = True
+                sefaz_config['UF'] = 'MS'  # Mato Grosso do Sul
+
+                # Salvar configuração (em produção, isso seria persistido de outra forma)
+                logger.info('SEFAZ-MS configurado automaticamente para emissão direta')
+
+            return JsonResponse({
+                'sucesso': True,
+                'mensagem': 'Certificado configurado com sucesso',
+                'certificado': {
+                    'cnpj': resultado['cnpj'],
+                    'razao_social': resultado['razao_social'],
+                    'validade_ate': resultado['validade_ate'],
+                    'emissor': resultado['emissor'],
+                    'tipo': resultado['tipo']
+                }
+            })
+
+        else:
+            return JsonResponse({
+                'sucesso': False,
+                'erro': resultado['erro']
+            }, status=400)
+
+    except Exception as e:
+        logger.error(f"Erro ao configurar certificado Windows: {str(e)}")
+        return JsonResponse({
+            'sucesso': False,
+            'erro': f'Erro ao configurar certificado: {str(e)}'
+        }, status=500)
+
+
+# =============================================================================
+# CADASTRO RÁPIDO DE CLIENTE (AJAX)
+# =============================================================================
+
+@login_required
+def cliente_cadastrar_rapido(request, propriedade_id):
+    """Cadastro rápido de cliente via AJAX para uso no modal de NF-e"""
+    if request.method != 'POST':
+        return JsonResponse({'sucesso': False, 'erro': 'Método não permitido'}, status=405)
+
+    try:
+        propriedade = obter_propriedade_com_permissao(request.user, propriedade_id)
+
+        from .forms_completos import ClienteRapidoForm
+
+        form = ClienteRapidoForm(request.POST, propriedade=propriedade)
+
+        if form.is_valid():
+            cliente = form.save(commit=False)
+            cliente.propriedade = propriedade
+            cliente.ativo = True
+            cliente.save()
+
+            return JsonResponse({
+                'sucesso': True,
+                'cliente': {
+                    'id': cliente.id,
+                    'nome': cliente.nome,
+                    'cpf_cnpj': cliente.cpf_cnpj or '',
+                    'email': cliente.email or '',
+                    'telefone': cliente.telefone or ''
+                },
+                'mensagem': f'Cliente "{cliente.nome}" cadastrado com sucesso!'
+            })
+
+        else:
+            # Retornar erros de validação
+            erros = {}
+            for campo, mensagens in form.errors.items():
+                erros[campo] = [str(msg) for msg in mensagens]
+
+            return JsonResponse({
+                'sucesso': False,
+                'erros': erros,
+                'erro': 'Dados inválidos. Verifique os campos obrigatórios.'
+            }, status=400)
+
+    except Exception as e:
+        logger.error(f"Erro ao cadastrar cliente rápido: {str(e)}")
+        return JsonResponse({
+            'sucesso': False,
+            'erro': f'Erro interno do servidor: {str(e)}'
+        }, status=500)

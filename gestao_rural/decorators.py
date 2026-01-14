@@ -27,11 +27,11 @@ def usuario_tem_acesso_propriedade(usuario, propriedade):
     if usuario.is_superuser:
         return True
     
-    # Permitir acesso de usuários demo à propriedade Monpec1
+    # Permitir acesso de usuários demo à propriedade compartilhada
     from .helpers_acesso import is_usuario_demo
     if is_usuario_demo(usuario):
-        # Se for usuário demo, permitir acesso apenas à Monpec1
-        if 'Monpec1' in propriedade.nome_propriedade:
+        # Se for usuário demo, permitir acesso à propriedade compartilhada "Fazenda Demonstracao"
+        if propriedade.nome_propriedade == 'Fazenda Demonstracao':
             return True
     
     if not propriedade.produtor:

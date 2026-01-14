@@ -52,11 +52,26 @@ def assinatura_info(request):
                 'IS_ASSINANTE': True,  # Superusuários são tratados como assinantes
             }
         
-        # Verificar se é usuário demo PRIMEIRO (usuários criados pelo botão demonstração ou demo padrão)
+        # Verificar se é usuário demo (usuários criados pelo botão demonstração ou demo padrão)
         from .helpers_acesso import is_usuario_demo
         is_demo_user = is_usuario_demo(user)
-        
-        # Se for usuário demo, sempre ter acesso_liberado = False (versão pré-lançamento)
+
+        # Verificar se tem assinatura ativa PRIMEIRO
+        from .helpers_acesso import is_usuario_assinante
+        is_assinante = is_usuario_assinante(user)
+
+        # Se for assinante ativo, priorizar isso sobre ser demo
+        if is_assinante:
+            # Mesmo que seja demo, se tem assinatura ativa, é tratado como assinante
+            request.IS_DEMO_USER = False  # Não mostrar como demo se é assinante
+            return {
+                'acesso_liberado': True,
+                'assinatura': None,  # Poderia buscar a assinatura aqui se necessário
+                'IS_DEMO_USER': False,
+                'IS_ASSINANTE': True,
+            }
+
+        # Se for usuário demo (mas não assinante), acesso restrito
         if is_demo_user:
             request.IS_DEMO_USER = is_demo_user  # Adiciona ao request para uso em outros middlewares/views
             return {

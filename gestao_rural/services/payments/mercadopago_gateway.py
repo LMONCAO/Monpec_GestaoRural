@@ -48,6 +48,12 @@ class MercadoPagoGateway(PaymentGateway):
             access_token = os.getenv('MERCADOPAGO_ACCESS_TOKEN', '')
             logger.info(f"Token lido via os.getenv: {'✅ Encontrado' if access_token else '❌ Não encontrado'}")
 
+        # Verificar se está em modo teste
+        if access_token == "TEST_TOKEN" or access_token == "TEST_TOKEN_VALID_FOR_CHECKOUT":
+            logger.info("🔧 MODO TESTE ATIVADO - Simulando Mercado Pago")
+            self._mp = "TEST_MODE"
+            return
+
         if not access_token:
             logger.error("MERCADOPAGO_ACCESS_TOKEN não encontrado em settings, decouple nem variável de ambiente")
             raise RuntimeError(
@@ -67,11 +73,24 @@ class MercadoPagoGateway(PaymentGateway):
     ) -> CheckoutSessionResult:
         """
         Cria uma sessão de checkout no Mercado Pago.
-        
+
         Para assinaturas recorrentes, usa Preapproval (Plano de Assinatura).
         """
         if not self._mp:
             self._configurar()
+
+        # Verificar se está em modo teste
+        if self._mp == "TEST_MODE":
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info("🔧 MODO TESTE: Simulando checkout bem-sucedido")
+
+            # Simular resposta de sucesso
+            return CheckoutSessionResult(
+                session_id=f"test_session_{assinatura.id}",
+                url=success_url + "?test_mode=true&assinatura_id=" + str(assinatura.id),
+                gateway="teste"
+            )
         
         # Usar preço do plano ou padrão de R$ 99,90
         preco = float(plano.preco_mensal_referencia or 99.90)
@@ -324,7 +343,7 @@ class MercadoPagoGateway(PaymentGateway):
             # Definir data de liberação como 01/02/2025 se não estiver definida
             if not assinatura.data_liberacao:
                 from datetime import date
-                assinatura.data_liberacao = date(2025, 2, 1)  # 01/02/2025
+                assinatura.data_liberacao = date(2026, 2, 1)  # 01/02/2026
             
             # Atualizar período
             if not assinatura.current_period_end:
@@ -347,8 +366,8 @@ class MercadoPagoGateway(PaymentGateway):
             'status_detail': status_detail,
             'data': timezone.now().isoformat(),
         }
-        
-        assinatura.save(update_fields=["status", "metadata", "current_period_end", "atualizado_em"])
+
+        assinatura.save(update_fields=["status", "metadata", "current_period_end", "data_liberacao", "atualizado_em"])
     
     def _processar_assinatura(
         self,
@@ -379,7 +398,7 @@ class MercadoPagoGateway(PaymentGateway):
             # Definir data de liberação como 01/02/2025 se não estiver definida
             if not assinatura.data_liberacao:
                 from datetime import date
-                assinatura.data_liberacao = date(2025, 2, 1)  # 01/02/2025
+                assinatura.data_liberacao = date(2026, 2, 1)  # 01/02/2026
             
             from datetime import timedelta
             if not assinatura.current_period_end:

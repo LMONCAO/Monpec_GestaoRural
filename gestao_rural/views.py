@@ -408,6 +408,21 @@ def criar_usuario_demonstracao(request):
             user.is_active = True
             user.save()
             usuario_existente = True
+
+            # IMPORTANTE: Criar registro UsuarioAtivo para identificar como usuário demo
+            from .models_auditoria import UsuarioAtivo
+            try:
+                usuario_ativo, created = UsuarioAtivo.objects.get_or_create(
+                    usuario=user,
+                    defaults={
+                        'nome_completo': nome_completo,
+                        'email': email,
+                        'telefone': telefone or '',
+                    }
+                )
+                logger.info(f'[DEMO_CADASTRO] UsuarioAtivo criado/atualizado: {usuario_ativo.usuario.username} (criado: {created})')
+            except Exception as e:
+                logger.warning(f'[DEMO_CADASTRO] Erro ao criar UsuarioAtivo para usuário existente: {e}')
         else:
             # Criar novo usu??rio
             logger.info(f'[DEMO_CADASTRO] Criando novo usu??rio...')
@@ -438,12 +453,43 @@ def criar_usuario_demonstracao(request):
                     'message': 'Erro ao criar usu??rio. Por favor, tente novamente em alguns instantes.'
                 }, status=503)
         
-        # 2. UsuarioAtivo removido - tabela não existe no banco atual
-        
+        # 2. Criar registro UsuarioAtivo para identificar como usuário demo
+        from .models_auditoria import UsuarioAtivo
+        try:
+            logger.info(f'[DEMO_CADASTRO] Criando UsuarioAtivo para usuário: {user.username} (email: {email})')
+            usuario_ativo, created = UsuarioAtivo.objects.get_or_create(
+                usuario=user,
+                defaults={
+                    'nome_completo': nome_completo,
+                    'email': email,
+                    'telefone': telefone or '',
+                }
+            )
+            logger.info(f'[DEMO_CADASTRO] UsuarioAtivo criado para novo usuário: {usuario_ativo.usuario.username} (ID: {usuario_ativo.id}, criado: {created})')
+
+
+        except Exception as e:
+            logger.error(f'[DEMO_CADASTRO] Erro ao criar UsuarioAtivo para novo usuário: {e}', exc_info=True)
+
         # 3. NÃO criar dados aqui - deixar para o demo_setup fazer isso
         # Isso evita deadlock no banco de dados
         logger.info(f'[DEMO_CADASTRO] Usuário criado. Dados serão criados pelo demo_setup.')
-        
+
+        # 3.1. ENVIAR NOTIFICAÇÕES PARA ADMIN (EMAIL E WHATSAPP)
+        try:
+            from .services_notificacoes_demo import notificar_cadastro_demo
+            ip_address = request.META.get('REMOTE_ADDR')
+            notificar_cadastro_demo(
+                nome_completo=nome_completo,
+                email=email,
+                telefone=telefone,
+                ip_address=ip_address
+            )
+            logger.info(f'[DEMO_CADASTRO] Notificações enviadas para admin sobre lead: {email}')
+        except Exception as e:
+            logger.error(f'[DEMO_CADASTRO] Erro ao enviar notificações: {e}')
+            # Não falhar o cadastro por causa das notificações
+
         # 4. Fazer login automático
         try:
             login(request, user)
@@ -999,15 +1045,12 @@ Esta mensagem foi enviada automaticamente pelo sistema MONPEC.
                             return redirect('landing_page')
                     except Exception as e:
                         logger.error(f'[LOGIN] Erro ao buscar propriedade após login: {e}')
-                        # Em caso de erro, redirecionar para landing page
-                        return redirect('landing_page')
+                        # Em caso de erro, redirecionar para dashboard mesmo assim
+                        return redirect('dashboard')
                 except Exception as e:
                     logger.error(f'Erro após autenticação bem-sucedida: {e}')
-                    messages.error(
-                        request,
-                        ' Login realizado, mas houve um erro ao iniciar a sessão. Por favor, tente novamente.'
-                    )
-                    return render(request, 'gestao_rural/login_clean.html')
+                    # Em vez de mostrar erro, redirecionar para dashboard
+                    return redirect('dashboard')
         else:
             # Login falhou - registra tentativa e verifica quantas tentativas restam
             from django.core.cache import cache
@@ -1284,7 +1327,7 @@ def dashboard(request):
         return render(request, 'gestao_rural/dashboard.html', context)
     except Exception as e:
         logger.error(f'Erro inesperado no dashboard: {e}', exc_info=True)
-        messages.error(request, 'Erro ao carregar dashboard. Por favor, tente novamente.')
+        # Removendo a mensagem de erro para não mostrar ao usuário
         return render(request, 'gestao_rural/dashboard.html', {
             'propriedades': [],
             'total_propriedades': 0,
@@ -3987,7 +4030,7 @@ def processar_transferencias_configuradas(propriedade_destino, data_referencia):
                 # Saldo insuficiente: criar compra automática
                 print(f"[AVISO] Saldo insuficiente para transferencia: {saldo_disponivel} < {config.quantidade_transferencia}")
                 print(f"[INFO] Gerando COMPRA automatica para {propriedade_destino.nome_propriedade}")
-                
+
                 # Criar compra automática
                 movimentacao_compra = MovimentacaoProjetada.objects.create(
                     propriedade=propriedade_destino,
@@ -3995,24 +4038,81 @@ def processar_transferencias_configuradas(propriedade_destino, data_referencia):
                     tipo_movimentacao='COMPRA',
                     categoria=categoria_origem,
                     quantidade=config.quantidade_transferencia,
-                    observacao=f'Compra automática (transferência cancelada por falta de saldo em {config.fazenda_origem.nome_propriedade})'
+                    valor_unitario=Decimal('0.00'),  # Valor será calculado depois
+                    valor_total=Decimal('0.00')
                 )
-                
-                transferencias_processadas.append({
-                    'origem': None,
-                    'destino': propriedade_destino,
-                    'categoria': categoria_origem,
-                    'quantidade': config.quantidade_transferencia,
-                    'data': data_referencia,
-                    'tipo': 'COMPRA'
-                })
-                
-                print(f"[OK] Compra automatica criada: {propriedade_destino.nome_propriedade} (+{config.quantidade_transferencia} {categoria_origem.nome})")
-        else:
-            print(f"AVISO: Não é o momento da transferência")
+                print(f"[OK] Compra automática criada: {movimentacao_compra}")
+                transferencias_processadas.append(movimentacao_compra)
     
-    print(f"Total de transferências processadas: {len(transferencias_processadas)}")
     return transferencias_processadas
+
+
+@login_required
+def area_assinante(request):
+    """
+    Página especial para usuários assinantes que ainda aguardam liberação.
+    Mostra informações sobre a assinatura e data de ativação.
+    """
+    from .helpers_acesso import is_usuario_assinante
+
+    # Verificar se é assinante
+    if not is_usuario_assinante(request.user):
+        messages.warning(request, 'Esta página é exclusiva para assinantes.')
+        return redirect('dashboard')
+
+    # Obter dados da assinatura
+    try:
+        from .models import AssinaturaCliente
+        assinatura = AssinaturaCliente.objects.filter(
+            usuario=request.user,
+            status='ATIVA'
+        ).first()
+
+        context = {
+            'assinatura': assinatura,
+            'data_liberacao': getattr(assinatura, 'data_liberacao', None) if assinatura else None,
+        }
+    except Exception:
+        context = {
+            'assinatura': None,
+            'data_liberacao': None,
+        }
+
+    return render(request, 'gestao_rural/area_assinante.html', context)
+
+
+@login_required
+def area_assinante(request):
+    """
+    Página especial para usuários assinantes que ainda aguardam liberação.
+    Mostra informações sobre a assinatura e data de ativação.
+    """
+    from .helpers_acesso import is_usuario_assinante
+
+    # Verificar se é assinante
+    if not is_usuario_assinante(request.user):
+        messages.warning(request, 'Esta página é exclusiva para assinantes.')
+        return redirect('dashboard')
+
+    # Obter dados da assinatura
+    try:
+        from .models import AssinaturaCliente
+        assinatura = AssinaturaCliente.objects.filter(
+            usuario=request.user,
+            status='ATIVA'
+        ).first()
+
+        context = {
+            'assinatura': assinatura,
+            'data_liberacao': getattr(assinatura, 'data_liberacao', None) if assinatura else None,
+        }
+    except Exception:
+        context = {
+            'assinatura': None,
+            'data_liberacao': None,
+        }
+
+    return render(request, 'gestao_rural/area_assinante.html', context)
 
 
 def verificar_momento_transferencia(config, data_referencia):
@@ -5045,47 +5145,41 @@ def propriedade_modulos(request, propriedade_id):
         is_demo_user = True
         logger.info(f'USUÁRIO DEMO PADRÃO: {request.user.username}')
     else:
-        # Verificar se é usuário de demonstração (do popup)
+        # Verificar se é usuário de demonstração (do popup ou formulário)
         try:
             UsuarioAtivo.objects.get(usuario=request.user)
             is_demo_user = True
-            logger.info(f'USUÁRIO DEMO (POPUP): {request.user.username}')
+            logger.info(f'USUÁRIO DEMO (UsuarioAtivo): {request.user.username}')
         except:
-            pass
-    
-    # ========== SE FOR DEMO, SEMPRE USAR MONPEC DO PRODUTOR ==========
-    if is_demo_user:
-        # Buscar primeiro propriedade Monpec do produtor do usuário
-        produtor = ProdutorRural.objects.filter(usuario_responsavel=request.user).first()
-        monpec1 = None
-        
-        if produtor:
-            # Buscar propriedade Monpec (Monpec1, Monpec2, etc.) do produtor do usuário
+            # Verificar se é usuário criado via formulário de demonstração
             try:
-                monpec1 = Propriedade.objects.filter(
-                    produtor=produtor,
-                    nome_propriedade__iregex=r'^Monpec\d+$'
-                ).order_by('nome_propriedade').first()
-            except ProgrammingError:
-                monpec1 = Propriedade.objects.filter(produtor=produtor).first()
-        
-        # Se não encontrar, buscar qualquer propriedade do produtor
-        if not monpec1 and produtor:
-            monpec1 = Propriedade.objects.filter(produtor=produtor).first()
-        
-        # Se não encontrou propriedade, redirecionar para setup (que cria tudo automaticamente)
-        if not monpec1:
-            logger.warning(f' Propriedade Monpec não encontrada para usuário demo {request.user.username}. Redirecionando para demo_setup.')
+                UsuarioAtivo.objects.get(email=request.user.email)
+                is_demo_user = True
+                logger.info(f'USUÁRIO DEMO (formulário): {request.user.username} ({request.user.email})')
+            except:
+                logger.info(f'USUÁRIO NÃO É DEMO: {request.user.username}')
+                pass
+    
+    # ========== SE FOR DEMO, SEMPRE USAR PROPRIEDADE COMPARTILHADA ==========
+    if is_demo_user:
+        # Usuários demo com UsuarioAtivo usam a propriedade compartilhada "Fazenda Demonstracao"
+        propriedade_compartilhada = Propriedade.objects.filter(
+            nome_propriedade='Fazenda Demonstracao'
+        ).first()
+
+        if propriedade_compartilhada:
+            # Se o ID solicitado NÃO for a propriedade compartilhada, redirecionar
+            if propriedade_id != propriedade_compartilhada.id:
+                logger.info(f'🔄 REDIRECIONANDO DEMO: propriedade {propriedade_id} → {propriedade_compartilhada.nome_propriedade} (ID: {propriedade_compartilhada.id})')
+                return redirect('propriedade_modulos', propriedade_id=propriedade_compartilhada.id)
+
+            # Se chegou aqui, é a propriedade compartilhada - usar diretamente
+            propriedade = propriedade_compartilhada
+            logger.info(f'DEMO ACESSANDO PROPRIEDADE COMPARTILHADA {propriedade.nome_propriedade} (ID: {propriedade.id})')
+        else:
+            # Propriedade compartilhada não existe, redirecionar para setup
+            logger.warning(f'Propriedade compartilhada "Fazenda Demonstracao" não encontrada. Redirecionando para demo_setup.')
             return redirect('demo_setup')
-        
-        # Se o ID solicitado NÃO for a propriedade Monpec do produtor, redirecionar IMEDIATAMENTE
-        if propriedade_id != monpec1.id:
-            logger.info(f'🔄 REDIRECIONANDO: propriedade {propriedade_id} → {monpec1.nome_propriedade} (ID: {monpec1.id})')
-            return redirect('propriedade_modulos', propriedade_id=monpec1.id)
-        
-        # Se chegou aqui, é a propriedade Monpec do produtor - usar diretamente (SEM verificação de permissão)
-        propriedade = monpec1
-        logger.info(f'DEMO ACESSANDO {propriedade.nome_propriedade} (ID: {propriedade.id})')
     else:
         # Usuário normal - verificar permissão
         try:
@@ -5221,3 +5315,6 @@ Sitemap: https://monpec.com.br/sitemap.xml
 """
     return HttpResponse(content, content_type='text/plain')
 
+def offline_page(request):
+    """Página exibida quando não há conexão com internet"""
+    return render(request, 'site/offline.html')

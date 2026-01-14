@@ -930,19 +930,30 @@ class NotaFiscalSaidaForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         propriedade = kwargs.pop('propriedade', None)
         super().__init__(*args, **kwargs)
-        
+
         if propriedade:
             from .models_cadastros import Cliente
             from .models_financeiro import ContaFinanceira, CategoriaFinanceira
-            
-            # Configurar queryset de clientes
+
+            # Configurar queryset de clientes com opção de cadastrar novo
             try:
-                self.fields['cliente'].queryset = Cliente.objects.filter(
+                clientes = list(Cliente.objects.filter(
                     Q(propriedade=propriedade) | Q(propriedade__isnull=True),
                     ativo=True
-                ).order_by('nome')
+                ).order_by('nome'))
+
+                # Criar choices com opção especial para cadastrar cliente
+                choices = [('', 'Selecione um cliente...')]
+                choices.extend([('cadastrar', '--- CADASTRAR NOVO CLIENTE ---')])
+                choices.extend([(cliente.id, cliente.nome) for cliente in clientes])
+
+                self.fields['cliente'].choices = choices
+                self.fields['cliente'].widget.attrs.update({
+                    'class': 'form-select select-cliente-nfe',
+                    'id': 'id_cliente_nfe'
+                })
             except Exception:
-                self.fields['cliente'].queryset = Cliente.objects.none()
+                self.fields['cliente'].choices = [('', 'Selecione um cliente...'), ('cadastrar', '--- CADASTRAR NOVO CLIENTE ---')]
             
             # Preencher queryset de contas financeiras
             try:
@@ -1242,3 +1253,71 @@ class ProdutoForm(forms.ModelForm):
                 'placeholder': 'Observações adicionais'
             }),
         }
+
+
+# =============================================================================
+# FORMULÁRIOS PARA CADASTRO RÁPIDO EM MODAIS
+# =============================================================================
+
+class ClienteRapidoForm(forms.ModelForm):
+    """Formulário simplificado para cadastro rápido de cliente no modal de NF-e"""
+
+    class Meta:
+        model = None  # Será definido dinamicamente
+        fields = ['nome', 'cpf_cnpj', 'email', 'telefone']
+        widgets = {
+            'nome': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Nome ou Razão Social',
+                'required': True,
+                'maxlength': '100'
+            }),
+            'cpf_cnpj': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'CPF ou CNPJ (apenas números)',
+                'required': True,
+                'maxlength': '14',
+                'onkeyup': 'formatarCPFCNPJ(this)'
+            }),
+            'email': forms.EmailInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'E-mail',
+                'type': 'email'
+            }),
+            'telefone': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Telefone',
+                'maxlength': '15',
+                'onkeyup': 'formatarTelefone(this)'
+            }),
+        }
+
+    def __init__(self, *args, **kwargs):
+        propriedade = kwargs.pop('propriedade', None)
+        super().__init__(*args, **kwargs)
+
+        # Importar modelo dinamicamente para evitar dependências circulares
+        from .models_cadastros import Cliente
+        self.Meta.model = Cliente
+
+        if propriedade:
+            # Adicionar propriedade automaticamente
+            self.instance.propriedade = propriedade
+
+    def clean_cpf_cnpj(self):
+        cpf_cnpj = self.cleaned_data.get('cpf_cnpj', '').strip()
+        if cpf_cnpj:
+            # Remover caracteres não numéricos
+            cpf_cnpj_limpo = ''.join(filter(str.isdigit, cpf_cnpj))
+
+            # Validar tamanho
+            if len(cpf_cnpj_limpo) not in [11, 14]:
+                raise forms.ValidationError('CPF deve ter 11 dígitos ou CNPJ deve ter 14 dígitos.')
+
+            # Verificar duplicatas
+            from .models_cadastros import Cliente
+            if Cliente.objects.filter(cpf_cnpj=cpf_cnpj_limpo, ativo=True).exists():
+                raise forms.ValidationError('CPF/CNPJ já cadastrado no sistema.')
+
+            return cpf_cnpj_limpo
+        return cpf_cnpj

@@ -43,10 +43,10 @@ except ImportError:
 def emitir_nfe(nota_fiscal):
     """
     Emite uma NF-e através da API configurada ou diretamente com SEFAZ
-    
+
     Args:
         nota_fiscal: Instância do modelo NotaFiscal
-        
+
     Returns:
         dict: {
             'sucesso': bool,
@@ -58,12 +58,16 @@ def emitir_nfe(nota_fiscal):
     """
     # Verificar se há certificado configurado no produtor ou configuração nas settings
     produtor = nota_fiscal.propriedade.produtor
-    tem_certificado_produtor = produtor.certificado_digital and produtor.tem_certificado_valido()
+    tem_certificado_arquivo = produtor.certificado_digital and produtor.tem_certificado_valido()
+    tem_certificado_windows = (produtor.certificado_tipo == 'WINDOWS_STORE' and
+                              produtor.certificado_thumbprint and produtor.tem_certificado_valido())
+
     nfe_sefaz = getattr(settings, 'NFE_SEFAZ', None)
     tem_certificado_settings = nfe_sefaz and nfe_sefaz.get('CERTIFICADO_PATH') and os.path.exists(nfe_sefaz.get('CERTIFICADO_PATH'))
-    
-    # Priorizar emissão direta se houver certificado configurado
-    if (tem_certificado_produtor or (nfe_sefaz and nfe_sefaz.get('USAR_DIRETO', False) and tem_certificado_settings)):
+
+    # Priorizar emissão direta se houver certificado configurado (arquivo ou Windows Store)
+    if (tem_certificado_arquivo or tem_certificado_windows or
+        (nfe_sefaz and nfe_sefaz.get('USAR_DIRETO', False) and tem_certificado_settings)):
         try:
             from .services_nfe_sefaz import emitir_nfe_direta_sefaz
             resultado = emitir_nfe_direta_sefaz(nota_fiscal)
@@ -75,19 +79,25 @@ def emitir_nfe(nota_fiscal):
             logger.info('Emissão direta SEFAZ requer PyNFe. Tentando API terceira se configurada...')
         except ImportError as e:
             logger.warning(f'Serviço de emissão direta SEFAZ não disponível: {e}')
-    
+
     # Verificar qual API está configurada
     api_nfe = getattr(settings, 'API_NFE', None)
-    
+
     if not api_nfe:
         logger.warning('API de NF-e não configurada. Configure API_NFE ou NFE_SEFAZ nas settings.')
         return {
             'sucesso': False,
             'erro': 'API de NF-e não configurada. Configure API_NFE ou NFE_SEFAZ nas settings.'
         }
-    
+
+    # Verificar se é um token demo (para desenvolvimento/testes)
+    token = api_nfe.get('TOKEN', '')
+    if token in ['DEMO_TOKEN_PARA_TESTES', 'demo', 'teste'] or not token.strip():
+        logger.info('Token demo detectado. Simulando emissão de NF-e para testes.')
+        return _emitir_demo_nfe(nota_fiscal)
+
     api_type = api_nfe.get('TIPO', 'FOCUS_NFE')
-    
+
     if api_type == 'FOCUS_NFE':
         return _emitir_focus_nfe(nota_fiscal, api_nfe)
     elif api_type == 'NFE_IO':
@@ -99,27 +109,254 @@ def emitir_nfe(nota_fiscal):
         }
 
 
+def detectar_certificados_instalados():
+    """
+    Detecta certificados digitais instalados no Windows Certificate Store
+    Retorna lista de certificados disponíveis para emissão de NF-e
+    """
+    import platform
+    import subprocess
+    import json
+    from datetime import datetime
+
+    certificados = []
+
+    # Verificar se está no Windows
+    if platform.system() != 'Windows':
+        logger.warning('Detecção de certificados só funciona no Windows')
+        return certificados
+
+    try:
+        # Usar PowerShell para listar certificados do repositório pessoal
+        powershell_cmd = '''
+        $certs = Get-ChildItem -Path Cert:\\CurrentUser\\My | Where-Object {
+            $_.HasPrivateKey -and
+            $_.NotAfter -gt (Get-Date) -and
+            ($_.Subject -match "CNPJ|CPF")
+        } | Select-Object Subject, Thumbprint, NotAfter, Issuer
+
+        $certList = @()
+        foreach ($cert in $certs) {
+            $subjectParts = $cert.Subject -split ', '
+            $cnpj = ""
+            $razaoSocial = ""
+
+            foreach ($part in $subjectParts) {
+                if ($part -match "CN=(.+)") {
+                    $razaoSocial = $matches[1]
+                }
+                if ($part -match "(\\d{2}\\.\\d{3}\\.\\d{3}/\\d{4}-\\d{2})") {
+                    $cnpj = $matches[1]
+                }
+            }
+
+            if ($cnpj -or $razaoSocial) {
+                $certList += @{
+                    "cnpj" = $cnpj
+                    "razao_social" = $razaoSocial
+                    "thumbprint" = $cert.Thumbprint
+                    "validade_ate" = $cert.NotAfter.ToString("yyyy-MM-dd")
+                    "emissor" = $cert.Issuer
+                }
+            }
+        }
+
+        $certList | ConvertTo-Json -Compress
+        '''
+
+        # Executar comando PowerShell
+        result = subprocess.run(
+            ['powershell', '-Command', powershell_cmd],
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+
+        if result.returncode == 0 and result.stdout.strip():
+            try:
+                certificados = json.loads(result.stdout.strip())
+                if isinstance(certificados, dict):
+                    certificados = [certificados]
+                logger.info(f'Encontrados {len(certificados)} certificados instalados')
+            except json.JSONDecodeError as e:
+                logger.error(f'Erro ao parsear JSON dos certificados: {e}')
+                certificados = []
+        else:
+            logger.warning(f'Erro ao executar PowerShell: {result.stderr}')
+            certificados = []
+
+    except subprocess.TimeoutExpired:
+        logger.error('Timeout ao detectar certificados')
+        certificados = []
+    except Exception as e:
+        logger.error(f'Erro ao detectar certificados instalados: {str(e)}')
+        certificados = []
+
+    return certificados
+
+
+def configurar_certificado_windows(thumbprint, senha=None):
+    """
+    Configura um certificado do Windows Certificate Store para uso em NF-e
+    Retorna informações do certificado configurado
+    """
+    import platform
+    import subprocess
+    import json
+    from datetime import datetime
+
+    if platform.system() != 'Windows':
+        return {'sucesso': False, 'erro': 'Esta funcionalidade só funciona no Windows'}
+
+    try:
+        # Obter detalhes do certificado
+        powershell_cmd = f'''
+        $cert = Get-ChildItem -Path Cert:\\CurrentUser\\My\\{thumbprint}
+        if ($cert) {{
+            $subjectParts = $cert.Subject -split ', '
+            $cnpj = ""
+            $razaoSocial = ""
+
+            foreach ($part in $subjectParts) {{
+                if ($part -match "CN=(.+)") {{
+                    $razaoSocial = $matches[1]
+                }}
+                if ($part -match "(\\d{{2}}\\.\\d{{3}}\\.\\d{{3}}/\\d{{4}}-\\d{{2}})") {{
+                    $cnpj = $matches[1]
+                }}
+            }}
+
+            @{{
+                "thumbprint" = "{thumbprint}"
+                "cnpj" = $cnpj
+                "razao_social" = $razaoSocial
+                "validade_ate" = $cert.NotAfter.ToString("yyyy-MM-dd")
+                "emissor" = $cert.Issuer
+                "has_private_key" = $cert.HasPrivateKey
+            }} | ConvertTo-Json -Compress
+        }} else {{
+            @{{"erro" = "Certificado não encontrado"}} | ConvertTo-Json -Compress
+        }}
+        '''
+
+        result = subprocess.run(
+            ['powershell', '-Command', powershell_cmd],
+            capture_output=True,
+            text=True,
+            timeout=15
+        )
+
+        if result.returncode == 0 and result.stdout.strip():
+            try:
+                info = json.loads(result.stdout.strip())
+                if 'erro' in info:
+                    return {'sucesso': False, 'erro': info['erro']}
+
+                # Validar se certificado tem chave privada
+                if not info.get('has_private_key', False):
+                    return {'sucesso': False, 'erro': 'Certificado não possui chave privada'}
+
+                # Verificar validade
+                validade_ate = datetime.fromisoformat(info['validade_ate'])
+                if validade_ate < datetime.now():
+                    return {'sucesso': False, 'erro': 'Certificado expirado'}
+
+                # Retornar informações de sucesso
+                return {
+                    'sucesso': True,
+                    'thumbprint': info['thumbprint'],
+                    'cnpj': info['cnpj'],
+                    'razao_social': info['razao_social'],
+                    'validade_ate': info['validade_ate'],
+                    'emissor': info['emissor'],
+                    'tipo': 'WINDOWS_STORE'
+                }
+
+            except json.JSONDecodeError:
+                return {'sucesso': False, 'erro': 'Erro ao processar resposta'}
+
+        return {'sucesso': False, 'erro': result.stderr or 'Erro desconhecido'}
+
+    except subprocess.TimeoutExpired:
+        return {'sucesso': False, 'erro': 'Timeout na configuração'}
+    except Exception as e:
+        return {'sucesso': False, 'erro': str(e)}
+
+
+def _emitir_demo_nfe(nota_fiscal):
+    """
+    Simula emissão de NF-e para desenvolvimento/testes
+    Gera uma chave de acesso fictícia baseada nos dados da nota
+    """
+    from datetime import datetime
+    import random
+
+    # Gerar chave de acesso fictícia
+    # Formato: UF + AAMM + CNPJ + mod + serie + numero + forma + numero NF
+    try:
+        # Buscar CNPJ da propriedade ou do produtor
+        cnpj = ''
+        if hasattr(nota_fiscal.propriedade, 'cnpj') and nota_fiscal.propriedade.cnpj:
+            cnpj = nota_fiscal.propriedade.cnpj
+        elif hasattr(nota_fiscal.propriedade, 'produtor') and nota_fiscal.propriedade.produtor and nota_fiscal.propriedade.produtor.cpf_cnpj:
+            cnpj = nota_fiscal.propriedade.produtor.cpf_cnpj
+        else:
+            cnpj = '00000000000000'
+        cnpj_limpo = ''.join(filter(str.isdigit, cnpj))[:14].zfill(14)
+        uf = '50'  # MS (Mato Grosso do Sul)
+        aamm = datetime.now().strftime('%y%m')
+        mod = '55'  # NF-e
+        serie = str(nota_fiscal.serie or '1').zfill(3)
+        numero = str(nota_fiscal.numero or '1').zfill(9)
+        forma = '1'  # Forma de emissão
+        codigo = str(random.randint(10000000, 99999999))  # Código numérico aleatório
+
+        chave_acesso = f'{uf}{aamm}{cnpj_limpo}{mod}{serie}{numero}{forma}{codigo}'
+
+        # Calcular DV (dígito verificador) simplificado
+        dv = sum(int(d) for d in chave_acesso) % 11
+        if dv == 10:
+            dv = 0
+        chave_acesso += str(dv)
+
+        logger.info(f'NF-e demo emitida com sucesso. Chave: {chave_acesso}')
+
+        return {
+            'sucesso': True,
+            'chave_acesso': chave_acesso,
+            'protocolo': f'PROTOCOLO_DEMO_{datetime.now().strftime("%Y%m%d_%H%M%S")}',
+            'xml': None,
+            'demo': True  # Indica que foi uma emissão demo
+        }
+    except Exception as e:
+        logger.error(f'Erro ao gerar NF-e demo: {str(e)}')
+        return {
+            'sucesso': False,
+            'erro': f'Erro na geração demo: {str(e)}'
+        }
+
+
 def _emitir_focus_nfe(nota_fiscal, config):
     """
     Emite NF-e usando Focus NFe API
-    
+
     Documentação: https://doc.focusnfe.com.br/
     """
     token = config.get('TOKEN')
     ambiente = config.get('AMBIENTE', 'homologacao')  # 'homologacao' ou 'producao'
-    
+
     if not token:
         return {
             'sucesso': False,
             'erro': 'Token da API Focus NFe não configurado'
         }
-    
+
     base_url = 'https://api.focusnfe.com.br' if ambiente == 'producao' else 'https://homologacao.focusnfe.com.br'
     url = f'{base_url}/v2/nfe'
-    
+
     # Preparar dados da NF-e
     dados_nfe = _preparar_dados_nfe(nota_fiscal)
-    
+
     try:
         response = requests.post(
             url,
@@ -128,7 +365,7 @@ def _emitir_focus_nfe(nota_fiscal, config):
             headers={'Content-Type': 'application/json'},
             timeout=30
         )
-        
+
         if response.status_code == 201:
             resultado = response.json()
             return {

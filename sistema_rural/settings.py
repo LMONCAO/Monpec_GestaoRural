@@ -104,19 +104,23 @@ PAYMENT_GATEWAY_DEFAULT = config('PAYMENT_GATEWAY_DEFAULT', default='mercadopago
 # Documentação completa: Ver arquivo CONFIGURACAO_NFE.md na pasta docs/
 
 # Configuração de API de NF-e (Focus NFe ou NFe.io)
-API_NFE = {
-    'TIPO': config('API_NFE_TIPO', default='FOCUS_NFE'),  # FOCUS_NFE, NFE_IO
-    'AMBIENTE': config('API_NFE_AMBIENTE', default='homologacao'),  # homologacao, producao
-    'TOKEN': config('API_NFE_TOKEN', default=''),
-    'COMPANY_ID': config('API_NFE_COMPANY_ID', default=''),  # Apenas para NFe.io
-}
+# API NF-e DESABILITADA (usar apenas upload manual)
+# Para habilitar APIs pagas, descomente e configure:
+# API_NFE = {
+#     'TIPO': config('API_NFE_TIPO', default='FOCUS_NFE'),  # FOCUS_NFE, NFE_IO
+#     'AMBIENTE': config('API_NFE_AMBIENTE', default='homologacao'),  # homologacao, producao
+#     'TOKEN': config('API_NFE_TOKEN', default=''),  # Token real da API
+#     'COMPANY_ID': config('API_NFE_COMPANY_ID', default=''),  # Apenas para NFe.io
+# }
+
+API_NFE = None  # Desabilitado para usar apenas upload manual (gratuito)
 
 # Configuração de Emissão Direta SEFAZ (opcional)
 # Requer certificado digital A1 ou A3 e biblioteca PyNFe
 NFE_SEFAZ = {
     'CERTIFICADO_PATH': config('NFE_SEFAZ_CERTIFICADO_PATH', default=None),
     'SENHA_CERTIFICADO': config('NFE_SEFAZ_SENHA_CERTIFICADO', default=''),
-    'UF': config('NFE_SEFAZ_UF', default='SP'),
+    'UF': config('NFE_SEFAZ_UF', default='MS'),  # Mato Grosso do Sul por padrão
     'AMBIENTE': config('NFE_SEFAZ_AMBIENTE', default='homologacao'),  # homologacao, producao
     'USAR_DIRETO': config('NFE_SEFAZ_USAR_DIRETO', default=False, cast=bool),
 }
@@ -151,7 +155,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',  # Deve vir ANTES dos middlewares que usam messages
-    # 'gestao_rural.middleware_liberacao_acesso.LiberacaoAcessoMiddleware',  # Controle de liberação de acesso - TEMPORARIAMENTE DESABILITADO
+    'gestao_rural.middleware_liberacao_acesso.LiberacaoAcessoMiddleware',  # Controle de liberação de acesso
     # 'gestao_rural.middleware_seguranca_avancada.SegurancaAvancadaMiddleware',  # Segurança avançada - TEMPORARIAMENTE DESABILITADO
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     # 'gestao_rural.middleware_security.SecurityHeadersMiddleware',  # Headers de segurança - TEMPORARIAMENTE DESABILITADO
@@ -290,7 +294,12 @@ LOGOUT_REDIRECT_URL = 'landing_page'
 
 # Configuração de E-mail (para recuperação de senha, convites de cotação e envio de NF-e)
 # Configuração padrão temporária - cada usuário pode configurar o seu próprio via variáveis de ambiente
-EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
+# Configuração de Email - usar console backend para desenvolvimento
+if DEBUG:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+else:
+    EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
+
 EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
 EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
 EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
@@ -299,6 +308,10 @@ EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='l.moncaosilva@gmail.com')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')  # Deve ser configurado via variável de ambiente ou .env
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='l.moncaosilva@gmail.com')
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
+
+# Configurações do consultor
+CONSULTOR_EMAIL = config('CONSULTOR_EMAIL', default='l.moncaosilva@gmail.com')
+CONSULTOR_TELEFONE = config('CONSULTOR_TELEFONE', default='')  # WhatsApp do consultor
 
 # Configuração de Backup
 BACKUP_DIR = Path(os.getenv('BACKUP_DIR', str(BASE_DIR / 'backups')))
@@ -332,6 +345,10 @@ GOOGLE_ANALYTICS_ID = os.getenv('GOOGLE_ANALYTICS_ID', '')
 # ========================================
 # Token para validação de webhooks WhatsApp
 WHATSAPP_WEBHOOK_TOKEN = os.getenv('WHATSAPP_WEBHOOK_TOKEN', '')
+
+# Configurações para notificações de leads demo
+ADMIN_EMAIL = config('ADMIN_EMAIL', default='admin@monpec.com.br')  # Email para receber notificações
+ADMIN_WHATSAPP = config('ADMIN_WHATSAPP', default='')  # WhatsApp para receber notificações (opcional)
 
 # Configurações de segurança HTTPS/SSL (apenas em produção)
 # Em desenvolvimento, deixar False para facilitar testes locais

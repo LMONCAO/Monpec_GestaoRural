@@ -92,15 +92,12 @@ def is_usuario_assinante(user):
     - É superusuário ou staff
     - Tem assinatura ativa com acesso liberado
 
-    IMPORTANTE: Usuários demo NUNCA são assinantes, mesmo que tenham assinatura no banco.
+    NOTA: Usuários com assinatura ativa são considerados assinantes independente do status demo.
     """
     if not user or not user.is_authenticated:
         return False
 
-    # IMPORTANTE: Verificar se é demo PRIMEIRO - usuários demo nunca são assinantes
-    if is_usuario_demo(user):
-        return False
-
+    # Superusuários e staff sempre são assinantes
     if user.is_superuser or user.is_staff:
         return True
 

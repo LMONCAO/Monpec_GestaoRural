@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Script SIMPLES para popular a Fazenda Demonstração com dados básicos funcionais
+Script simples para popular a Fazenda Demonstracao com dados basicos
 """
 import os
 import sys
@@ -13,232 +13,207 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'sistema_rural.settings')
 django.setup()
 
 from django.contrib.auth import get_user_model
-from gestao_rural.models import Propriedade, AnimalIndividual, CategoriaAnimal, InventarioRebanho
-from gestao_rural.models_compras_financeiro import Fornecedor
+from gestao_rural.models import (
+    Propriedade, AnimalIndividual, CategoriaAnimal, InventarioRebanho
+)
+from gestao_rural.models_financeiro import (
+    CategoriaFinanceira, ContaFinanceira, LancamentoFinanceiro
+)
 
-def popular_demo_basico():
-    """Popula com dados básicos que funcionam"""
+def popular_demo():
+    """Popula dados basicos para demonstracao"""
 
     print("Procurando Fazenda Demonstracao...")
-    propriedade = Propriedade.objects.filter(nome_propriedade='Fazenda Demonstracao').first()
-
-    if not propriedade:
-        print("Fazenda nao encontrada!")
-        return
-
-    print(f"Encontrada: {propriedade.nome_propriedade} (ID: {propriedade.id})")
-
-    # 1. Animais básicos funcionais
-    print("Criando animais basicos...")
     try:
-        # Criar categoria básica se não existir
-        categoria, created = CategoriaAnimal.objects.get_or_create(
-            nome='Vaca',
-            sexo='F',
-            defaults={'idade_minima_meses': 24, 'raca': 'NELORE', 'ativo': True}
-        )
+        propriedade = Propriedade.objects.filter(nome_propriedade='Fazenda Demonstracao').first()
+        if not propriedade:
+            print("Fazenda Demonstracao nao encontrada!")
+            return
 
-        # Criar 50 animais com numeração sequencial
-        animais_criados = 0
-        for i in range(1, 51):  # 50 animais
-            numero_brinco = f"DEMO{i:03d}"
+        print(f"Encontrada: {propriedade.nome_propriedade} (ID: {propriedade.id})")
+
+        # 1. Criar animais (meta: 1138)
+        print("Criando animais...")
+        criar_animais_simples(propriedade)
+
+        # 2. Criar dados financeiros
+        print("Criando dados financeiros...")
+        criar_financeiro_simples(propriedade)
+
+        print("Demonstracao populada com sucesso!")
+
+    except Exception as e:
+        print(f"Erro: {e}")
+        import traceback
+        traceback.print_exc()
+
+def criar_animais_simples(propriedade):
+    """Cria animais de forma simples"""
+
+    # Criar categorias basicas se nao existirem
+    categorias_data = [
+        {'nome': 'Vaca em Lactacao', 'sexo': 'F', 'idade_minima_meses': 24},
+        {'nome': 'Vaca Seca', 'sexo': 'F', 'idade_minima_meses': 24},
+        {'nome': 'Novilha', 'sexo': 'F', 'idade_minima_meses': 12},
+        {'nome': 'Bezerro', 'sexo': 'M', 'idade_minima_meses': 0},
+        {'nome': 'Bezerra', 'sexo': 'F', 'idade_minima_meses': 0},
+        {'nome': 'Touro', 'sexo': 'M', 'idade_minima_meses': 24},
+    ]
+
+    categorias = {}
+    for cat_data in categorias_data:
+        cat, created = CategoriaAnimal.objects.get_or_create(
+            nome=cat_data['nome'],
+            sexo=cat_data['sexo'],
+            defaults={
+                'idade_minima_meses': cat_data['idade_minima_meses'],
+                'raca': 'NELORE',
+                'ativo': True
+            }
+        )
+        categorias[cat_data['nome']] = cat
+
+    # Distribuicao simples para chegar a 1138 animais
+    distribuicao = {
+        'Vaca em Lactacao': 300,
+        'Vaca Seca': 250,
+        'Novilha': 200,
+        'Bezerro': 150,
+        'Bezerra': 150,
+        'Touro': 88,  # Total: 300+250+200+150+150+88 = 1138
+    }
+
+    numero_brinco = 1000
+    total_criados = 0
+
+    for categoria_nome, quantidade in distribuicao.items():
+        categoria = categorias[categoria_nome]
+
+        for i in range(quantidade):
+            # Peso baseado na categoria
+            if 'Vaca' in categoria_nome:
+                peso = random.randint(400, 550)
+            elif 'Novilha' in categoria_nome:
+                peso = random.randint(300, 450)
+            elif 'Bezerro' in categoria_nome or 'Bezerra' in categoria_nome:
+                peso = random.randint(120, 200)
+            else:  # Touro
+                peso = random.randint(700, 950)
+
             try:
                 AnimalIndividual.objects.get_or_create(
-                    numero_brinco=numero_brinco,
+                    numero_brinco=f'DEMO{numero_brinco:04d}',
                     propriedade=propriedade,
                     defaults={
                         'categoria': categoria,
-                        'peso_atual_kg': 400 + random.randint(-50, 50),
-                        'sexo': 'F',
+                        'peso_atual_kg': peso,
+                        'sexo': categoria.sexo,
                         'raca': 'NELORE',
-                        'data_nascimento': date.today() - timedelta(days=random.randint(730, 1825)),  # 2-5 anos
+                        'data_nascimento': date.today() - timedelta(days=random.randint(365, 1825)),
                         'data_aquisicao': date.today() - timedelta(days=random.randint(30, 365)),
                         'status': 'ATIVO',
                     }
                 )
-                animais_criados += 1
+                numero_brinco += 1
+                total_criados += 1
             except Exception as e:
                 print(f"Erro animal {numero_brinco}: {e}")
 
-        print(f"Criados {animais_criados} animais")
-
-        # Inventário básico
-        try:
-            InventarioRebanho.objects.get_or_create(
-                propriedade=propriedade,
-                data_inventario=date.today(),
-                defaults={
-                    'vacas_em_lactacao': 35,
-                    'vacas_secas': 15,
-                    'total_animais': 50,
-                    'valor_por_cabeca': Decimal('2500.00'),
-                    'valor_total_rebanho': Decimal('125000.00'),
-                }
-            )
-            print("Inventario criado")
-        except Exception as e:
-            print(f"Erro inventario: {e}")
-
+    # Criar inventario basico (apenas campos que existem)
+    try:
+        InventarioRebanho.objects.get_or_create(
+            propriedade=propriedade,
+            data_inventario=date.today(),
+            defaults={
+                'categoria': categorias['Vaca em Lactacao'],  # Usar categoria existente
+                'quantidade': 1138,
+                'valor_por_cabeca': Decimal('2500.00'),
+            }
+        )
     except Exception as e:
-        print(f"Erro pecuaria: {e}")
+        print(f"Erro inventario: {e}")
 
-    # 2. Fornecedores básicos
-    print("Criando fornecedores...")
-    fornecedores_data = [
-        {'nome': 'Nutripec MS', 'cpf_cnpj': '12.345.678/0001-90'},
-        {'nome': 'Agropecuarista Silva', 'cpf_cnpj': '23.456.789/0001-80'},
-        {'nome': 'Veterinaria Campo Grande', 'cpf_cnpj': '34.567.890/0001-70'},
-        {'nome': 'Posto Rural', 'cpf_cnpj': '45.678.901/0001-60'},
-        {'nome': 'Loja de Maquinas', 'cpf_cnpj': '56.789.012/0001-50'},
-    ]
+    print(f"Criados {total_criados} animais")
 
-    fornecedores_criados = 0
-    for forn_data in fornecedores_data:
-        try:
-            fornecedor, created = Fornecedor.objects.get_or_create(
-                nome=forn_data['nome'],
-                propriedade=propriedade,
-                defaults={'cpf_cnpj': forn_data['cpf_cnpj']}
-            )
-            fornecedores_criados += 1
-        except Exception as e:
-            print(f"Erro fornecedor {forn_data['nome']}: {e}")
+def criar_financeiro_simples(propriedade):
+    """Cria dados financeiros basicos"""
 
-    print(f"Criados {fornecedores_criados} fornecedores")
+    # Criar categorias
+    categorias_receita = ['Venda de Gado', 'Leite']
+    categorias_despesa = ['Racao', 'Combustivel', 'Salarios', 'Manutencao']
 
-    # 3. Funcionários básicos
-    print("Criando funcionarios...")
-    from gestao_rural.models_funcionarios import Funcionario
+    categorias = {}
 
-    funcionarios_data = [
-        {'nome': 'Joao Gerente', 'cpf': '123.456.789-01', 'cargo': 'Gerente'},
-        {'nome': 'Maria Vaqueira', 'cpf': '234.567.890-12', 'cargo': 'Vaqueira'},
-        {'nome': 'Pedro Capataz', 'cpf': '345.678.901-23', 'cargo': 'Capataz'},
-        {'nome': 'Ana Veterinaria', 'cpf': '456.789.012-34', 'cargo': 'Veterinaria'},
-        {'nome': 'Carlos Mecanico', 'cpf': '567.890.123-45', 'cargo': 'Mecanico'},
-        {'nome': 'Roberto Tratador', 'cpf': '678.901.234-56', 'cargo': 'Tratador'},
-    ]
+    for cat_nome in categorias_receita + categorias_despesa:
+        tipo = 'RECEITA' if cat_nome in categorias_receita else 'DESPESA'
+        cat, created = CategoriaFinanceira.objects.get_or_create(
+            nome=cat_nome,
+            tipo=tipo,
+            propriedade=propriedade,
+            defaults={}
+        )
+        categorias[cat_nome] = cat
 
-    funcionarios_criados = 0
-    for func_data in funcionarios_data:
-        try:
-            Funcionario.objects.get_or_create(
-                nome=func_data['nome'],
-                propriedade=propriedade,
-                defaults={
-                    'cpf': func_data['cpf'],
-                    'cargo': func_data['cargo'],
-                    'salario_base': Decimal('2500.00'),
-                    'situacao': 'ATIVO',
-                    'data_admissao': date.today() - timedelta(days=random.randint(30, 365)),
-                }
-            )
-            funcionarios_criados += 1
-        except Exception as e:
-            print(f"Erro funcionario {func_data['nome']}: {e}")
-
-    print(f"Criados {funcionarios_criados} funcionarios")
-
-    # 4. Pastagens básicas
-    print("Criando pastagens...")
-    from gestao_rural.models_controles_operacionais import Pastagem
-
-    pastagens_data = [
-        {'nome': 'Pastagem Norte', 'area_ha': 300.0},
-        {'nome': 'Pastagem Sul', 'area_ha': 250.0},
-        {'nome': 'Pastagem Leste', 'area_ha': 200.0},
-        {'nome': 'Pastagem Oeste', 'area_ha': 180.0},
-        {'nome': 'Pastagem Central', 'area_ha': 400.0},
-    ]
-
-    pastagens_criadas = 0
-    for past_data in pastagens_data:
-        try:
-            Pastagem.objects.get_or_create(
-                nome=past_data['nome'],
-                propriedade=propriedade,
-                defaults={'area_ha': Decimal(str(past_data['area_ha']))}
-            )
-            pastagens_criadas += 1
-        except Exception as e:
-            print(f"Erro pastagem {past_data['nome']}: {e}")
-
-    print(f"Criadas {pastagens_criadas} pastagens")
-
-    # 5. Cochos
-    print("Criando cochos...")
-    from gestao_rural.models_controles_operacionais import Cocho
-
-    cochos_data = [
-        {'identificacao': 'Cocho 01', 'capacidade': 120},
-        {'identificacao': 'Cocho 02', 'capacidade': 120},
-        {'identificacao': 'Cocho 03', 'capacidade': 100},
-        {'identificacao': 'Cocho Mineral 01', 'capacidade': 80},
-        {'identificacao': 'Cocho Mineral 02', 'capacidade': 80},
-    ]
-
-    cochos_criados = 0
-    for cocho_data in cochos_data:
-        try:
-            Cocho.objects.get_or_create(
-                identificacao=cocho_data['identificacao'],
-                propriedade=propriedade,
-                defaults={'capacidade_kg': cocho_data['capacidade']}
-            )
-            cochos_criados += 1
-        except Exception as e:
-            print(f"Erro cocho {cocho_data['identificacao']}: {e}")
-
-    print(f"Criados {cochos_criados} cochos")
-
-    # 6. Bens patrimoniais básicos
-    print("Criando bens patrimoniais...")
-    from gestao_rural.models_patrimonio import TipoBem, BemPatrimonial
-
-    # Criar tipo básico
-    tipo_maquina, created = TipoBem.objects.get_or_create(
-        nome='Maquinas Agricolas',
-        categoria='MAQUINA',
-        defaults={'taxa_depreciacao': Decimal('10.00')}
+    # Criar conta bancaria
+    conta, created = ContaFinanceira.objects.get_or_create(
+        nome='Conta Corrente Banco do Brasil',
+        propriedade=propriedade,
+        defaults={
+            'tipo': 'CORRENTE',
+            'banco': 'Banco do Brasil',
+            'agencia': '1234-5',
+            'saldo_inicial': Decimal('100000.00'),
+        }
     )
 
-    bens_data = [
-        {'descricao': 'Trator Principal', 'valor': 350000.00},
-        {'descricao': 'Caminhao', 'valor': 200000.00},
-        {'descricao': 'Curral', 'valor': 150000.00},
-        {'descricao': 'Pulverizador', 'valor': 80000.00},
-    ]
+    # Criar lancamentos financeiros (200 no total)
+    lancamentos_criados = 0
 
-    bens_criados = 0
-    for bem_data in bens_data:
+    # Receitas (100 lancamentos)
+    for i in range(100):
+        categoria = random.choice(['Venda de Gado', 'Leite'])
+        valor = random.randint(2000, 8000) if categoria == 'Venda de Gado' else random.randint(800, 1500)
+
         try:
-            BemPatrimonial.objects.get_or_create(
+            LancamentoFinanceiro.objects.get_or_create(
                 propriedade=propriedade,
-                descricao=bem_data['descricao'],
-                tipo_bem=tipo_maquina,
-                defaults={
-                    'valor_aquisicao': Decimal(str(bem_data['valor'])),
-                    'data_aquisicao': date.today() - timedelta(days=random.randint(365, 1825)),
-                }
+                categoria=categorias[categoria],
+                descricao=f'{categoria} - Cliente {i+1}',
+                valor=Decimal(str(valor)),
+                data_competencia=date.today() - timedelta(days=random.randint(1, 365)),
+                data_vencimento=date.today() - timedelta(days=random.randint(1, 365)),
+                forma_pagamento='PIX',
+                status='QUITADO',
+                conta_destino=conta,
+                defaults={}
             )
-            bens_criados += 1
+            lancamentos_criados += 1
         except Exception as e:
-            print(f"Erro bem {bem_data['descricao']}: {e}")
+            print(f"Erro receita {i}: {e}")
 
-    print(f"Criados {bens_criados} bens patrimoniais")
+    # Despesas (100 lancamentos)
+    for i in range(100):
+        categoria = random.choice(['Racao', 'Combustivel', 'Salarios', 'Manutencao'])
+        valor = random.randint(500, 3000)
 
-    print("\nDEMONSTRACAO POPULADA COM DADOS REALISTAS!")
-    print("- 50 animais diversos")
-    print("- 5 fornecedores")
-    print("- 6 funcionarios")
-    print("- 5 pastagens (1330 ha total)")
-    print("- 5 cochos")
-    print("- 4 bens patrimoniais")
-    print("\nUsuario pode explorar todos os modulos com dados realistas!")
+        try:
+            LancamentoFinanceiro.objects.get_or_create(
+                propriedade=propriedade,
+                categoria=categorias[categoria],
+                descricao=f'{categoria} - Fornecedor {i+1}',
+                valor=Decimal(str(valor)),
+                data_competencia=date.today() - timedelta(days=random.randint(1, 365)),
+                data_vencimento=date.today() - timedelta(days=random.randint(1, 365)),
+                forma_pagamento='BOLETO',
+                status='QUITADO',
+                conta_origem=conta,
+                defaults={}
+            )
+            lancamentos_criados += 1
+        except Exception as e:
+            print(f"Erro despesa {i}: {e}")
+
+    print(f"Criados {lancamentos_criados} lancamentos financeiros")
 
 if __name__ == '__main__':
-    popular_demo_basico()
-
-
-
-
+    popular_demo()
