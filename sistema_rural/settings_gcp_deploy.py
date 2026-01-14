@@ -34,9 +34,16 @@ ALLOWED_HOSTS = [
     'monpec-sistema-rural.uc.r.appspot.com',
     'monpec-29862706245.us-central1.run.app',
     'monpec-fzzfjppzva-uc.a.run.app',
+    'monpec-app-fzzfjppzva-uc.a.run.app',  # Host específico do erro atual
+    'monpec-app-29862706245.us-central1.run.app',  # Host atual do serviço
     'localhost',
     '127.0.0.1',
     '0.0.0.0',
+    # Wildcards para Cloud Run
+    '*.run.app',
+    '*.a.run.app',
+    '*.uc.a.run.app',
+    '*.us-central1.run.app',
 ]
 
 # Adicionar hosts dinâmicos do Cloud Run
